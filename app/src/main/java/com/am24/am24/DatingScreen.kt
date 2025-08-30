@@ -7,14 +7,12 @@ package com.am24.am24
 import DatingViewModel
 import android.app.Activity
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
 /* Material 3 (add these – they won’t clash with existing M2 widgets) */
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme     as M3Theme
@@ -38,18 +36,19 @@ import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.EmojiEmotions  // or whichever icon you prefer for “Compliment”
-import androidx.compose.material.icons.filled.FlashOn         // for “Boost”
+import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Swipe
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
@@ -85,15 +84,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.AttachEmail
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterAlt
-import androidx.compose.material.icons.filled.FilterAltOff
 import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.IconButton
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -107,6 +100,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.am24.am24.ui.CompactCompatBadge
 import com.am24.am24.ui.CompatibilityMeter
 import com.am24.am24.ui.theme.DarkGrayBackground
 import com.google.accompanist.swiperefresh.SwipeRefresh
@@ -120,11 +114,18 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import java.util.Locale
 import java.util.concurrent.TimeUnit
+
+/* ────────────────────────────────────────────────────────────────────── */
+/*                   LOCAL EXCLUSION SETTINGS (14 days)                  */
+/* ────────────────────────────────────────────────────────────────────── */
+private const val EXCLUSION_TTL_MS = 14L * 24L * 60L * 60L * 1000L // 14 days rolling
 
 /* DatingScreen.kt  – add near the top, after imports */
 private fun Iterable<*>.dump(tag: String) =
@@ -134,93 +135,51 @@ private fun Iterable<*>.dump(tag: String) =
 private fun Set<*>.dump(tag: String) =
     Log.d("DS-FLOW", "$tag  size=${size}  →  ${joinToString()}")
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DatingFiltersSheet(
-    lastActiveHours: Double,
-    onLastActiveChange: (Double) -> Unit,
-    onApply: () -> Unit,
-    onCancel: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF1A1A1A))
-            .padding(16.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(stringResource(R.string.filters), color = Color.White, fontSize = 20.sp)
-            IconButton(onClick = onCancel) {
-                Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
-            }
-        }
+private fun deaccent(s: String): String {
+    val nfd = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+    return nfd.replace(Regex("\\p{Mn}+"), "")
+}
 
-        Spacer(Modifier.height(16.dp))
-
-        val days = (lastActiveHours / 24).roundToInt()
-        Text(
-            text = "Last active: ${if (days >= 30) "1 m" else "$days d"}",
-                color = Color.White
-                )
-                Slider(
-                    value = lastActiveHours.toFloat(),
-                    onValueChange = { onLastActiveChange(it.toDouble()) },
-                    valueRange = 24f..(24f * 30),
-                    colors = SliderDefaults.colors(
-                        thumbColor = KupidxOrange,
-                        activeTrackColor = KupidxOrange,
-                        inactiveTrackColor = KupidxOrange.copy(alpha = 0.24f)
-            )
-                )
-
-        Spacer(Modifier.height(16.dp))
-
-        // If you don’t want a tonal button (compat), just use Button + buttonColors
-        Button(
-            onClick = onApply,
-            modifier = Modifier.align(Alignment.End),
-            colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color(0xFFFF6F00).copy(alpha = 0.20f),
-                contentColor = Color(0xFFFF6F00)
-            )
-        ) {
-            Text(stringResource(R.string.save))
-        }
+private fun canonicalGender(raw: String?): String {
+    if (raw.isNullOrBlank()) return ""
+    val t = deaccent(raw).trim().lowercase(Locale.ROOT)
+    return when (t) {
+        "male", "m", "man", "hombre", "hombres", "masculino", "male_option" -> "male"
+        "female", "f", "woman", "mujer", "mujeres", "femenino", "female_option" -> "female"
+        "other", "others", "non-binary", "nonbinary", "nb",
+        "otro", "otra", "otros", "otras", "no binario", "no-binario", "no_binario", "nobinario",
+        "gender_other" -> "other"
+        else -> t
     }
 }
 
+private fun Profile.matchesMapGender(selected: GenderFilter): Boolean {
+    val c = canonicalGender(this.gender)
+    return when (selected) {
+        GenderFilter.BOTH  -> true
+        GenderFilter.WOMEN -> c == "female"
+        GenderFilter.MEN   -> c == "male"
+        GenderFilter.OTHER -> c == "other"
+    }
+}
+
+/* Write a temp exclusion that expires in 14 days */
+private fun addToExclusions(currentUserId: String, otherUserId: String, reason: String) {
+    val ref = FirebaseRefs.db.getReference("exclusions/$currentUserId/$otherUserId")
+    val payload = mapOf("ts" to System.currentTimeMillis(), "reason" to reason)
+    ref.setValue(payload)
+}
 
 data class SwipeData(
     val liked: Boolean = false,
     val timestamp: Long = 0L
 )
 
-@Composable
-fun BoostedPill(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .background(Color(0xFFFF6F00), RoundedCornerShape(percent = 50))
-            .padding(horizontal = 10.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            Icons.Default.FlashOn,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(14.dp)
-        )
-        Spacer(Modifier.width(4.dp))
-        Text(
-            text = "Boosted profile",
-            color = Color.White,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
 /**
- * Main DatingScreen with swipe counter and info overlay beside the Filters button.
+ * Main DatingScreen with:
+ *  - Gender selector on-screen (persists + refreshes VM)
+ *  - NO local plus/premium sorting (VM fetches 20/50/100 by tier)
+ *  - Temp exclusions for like/dislike/compliment (14 days)
  */
 @Composable
 fun DatingScreen(
@@ -236,6 +195,27 @@ fun DatingScreen(
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
     val myUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
     var likers by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val ctx = LocalContext.current
+    val prefs = remember { ctx.getSharedPreferences("settings", Context.MODE_PRIVATE) }
+    var genderFilter by remember { mutableStateOf(GenderFilter.BOTH) }
+
+    // Initial read + live updates if MapScreen changes it
+    LaunchedEffect(Unit) {
+        genderFilter = prefs.getString("map_gender_filter", GenderFilter.BOTH.name)
+            ?.let { runCatching { GenderFilter.valueOf(it) }.getOrNull() } ?: GenderFilter.BOTH
+    }
+    DisposableEffect(prefs) {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "map_gender_filter") {
+                genderFilter = prefs.getString("map_gender_filter", GenderFilter.BOTH.name)
+                    ?.let { runCatching { GenderFilter.valueOf(it) }.getOrNull() } ?: GenderFilter.BOTH
+                // On external changes, still do a full VM refresh
+                datingViewModel.refreshFilteredProfiles()
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     // 1) watch for “are we still on the Dating route?”
     val backstackEntry by navController.currentBackStackEntryAsState()
@@ -248,7 +228,7 @@ fun DatingScreen(
     /* fetch *my* Profile once */
     LaunchedEffect(Unit) {
         profileViewModel.fetchCurrentUserProfile()
-        datingViewModel.startInventoryWatcher(myUid)        // NEW  ←───────────────★
+        datingViewModel.startInventoryWatcher(myUid)
     }
 
     // ── StateFlows ────────────────────────────────────────────────────
@@ -264,32 +244,18 @@ fun DatingScreen(
     val isLoading         by datingViewModel.isLoading.collectAsState()
     val loadingProgress   by datingViewModel.loadingProgress.collectAsState()
     val matchPopUpState   by profileViewModel.matchPopUpState.collectAsState()
-    val boostedUsers      by datingViewModel.boostedUsers.collectAsState()
     val complimentsLeft   by datingViewModel.complimentsLeft.collectAsState()
-    val complimentsRecv   by datingViewModel.complimentsReceived.collectAsState()
     val isIndian = myProfile?.country.equals("India", true)
 
-    val isPremium by profileViewModel.isPremium.collectAsState(false)
-    val isPlus    by profileViewModel.isPlus   .collectAsState(false)
-    var lastActiveHours by remember { mutableStateOf(24.0) }
-    val filteredProfiles by remember(baseProfiles, lastActiveHours, isPremium, isPlus) {
+    // gender-only filtering; lastActive order already applied later
+    val filteredProfiles by remember(baseProfiles, myProfile, genderFilter) {
         derivedStateOf {
-            val cutoff = System.currentTimeMillis() -
-                    TimeUnit.MINUTES.toMillis((lastActiveHours * 60).toLong()) // keeps 0.5h etc.
-
-            val sorted = baseProfiles
+            baseProfiles
                 .asSequence()
-                .filter { it.lastActive >= cutoff }
+                .filter { prof -> prof.userId.isNotBlank() }
+                .filter { prof -> prof.matchesMapGender(genderFilter) }   // only gender filter
                 .sortedByDescending { it.lastActive }
                 .toList()
-
-            val limit = when {
-                isPremium -> 150
-                isPlus -> 50
-                else -> 20
-            }
-
-            sorted.take(limit) // return value of derivedStateOf
         }
     }
 
@@ -298,55 +264,32 @@ fun DatingScreen(
     var remainingSwipes   by remember { mutableStateOf(0) }
     var swipesLoaded      by remember { mutableStateOf(false) }
 
-    // constants
-    val BOOST_DURATION = 1 * 60 * 60 * 1000L
-    val now = remember { System.currentTimeMillis() }
-    val last = myProfile?.lastBoostTimestamp ?: 0L
-    val inCooldown = now - last < BOOST_DURATION
-    val availableBoosts = myProfile?.availableBoosts ?: 0
-    val canBoost = availableBoosts > 0 && !inCooldown
-
     var showComplimentDlg by remember { mutableStateOf(false) }
-    var showBoostFlash by remember { mutableStateOf(false) }
+    val aiResults = remember { mutableStateMapOf<String, AiMatchCheckResult>() }
 
     val context = LocalContext.current
     val activity = LocalContext.current as Activity
     val rewardedComplimentManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedCompliment(activity)) }
     val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
-    val rewardedBoostManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedBoost(activity)) }
-
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    fun safeRefresh() {
-        try {
-            datingViewModel.refreshFilteredProfiles()
-        } catch (e: Exception) {
-            Log.e("DatingScreen", "Failed to refresh profiles: ${e.message}", e)
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar("Failed to refresh profiles")
-            }
-        }
-    }
 
     DisposableEffect(Unit) {
         onDispose {
             rewardedComplimentManager.clearCallbacks()
             rewardedSwipeManager.clearCallbacks()
-            rewardedBoostManager.clearCallbacks()
         }
     }
 
     LaunchedEffect(Unit) {
         FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
             excludedUserIds = fetchExcludedUsers(uid)
-            excludedUserIds.dump("EXCLUDED_UIDS")   // <-- NEW LOG LINE
+            excludedUserIds.dump("EXCLUDED_UIDS")
             profileViewModel.fetchCurrentUserProfile()
             remainingSwipes = loadAndResetSwipesDaily(uid)
             swipesLoaded    = true
-            safeRefresh()
+            // Full VM refresh (tier-sized, by country)
+            datingViewModel.refreshFilteredProfiles()
         }
     }
-
 
     LaunchedEffect(myUid) {
         // grab everyone who’s liked me
@@ -357,67 +300,21 @@ fun DatingScreen(
         likers = snap.children.mapNotNull { it.key }.toSet()
     }
 
-    // —— see which Profile objects are being dropped ————————————————
+    // SEE which Profile objects are being dropped
     val excludedProfiles = filteredProfiles.filter { it.userId in excludedUserIds }
-    excludedProfiles.dump("EXCLUDED_PROFILES")          // <-- NEW LOG
-    // ─────────────────────────────────────────────────────────────────
-    //   BUILD DISPLAY LIST  (must come *before* we use it)
-    // ─────────────────────────────────────────────────────────────────
-    val base by remember(filteredProfiles, excludedUserIds, likers) {
+    excludedProfiles.dump("EXCLUDED_PROFILES")
+
+    // BUILD DISPLAY LIST – no local plus/premium ordering
+    val displayedProfiles by remember(filteredProfiles, excludedUserIds, likers) {
         derivedStateOf {
             filteredProfiles
                 .filter { it.userId.isNotBlank() }
                 .filter { it.userId !in excludedUserIds }
-                // hide private profiles, unless *they* liked you:
+                // hide private profiles, unless they liked you:
                 .filter { prof -> !prof.isPrivate || prof.userId in likers }
-                .also { it.dump("BASE") }
+                .also { it.dump("DISPLAYED") }
         }
     }
-
-    val premiumList by remember(base) {
-        derivedStateOf { base.also { it.dump("PREM") }.filter { it.isPremium } }
-    }
-    val plusList by remember(base, premiumList) {
-        derivedStateOf {
-            base.filter { !it.isPremium }            // not premium
-                .filter { it.isPlus }                 // plus only
-                .filter { it.userId !in premiumList.map { p -> p.userId } }
-                .also { it.dump("PLUS") }
-        }
-    }
-    val complimentersList by remember(complimentsRecv, base, premiumList, plusList) {
-        derivedStateOf {
-            complimentsRecv.keys
-                .mapNotNull { id -> base.find { it.userId == id } }
-                .filter { it.userId !in premiumList.map { p -> p.userId } }
-                .filter { it.userId !in plusList.map { p -> p.userId } }
-                .also { it.dump("COMP") }
-        }
-    }
-    val boostedList by remember(boostedUsers, premiumList, plusList, complimentersList, excludedUserIds) {
-        derivedStateOf {
-            boostedUsers
-                .filter { it.userId !in premiumList.map { p -> p.userId } }
-                .filter { it.userId !in plusList.map { p -> p.userId } }
-                .filter { it.userId !in complimentersList.map { p -> p.userId } }
-                .filter { it.userId !in excludedUserIds }
-                .also { it.dump("BOOST") }
-        }
-    }
-    val restList by remember(base, premiumList, plusList, complimentersList, boostedList) {
-        derivedStateOf {
-            base
-                .filter { it.userId !in premiumList.map { p -> p.userId } }
-                .filter { it.userId !in plusList.map { p -> p.userId } }
-                .filter { it.userId !in complimentersList.map { p -> p.userId } }
-                .filter { it.userId !in boostedList.map { p -> p.userId } }
-                .filter { !it.isPremium && !it.isPlus }
-                .also { it.dump("REST") }
-        }
-    }
-
-    val displayedProfiles = premiumList + plusList + complimentersList + boostedList + restList
-    Log.d("DS-FLOW", "DISPLAYED   size=${displayedProfiles.size}")
 
     // ── Hoisted deck pointer ─────────────────────────────────────────
     var currentIndex      by rememberSaveable { mutableStateOf(0) }
@@ -425,18 +322,10 @@ fun DatingScreen(
         derivedStateOf { displayedProfiles.getOrNull(currentIndex) }
     }
     var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
+    val aiForCurrent = currentSwipeProfile?.userId?.let { aiResults[it] }
+
 
     LaunchedEffect(allProfiles) { currentIndex = 0 }
-
-//    // Keep the same top card when profiles list updates
-//    LaunchedEffect(sortedDisplayedProfiles) {
-//        val id = datingViewModel.currentSwipeUserId.value
-//        id?.let { uid ->
-//            sortedDisplayedProfiles.indexOfFirst { it.userId == uid }
-//                .takeIf { it >= 0 }
-//                ?.let { currentIndex = it }
-//        }
-//    }
 
     // inside DatingScreen (or DatingScreenContent) where you have `currentSwipeProfile`:
     LaunchedEffect(currentSwipeProfile?.userId) {
@@ -446,10 +335,30 @@ fun DatingScreen(
         val myId = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
         val myProf = myProfile ?: return@LaunchedEffect
         val otherId = currentSwipeProfile?.userId ?: return@LaunchedEffect
+
+        // ── NEW: prefetch distance for current + next
+        datingViewModel.prefetchDistance(myId, otherId, geoFire)
+        displayedProfiles.getOrNull(currentIndex + 1)?.userId?.let { nextId ->
+            datingViewModel.prefetchDistance(myId, nextId, geoFire)
+        }
+
         val ref = FirebaseRefs.db
             .getReference("aiMatchCheck/$myId/$otherId")
         val snap = ref.get().await()
         val existing = snap.getValue(AiMatchCheckResult::class.java)
+        if (existing != null) {
+            aiResults[otherId] = existing
+        } else {
+            runAiMatchCheck(
+                context = context,
+                coroutineScope = coroutineScope,
+                currentUserId = myId,
+                currentUserProfile = myProf,
+                otherProfile = currentSwipeProfile!!
+            ) { result ->
+                aiResults[otherId] = result
+            }
+        }
         if (existing != null) {
             aiMatchResult = existing
         } else {
@@ -478,7 +387,7 @@ fun DatingScreen(
 
     /* Auto-tap dating icon when profiles are empty */
     LaunchedEffect(currentRoute, displayedProfiles, isLoading) {
-        if (currentRoute == "dating"                     // only run if we’re still here
+        if (currentRoute == "dating"
             && !isLoading
             && displayedProfiles.isEmpty()
             && autoTapCount < maxAutoTaps
@@ -492,12 +401,6 @@ fun DatingScreen(
         }
     }
 
-    /* bottom-sheet for filters */
-    val sheetState = rememberModalBottomSheetState(
-        initialValue     = ModalBottomSheetValue.Hidden,
-        skipHalfExpanded = true
-    )
-
     /* cannot go on until *my* profile has loaded */
     if (myProfile == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -506,661 +409,218 @@ fun DatingScreen(
         return
     }
 
-    ModalBottomSheetLayout(
-        sheetState   = sheetState,
-        sheetContent = {
-            DatingFiltersSheet(
-                lastActiveHours = lastActiveHours,
-                onLastActiveChange = { lastActiveHours = it },
-                onApply = {
-                    datingViewModel.refreshFilteredProfiles()
-                    coroutineScope.launch { sheetState.hide() }
-                },
-                onCancel = { coroutineScope.launch { sheetState.hide() } }
-            )
-        }
-    ) {
-        Column(Modifier
+    Column(
+        Modifier
             .fillMaxSize()
             .background(DarkGrayBackground)
+    ) {
+        // ── TOOLBAR (center meter + gender filter) ─────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Left: Gender Filter Pills
+            GenderFilterBar(
+                selected = genderFilter,
+                onChange = { newVal ->
+                    genderFilter = newVal
+                    // persist and inform other screens
+                    prefs.edit().putString("map_gender_filter", newVal.name).apply()
+                    // do a full refresh per requirement
+                    datingViewModel.refreshFilteredProfiles()
+                }
+            )
 
-            // ── TOOLBAR ───────────────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                IconButton(
-                    onClick = { coroutineScope.launch { sheetState.show() } },
-                    modifier = Modifier.size(30.dp)
+            // Center: Compatibility meter when there is a profile selected
+            currentSwipeProfile?.let {
+                Box(
+                    modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.FilterAlt,
-                        contentDescription = null,
-                        tint = Color(0xFFFF6F00),
-                        modifier = Modifier.size(27.dp)
+                    CompactCompatBadge(
+                        percent = aiForCurrent?.totalMatchPercentage?.toDouble() ?: 0.0
+                    )
+                }
+            }
+
+            Spacer(Modifier.size(30.dp)) // right spacer for centering
+        }
+
+        // ── DECK / LOADING / EMPTY STATES ─────────────────────────────
+        Box(Modifier.fillMaxSize()) {
+            when {
+                isLoading -> Box(
+                    modifier = Modifier.align(Alignment.Center),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        progress = loadingProgress / 100f,
+                        color = Color(0xFFFF6F00)
+                    )
+                    Text(
+                        text = stringResource(R.string.percentage, loadingProgress),
+                        color = BrandOrange,
+                        modifier = Modifier.align(Alignment.Center)
                     )
                 }
 
-                // RatingBar centered
-                currentSwipeProfile?.let {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .horizontalScroll(rememberScrollState()),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CompatibilityMeter(
-                            percent = aiMatchResult?.totalMatchPercentage?.toDouble() ?: 0.0
-                        )
-                    }
-                }
+                displayedProfiles.isEmpty() -> NoMoreProfilesScreen(
+                    autoTapCount = autoTapCount,
+                    maxAutoTaps  = maxAutoTaps,
+                    onRefresh    = { datingViewModel.refreshFilteredProfiles() }
+                )
 
-                Row {
-                    /* 👍  Compliments */
-                    WaterIconButton(
-                        quota    = complimentsLeft,
-                        maxQuota = 5,
-                        icon     = Icons.Default.AttachEmail,
-                        enabled  = complimentsLeft > 0,
-                        tint     = if (complimentsLeft > 0) Color.White else Color.Gray,
-                        onClick  = {
-                            if (complimentsLeft > 0) {
-                                showComplimentDlg = true
+                else -> DatingScreenContent(
+                    navController    = navController,
+                    geoFire          = geoFire,
+                    profileViewModel = profileViewModel,
+                    postViewModel    = postViewModel,
+                    profiles         = displayedProfiles,
+                    currentIndex     = currentIndex,
+                    aiMatchResult = aiForCurrent,
+                    onComplimentUser = { uid ->
+                        datingViewModel.setCurrentSwipeUserId(uid)
+                        if (complimentsLeft > 0) {
+                            showComplimentDlg = true
+                        } else {
+                            if (isIndian) {
+                                navController.navigate("buyCompliments")
                             } else {
-                                // zero left → go buy more
-                                if (isIndian) {
-                                    navController.navigate("buyCompliments")
-                                } else {
+                                val uidLocal = FirebaseAuth.getInstance().uid
+                                if (uidLocal != null) {
                                     rewardedComplimentManager.showWithDailyLimit(
-                                        userId = FirebaseAuth.getInstance().uid ?: return@WaterIconButton,
+                                        userId = uidLocal,
                                         onReward = {
                                             datingViewModel.incrementComplimentsLocal()
-                                        val uid = FirebaseAuth.getInstance().uid
-                                        if (uid != null) {
                                             val newVal = complimentsLeft + 1
                                             coroutineScope.launch {
-                                                FirebaseRefs.db.getReference("users/$uid/availableCompliments")
+                                                FirebaseRefs.db
+                                                    .getReference("users/$uidLocal/availableCompliments")
                                                     .setValue(newVal)
                                             }
                                             profileViewModel.incrementComplimentsLocal()
                                         }
-                                        }
                                     )
                                 }
                             }
                         }
-                    )
-                    Spacer(Modifier.width(13.dp))
+                    },
+                    onSwipeRight     = {
+                        if (remainingSwipes > 0) remainingSwipes--
+                        updateSwipesInFirebase(remainingSwipes)
+                        currentIndex++
+                    },
+                    onSwipeLeft      = {
+                        if (remainingSwipes > 0) remainingSwipes--
+                        updateSwipesInFirebase(remainingSwipes)
+                        currentIndex++
+                    },
+                    excludedUserIds = excludedUserIds,
+                    onExcludeUser   = { excludedUserIds = excludedUserIds + it },
+                    onRefreshProfiles = { datingViewModel.refreshFilteredProfiles() }
+                )
+            }
+            // ── If they’ve exhausted swipes, show overlay ──
+            if (swipesLoaded && remainingSwipes <= 0 && !showSwipeLimitOverlay) {
+                showSwipeLimitOverlay = true
+            }
 
-                    /* ⚡  Boosts */
-                    WaterIconButton(
-                        quota    = myProfile!!.availableBoosts,
-                        maxQuota = 5,
-                        icon     = Icons.Default.FlashOn,
-                        tint     = if (canBoost) Color.White else Color.Gray,
-                        enabled  = canBoost,
-                        onClick  = {
-                            if (canBoost) {
-                                val myUid = FirebaseAuth.getInstance().uid ?: return@WaterIconButton
-                                datingViewModel.boostUser(myUid) {
-                                    profileViewModel.decrementBoostsLocal()
-                                    showBoostFlash = true
-                                    profileViewModel.fetchCurrentUserProfile()
-                                }
-                            } else {
-                                // no boosts → go buy more
-                                if (isIndian) {
-                                    navController.navigate("buyBoosts")
-                                } else {
-                                    rewardedBoostManager.showWithDailyLimit(
-                                        userId = FirebaseAuth.getInstance().uid ?: return@WaterIconButton,
-                                        onReward = {
-                                            profileViewModel.incrementBoostsLocal()
-                                            datingViewModel.incrementBoostsLocal()
-                                            val uid = FirebaseAuth.getInstance().uid
-                                            if (uid != null) {
-                                                val newVal = myProfile!!.availableBoosts + 1
-                                                coroutineScope.launch {
-                                                    FirebaseRefs.db.getReference("users/$uid/availableBoosts")
-                                                        .setValue(newVal)
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
-                            }
+            if (showSwipeLimitOverlay) {
+                SwipeLimitOverlay(
+                    remainingSwipes = remainingSwipes,
+                    isPlus = myProfile!!.isPlus,
+                    isPremium = myProfile!!.isPremium,
+                    isIndian = isIndian,
+                    onWatchAd = {
+                        if (isIndian) {
+                            navController.navigate("buySwipes")
+                            showSwipeLimitOverlay = false
+                        } else {
+                            rewardedSwipeManager.showWithDailyLimit(
+                                userId = FirebaseAuth.getInstance().uid ?: return@SwipeLimitOverlay,
+                                onReward = {
+                                    remainingSwipes += 5
+                                    updateSwipesInFirebase(remainingSwipes)
+                                },
+                                afterAd = { showSwipeLimitOverlay = false }
+                            )
                         }
-                    )
-                }
-            }
-
-            /* yellow flash overlay on successful boost */
-            AnimatedVisibility(
-                visible = showBoostFlash,
-                enter   = fadeIn(animationSpec = tween(250)),
-                exit    = fadeOut(animationSpec = tween(600))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(96.dp)
-                        .border(3.dp, Color(0xFFFF6F00), CircleShape)
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.FlashOn, null,
-                        tint = Color(0xFFFF6F00),
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
-
-            LaunchedEffect(showBoostFlash) {
-                if (showBoostFlash) {
-                    delay(2000)
-                    showBoostFlash = false
-                }
-            }
-
-            // ── DECK / LOADING / EMPTY STATES ────────────────────────
-            Box(Modifier.fillMaxSize()) {
-                when {
-                    isLoading -> Box(
-                        modifier = Modifier.align(Alignment.Center),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            progress = loadingProgress / 100f,
-                            color = Color(0xFFFF6F00)
-                        )
-                        Text(
-                            text = stringResource(R.string.percentage, loadingProgress),
-                            color = KupidxOrange,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
                     }
-
-                    displayedProfiles.isEmpty() -> NoMoreProfilesScreen(
-                        autoTapCount = autoTapCount,
-                        maxAutoTaps = maxAutoTaps,
-                        onRefresh = {
-                            datingViewModel.refreshFilteredProfiles()
-                        }
-                    )
-
-                    else -> DatingScreenContent(
-                        navController    = navController,
-                        geoFire          = geoFire,
-                        profileViewModel = profileViewModel,
-                        postViewModel    = postViewModel,
-                        profiles         = displayedProfiles,
-                        currentIndex     = currentIndex,   // 🔹
-                        boostedUsers     = boostedUsers,
-                        onSwipeRight     = {
-                            if (remainingSwipes > 0) remainingSwipes--
-                            updateSwipesInFirebase(remainingSwipes)         // ← persist
-                            currentIndex++
-                        },
-                        onSwipeLeft      = {
-                            if (remainingSwipes > 0) remainingSwipes--
-                            updateSwipesInFirebase(remainingSwipes)
-                            currentIndex++
-                        },
-                        excludedUserIds = excludedUserIds,
-                        onExcludeUser = { excludedUserIds = excludedUserIds + it },
-                        onRefreshProfiles = {
-                            datingViewModel.refreshFilteredProfiles()
-                        }
-                    )
-                }
-                // ── if they’ve exhausted swipes, show your overlay (below) ──
-                if (swipesLoaded && remainingSwipes <= 0 && !showSwipeLimitOverlay) {
-                    showSwipeLimitOverlay = true
-                }
-
-                // ② if they've used up all their swipes, show the pretty overlay:
-                if (showSwipeLimitOverlay) {
-                    SwipeLimitOverlay(
-                        remainingSwipes = remainingSwipes,
-                        isPlus = myProfile!!.isPlus,
-                        isPremium = myProfile!!.isPremium,
-                        isIndian = isIndian,
-                        onWatchAd = {
-                            if (isIndian) {
-                                navController.navigate("buySwipes")
-                                showSwipeLimitOverlay = false
-                            } else {
-                                rewardedSwipeManager.showWithDailyLimit(
-                                    userId = FirebaseAuth.getInstance().uid ?: return@SwipeLimitOverlay,
-                                    onReward = {
-                                        remainingSwipes += 5
-                                        updateSwipesInFirebase(remainingSwipes)
-                                    },
-                                    afterAd = { showSwipeLimitOverlay = false }
-                                )
-                            }
-                        }
-                    )
-                }
+                )
             }
-            }
-        /* match pop-up, compliment dialog – unchanged from your code */
-        matchPopUpState?.let { (you, them) ->
-            MatchPopUp(
-                you.profilepicUrl.orEmpty(),
-                them.profilepicUrl.orEmpty(),
-                onChatClick = {
-                    profileViewModel.clearMatchPopUp()
-                    navController.navigate("chat/${them.userId}")
-                },
-                onClose = { profileViewModel.clearMatchPopUp() }
-            )
         }
-        if (showComplimentDlg && displayedProfiles.isNotEmpty()) {
-            ComplimentDialog(
-                complimentsLeft = complimentsLeft,
-                onSend = { text ->
-                    coroutineScope.launch {
-                        val receiver = displayedProfiles[currentIndex]
-                        datingViewModel.sendCompliment(
-                            receiverId       = receiver.userId,
-                            textMessage      = text,
-                            profileViewModel = profileViewModel
-                        )
-                        excludedUserIds += receiver.userId
-                        showComplimentDlg = false
-                    }
-                },
-                onDismiss = { showComplimentDlg = false }
-            )
-        }
+    }
+
+    /* match pop-up, compliment dialog – unchanged except exclusions on send */
+    matchPopUpState?.let { (you, them) ->
+        MatchPopUp(
+            you.profilepicUrl.orEmpty(),
+            them.profilepicUrl.orEmpty(),
+            onChatClick = {
+                profileViewModel.clearMatchPopUp()
+                navController.navigate("chat/${them.userId}")
+            },
+            onClose = { profileViewModel.clearMatchPopUp() }
+        )
+    }
+    if (showComplimentDlg && displayedProfiles.isNotEmpty()) {
+        ComplimentDialog(
+            complimentsLeft = complimentsLeft,
+            onSend = { text ->
+                coroutineScope.launch {
+                    val receiver = displayedProfiles[currentIndex]
+                    val me = FirebaseAuth.getInstance().uid ?: return@launch
+                    datingViewModel.sendCompliment(
+                        receiverId       = receiver.userId,
+                        textMessage      = text,
+                        profileViewModel = profileViewModel
+                    )
+                    // Temp exclude for 14 days on compliment
+                    addToExclusions(me, receiver.userId, "compliment")
+                    ExclusionEventBus.emit(receiver.userId)
+                    excludedUserIds += receiver.userId
+                    showComplimentDlg = false
+                }
+            },
+            onDismiss = { showComplimentDlg = false }
+        )
     }
 }
 
-/* new composable – put near IconWithQuota, or in the same file */
 @Composable
-fun WaterIconButton(
-    quota: Int,
-    maxQuota: Int,
-    icon: ImageVector,
-    enabled: Boolean = true,
-    tint: Color = Color.White,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+fun GenderFilterBar(
+    selected: GenderFilter,
+    onChange: (GenderFilter) -> Unit
 ) {
-    val progress by animateFloatAsState(
-        targetValue = quota.coerceIn(0, maxQuota) / maxQuota.toFloat(),
-        animationSpec = tween(400)
+    val items = listOf(
+        GenderFilter.BOTH  to "All",
+        GenderFilter.WOMEN to "Women",
+        GenderFilter.MEN   to "Men",
+        GenderFilter.OTHER to "Other"
     )
-    val side = 34.dp
-    Box(
-        modifier = modifier
-            .size(side)
-            .clip(CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        /* container + “water” fill */
-        Canvas(Modifier.matchParentSize()) {
-            val h = size.height
-            // dark vessel
-            drawCircle(Color.DarkGray)
-            // orange water that rises / falls
-            drawRect(
-                color = if (enabled) Color(0xFFFF6F00) else Color.Gray,
-                topLeft = Offset(0f, h * (1f - progress)),
-                size = Size(size.width, h * progress)
-            )
-        }
-        Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
-    }
-}
-
-
-/**
- * Load swipes from Firebase and reset them to 15 if a new day has started.
- */
-suspend fun loadAndResetSwipesDaily(userId: String): Int {
-    val userRef  = FirebaseRefs.db.getReference("users/$userId")
-    val userSnap = userRef.get().await()
-
-    val isPremium = userSnap.child("isPremium").getValue(Boolean::class.java) ?: false
-    val isPlus    = userSnap.child("isPlus").getValue(Boolean::class.java) ?: false
-    val quota     = when {
-        isPremium -> Int.MAX_VALUE
-        isPlus    -> 50
-        else      -> 20
-    }
-
-    val swipesRef = userRef.child("swipesInfo")
-    val snap      = swipesRef.get().await()
-
-    val snapRemaining = snap.child("remainingSwipes").getValue(Int::class.java) ?: quota
-    val lastReset     = snap.child("lastResetDayOfYear").getValue(Int::class.java) ?: -1
-    val today   = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
-    val newDay  = today != lastReset
-
-    /* ── New day?  Top-up only if user was below their quota ─────── */
-    /* ── New day or tier upgrade?  Always restore to quota ────────── */
-    var remaining = snapRemaining
-
-    /* ── New day?  Always restore to quota ───────────────────────── */
-    if (newDay) {
-        remaining = quota
-    }
-
-    /* ── Persist back if anything changed ────────────────────────── */
-    if (newDay || remaining != snapRemaining) {
-        swipesRef.child("remainingSwipes").setValue(remaining)
-        swipesRef.child("lastResetDayOfYear").setValue(today)
-    }
-
-    return remaining
-}
-
-/** Updates the user's remainingSwipes in Firebase. */
-fun updateSwipesInFirebase(newSwipesCount: Int) {
-    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val swipesRef = FirebaseRefs.db.getReference("users/$userId/swipesInfo")
-    swipesRef.child("remainingSwipes").setValue(newSwipesCount)
-}
-
-
-@Composable
-fun SwipeLimitOverlay(
-    remainingSwipes: Int,
-    isPlus: Boolean,
-    isPremium: Boolean,
-    isIndian: Boolean,
-    onWatchAd: () -> Unit
-) {
-    // compute your daily quota
-    val quota = when {
-        isPremium  -> Int.MAX_VALUE
-        isPlus     -> 50
-        else       -> 20
-    }
-
-    // countdown to midnight
-    var timeLeft by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
-        while(true) {
-            val now = System.currentTimeMillis()
-            val cal = Calendar.getInstance().apply {
-                timeInMillis = now
-                add(Calendar.DAY_OF_YEAR, 1)
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE,      0)
-                set(Calendar.SECOND,      0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            val diff = cal.timeInMillis - now
-            val h = diff / 3_600_000
-            val m = (diff % 3_600_000) / 60_000
-            val s = (diff % 60_000) / 1000
-            timeLeft = String.format("%02d:%02d:%02d", h, m, s)
-            delay(1000)
-        }
-    }
-
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(DarkGrayBackground.copy(alpha = 0.8f))
-            .pointerInput(Unit) {},   // eat all touches
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.padding(32.dp)
-        ) {
-            Column(
-                Modifier
-                    .background(Color(0xFF1A1A1A))
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("Swipes Remaining", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(12.dp))
-                Text("$remainingSwipes / ${if (quota == Int.MAX_VALUE) "∞" else quota}", color = Color.White, fontSize = 14.sp)
-                Spacer(Modifier.height(12.dp))
-                Text("Resets in: $timeLeft", color = Color.Gray)
-                Spacer(Modifier.height(24.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Button(
-                        onClick = onWatchAd,
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
-                    ) {
-                        val label = if (isIndian) "Buy Swipes" else "Watch ad for 5 Swipes"
-                        Text(label, color = Color.Black)
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-/* ––– Extra helper: quick Premium‑lock composable ––– */
-@Composable fun Locked(label: String) {
-    val ctx = LocalContext.current       // ← add this line
-    Box(
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp)
-            .background(Color.DarkGray, RoundedCornerShape(8.dp))
-            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
+            .wrapContentWidth()
+            .horizontalScroll(rememberScrollState())
     ) {
-        Text(
-            text = ctx.getString(R.string.upgrade_to_premium_to_unlock),
-            color = Color.Gray,
-            fontSize = 13.sp,
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-val BrandOrange = Color(0xFFFF6600)
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PlaceSearchDropdown(
-    label: String,
-    query: String,
-    onQueryChange: (String) -> Unit,
-    results: List<PlaceResult>,
-    searching: Boolean,
-    onResultSelect: (String) -> Unit,
-    isFieldFocused: Boolean,
-    onFieldFocusChange: (Boolean) -> Unit
-) {
-    val focusManager = LocalFocusManager.current
-    val expanded     = results.isNotEmpty() && isFieldFocused
-    val clearLabel   = stringResource(R.string.clear_selection)
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { /* menu is driven by focus – leave empty */ },
-    ) {
-        val focusRequester = remember { FocusRequester() }
-
-        /* ---- anchor text-field ---- */
-        OutlinedTextField(
-            value         = query,
-            onValueChange = onQueryChange,
-            label         = { Text(label) },
-            singleLine    = true,
-            trailingIcon  = {
-                if (searching) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        modifier    = Modifier.size(18.dp),
-                        color       = BrandOrange               // tint spinner
-                    )
-                } else {
-                    Icon(
-                        imageVector      = Icons.Default.Search,
-                        contentDescription = null,
-                        tint              = BrandOrange        // tint search icon
-                    )
-                }
-            },
-
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(   // <- CHANGE
-                /* input text */
-                textColor   = Color.White,
-                /* border */
-                focusedBorderColor   = Color.White,
-                unfocusedBorderColor = Color.White,
-
-                /* label (the in-field “College / Post Grad” you see before typing) */
-                focusedLabelColor   = Color.White,
-                unfocusedLabelColor = Color.White,
-
-                /* placeholder (if you use it) */
-                placeholderColor   = Color.White,
-
-                /* cursor & icons for completeness */
-                cursorColor                = Color.White,
-                focusedTrailingIconColor   = BrandOrange,
-            ),
-
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
-                .focusRequester(focusRequester)
-                .onFocusChanged { state ->
-                    onFieldFocusChange(state.isFocused)
-                    if (!state.isFocused) onResultSelect(query)
-                }
-        )
-
-        /* ---- dropdown menu ---- */
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = {
-                onFieldFocusChange(false)
-                focusManager.clearFocus()
-            },
-            modifier = Modifier
-                .background(Color.White, RoundedCornerShape(6.dp))
-                .border(
-                    BorderStroke(1.dp, Color.Black.copy(alpha = .15f)),
-                    RoundedCornerShape(6.dp)
-                )
-        ) {
-            /* clear-selection row */
-            if (query.isNotBlank()) {
-                DropdownMenuItem(
-                    text = { Text(clearLabel) },
-                    onClick = {
-                        onQueryChange("")
-                        onResultSelect("")
-                        focusManager.clearFocus()
-                    }
-                )
-            }
-
-            /* places results */
-            results.forEach { res ->
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text(res.name)
-                            if (res.address.isNotBlank()) {
-                                Text(
-                                    res.address,
-                                    style = M3Theme.typography.bodySmall,
-                                    color = Color.DarkGray
-                                )
-                            }
-                        }
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Place,
-                            contentDescription = null,
-                            tint = BrandOrange
-                        )
-                    },
-                    onClick = {
-                        onQueryChange(res.name)
-                        onResultSelect(res.name)
-                        focusManager.clearFocus()
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun FilterSectionTitle(title: String) {
-    Text(
-        text = title,
-        fontSize = 18.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color(0xFFFF6F00)
-    )
-}
-
-@Composable
-fun DropdownFilter(
-    label: String,
-    options: List<String>,
-    selectedOption: String,
-    onOptionChange: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val clearSelectionText =
-        stringResource(R.string.clear_selection) // Resolve string in composable scope
-    val allOptions = listOf(clearSelectionText) + options // Add "Clear Selection" option
-
-    Column {
-        Text(label, color = Color.White, fontSize = 16.sp)
-        Box {
+        items.forEach { (value, label) ->
+            val isSel = value == selected
             Button(
-                onClick = { expanded = !expanded },
+                onClick = { if (!isSel) onChange(value) },
                 colors = ButtonDefaults.buttonColors(
-                    backgroundColor = if (selectedOption.isNotBlank()) Color(0xFFFF6000) else Color(
-                        0xFF1A1A1A
-                    )
+                    backgroundColor = if (isSel) Color(0xFFFF6F00) else Color(0xFF1A1A1A)
                 ),
+                shape = RoundedCornerShape(50),
                 border = BorderStroke(1.dp, Color.White),
-                shape = RoundedCornerShape(50), // Rounded button
-                modifier = Modifier
-                    .padding(vertical = 4.dp)
-                    .height(dimensionResource(id = R.dimen.btn_height))
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier.height(30.dp)
             ) {
-                Text(
-                    text = selectedOption.ifBlank { stringResource(R.string.select_label, label) },
-                    color = Color.White
-                )
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.background(Color.Black)
-            ) {
-                allOptions.forEach { option ->
-                    DropdownMenuItem(
-                        onClick = {
-                            if (option == clearSelectionText) { // Use the resolved string
-                                onOptionChange("")
-                            } else {
-                                onOptionChange(option)
-                            }
-                            expanded = false
-                        }
-                    ) {
-                        Text(option, color = Color.White)
-                    }
-                }
+                Text(label, color = Color.White, fontSize = 12.sp)
             }
         }
     }
@@ -1187,45 +647,31 @@ fun NoMoreProfilesScreen(
         state = refreshState,
         onRefresh = { isRefreshing = true }
     ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DarkGrayBackground)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = stringResource(R.string.no_more_profiles),
-            color = Color.White,
-            fontSize = 18.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        Text(
-            text = stringResource(R.string.adjust_filters),
-            color = Color.White,
-            fontSize = 11.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Text(
-            text = stringResource(R.string.or_click_date_to_refresh),
-            color = Color.White,
-            fontSize = 11.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Button(
-            onClick = { isRefreshing = true },
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
-            modifier = Modifier.padding(top = 16.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(DarkGrayBackground)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Black)
-            Spacer(Modifier.width(8.dp))
-            Text("Refresh", color = Color.Black)
+            Text(
+                text = stringResource(R.string.no_more_profiles),
+                color = Color.White,
+                fontSize = 18.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            Button(
+                onClick = { isRefreshing = true },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00)),
+                modifier = Modifier.padding(top = 16.dp)
+            ) {
+                Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Black)
+                Spacer(Modifier.width(8.dp))
+                Text("Refresh", color = Color.Black)
+            }
         }
-    }
     }
 }
 
@@ -1236,11 +682,12 @@ fun DatingScreenContent(
     profileViewModel: ProfileViewModel,
     postViewModel: PostViewModel,
     profiles: List<Profile>,
-    currentIndex: Int,                 // 🔹  index is now owned by parent
-    boostedUsers: List<Profile>,
+    currentIndex: Int,
+    aiMatchResult: AiMatchCheckResult?,          // ← add this
+    onComplimentUser: (String) -> Unit,
     onSwipeRight: () -> Unit,
     onSwipeLeft: () -> Unit,
-    excludedUserIds: Set<String>,    // ← here!
+    excludedUserIds: Set<String>,
     onExcludeUser: (String) -> Unit,
     onRefreshProfiles: () -> Unit = {}
 ) {
@@ -1250,68 +697,57 @@ fun DatingScreenContent(
     }
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
-    val isPremiumUser = currentUserProfile?.isPremium == true || currentUserProfile?.isPlus == true
     val currentProfile = profiles[currentIndex]
-    val isBoostedProfile = boostedUsers.any { it.userId == currentProfile.userId }
-    val datingViewModel: DatingViewModel = viewModel()   // ← add this line
+    val currentUserProfile = remember(currentProfile.userId) {
+        profileViewModel.currentUserProfile.value
+    }
+    val isPremiumUser = currentUserProfile?.isPremium == true || currentUserProfile?.isPlus == true
+    val datingViewModel: DatingViewModel = viewModel()
     /* distance + AI check – unchanged */
-    var userDistance by remember { mutableStateOf<Float?>(null) }
-    var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
+    val frozenDistance = remember(currentProfile.userId) {
+        datingViewModel.getCachedDistance(currentUserId, currentProfile.userId) ?: Float.NaN
+    }
     // in DatingProfileCard, before Card:
-    val allPosts by postViewModel.posts.collectAsState()
-    val myPosts = allPosts.filter { it.userId == currentProfile.userId }
-    val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
-
+// AFTER (snapshot, won’t update)
+    val sortedByUpvotes = remember(currentProfile.userId) {
+        postViewModel.posts.value
+            .filter { it.userId == currentProfile.userId }
+            .sortedByDescending { it.upvotes }
+    }
     val todayWeek = remember { Calendar.getInstance().get(Calendar.WEEK_OF_YEAR) }
-    var smartMatchAvailable by remember(currentUserProfile?.lastSmartMatchWeekOfYear) {
+    var smartMatchAvailable by remember(currentProfile.userId) {
         mutableStateOf(currentUserProfile?.lastSmartMatchWeekOfYear != todayWeek)
     }
     val context = LocalContext.current
 
-    LaunchedEffect(currentProfile.userId) {
-        snapshotFlow { currentProfile.userId }
-            .filterNotNull()
-            .distinctUntilChanged()
-            .debounce(300)                       // ⏳ throttle rapid swipes
-            .collectLatest { otherId ->
-                Log.d("DS‑FLOW", "distance request → $currentUserId ⇄ $otherId")
-
-                // ✅ call the function on *datingViewModel*, NOT profileViewModel
-                userDistance = datingViewModel
-                    .distanceBetween(currentUserId, otherId, geoFire)
-
-                // existing AI‑match lookup
-                val snap = FirebaseRefs.db
-                    .getReference("aiMatchCheck/$currentUserId/$otherId")
-                    .get()
-                    .await()
-                aiMatchResult = snap.getValue(AiMatchCheckResult::class.java)
-            }
-    }
-
     Box(Modifier.fillMaxSize()) {
         // Treat “no location” as Float.NaN; your UI already renders that as “Worldwide”
-        val dist = userDistance ?: Float.NaN
         DatingProfileCard(
             profile = currentProfile,
-            isBoosted = isBoostedProfile,
             aiMatchResult = aiMatchResult,
-            sortedByUpvotes = sortedByUpvotes,      // ← pass it i
-            userDistance = dist,
-            navController = navController,
-            postViewModel = postViewModel,
-            currentProfile = currentUserProfile,
+            sortedByUpvotes = sortedByUpvotes,
             onSwipeRight = {
                 onSwipeRight()
                 handleSwipeRight(currentUserId, currentProfile.userId, profileViewModel)
+                // Temp exclude for 14 days on LIKE
+                addToExclusions(currentUserId, currentProfile.userId, "like")
+                ExclusionEventBus.emit(currentProfile.userId)
                 onExcludeUser(currentProfile.userId)
             },
             onSwipeLeft = {
                 onSwipeLeft()
                 handleSwipeLeft(currentUserId, currentProfile.userId)
+                // Temp exclude for 14 days on DISLIKE
+                addToExclusions(currentUserId, currentProfile.userId, "dislike")
+                ExclusionEventBus.emit(currentProfile.userId)
                 onExcludeUser(currentProfile.userId)
-            }
+            },
+            userDistance = frozenDistance,
+            navController = navController,
+            postViewModel = postViewModel,
+            currentProfile = currentUserProfile,
+            profileViewModel = profileViewModel,
+            onComplimentUser = onComplimentUser
         )
         if (isPremiumUser) {
             if (smartMatchAvailable) {
@@ -1324,6 +760,8 @@ fun DatingScreenContent(
                             currentUserProfile,
                             context
                         )
+                        addToExclusions(currentUserId, currentProfile.userId, "smart_match")
+                        ExclusionEventBus.emit(currentProfile.userId)
                         onExcludeUser(currentProfile.userId)
                         onSwipeRight()
                     },
@@ -1340,11 +778,10 @@ fun DatingScreenContent(
 }
 
 
-// Updated DatingProfileCard
+// Updated DatingProfileCard (boosts removed)
 @Composable
 fun DatingProfileCard(
     profile: Profile,
-    isBoosted: Boolean,
     aiMatchResult: AiMatchCheckResult?,
     sortedByUpvotes: List<Post>,
     onSwipeRight: () -> Unit,
@@ -1352,7 +789,9 @@ fun DatingProfileCard(
     userDistance: Float,
     navController: NavController,
     postViewModel: PostViewModel,
-    currentProfile: Profile?
+    currentProfile: Profile?,
+    profileViewModel: ProfileViewModel,
+    onComplimentUser: (String) -> Unit
 ) {
     // 1) Create a swipeableState and define anchors
     val swipeableState = rememberSwipeableState(initialValue = 0)
@@ -1401,7 +840,6 @@ fun DatingProfileCard(
                 .padding(8.dp),
             backgroundColor = DarkGrayBackground,
             shape = RoundedCornerShape(8.dp),
-//            border = BorderStroke(3.dp, getLevelBorderColor(profile.averageRating))
         ) {
             LazyColumn(
                 modifier = Modifier
@@ -1411,19 +849,18 @@ fun DatingProfileCard(
                 item {
                     PhotoWithTwoOverlays(
                         profile = profile,
-                        isBoosted = isBoosted,
                         userDistance = userDistance,
                         aiMatchResult = aiMatchResult,
                         sortedByUpvotes = sortedByUpvotes,
-                        currentProfile = currentProfile
+                        currentProfile = currentProfile,
+                        onCompliment = { onComplimentUser(profile.userId) }
                     )
                 }
                 item {
                     DatingProfileHeader(
                         profile = profile,
                         userDistance = userDistance,
-                        sortedByUpvotes = sortedByUpvotes,
-                        isBoosted = isBoosted
+                        sortedByUpvotes = sortedByUpvotes
                     )
                 }
                 item {
@@ -1474,8 +911,7 @@ fun DatingProfileCard(
 fun DatingProfileHeader(
     profile: Profile,
     userDistance: Float,
-    sortedByUpvotes: List<Post>,
-    isBoosted: Boolean                 // ⚡ NEW PARAM
+    sortedByUpvotes: List<Post>
 ) {
     val community = profile.community
     val religion = profile.religion
@@ -1491,11 +927,6 @@ fun DatingProfileHeader(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            /* ———  BOOST PILL ——— */
-            if (isBoosted) {
-                BoostedPill()              // ⬅️ inject the orange “Boosted profile” chip
-                Spacer(Modifier.width(6.dp))
-            }
             Row {
                 Spacer(modifier = Modifier.width(6.dp))
                 if (community.isNotBlank()) {
@@ -1527,7 +958,6 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
             color = DarkGrayBackground
         ) {
             Box {
-                // — Full-screen scrollable list —
                 if (posts.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(stringResource(R.string.no_posts), color = Color.Gray)
@@ -1536,7 +966,7 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(top = 56.dp)  // leave room for the close button
+                            .padding(top = 56.dp)
                     ) {
                         items(posts) { post ->
                             PostItemInProfile(post)
@@ -1544,7 +974,6 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
                     }
                 }
 
-                // — Close button overlayed in top-right —
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier
@@ -1567,11 +996,11 @@ fun PostsOverlay(posts: List<Post>, onDismiss: () -> Unit) {
 @Composable
 fun PhotoWithTwoOverlays(
     profile: Profile,
-    isBoosted: Boolean,
     userDistance: Float,
     aiMatchResult: AiMatchCheckResult?,
     sortedByUpvotes: List<Post>,
-    currentProfile: Profile? = null
+    currentProfile: Profile? = null,
+    onCompliment: () -> Unit = {}
 ) {
     val ctx = LocalContext.current
     val placeholderRes = R.drawable.local_placeholder
@@ -1581,8 +1010,9 @@ fun PhotoWithTwoOverlays(
     }
     var idx by remember(photoUrls) { mutableStateOf(0) }
     val datingViewModel: DatingViewModel = viewModel()
-    val compliments by datingViewModel.complimentsReceived.collectAsState()
-    val compliment = compliments[profile.userId]
+    val compliment = remember(profile.userId) {
+        datingViewModel.complimentsReceived.value[profile.userId]
+    }
     val age = calculateAge(profile.dob)
     var showPostsOverlay by remember { mutableStateOf(false) }
     val interestsTexts = profile.interests.map { "${it.emoji} ${it.name}" }
@@ -1768,39 +1198,17 @@ fun PhotoWithTwoOverlays(
                 }
             }
 
-//            if (idx == 0 && aiMatchResult != null) {
-//                val score = aiMatchResult.totalMatchPercentage.coerceIn(0, 100)
-//                Box(
-//                    Modifier
-//                        .align(Alignment.TopEnd)
-//                        .padding(8.dp)
-//                        .size(36.dp)
-//                ) {
-//                    CircularProgressIndicator(
-//                        progress = score / 100f,
-//                        color = Color(0xFFFF6F00),
-//                        strokeWidth = 3.dp,
-//                        modifier = Modifier.fillMaxSize()
-//                    )
-//                    Text(
-//                        "$score%",
-//                        Modifier.align(Alignment.Center),
-//                        fontSize = 9.sp,
-//                        fontWeight = FontWeight.Bold,
-//                        color = Color.White
-//                    )
-//                }
-//            }
-
-            if (isBoosted) {
+            IconButton(
+                onClick = onCompliment,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp)
+                    .background(Color.Black.copy(alpha = 0.4f), CircleShape)
+            ) {
                 Icon(
-                    Icons.Default.FlashOn,
-                    null,
-                    tint = Color(0xFFFF6F00),
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(10.dp)
-                        .size(26.dp)
+                    Icons.Default.EmojiEmotions,
+                    contentDescription = stringResource(R.string.compliment),
+                    tint = Color.Yellow
                 )
             }
         }
@@ -1840,7 +1248,6 @@ fun PhotoWithTwoOverlays(
     }
 }
 
-
 @Composable
 fun TagBox(
     text: String,
@@ -1848,7 +1255,7 @@ fun TagBox(
 ) {
     Box(
         modifier = modifier
-            .wrapContentWidth()      // only take as much width as you need
+            .wrapContentWidth()
             .padding(horizontal = 4.dp, vertical = 2.dp)
             .background(Color.Black, shape = RoundedCornerShape(4.dp))
             .border(1.dp, Color(0xFFFF6F00), shape = RoundedCornerShape(4.dp))
@@ -1858,7 +1265,7 @@ fun TagBox(
             text = text,
             color = Color.White,
             fontSize = 16.sp,
-            maxLines = 10,                      // force a single line
+            maxLines = 10,
             softWrap = true
         )
     }
@@ -1871,9 +1278,8 @@ private fun AutoMarqueeRow(
 ) {
     val scroll = rememberScrollState()
 
-    /* keep gliding left ⇄ right forever */
     LaunchedEffect(Unit) {
-        delay(500)                            // let Compose settle
+        delay(500)
         while (true) {
             scroll.animateScrollTo(scroll.maxValue)
             delay(1_500)
@@ -2002,12 +1408,9 @@ fun ProfileCollapsibleSectionsAll(
     aiMatchResult: AiMatchCheckResult?
 ) {
     val coroutineScope = rememberCoroutineScope()
-    var currentAiMatchResult by remember { mutableStateOf(aiMatchResult) }
-    val context = LocalContext.current // ✅ declare at the top of the Composable
+    val context = LocalContext.current
     val activity = LocalContext.current as Activity
     val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
-    val rewardedBoostManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedBoost(activity)) }
-
 
     DisposableEffect(Unit) {
         onDispose { rewardedSwipeManager.clearCallbacks() }
@@ -2038,7 +1441,6 @@ fun ProfileCollapsibleSectionsAll(
         }
         Spacer(modifier = Modifier.height(8.dp))
         /** ─────────── Compatibility ─────────── */
-        /*  auto-run every time it OPENS  */
         LaunchedEffect(profile.userId) {
             runAiMatchCheck(
                 context = context,
@@ -2047,16 +1449,15 @@ fun ProfileCollapsibleSectionsAll(
                     ?: return@LaunchedEffect,
                 currentUserProfile = currentUserProfile!!,
                 otherProfile = profile
-            ) { result -> currentAiMatchResult = result }
+            ) { }
         }
         CollapsibleSection(
             title = stringResource(R.string.compatibility_check),
-            icon = Icons.Default.Info, // expand / collapse
+            icon = Icons.Default.Info,
         ) {
-            if (currentAiMatchResult != null) {
-                ShowAiMatchAnalysis(currentAiMatchResult!!)
+            if (aiMatchResult != null) {
+                ShowAiMatchAnalysis(aiMatchResult)
             } else {
-                /* tiny placeholder while it’s working */
                 Text(stringResource(R.string.run_analysis), color = Color.White)
             }
         }
@@ -2094,20 +1495,17 @@ fun ProfileCollapsibleSectionsAll(
 @Composable
 fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
 
-    /* 1 ── pull the individual insight lines out of the breakdown */
     val rawLines = result.compatibilityBreakdown
         .split('\n')
         .map { it.trim() }
-        .filter { it.isNotEmpty() }           // ←-- kills the “blank-chip” problem
+        .filter { it.isNotEmpty() }
 
-    /* 2 ── classify lines */
     val strengths = rawLines.filter { it.startsWith("✅") }
     val concerns  = rawLines.filter { it.startsWith("⚠️") }
     val notes     = rawLines.filter { it.startsWith("ℹ️") }
 
     Column(modifier = Modifier.padding(8.dp)) {
 
-        /* headline */
         Text(
             text  = stringResource(R.string.total_match_label, result.totalMatchPercentage),
             fontSize = 18.sp,
@@ -2117,7 +1515,6 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
 
         Spacer(Modifier.height(10.dp))
 
-        /* strengths */
         if (strengths.isNotEmpty()) {
             Text(stringResource(R.string.strengths), color = Color.White, fontWeight = FontWeight.SemiBold)
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -2133,7 +1530,6 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
             Spacer(Modifier.height(6.dp))
         }
 
-        /* concerns */
         if (concerns.isNotEmpty()) {
             Text(stringResource(R.string.concerns),
                 color = Color.White, fontWeight = FontWeight.SemiBold)
@@ -2150,8 +1546,6 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
             Spacer(Modifier.height(6.dp))
         }
 
-
-        /* notes */
         if (notes.isNotEmpty()) {
             Text(stringResource(R.string.notes), color = Color.White, fontWeight = FontWeight.SemiBold)
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -2167,7 +1561,6 @@ fun ShowAiMatchAnalysis(result: AiMatchCheckResult) {
             Spacer(Modifier.height(6.dp))
         }
 
-        /* timestamp */
         Text(
             text = stringResource(R.string.analyzed_on, formatTime(result.timestamp)),
             color = Color.Gray,
@@ -2252,13 +1645,11 @@ fun CollapsibleSection(
         modifier        = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp)
-            // cap the height so it never grows off‐screen
             .heightIn(min = 100.dp, max = 400.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                // make the content inside scroll vertically
                 .verticalScroll(rememberScrollState())
                 .padding(12.dp)
         ) {
@@ -2344,10 +1735,10 @@ fun MatchPopUp(
  * Updated AiMatchCheckResult with new fields.
  */
 data class AiMatchCheckResult(
-    val summary: String = "",                     // Full text output from the AI
-    val totalMatchPercentage: Int = 0,            // Total match percentage extracted from GPT reply
-    val compatibilityBreakdown: String = "",      // Detailed breakdown of compatibility score
-    val timestamp: Long = 0L                      // When the analysis was done
+    val summary: String = "",
+    val totalMatchPercentage: Int = 0,
+    val compatibilityBreakdown: String = "",
+    val timestamp: Long = 0L
 )
 
 fun handleSwipeRight(
@@ -2426,7 +1817,6 @@ fun handleSwipeRight(
                         val text     = cSnap.child("text").getValue(String::class.java) ?: ""
                         val voiceUrl = cSnap.child("voiceUrl").getValue(String::class.java)
                         if (text.isNotBlank() || voiceUrl != null) {
-                            // generate a push key for the message ID
                             val pushKey = database
                                 .reference
                                 .child("messages/$currentUserId/$otherUserId")
@@ -2445,7 +1835,6 @@ fun handleSwipeRight(
                                 processed  = false
                             )
 
-                            // write under both users’ message threads
                             database.getReference("messages/$currentUserId/$otherUserId/$pushKey")
                                 .setValue(msg)
                             database.getReference("messages/$otherUserId/$currentUserId/$pushKey")
@@ -2461,7 +1850,6 @@ fun handleSwipeRight(
 fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
     val database = FirebaseRefs.db
     val timestamp = System.currentTimeMillis()
-
 
     val currentUserSwipesRef = database.getReference("swipes/$currentUserId/$otherUserId")
     currentUserSwipesRef.setValue(SwipeData(liked = false, timestamp = timestamp))
@@ -2486,13 +1874,12 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
         }
     })
 
-    // 🆕 track dislikes for 14‑day exclusion
+    // 14-day exclusion signal (legacy; kept)
     database.getReference("dislikesGiven/$currentUserId/$otherUserId").setValue(timestamp)
 
     val otherUserTotalSwipesRef =
         database.getReference("swipesReceived/$otherUserId/$currentUserId")
     otherUserTotalSwipesRef.setValue(true)
-
 
     val otherUserProfileRef = database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
     otherUserProfileRef.get().addOnSuccessListener { snapshot ->
@@ -2576,7 +1963,6 @@ fun runAiMatchCheck(
         breakdownText
     )
 
-
     Log.d("runAiMatchCheck", "Compatibility Summary: $summaryText")
 
     val result = AiMatchCheckResult(
@@ -2594,7 +1980,6 @@ fun runAiMatchCheck(
         onComplete(result)
     }
 }
-
 
 data class MatchInsight(val emoji: String, val text: String, val isPositive: Boolean)
 
@@ -2655,7 +2040,7 @@ fun calculateExhaustiveCompatibilityScore(
             insights += MatchInsight("⚠️", context.getString(R.string.no_common_kinks), false)
         }
     }
-    // ───── Lifestyle Compatibility ─────
+
     val (lifeScore, lifeCount, lifeCommonKeys) = lifestyleCompatibilityMetrics(profileA.lifestyle, profileB.lifestyle)
     if (lifeCount > 0) {
         possible += 8.0
@@ -2811,9 +2196,6 @@ fun calculateExhaustiveCompatibilityScore(
         } else insights += MatchInsight("⚠️", context.getString(R.string.tags_not_set_or_no_overlap), false)
     }
 
-// The compatibility percent now blends this match calculation with the
-    // target user's overall composite score for better weighting.
-    // base: score achieved vs total possible (0–100)
     val base = if (possible == 0.0) 0.0 else (score / possible) * 100.0
     val combinedBase = base * (1 - kinkWeight) + kinkScore * kinkWeight
     val targetCompositePct = profileB.compositeScorePct
@@ -2856,7 +2238,6 @@ suspend fun getUserLocation(userId: String, geoFire: GeoFire): GeoLocation? =
         })
     }
 
-
 @Composable
 private fun emojiForOrientation(orientation: String): String {
     val options = stringArrayResource(R.array.sexual_orientation_options)
@@ -2869,5 +2250,309 @@ private fun emojiForOrientation(orientation: String): String {
         options.getOrNull(5) -> "🖤"  // Asexual
         options.getOrNull(6) -> "🌈"  // Queer
         else -> "🏳️‍🌈"
+    }
+}
+
+/* ====== existing helpers kept as-is (place search, dropdowns, etc.) ====== */
+
+val BrandOrange = Color(0xFFFF6600)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PlaceSearchDropdown(
+    label: String,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    results: List<PlaceResult>,
+    searching: Boolean,
+    onResultSelect: (String) -> Unit,
+    isFieldFocused: Boolean,
+    onFieldFocusChange: (Boolean) -> Unit
+) {
+    val focusManager = LocalFocusManager.current
+    val expanded     = results.isNotEmpty() && isFieldFocused
+    val clearLabel   = stringResource(R.string.clear_selection)
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { },
+    ) {
+        val focusRequester = remember { FocusRequester() }
+
+        OutlinedTextField(
+            value         = query,
+            onValueChange = onQueryChange,
+            label         = { Text(label) },
+            singleLine    = true,
+            trailingIcon  = {
+                if (searching) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier    = Modifier.size(18.dp),
+                        color       = BrandOrange
+                    )
+                } else {
+                    Icon(
+                        imageVector      = Icons.Default.Search,
+                        contentDescription = null,
+                        tint              = BrandOrange
+                    )
+                }
+            },
+
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                textColor   = Color.White,
+                focusedBorderColor   = Color.White,
+                unfocusedBorderColor = Color.White,
+                focusedLabelColor   = Color.White,
+                unfocusedLabelColor = Color.White,
+                placeholderColor   = Color.White,
+                cursorColor                = Color.White,
+                focusedTrailingIconColor   = BrandOrange,
+            ),
+
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor()
+                .focusRequester(focusRequester)
+                .onFocusChanged { state ->
+                    onFieldFocusChange(state.isFocused)
+                    if (!state.isFocused) onResultSelect(query)
+                }
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                onFieldFocusChange(false)
+                focusManager.clearFocus()
+            },
+            modifier = Modifier
+                .background(Color.White, RoundedCornerShape(6.dp))
+                .border(
+                    BorderStroke(1.dp, Color.Black.copy(alpha = .15f)),
+                    RoundedCornerShape(6.dp)
+                )
+        ) {
+            if (query.isNotBlank()) {
+                DropdownMenuItem(
+                    text = { Text(clearLabel) },
+                    onClick = {
+                        onQueryChange("")
+                        onResultSelect("")
+                        focusManager.clearFocus()
+                    }
+                )
+            }
+
+            results.forEach { res ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(res.name)
+                            if (res.address.isNotBlank()) {
+                                Text(
+                                    res.address,
+                                    style = M3Theme.typography.bodySmall,
+                                    color = Color.DarkGray
+                                )
+                            }
+                        }
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = null,
+                            tint = BrandOrange
+                        )
+                    },
+                    onClick = {
+                        onQueryChange(res.name)
+                        onResultSelect(res.name)
+                        focusManager.clearFocus()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FilterSectionTitle(title: String) {
+    Text(
+        text = title,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFFFF6F00)
+    )
+}
+
+@Composable
+fun DropdownFilter(
+    label: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val clearSelectionText = stringResource(R.string.clear_selection)
+    val allOptions = listOf(clearSelectionText) + options
+
+    Column {
+        Text(label, color = Color.White, fontSize = 16.sp)
+        Box {
+            Button(
+                onClick = { expanded = !expanded },
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = if (selectedOption.isNotBlank()) Color(0xFFFF6000) else Color(0xFF1A1A1A)
+                ),
+                border = BorderStroke(1.dp, Color.White),
+                shape = RoundedCornerShape(50),
+                modifier = Modifier
+                    .padding(vertical = 4.dp)
+                    .height(dimensionResource(id = R.dimen.btn_height))
+            ) {
+                Text(
+                    text = selectedOption.ifBlank { stringResource(R.string.select_label, label) },
+                    color = Color.White
+                )
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(Color.Black)
+            ) {
+                allOptions.forEach { option ->
+                    DropdownMenuItem(
+                        onClick = {
+                            if (option == clearSelectionText) {
+                                onOptionChange("")
+                            } else {
+                                onOptionChange(option)
+                            }
+                            expanded = false
+                        }
+                    ) {
+                        Text(option, color = Color.White)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Load swipes from Firebase and reset quota if a new day has started.
+ */
+suspend fun loadAndResetSwipesDaily(userId: String): Int {
+    val userRef  = FirebaseRefs.db.getReference("users/$userId")
+    val userSnap = userRef.get().await()
+
+    val isPremium = userSnap.child("isPremium").getValue(Boolean::class.java) ?: false
+    val isPlus    = userSnap.child("isPlus").getValue(Boolean::class.java) ?: false
+    val quota     = when {
+        isPremium -> Int.MAX_VALUE
+        isPlus    -> 50
+        else      -> 20
+    }
+
+    val swipesRef = userRef.child("swipesInfo")
+    val snap      = swipesRef.get().await()
+
+    val snapRemaining = snap.child("remainingSwipes").getValue(Int::class.java) ?: quota
+    val lastReset     = snap.child("lastResetDayOfYear").getValue(Int::class.java) ?: -1
+    val today   = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+    val newDay  = today != lastReset
+
+    var remaining = snapRemaining
+
+    if (newDay) {
+        remaining = quota
+    }
+
+    if (newDay || remaining != snapRemaining) {
+        swipesRef.child("remainingSwipes").setValue(remaining)
+        swipesRef.child("lastResetDayOfYear").setValue(today)
+    }
+
+    return remaining
+}
+
+/** Updates the user's remainingSwipes in Firebase. */
+fun updateSwipesInFirebase(newSwipesCount: Int) {
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val swipesRef = FirebaseRefs.db.getReference("users/$userId/swipesInfo")
+    swipesRef.child("remainingSwipes").setValue(newSwipesCount)
+}
+
+@Composable
+fun SwipeLimitOverlay(
+    remainingSwipes: Int,
+    isPlus: Boolean,
+    isPremium: Boolean,
+    isIndian: Boolean,
+    onWatchAd: () -> Unit
+) {
+    val quota = when {
+        isPremium  -> Int.MAX_VALUE
+        isPlus     -> 50
+        else       -> 20
+    }
+
+    var timeLeft by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = System.currentTimeMillis()
+            val cal = Calendar.getInstance().apply {
+                timeInMillis = now
+                add(Calendar.DAY_OF_YEAR, 1)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE,      0)
+                set(Calendar.SECOND,      0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val diff = cal.timeInMillis - now
+            val h = diff / 3_600_000
+            val m = (diff % 3_600_000) / 60_000
+            val s = (diff % 60_000) / 1000
+            timeLeft = String.format("%02d:%02d:%02d", h, m, s)
+            delay(1000)
+        }
+    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(DarkGrayBackground.copy(alpha = 0.8f))
+            .pointerInput(Unit) {},
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.padding(32.dp)
+        ) {
+            Column(
+                Modifier
+                    .background(Color(0xFF1A1A1A))
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Swipes Remaining", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(12.dp))
+                Text("$remainingSwipes / ${if (quota == Int.MAX_VALUE) "∞" else quota}", color = Color.White, fontSize = 14.sp)
+                Spacer(Modifier.height(12.dp))
+                Text("Resets in: $timeLeft", color = Color.Gray)
+                Spacer(Modifier.height(24.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Button(
+                        onClick = onWatchAd,
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
+                    ) {
+                        val label = if (isIndian) "Buy Swipes" else "Watch ad for 5 Swipes"
+                        Text(label, color = Color.Black)
+                    }
+                }
+            }
+        }
     }
 }

@@ -172,7 +172,6 @@ fun MatchedUserProfileScreen(
                         item {
                             PhotoWithTwoOverlays(
                                 profile = profile,
-                                isBoosted = false,
                                 userDistance = userDistance!!,
                                 aiMatchResult = aiMatchResult,
                                 sortedByUpvotes = sortedByUpvotes,
@@ -184,7 +183,6 @@ fun MatchedUserProfileScreen(
                                 profile = profile,
                                 userDistance = userDistance!!,
                                 sortedByUpvotes = sortedByUpvotes,
-                                isBoosted = false
                             )
                         }
                         item {

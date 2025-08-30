@@ -15,9 +15,35 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+
+@Composable
+fun CompactCompatBadge(
+    percent: Double,
+    modifier: Modifier = Modifier,
+    textColor: Color = Color.White
+) {
+    val p = percent.roundToInt().coerceIn(0, 100)
+    val emoji = when {
+        p >= 90 -> "💞"
+        p >= 75 -> "💖"
+        p >= 60 -> "💘"
+        p >= 45 -> "💛"
+        p >= 30 -> "🧡"
+        p >= 15 -> "💙"
+        else    -> "🤍"
+    }
+    Text(
+        text = "$emoji $p%",
+        color = textColor,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = modifier
+    )
+}
 
 @Composable
 fun CompatibilityMeter(

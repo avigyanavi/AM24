@@ -170,6 +170,7 @@
     <string name="feature_5_boosts">5 impulsos por semana</string>
     <string name="feature_performance_metrics_rank">Desbloquear métricas de rendimiento y clasificación por perfil</string>
     <string name="feature_everything_plus">Todo en Plus</string>
+    <string name="cd_dating_shortcut">Citas</string>
 
     <!-- LA Quick Tags (labels) -->
     <string name="la_tag_dtla_rooftops_label">Azoteas en DTLA</string>

@@ -4,9 +4,8 @@ package com.am24.am24
 
 import android.app.Activity
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.TextField
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
@@ -298,6 +297,10 @@ fun TopNavBar(
             }
         },
         actions = {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             if (isAdmin) {
                 IconButton(onClick = { navController.navigate("verifications_review") }) {
                     Icon(Icons.Default.VerifiedUser, contentDescription = "Review IDs")
@@ -306,6 +309,15 @@ fun TopNavBar(
                     Icon(Icons.Default.Feedback, contentDescription = "View Feedback")
                 }
             }
+
+                IconButton(onClick = { navController.navigate("dating") }) {
+                    Icon(
+                        imageVector = Icons.Default.Swipe,
+                        contentDescription = stringResource(R.string.cd_dating_shortcut),
+                        tint = if (currentRoute == "dating") Color(0xFFFF6F00) else Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
 
             if (isOnHome || isDMScreen) {
                 IconButton(onClick = {
@@ -790,6 +802,7 @@ fun TopNavBar(
                         modifier = Modifier.size(24.dp)
                     )
                 }
+            }
             }
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)

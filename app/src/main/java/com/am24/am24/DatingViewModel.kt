@@ -40,7 +40,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 private val gson = com.google.gson.Gson()
@@ -278,13 +280,11 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     }
 
 
-    private val refreshMutex = kotlinx.coroutines.sync.Mutex()
-    /**
-     * Refresh profiles manually
-     */
-    fun refreshFilteredProfiles(maxDistanceKm: Int = WORLDWIDE_DISTANCE) {
+    // ── COUNTRY-ONLY REFRESH ────────────────────────────────────────────────
+    private val refreshMutex = Mutex()
+    fun refreshFilteredProfiles() {
         viewModelScope.launch {
-            if (!refreshMutex.tryLock()) return@launch // skip if already running
+            if (!refreshMutex.tryLock()) return@launch
             _isLoading.value = true
             _loadingProgress.value = 0
             val me = FirebaseAuth.getInstance().currentUser?.uid
@@ -295,40 +295,125 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                     return@launch
                 }
 
-                val maxDist = maxDistanceKm
                 coroutineScope {
+                    // load user country + tier
+                    val meSnapDeferred = async { usersRef.child(me).get().await() }
                     val blockedDeferred = async { fetchBlockedUsers(me) }
-                    val complimentsDeferred = async { fetchGlobalComplimenters(me) }
-                    val boostedDeferred = async { fetchGlobalBoostedUsers() }
-                    val premiumDeferred = async { fetchGlobalPremiumUsers() }
-                    val nearbyDeferred = async { fetchNearbyProfilesCloud(me, maxDist) }
+
+                    val meSnap = meSnapDeferred.await()
+                    val myCountry = meSnap.child("country").getValue(String::class.java).orEmpty()
+                    val isPremium = meSnap.child("isPremium").getValue(Boolean::class.java) ?: false
+                    val isPlus    = meSnap.child("isPlus").getValue(Boolean::class.java)    ?: false
+                    val limit = when {
+                        isPremium -> 100
+                        isPlus    -> 50
+                        else      -> 20
+                    }
 
                     _blockedUsers.value = blockedDeferred.await()
-                    _loadingProgress.value = 25
-                    val globalCompliments = complimentsDeferred.await()
-                    _loadingProgress.value = 40
-                    val globalBoosted = boostedDeferred.await()
-                    _loadingProgress.value = 55
-                    val globalPremium = premiumDeferred.await()
-                    _loadingProgress.value = 70
-                    val list = nearbyDeferred.await()
-                    _loadingProgress.value = 85
-                    val merged = (globalCompliments + globalBoosted + globalPremium + list)
+                    _loadingProgress.value = 30
+
+                    val countryProfiles = fetchProfilesByCountry(me, myCountry, limit)
+                    _loadingProgress.value = 80
+
+                    // order: Premium → Plus → Rest; remove me; dedupe by userId; cap to limit
+                    val ordered = countryProfiles
+                        .filter { it.userId != me && it.userId.isNotBlank() }
                         .distinctBy { it.userId }
-                    _allProfiles.value = merged.filterNot { it.userId == me }
+                        .let { list ->
+                            val prem = list.filter { it.isPremium }
+                            val plus = list.filter { !it.isPremium && it.isPlus }
+                            val rest = list.filter { !it.isPremium && !it.isPlus }
+                            (prem + plus + rest)
+                        }
+                        .take(limit)
+
+                    Log.d(TAG, "refresh(country=$myCountry, limit=$limit) → fetched=${countryProfiles.size}, ordered=${ordered.size}")
+                    _allProfiles.value = ordered
                 }
 
                 updateBoostedUsers(me)
             } catch (e: Exception) {
-                Log.e(TAG, "refreshFilteredProfiles() failed: ${e.message}", e)
+                Log.e(TAG, "refreshFilteredProfiles(country) failed: ${e.message}", e)
             } finally {
                 _isLoading.value = false
                 _loadingProgress.value = 100
+                refreshMutex.unlock() // IMPORTANT: release
             }
         }
     }
 
+    // ── Cloud + fallback for country fetch ─────────────────────────────────
     private val functions = FirebaseFunctions.getInstance("asia-south1")
+
+    private suspend fun fetchProfilesByCountry(
+        me: String,
+        country: String,
+        limit: Int
+    ): List<Profile> = withContext(Dispatchers.IO) {
+        if (country.isBlank()) return@withContext emptyList()
+
+        // Try Cloud Function first
+        runCatching {
+            val payload = hashMapOf(
+                "uid" to me,
+                "country" to country,
+                "limit" to limit
+            )
+            Log.d(TAG, "➡️ getProfilesByCountry $payload")
+            val callable: HttpsCallableReference =
+                functions.getHttpsCallable("getProfilesByCountry").apply {
+                    setTimeout(60, TimeUnit.SECONDS)
+                }
+            @Suppress("UNCHECKED_CAST")
+            val data = callable.call(payload).await().data as? Map<*, *>
+            val list = data?.get("profiles") as? List<*> ?: emptyList<Any>()
+            val mapped = list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
+            Log.d(TAG, "⬅️ getProfilesByCountry returned ${mapped.size} profiles")
+            return@withContext mapped
+        }.getOrElse { e ->
+            Log.w(TAG, "getProfilesByCountry fallback due to: ${e.message}")
+            fetchProfilesByCountryFallback(country, limit)
+        }
+    }
+
+    /** Fallback: query Realtime DB /users by country and map to Profile */
+    private suspend fun fetchProfilesByCountryFallback(
+        country: String,
+        limit: Int
+    ): List<Profile> {
+        return try {
+            val snap = usersRef
+                .orderByChild("country")
+                .equalTo(country)
+                .get()
+                .await()
+
+            val all = snap.children.mapNotNull { child ->
+                val map = child.value as? Map<*, *> ?: return@mapNotNull null
+                val p = map.toProfile()
+                // ensure userId is set
+                if (p.userId.isBlank()) {
+                    try {
+                        p.copy(userId = child.key ?: "")
+                    } catch (_: Throwable) {
+                        // if Profile.userId is a 'var', we can’t copy safely; just drop if blank
+                        null
+                    }
+                } else p
+            }
+
+            // order + cap here, but let the caller filter out “me”
+            val prem = all.filter { it.isPremium }
+            val plus = all.filter { !it.isPremium && it.isPlus }
+            val rest = all.filter { !it.isPremium && !it.isPlus }
+            (prem + plus + rest).distinctBy { it.userId }.take(limit)
+        } catch (e: Exception) {
+            Log.e(TAG, "fallback country query failed: ${e.message}", e)
+            emptyList()
+        }
+    }
+
 
     private suspend fun fetchNearbyProfilesCloud(
         me: String,
@@ -366,15 +451,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
     }
 
-    private suspend fun fetchGlobalBoostedUsers(): List<Profile> = withContext(Dispatchers.IO) {
-        val callable = functions.getHttpsCallable("getGlobalBoostedUsers")
-        callable.setTimeout(60, TimeUnit.SECONDS)
-        @Suppress("UNCHECKED_CAST")
-        val data = callable.call().await().data as? Map<*, *> ?: return@withContext emptyList()
-        val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
-        list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
-    }
-
     private suspend fun fetchGlobalPremiumUsers(): List<Profile> = withContext(Dispatchers.IO) {
         val callable = functions.getHttpsCallable("getGlobalPremiumUsers")
         callable.setTimeout(60, TimeUnit.SECONDS)
@@ -384,17 +460,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
     }
 
-    private suspend fun fetchGlobalComplimenters(uid: String): List<Profile> = withContext(Dispatchers.IO) {
-        val callable = functions.getHttpsCallable("getGlobalComplimenters")
-        callable.setTimeout(60, TimeUnit.SECONDS)
-        val payload = hashMapOf("uid" to uid)
-
-        @Suppress("UNCHECKED_CAST")
-        val data =
-            callable.call(payload).await().data as? Map<*, *> ?: return@withContext emptyList()
-        val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
-        list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
-    }
 
     /** call this when the user presses “Boost” */
     fun boostUser(
@@ -478,14 +543,28 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             size > 150        // keep the last ~150 pairs (~10 kB)
     }
 
-    /** one‑shot helper that returns a cached value or runs the expensive call once */
-    suspend fun distanceBetween(uidA: String, uidB: String, geoFire: GeoFire): Float? {
-        val key = if (uidA < uidB) uidA to uidB else uidB to uidA   // a⇄b and b⇄a are the same lookup
-        distanceCache[key]?.let { return it }
 
-        // not cached → hit the network once
-        val d = calculateDistance(uidA, uidB, geoFire)
-        if (d != null) distanceCache[key] = d
+    // thread-safe local cache
+    private val distanceCacheMap = ConcurrentHashMap<Pair<String, String>, Float>()
+
+    /** Read-only accessor for UI code */
+    fun getCachedDistance(me: String, other: String): Float? =
+        distanceCacheMap[me to other]
+
+    /** Public prefetch that DOES NOT touch Compose state */
+    suspend fun prefetchDistance(me: String, other: String, geoFire: GeoFire) {
+        val key = me to other
+        if (distanceCacheMap.containsKey(key)) return
+        val d = calculateDistance(me, other, geoFire) ?: return
+        distanceCacheMap[key] = d
+    }
+
+    /** Optional: make your existing distanceBetween also populate the cache */
+    suspend fun distanceBetween(me: String, other: String, geoFire: GeoFire): Float {
+        val key = me to other
+        distanceCacheMap[key]?.let { return it }
+        val d = calculateDistance(me, other, geoFire) ?: Float.NaN
+        if (!d.isNaN()) distanceCacheMap[key] = d
         return d
     }
 
