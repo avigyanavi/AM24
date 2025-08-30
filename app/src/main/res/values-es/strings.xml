@@ -148,6 +148,15 @@
     <string name="cd_country_filter">Explorar por país</string>
     <string name="clear_country_filter">Borrar filtro de país</string>
     <string name="country_coords_unavailable">Coordenadas no disponibles para %1$s</string>
+    <string name="cd_city_filter">Explorar por ciudad</string>
+    <string name="clear_city_filter">Borrar filtro de ciudad</string>
+    <string name="city_coords_unavailable">Coordenadas no disponibles para %1$s</string>
+    <string name="remove_from_stack">Eliminar de la pila</string>
+    <string name="block">Bloquear</string>
+    <string name="more_options">Más opciones</string>
+    <string name="cd_omegle">Chat aleatorio</string>
+    <string name="no_users_online">No hay usuarios en línea</string>
+    <string name="end_chat">Terminar</string>
     <string name="feature_no_ads">Sin anuncios</string>
     <string name="feature_priority_profile">Perfil prioritario en la lista de citas</string>
     <string name="feature_people_liked_me">Desbloquear personas que me gustaron</string>

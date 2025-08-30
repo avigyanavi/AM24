@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.lifecycleScope
 import com.am24.am24.ui.purchase.PaymentResultListenerHost
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -52,6 +54,8 @@ class KupidXAppActivity : AppCompatActivity(),
     private lateinit var locationManager: LocationManager
     private val postViewModel: PostViewModel by viewModels()
 
+    private var presenceRef: DatabaseReference? = null
+
     // callbacks wired from the Composable screen
     private var paymentSuccessCallback: ((String) -> Unit)? = null
     private var paymentErrorCallback:  ((String) -> Unit)? = null
@@ -61,6 +65,14 @@ class KupidXAppActivity : AppCompatActivity(),
     // deep-link flag
     private var pendingOpenNotifications = false
     private var pendingOpenUpgradeLanding = false
+
+    private fun setupPresence(uid: String) {
+        val ref = FirebaseDatabase.getInstance().getReference("presence").child(uid)
+        presenceRef = ref
+        ref.setValue(true)
+        ref.onDisconnect().removeValue()
+    }
+
 
     /* ------------------------------------------------------------------ locale */
     override fun attachBaseContext(newBase: Context) {
@@ -124,6 +136,7 @@ class KupidXAppActivity : AppCompatActivity(),
                         onNotificationsConsumed= { pendingOpenNotifications = false },
                         onUpgradeConsumed      = { pendingOpenUpgradeLanding = false },
                         onLogout               = {
+                            presenceRef?.removeValue()
                             auth.signOut()
                             TokenStorageManager.clearToken(this@KupidXAppActivity)
                             startActivity(Intent(this, LandingActivity::class.java))
@@ -145,6 +158,7 @@ class KupidXAppActivity : AppCompatActivity(),
 
     @RequiresApi(Build.VERSION_CODES.O_MR1)
     private suspend fun continueInitialization(uid: String) {
+        setupPresence(uid)
         auth.currentUser?.getIdToken(true)
             ?.addOnSuccessListener { res ->
                 res.token?.let { TokenStorageManager.saveToken(this@KupidXAppActivity, it) }
@@ -172,6 +186,11 @@ class KupidXAppActivity : AppCompatActivity(),
             changed = true
         }
         if (changed) recreate()
+    }
+
+    override fun onDestroy() {
+        presenceRef?.removeValue()
+        super.onDestroy()
     }
 
     /* ---------------------------------------------------------------- helpers */

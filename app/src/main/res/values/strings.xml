@@ -19,11 +19,18 @@
     <string name="daily_login_message">Logged in %1$d days in a row</string>
     <string name="daily_login_plus_award">Plus unlocked for %1$d hours</string>
     <string name="settings_streak_line">Login streak: %1$d days • %2$s</string>
-
+    <string name="cd_city_filter">Browse by city</string>
+    <string name="clear_city_filter">Clear city filter</string>
+    <string name="city_coords_unavailable">Coordinates unavailable for %1$s</string>
     <string name="sexual_orientation_label">Sexual Orientation</string>
     <string name="kinks_label">Kinks (separated by ,)</string>
     <string name="advanced_compatibility">Advanced Compatibility</string>
-
+    <string name="remove_from_stack">Remove from stack</string>
+    <string name="block">Block</string>
+    <string name="more_options">More options</string>
+    <string name="cd_omegle">Random chat</string>
+    <string name="no_users_online">No users online</string>
+    <string name="end_chat">End</string>
     <string-array name="sexual_orientation_options">
         <item>Straight</item>
         <item>Gay</item>

@@ -19,7 +19,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -129,6 +130,7 @@ data class LeaderboardEntry(
 /* ======================================================================================= */
 
 private val latLngCache = mutableMapOf<String, LatLng?>()
+private const val HAS_SHOWN_LOCATION_DIALOG = "has_shown_location_dialog"
 private var hasShownLocationDialogThisSession = false
 
 
@@ -236,6 +238,8 @@ fun MapScreen(
         ?.getStateFlow("mapOrientationFilter", prefs.getString("map_orientation_filter", "") ?: "")?.collectAsState()
         ?: remember { mutableStateOf("") }
 
+    val showAds = !isPremium && !isPlus
+
     LaunchedEffect(orientationFilter) {
         prefs.edit().putString("map_orientation_filter", orientationFilter).apply()
     }
@@ -245,9 +249,11 @@ fun MapScreen(
     }
 
     LaunchedEffect(Unit) {
-        if (!hasShownLocationDialogThisSession) {
+        val hasShownDialog = prefs.getBoolean(HAS_SHOWN_LOCATION_DIALOG, false)
+        if (!hasShownLocationDialogThisSession && !hasShownDialog) {
             navController.currentBackStackEntry?.savedStateHandle?.set("showLocationPrefDialog", true)
             hasShownLocationDialogThisSession = true
+            prefs.edit().putBoolean(HAS_SHOWN_LOCATION_DIALOG, true).apply()
         }
         sortMode = prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
         radiusKm = prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble()
@@ -724,7 +730,20 @@ fun MapScreen(
                                         navController.navigate("previewUserProfile/${it.userId}")
                                     }
                                 },
-                                useMiles = useMiles // NEW
+                                useMiles = useMiles,
+                                onRemove = { uid ->
+                                    scope.launch {
+                                        nearbyViewModel.addExcluded(uid)
+                                        FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid").setValue(true)
+                                    }
+                                },
+                                showAds = showAds,
+                                onBlock = { uid ->
+                                    scope.launch {
+                                        FirebaseRefs.db.getReference("blocks/$userId/$uid").setValue(true)
+                                        nearbyViewModel.addExcluded(uid)
+                                    }
+                                }
                             )
                         }
 
@@ -1335,13 +1354,27 @@ fun MapScreen(
 private fun PeopleGrid(
     users: List<NearbyUser>,
     onClick: (NearbyUser) -> Unit,
-    useMiles: Boolean
+    useMiles: Boolean,
+    onRemove: (String) -> Unit,
+    onBlock: (String) -> Unit,
+    showAds: Boolean
 ) {
     if (users.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
         }
         return
+    }
+    val context = LocalContext.current
+    val gridItems = remember(users, showAds) {
+        val items = mutableListOf<Any>()
+        users.forEachIndexed { index, user ->
+            items.add(user)
+            if (showAds && (index + 1) % 15 == 0) {
+                items.add("ad_$index")
+            }
+        }
+        items
     }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 120.dp),
@@ -1350,15 +1383,43 @@ private fun PeopleGrid(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        items(users, key = { it.userId }) { u ->
-            NearbyCard(user = u, onClick = { onClick(u) }, useMiles = useMiles)
+        itemsIndexed(
+            gridItems,
+            key = { index, item -> if (item is NearbyUser) item.userId else "ad_$index" },
+            span = { _, item ->
+                if (item is NearbyUser) GridItemSpan(1) else GridItemSpan(maxLineSpan)
+            }
+        ) { _, item ->
+            if (item is NearbyUser) {
+                NearbyCard(
+                    user = item,
+                    onClick = { onClick(item) },
+                    useMiles = useMiles,
+                    onRemove = { onRemove(item.userId) },
+                    onBlock = { onBlock(item.userId) }
+                )
+            } else {
+                ComposeNativeAd(
+                    adUnitId = AdUnitIds.native(context),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun NearbyCard(user: NearbyUser, onClick: () -> Unit, useMiles: Boolean) {
+private fun NearbyCard(
+    user: NearbyUser,
+    onClick: () -> Unit,
+    useMiles: Boolean,
+    onRemove: () -> Unit,
+    onBlock: () -> Unit
+) {
     val placeholder = painterResource(R.drawable.local_placeholder)
+    var menuExpanded by remember { mutableStateOf(false) }
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
@@ -1385,6 +1446,32 @@ private fun NearbyCard(user: NearbyUser, onClick: () -> Unit, useMiles: Boolean)
                         )
                     )
             )
+            IconButton(
+                onClick = { menuExpanded = true },
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = stringResource(R.string.more_options),
+                    tint = Color.White
+                )
+            }
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.remove_from_stack)) },
+                    onClick = {
+                        menuExpanded = false
+                        onRemove()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.block)) },
+                    onClick = {
+                        menuExpanded = false
+                        onBlock()
+                    }
+                )
+            }
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -1504,7 +1591,7 @@ private fun RadiusChip(
     modifier: Modifier = Modifier
 ) {
     val minKm = 10.0
-    val maxKm = 25000.0
+    val maxKm = 8000.0
 
 
     // Slider displays miles when needed but converts back to km for state

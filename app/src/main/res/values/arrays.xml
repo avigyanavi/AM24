@@ -197,7 +197,35 @@
         <item>Zimbabwe</item>
     </string-array>
 
-        <!-- Pan‑India city list with Tier‑1 UAs (with satellites) + at least two other cities per state -->
+    <string-array name="mexico_cities">
+        <item>Mexico City</item>
+        <item>Guadalajara</item>
+        <item>Monterrey</item>
+        <item>Puebla</item>
+        <item>Tijuana</item>
+        <item>Ciudad Juarez</item>
+        <item>Leon</item>
+        <item>Zapopan</item>
+        <item>Ecatepec de Morelos</item>
+        <item>Nezahualcoyotl</item>
+        <item>Merida</item>
+        <item>San Luis Potosi</item>
+        <item>Queretaro</item>
+        <item>Mexicali</item>
+        <item>Aguascalientes</item>
+        <item>Hermosillo</item>
+        <item>Saltillo</item>
+        <item>Morelia</item>
+        <item>Chihuahua</item>
+        <item>Culiacan</item>
+        <item>Cancun</item>
+        <item>Villahermosa</item>
+        <item>Toluca</item>
+        <item>Reynosa</item>
+        <item>Tlalnepantla</item>
+    </string-array>
+
+    <!-- Pan‑India city list with Tier‑1 UAs (with satellites) + at least two other cities per state -->
     <string-array name="city_names">
         <!-- Fallback -->
         <item>Other</item>

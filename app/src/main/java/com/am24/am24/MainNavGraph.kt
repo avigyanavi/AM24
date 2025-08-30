@@ -341,6 +341,17 @@ fun MainNavGraph(
                 ChatScreen(navController, otherUserId)
             }
         }
+        composable(
+            route = "omegleChat/{chatId}/{otherUserId}",
+            arguments = listOf(
+                navArgument("chatId") { type = NavType.StringType },
+                navArgument("otherUserId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: return@composable
+            val otherId = backStackEntry.arguments?.getString("otherUserId") ?: return@composable
+            OmegleChatScreen(navController, chatId, otherId)
+        }
         // 1) West Bengal top-level map
         composable("map") {
             // Pass references
