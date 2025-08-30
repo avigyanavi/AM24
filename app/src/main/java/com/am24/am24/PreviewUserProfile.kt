@@ -3,6 +3,9 @@
 package com.am24.am24
 
 import DatingViewModel
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -14,7 +17,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -36,6 +41,9 @@ fun PreviewUserProfileScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope        = rememberCoroutineScope()
     var showComplimentDlg by remember { mutableStateOf(false) }
+    val showPassAnim       = remember { mutableStateOf(false) }
+    val showComplimentAnim = remember { mutableStateOf(false) }
+    val showLikeAnim       = remember { mutableStateOf(false) }
 
     val datingViewModel: DatingViewModel = viewModel()
 
@@ -103,6 +111,7 @@ fun PreviewUserProfileScreen(
                 /* ❌ PASS */
                 FloatingActionButton(
                     onClick = {
+                        showPassAnim.value = true
                         scope.launch {
                             handleSwipeLeft(currentUserId, targetUserId)
                             updateDailySwipeCount()          // helper below
@@ -119,6 +128,7 @@ fun PreviewUserProfileScreen(
                 /* 💌 COMPLIMENT */
                 FloatingActionButton(
                     onClick = {
+                        showComplimentAnim.value = true
                         if (complimentsLeft > 0) {
                             showComplimentDlg = true
                         } else {
@@ -135,6 +145,7 @@ fun PreviewUserProfileScreen(
                 FloatingActionButton(
                     onClick = {
 //                        pendingLike = true
+                        showLikeAnim.value = true
                         scope.launch {
                             handleSwipeRight(currentUserId, targetUserId, profileViewModel)
                             updateDailySwipeCount()
@@ -162,6 +173,15 @@ fun PreviewUserProfileScreen(
                     )
                 }
             }
+            if (showPassAnim.value) {
+                SwipeFeedbackIcon(flag = showPassAnim, icon = Icons.Default.Clear, modifier = Modifier.align(Alignment.Center))
+            }
+            if (showComplimentAnim.value) {
+                SwipeFeedbackIcon(flag = showComplimentAnim, icon = Icons.Default.LocalAirport, modifier = Modifier.align(Alignment.Center))
+            }
+            if (showLikeAnim.value) {
+                SwipeFeedbackIcon(flag = showLikeAnim, icon = Icons.Default.Favorite, modifier = Modifier.align(Alignment.Center))
+            }
             // ⬇️ Place these OUTSIDE the Row, but still inside the Box:
             matchPopUpState?.let { (you, them) ->
                 val yourPic = profileViewModel.currentUserProfile.value?.profilepicUrl.orEmpty()
@@ -179,6 +199,43 @@ fun PreviewUserProfileScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SwipeFeedbackIcon(
+    flag: MutableState<Boolean>,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(visible = flag.value, modifier = modifier) {
+        val offsetY = remember { Animatable(0f) }
+        val alpha = remember { Animatable(1f) }
+
+        LaunchedEffect(flag.value) {
+            if (flag.value) {
+                offsetY.animateTo(
+                    targetValue = -80f,
+                    animationSpec = tween(durationMillis = 600)
+                )
+                alpha.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(durationMillis = 600)
+                )
+                offsetY.snapTo(0f)
+                alpha.snapTo(1f)
+                flag.value = false
+            }
+        }
+
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier
+                .offset(y = offsetY.value.dp)
+                .alpha(alpha.value)
+        )
     }
 }
 

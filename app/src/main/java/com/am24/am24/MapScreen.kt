@@ -73,15 +73,10 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.*
 
-/* ——— shared helper & model from your project ——— */
-import com.am24.am24.searchPlacesRich
-import com.am24.am24.PlaceResult
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.auth.FirebaseAuth
-import androidx.compose.ui.res.pluralStringResource
 import java.text.Normalizer
-import java.text.Normalizer.Form.NFD
 
 
 /* ======================================================================================= */

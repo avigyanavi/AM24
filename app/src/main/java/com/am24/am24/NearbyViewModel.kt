@@ -124,6 +124,10 @@ class NearbyViewModel : ViewModel() {
 
                     // No allowLocationPublic/allowLocationForMatches checks here
                     val username = (p.username ?: "").ifBlank { p.name ?: "" }
+                    if (username.isBlank()) {
+                        onExit(uid)
+                        return
+                    }
                     val age = calculateAge(p.dob)
                     val lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: p.lastActive
 

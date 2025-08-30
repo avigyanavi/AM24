@@ -825,7 +825,7 @@ fun FeedItem(
                             ctx.startActivity(Intent(Intent.ACTION_VIEW, gmm))
                         },
                         label = { Text(ci.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        leadingIcon = { Icon(Icons.Default.Place, null) }
+                        leadingIcon = { Icon(Icons.Default.Place, null, tint = Color.Red ) }
                     )
                 }
 
