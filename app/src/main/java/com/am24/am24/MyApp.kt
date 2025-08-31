@@ -17,6 +17,7 @@ import com.facebook.appevents.AppEventsLogger
 class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        instance = this
         AudienceNetworkAds.initialize(this)
 
         // Facebook App Events initialization (modern path)

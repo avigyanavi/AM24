@@ -331,6 +331,11 @@ fun TopNavBar(
 
             if (isOnHome || isDMScreen) {
                 IconButton(onClick = {
+                    Toast.makeText(
+                        ctx,
+                        ctx.getString(R.string.searching),
+                        Toast.LENGTH_SHORT
+                    ).show()
                     coroutineScope.launch {
                         val match = matchRandomOmegleUser()
                         if (match != null) {

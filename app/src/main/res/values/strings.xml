@@ -52,6 +52,7 @@
     <string name="private_account_desc">Hide your profile from the People tab except for those you swipe right on</string>
     <string name="unblock">Unblock</string>
     <string name="cd_dating_shortcut">Dating</string>
+    <string name="searching">Searching...</string>
 
     <!-- Subscription feature bullet points -->
     <string name="feature_no_ads">No ads</string>

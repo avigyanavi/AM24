@@ -4,6 +4,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
+import android.content.Context
 
 /**
  * Checks daily login streak and applies Plus rewards.
@@ -11,7 +12,7 @@ import java.time.LocalDate
  */
 data class DailyLoginInfo(val streak: Int, val rewardHours: Int)
 
-suspend fun checkDailyLoginReward(): DailyLoginInfo? {
+suspend fun checkDailyLoginReward(context: Context): DailyLoginInfo? {
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return null
     val ref = FirebaseRefs.db.getReference("users").child(uid)
     val snap = ref.get().await()
@@ -51,7 +52,7 @@ suspend fun checkDailyLoginReward(): DailyLoginInfo? {
         val notificationsRef: DatabaseReference = FirebaseRefs.db.getReference("notifications")
         val notificationId = notificationsRef.child(uid).push().key
         notificationId?.let { id ->
-            val message = MyApp.instance.getString(R.string.notification_streak_plus_message)
+            val message = context.getString(R.string.notification_streak_plus_message)
             val notification = Notification(
                 id = id,
                 type = "streak_plus",

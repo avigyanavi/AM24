@@ -56,6 +56,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.*
 import kotlinx.coroutines.delay
 import java.util.Locale
+import com.am24.am24.ui.theme.DarkGrayBackground
 
 /* ──────────────────────────  ACTIVITY  ────────────────────────── */
 
@@ -428,7 +429,7 @@ fun LandingScreen(
                 shape = RoundedCornerShape(25.dp),
                 border = BorderStroke(1.dp, KupidxOrange),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.Black,
+                    containerColor = DarkGrayBackground,
                     contentColor = KupidxOrange
                 )
             ) {
@@ -450,7 +451,7 @@ fun LandingScreen(
                 shape = RoundedCornerShape(25.dp),
                 border = BorderStroke(1.dp, KupidxOrange),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.Black,
+                    containerColor = DarkGrayBackground,
                     contentColor = KupidxOrange
                 )
             ) {
@@ -529,7 +530,7 @@ fun SocialSignInButton(
     modifier: Modifier = Modifier,           // ← NEW
     @DrawableRes logo: Int,
     text: String,
-    backgroundColor: Color = Color.Black,
+    backgroundColor: Color = DarkGrayBackground,
     contentColor: Color,
     onClick: () -> Unit
 ) {

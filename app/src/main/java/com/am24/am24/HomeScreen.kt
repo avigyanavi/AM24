@@ -86,6 +86,7 @@ fun HomeScreen(
     // Get the current user ID from FirebaseAuth.
     val userId = FirebaseAuth.getInstance().currentUser?.uid
     var dailyLoginInfo by remember { mutableStateOf<DailyLoginInfo?>(null) }
+    val context = LocalContext.current
 
     // Immediately update the PostViewModel with the current user ID.
     LaunchedEffect(userId) {
@@ -162,7 +163,7 @@ fun HomeScreen(
 
         LaunchedEffect(isPremium, isPlus) {
             if (!isPremium && !isPlus) {
-                dailyLoginInfo = checkDailyLoginReward()
+                dailyLoginInfo = checkDailyLoginReward(context)
             } else {
                 dailyLoginInfo = null
             }

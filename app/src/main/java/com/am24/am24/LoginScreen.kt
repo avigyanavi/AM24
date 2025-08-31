@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.input.VisualTransformation
 import com.am24.am24.ui.theme.AppTheme
+import com.am24.am24.ui.theme.DarkGrayBackground
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
@@ -554,7 +555,7 @@ fun LoginScreen(
                     .height(46.dp),
                 border = BorderStroke(1.dp, KupidxOrange),   // <- fixed line
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.Black,
+                    containerColor = DarkGrayBackground,
                 ),
                 shape = RoundedCornerShape(25.dp)
             ) {
