@@ -53,6 +53,8 @@
     <string name="unblock">Unblock</string>
     <string name="cd_dating_shortcut">Dating</string>
     <string name="searching">Searching...</string>
+    <string name="saved_posts_title">Saved Posts</string>
+    <string name="saved_posts_empty">No saved posts yet.</string>
 
     <!-- Subscription feature bullet points -->
     <string name="feature_no_ads">No ads</string>

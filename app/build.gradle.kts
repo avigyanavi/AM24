@@ -14,7 +14,7 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 172
+        versionCode = 173
         versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -102,7 +102,6 @@ dependencies {
     implementation("com.google.maps.android:android-maps-utils:2.3.0")
     implementation("com.android.billingclient:billing-ktx:8.0.0")
     implementation("phonepe.intentsdk.android.release:IntentSDK:5.1.0")
-    implementation("com.facebook.android:audience-network-sdk:6.16.0")
     implementation(libs.places)
     // For Coil image loading
     implementation(libs.coil.compose.v222)

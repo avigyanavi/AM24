@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.navigation.NavController
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
@@ -81,7 +82,7 @@ fun SavedPostsScreen(
         containerColor = Color.Black,
         topBar = {
             TopAppBar(
-                title = { Text("Saved Posts", color = Color.White) },
+                title = { Text(stringResource(R.string.saved_posts_title), color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
@@ -103,7 +104,7 @@ fun SavedPostsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No saved posts yet.",
+                    text = stringResource(R.string.saved_posts_empty),
                     color = Color.White,
                     fontSize = 16.sp
                 )

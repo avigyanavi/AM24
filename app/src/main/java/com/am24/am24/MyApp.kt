@@ -11,14 +11,12 @@ import com.google.firebase.database.FirebaseDatabase
 import com.am24.am24.billing.BillingManager
 import com.am24.am24.ui.purchase.PurchaseType
 import com.facebook.FacebookSdk
-import com.facebook.ads.AudienceNetworkAds
 import com.facebook.appevents.AppEventsLogger
 
 class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        AudienceNetworkAds.initialize(this)
 
         // Facebook App Events initialization (modern path)
                 FacebookSdk.setAutoInitEnabled(true)

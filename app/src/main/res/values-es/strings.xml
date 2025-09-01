@@ -172,6 +172,8 @@
     <string name="feature_everything_plus">Todo en Plus</string>
     <string name="cd_dating_shortcut">Citas</string>
     <string name="searching">Buscando...</string>
+    <string name="saved_posts_title">Publicaciones guardadas</string>
+    <string name="saved_posts_empty">Aún no hay publicaciones guardadas.</string>
 
     <!-- LA Quick Tags (labels) -->
     <string name="la_tag_dtla_rooftops_label">Azoteas en DTLA</string>

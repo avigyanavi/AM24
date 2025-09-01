@@ -33,6 +33,8 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
+import androidx.compose.runtime.DisposableEffect
+
 
 // 1) Composable that loads a NativeAd into state, once:
 @Composable
@@ -42,6 +44,12 @@ fun ComposeNativeAd(
 ) {
     val context = LocalContext.current
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
+
+    DisposableEffect(nativeAd) {
+        onDispose {
+            nativeAd?.destroy()
+        }
+    }
 
     // kick off load
     LaunchedEffect(adUnitId) {
@@ -133,20 +141,23 @@ fun NativeAdCard(
             }
 
             // 3) Wire up the asset views
-            adView.headlineView     = headlineView
+            headlineView?.let { adView.headlineView = it }
+//            adView.headlineView     = headlineView
             bodyView?.let { adView.bodyView = it }
-            adView.iconView         = iconView
-            adView.mediaView        = mediaView
-            adView.callToActionView = ctaView
+//            adView.iconView         = iconView
+            iconView?.let { adView.iconView = it }
+            mediaView?.let { adView.mediaView = it }
+            ctaView?.let { adView.callToActionView = it }
+//            adView.callToActionView = ctaView
 
-            // 4) Layout in code
+// 4) Layout in code (only add if non-null — same as bodyView)
             val container = LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
-                addView(headlineView)
+                headlineView.let { addView(it) } // always present
                 bodyView?.let { addView(it) }
-                addView(iconView)
-                addView(mediaView)
-                addView(ctaView)
+                iconView?.let { addView(it) }
+                mediaView?.let { addView(it) }
+                ctaView?.let { addView(it) }
             }
             adView.addView(container)
 
