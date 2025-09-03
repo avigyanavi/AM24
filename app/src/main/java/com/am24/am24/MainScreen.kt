@@ -874,77 +874,24 @@ fun TopNavBar(
     )
 
     if (showLocationPrefDialog) {
-        AlertDialog(
-            onDismissRequest = { showLocationPrefDialog = false },
-            title = { Text(stringResource(R.string.dialog_location_title)) },
-            text = {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.lbl_visible_to_matches))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Switch(
-                            checked = allowLocationForMatches,
-                            onCheckedChange = { allowLocationForMatches = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFFFF6F00),
-                                uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = Color.Gray
-                            )
-                        )
+        LocationPrivacyDialog(
+            allowLocationForMatches = allowLocationForMatches,
+            onAllowLocationForMatchesChange = { allowLocationForMatches = it },
+            allowLocationPublic = allowLocationPublic,
+            onAllowLocationPublicChange = { allowLocationPublic = it },
+            isPrivate = isPrivate,
+            onIsPrivateChange = { isPrivate = it },
+            onDismiss = { showLocationPrefDialog = false },
+            onConfirm = {
+                val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+                userRef.child("allowLocationForMatches").setValue(allowLocationForMatches)
+                userRef.child("allowLocationPublic").setValue(allowLocationPublic)
+                userRef.child("isPrivate").setValue(isPrivate)
+                    .addOnFailureListener { e ->
+                        Log.e("TopNavBar", "Failed to save preference: ${e.message}")
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.lbl_visible_to_public))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Switch(
-                            checked = allowLocationPublic,
-                            onCheckedChange = { allowLocationPublic = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFFFF6F00),
-                                uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = Color.Gray
-                            )
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            stringResource(R.string.settings_private_account),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Switch(
-                            checked = isPrivate,
-                            onCheckedChange = { isPrivate = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFFFF6F00),
-                                uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = Color.Gray
-                            )
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        stringResource(R.string.private_account_desc),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+                showLocationPrefDialog = false
             },
-            confirmButton = {
-                Button(onClick = {
-                    val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
-                    userRef.child("allowLocationForMatches").setValue(allowLocationForMatches)
-                    userRef.child("allowLocationPublic").setValue(allowLocationPublic)
-                    userRef.child("isPrivate").setValue(isPrivate)
-                        .addOnFailureListener { e ->
-                            Log.e("TopNavBar", "Failed to save preference: ${e.message}")
-                        }
-                    showLocationPrefDialog = false
-                }) { Text(stringResource(R.string.btn_save)) }
-            }
         )
     }
 }

@@ -228,8 +228,8 @@ fun MapScreen(
     var lastActiveHours by nearbyViewModel::lastActiveHours
     var selectedTab by rememberSaveable { mutableStateOf(0) } // 0: People, 1: Map
     var genderFilter by nearbyViewModel::genderFilter
-    var isPlus by nearbyViewModel::isPlus
-    var isPremium by nearbyViewModel::isPremium
+    var isPlus by remember { mutableStateOf(false) }
+    var isPremium by remember { mutableStateOf(false) }
     var remainingSwipes by remember { mutableStateOf(0) }
     var swipesLoaded by remember { mutableStateOf(false) }
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
@@ -267,6 +267,7 @@ fun MapScreen(
         val snap = FirebaseRefs.db.getReference("users").child(userId).get().await()
         isPlus = snap.child("isPlus").getValue(Boolean::class.java) ?: false
         isPremium = snap.child("isPremium").getValue(Boolean::class.java) ?: false
+        nearbyViewModel.setTier(isPlus, isPremium)
         val country = snap.child("country").getValue(String::class.java) ?: ""
         isIndian = country.equals("India", true)
         remainingSwipes = loadAndResetSwipesDaily(userId)
@@ -408,7 +409,7 @@ fun MapScreen(
     }
 
     // listen for nearby users (grid)
-    LaunchedEffect(userLatLng, radiusKm) {
+    LaunchedEffect(userLatLng, radiusKm, isPlus, isPremium) {
         val me = userLatLng ?: return@LaunchedEffect
         nearbyViewModel.refreshNearbyUsers(userId, me, geoFireDatabaseRef)
     }

@@ -25,6 +25,11 @@ class NearbyViewModel : ViewModel() {
     var isPremium by mutableStateOf(false)
     var isRefreshing by mutableStateOf(false)
 
+    fun setTier(isPlus: Boolean, isPremium: Boolean) {
+        this.isPlus = isPlus
+        this.isPremium = isPremium
+    }
+
     private var geoQuery: GeoQuery? = null
     private val userCache = mutableMapOf<String, NearbyUser>()
     private val cacheTimestamps = mutableMapOf<String, Long>()
@@ -48,6 +53,12 @@ class NearbyViewModel : ViewModel() {
         isRefreshing = true
         people.clear()
 
+        val limit = when {
+            isPremium -> 100
+            isPlus -> 50
+            else -> 20
+        }
+
         // Always run the NEARBY GeoFire query (People tab dataset),
         // and let the UI's toggle handle last-active filtering/sorting.
         geoQuery = observeNearbyUsers(
@@ -55,6 +66,7 @@ class NearbyViewModel : ViewModel() {
             center = center,
             radiusKm = radiusKm,
             geoFireDatabaseRef = geoFireDatabaseRef,
+            limit = limit,
             onEnterOrMove = { if (it.userId !in excludedUserIds) upsert(people, it) },
             onExit = { uid -> people.removeAll { it.userId == uid } }
         )
@@ -88,6 +100,7 @@ class NearbyViewModel : ViewModel() {
         center: LatLng,
         radiusKm: Double,
         geoFireDatabaseRef: DatabaseReference,
+        limit: Int,
         onEnterOrMove: (NearbyUser) -> Unit,
         onExit: (String) -> Unit
     ): GeoQuery {
@@ -96,8 +109,16 @@ class NearbyViewModel : ViewModel() {
             GeoLocation(center.latitude, center.longitude),
             radiusKm
         )
+        var reachedLimit = false
 
         fun buildUser(uid: String, loc: GeoLocation?) {
+            if (reachedLimit || people.size >= limit) {
+                if (!reachedLimit) {
+                    reachedLimit = true
+                    query.removeAllListeners()
+                }
+                return
+            }
             if (uid == currentUserId) return
             if (uid in excludedUserIds) return
             val now = System.currentTimeMillis()
@@ -110,12 +131,23 @@ class NearbyViewModel : ViewModel() {
                 val updated = cached.copy(latLng = latLng, distanceMeters = distM)
                 userCache[uid] = updated
                 onEnterOrMove(updated)
+                if (people.size >= limit) {
+                    reachedLimit = true
+                    query.removeAllListeners()
+                }
                 return
             }
 
             val usersRef = FirebaseRefs.db.getReference("users").child(uid)
             usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
+                    if (reachedLimit || people.size >= limit) {
+                        if (!reachedLimit) {
+                            reachedLimit = true
+                            query.removeAllListeners()
+                        }
+                        return
+                    }
                     val p = snapshot.getValue(Profile::class.java) ?: return
                     if (p.isPrivate) {
                         onExit(uid)
@@ -145,6 +177,10 @@ class NearbyViewModel : ViewModel() {
                     userCache[uid] = user
                     cacheTimestamps[uid] = now
                     onEnterOrMove(user)
+                    if (people.size >= limit) {
+                        reachedLimit = true
+                        query.removeAllListeners()
+                    }
                 }
 
                 override fun onCancelled(error: DatabaseError) {
