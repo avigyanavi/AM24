@@ -876,17 +876,17 @@ fun TopNavBar(
     if (showLocationPrefDialog) {
         LocationPrivacyDialog(
             allowLocationForMatches = allowLocationForMatches,
-            onAllowLocationForMatchesChange = { allowLocationForMatches = it },
             allowLocationPublic = allowLocationPublic,
-            onAllowLocationPublicChange = { allowLocationPublic = it },
             isPrivate = isPrivate,
-            onIsPrivateChange = { isPrivate = it },
             onDismiss = { showLocationPrefDialog = false },
-            onConfirm = {
+            onConfirm = { matches, public, private ->
+                allowLocationForMatches = matches
+                allowLocationPublic = public
+                isPrivate = private
                 val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
-                userRef.child("allowLocationForMatches").setValue(allowLocationForMatches)
-                userRef.child("allowLocationPublic").setValue(allowLocationPublic)
-                userRef.child("isPrivate").setValue(isPrivate)
+                userRef.child("allowLocationForMatches").setValue(matches)
+                userRef.child("allowLocationPublic").setValue(public)
+                userRef.child("isPrivate").setValue(private)
                     .addOnFailureListener { e ->
                         Log.e("TopNavBar", "Failed to save preference: ${e.message}")
                     }
