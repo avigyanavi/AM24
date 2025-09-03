@@ -6,49 +6,49 @@ import android.util.Log
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
-import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.storage.FirebaseStorage
 import com.am24.am24.billing.BillingManager
 import com.am24.am24.ui.purchase.PurchaseType
 import com.facebook.FacebookSdk
 import com.facebook.appevents.AppEventsLogger
 
 class MyApp : Application() {
+
     override fun onCreate() {
         super.onCreate()
         instance = this
 
-        // Facebook App Events initialization (modern path)
-                FacebookSdk.setAutoInitEnabled(true)
-                FacebookSdk.fullyInitialize()
-                AppEventsLogger.activateApp(this)
+        // ───────── Facebook: EXPLICIT "old style" init for reliable install capture ─────────
+        // Make sure Manifest also uses the SAME App ID and fb<APP_ID> scheme.
+        FacebookSdk.setApplicationId("606416195185970")                       // ← OLD APP ID
+        FacebookSdk.setClientToken("c2deeaa408a6cc080a2f914008805bcd")       // ← Your client token
+        FacebookSdk.setAutoInitEnabled(false)                                // we control init manually
+        FacebookSdk.setAutoLogAppEventsEnabled(true)
+        FacebookSdk.setAdvertiserIDCollectionEnabled(true)
+        FacebookSdk.sdkInitialize(applicationContext)                        // ← explicit init
+        AppEventsLogger.activateApp(this)                                    // ← install/activate ping
 
+        // ───────── Firebase App Check ─────────
         val appCheck = FirebaseAppCheck.getInstance()
         val providerFactory =
             if (BuildConfig.DEBUG) {
                 DebugAppCheckProviderFactory.getInstance()
-            }
-            else
-            {
+            } else {
                 val isEmulator = Build.FINGERPRINT.contains("generic")
-                if (isEmulator) {
-                    DebugAppCheckProviderFactory.getInstance()
-                } else {
-                    PlayIntegrityAppCheckProviderFactory.getInstance()
-                }
+                if (isEmulator) DebugAppCheckProviderFactory.getInstance()
+                else PlayIntegrityAppCheckProviderFactory.getInstance()
             }
         appCheck.installAppCheckProviderFactory(providerFactory)
 
+        // ───────── Realtime DB persistence ─────────
         try { FirebaseDatabase.getInstance().setPersistenceEnabled(true) } catch (_: Exception) {}
 
-        // ---- Play Billing: INAPP packs + SUBS ----
+        // ───────── Play Billing: INAPP packs + SUBS ─────────
         val packQuantities = listOf(5, 10, 20)
         val inappIds = PurchaseType.values()
             .flatMap { t -> packQuantities.map { q -> t.skuFor(q) } }
             .plus("entry_fee")
-        // Create these 2 subscription product IDs in Play Console (each with base plans):
-        // - plus
-        // - premium
         val subsIds = listOf("plus", "premium")
 
         if (!BuildConfig.DEBUG && !isEmulator()) {
@@ -57,8 +57,10 @@ class MyApp : Application() {
             Log.d("MyApp", "Skipping BillingManager connection in debug/emulator mode")
         }
 
+        // ───────── Storage bucket ─────────
         FirebaseStorage.getInstance("gs://am-twentyfour")
     }
+
     private fun isEmulator(): Boolean {
         return Build.FINGERPRINT.startsWith("generic") ||
                 Build.FINGERPRINT.lowercase().contains("vbox") ||

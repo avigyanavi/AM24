@@ -2,26 +2,23 @@ package com.am24.am24
 
 /* ──────────────────────────  IMPORTS  ────────────────────────── */
 
-
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.support.annotation.DrawableRes
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
-
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -37,7 +34,6 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -45,9 +41,12 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.am24.am24.KupidxOrange
 import com.am24.am24.ui.theme.AppTheme
+import com.am24.am24.ui.theme.DarkGrayBackground
 import com.facebook.*
 import com.facebook.login.LoginManager
 import com.facebook.login.LoginResult
+import com.facebook.appevents.AppEventsConstants
+import com.facebook.appevents.AppEventsLogger
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -56,9 +55,6 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.*
 import kotlinx.coroutines.delay
 import java.util.Locale
-import com.am24.am24.ui.theme.DarkGrayBackground
-import com.facebook.appevents.AppEventsConstants
-import com.facebook.appevents.AppEventsLogger
 
 /* ──────────────────────────  ACTIVITY  ────────────────────────── */
 
@@ -76,7 +72,8 @@ class LandingActivity : ComponentActivity() {
         val languageCode = prefs.getString("language", defaultLang) ?: defaultLang
         super.attachBaseContext(updateLocale(newBase, languageCode))
     }
-    // 1️⃣  Add a tiny util (inside LandingActivity)
+
+    // Current signed-in provider (for registration extras)
     private fun currentProvider(): String {
         val p = FirebaseAuth.getInstance().currentUser?.providerData?.map { it.providerId } ?: return "unknown"
         return when {
@@ -105,7 +102,6 @@ class LandingActivity : ComponentActivity() {
                     FirebaseRefs.db.reference
                         .child("users/$uid/registrationStep").get()
                         .addOnSuccessListener { stepSnap ->
-                            /*  ─── THIS LINE CHANGED ───  */
                             val startAt = stepSnap.getValue(Long::class.java)?.toInt() ?: 1
                             launchRegistration(startAt, currentProvider())
                         }
@@ -117,14 +113,12 @@ class LandingActivity : ComponentActivity() {
             .addOnFailureListener { goToMain() }
     }
 
-
-    /* tiny one-liner that starts RegistrationActivity at a given step */
     /** Fire up RegistrationActivity with the right extras */
     private fun launchRegistration(startAt: Int, provider: String) {
         startActivity(
             Intent(this, RegistrationActivity::class.java)
                 .putExtra("requestedStartStep", startAt)
-                .putExtra("signInProvider",    provider)   //  ← NEW
+                .putExtra("signInProvider",    provider)
         )
         finish()
     }
@@ -132,6 +126,9 @@ class LandingActivity : ComponentActivity() {
     /* ─────────  onCreate  ───────── */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Single CallbackManager instance
+        callbackManager = CallbackManager.Factory.create()
 
         googleSignInLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -152,12 +149,12 @@ class LandingActivity : ComponentActivity() {
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        firebaseAuth = FirebaseAuth.getInstance()          // ➊ keep this first
+        firebaseAuth = FirebaseAuth.getInstance()          // keep this first
 
-        /* ── NEW: skip landing if cached user exists ── */
-        if (firebaseAuth.currentUser != null) {            // <- user is already signed-in
-            continueIntoApp()                              //    jump straight to next screen
-            return                                         //    do NOT render LandingScreen
+        /* Skip landing if cached user exists */
+        if (firebaseAuth.currentUser != null) {
+            continueIntoApp()
+            return
         }
 
         /* Google */
@@ -166,9 +163,6 @@ class LandingActivity : ComponentActivity() {
             .requestEmail()
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
-
-        /* Facebook */
-        callbackManager = CallbackManager.Factory.create()
 
         /* UI */
         setContent {
@@ -256,6 +250,7 @@ class LandingActivity : ComponentActivity() {
     }
 
     /* Deliver Activity results to FB SDK */
+    @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         callbackManager.onActivityResult(requestCode, resultCode, data)
@@ -270,39 +265,46 @@ class LandingActivity : ComponentActivity() {
             .addOnCompleteListener(this) { task ->
                 isSigningIn = false
                 if (task.isSuccessful) {
-                    // ① grab the freshly-signed-in user
+                    // ① freshly-signed-in user
                     val user = firebaseAuth.currentUser!!
                     val uid  = user.uid
                     val isNewUser = task.result?.additionalUserInfo?.isNewUser == true
 
-                    // Facebook App Events
-                    val logger = AppEventsLogger.newLogger(this)
-                    logger.logEvent(AppEventsConstants.EVENT_NAME_ACTIVATED_APP)
+                    // ② App Events: Completed Registration (method param)
                     if (isNewUser) {
-                        logger.logEvent(AppEventsConstants.EVENT_NAME_COMPLETED_REGISTRATION)
+                        val method = when (credential) {
+                            is GoogleAuthCredential   -> "google"
+                            is FacebookAuthCredential -> "facebook"
+                            else                      -> "emailPassword"
+                        }
+                        val params = android.os.Bundle().apply {
+                            putString(AppEventsConstants.EVENT_PARAM_REGISTRATION_METHOD, method)
+                        }
+                        AppEventsLogger.newLogger(this)
+                            .logEvent(AppEventsConstants.EVENT_NAME_COMPLETED_REGISTRATION, params)
                     }
+
+                    // ③ Save fresh ID token (optional but handy)
                     user.getIdToken(true)
                         .addOnSuccessListener { res ->
                             res.token?.let { TokenStorageManager.saveToken(this@LandingActivity, it) }
                         }
 
-                    // ② pull their e-mail out of the FirebaseUser
-                    val email = user.email
-                        ?: acct?.email            // fallback in the rare case FirebaseUser.email is null
-                        ?: ""
-
-                    // ③ write it to your DB under users/$uid/email
+                    // ④ Store email
+                    val email = user.email ?: acct?.email ?: ""
                     FirebaseRefs.db.reference
                         .child("users/$uid/email")
                         .setValue(email)
+
+                    // ⑤ Route to next screen
                     if (isNewUser) {
-                        // brand-new social account → skip E-mail/Phone step
                         val prov = when (credential) {
-                            is GoogleAuthCredential    -> "google"
-                            is FacebookAuthCredential  -> "facebook"
-                            else                       -> "unknown"
+                            is GoogleAuthCredential   -> "google"
+                            is FacebookAuthCredential -> "facebook"
+                            else                      -> "unknown"
                         }
-                        launchRegistration(startAt = 2, provider = prov)   //  ← NEW
+                        // brand-new social account → skip Email/Phone step
+                        launchRegistration(startAt = 2, provider = prov)
                     } else {
                         continueIntoApp()
                     }
@@ -411,13 +413,13 @@ fun LandingScreen(
 
         /* ─── 1. Top banner ─── */
         Column(
-            modifier = Modifier                // top-centre, a bit of breathing room
+            modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(Modifier.height(12.dp))
-            Image(                                   // your logo
+            Image(
                 painter = painterResource(R.drawable.kupidx_logo1),
                 contentDescription = null,
                 modifier = Modifier.size(110.dp)
@@ -515,15 +517,15 @@ fun SocialSignInButtons(
     onFacebookSignIn: () -> Unit
 ) = Row(
     modifier = Modifier
-    .fillMaxWidth()                                   // 1️⃣
-    .padding(horizontal = 16.dp),
-    horizontalArrangement = Arrangement.spacedBy(16.dp)   // 3️⃣
-){
-        SocialSignInButton(
-            modifier   = Modifier.weight(1f),
-            logo = R.drawable.ic_google_logo,
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp),
+    horizontalArrangement = Arrangement.spacedBy(16.dp)
+) {
+    SocialSignInButton(
+        modifier   = Modifier.weight(1f),
+        logo = R.drawable.ic_google_logo,
         text = stringResource(R.string.continue_with_google),
-            contentColor = KupidxOrange,
+        contentColor = KupidxOrange,
         onClick = onGoogleSignIn
     )
     SocialSignInButton(
@@ -537,7 +539,7 @@ fun SocialSignInButtons(
 
 @Composable
 fun SocialSignInButton(
-    modifier: Modifier = Modifier,           // ← NEW
+    modifier: Modifier = Modifier,
     @DrawableRes logo: Int,
     text: String,
     backgroundColor: Color = DarkGrayBackground,

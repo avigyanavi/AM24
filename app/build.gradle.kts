@@ -14,7 +14,7 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 174
+        versionCode = 176
         versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("com.android.installreferrer:installreferrer:2.2")
     implementation(libs.firebase.analytics)
     implementation("com.google.firebase:firebase-messaging")
     implementation("androidx.compose.material3:material3:1.2.1")
