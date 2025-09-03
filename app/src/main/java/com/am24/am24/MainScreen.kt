@@ -46,6 +46,7 @@ import androidx.compose.ui.res.stringResource
 import android.content.Context
 import androidx.compose.material.icons.outlined.DynamicFeed
 import androidx.compose.material.icons.outlined.RssFeed
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.launch
 
 
@@ -88,6 +89,28 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         } else null
     }
 
+    // Listen for incoming omegle invites
+    var omegleInvite by remember { mutableStateOf<OmegleMatch?>(null) }
+    DisposableEffect(currentUserId) {
+        val ref = FirebaseDatabase.getInstance().reference
+            .child("omegleInvites").child(currentUserId)
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val first = snapshot.children.firstOrNull()
+                if (first != null) {
+                    val chatId = first.key ?: return
+                    val otherUid = first.getValue(String::class.java) ?: return
+                    omegleInvite = OmegleMatch(chatId, otherUid)
+                } else {
+                    omegleInvite = null
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        ref.addValueEventListener(listener)
+        onDispose { ref.removeEventListener(listener) }
+    }
+
     Scaffold(
         topBar = {
             if (showTopBar) {
@@ -124,6 +147,32 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
             currentPrice = priceTier.value,
             locationManager = locationManager
         )
+        if (omegleInvite != null) {
+            AlertDialog(
+                onDismissRequest = { /* keep dialog until user acts */ },
+                text = { Text("Join random chat?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val match = omegleInvite!!
+                        FirebaseDatabase.getInstance().reference
+                            .child("omegleInvites").child(currentUserId)
+                            .child(match.chatId).removeValue()
+                        navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
+                        omegleInvite = null
+                    }) { Text("Join") }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        omegleInvite?.let { match ->
+                            FirebaseDatabase.getInstance().reference
+                                .child("omegleInvites").child(currentUserId)
+                                .child(match.chatId).removeValue()
+                        }
+                        omegleInvite = null
+                    }) { Text("Ignore") }
+                }
+            )
+        }
     }
 }
 

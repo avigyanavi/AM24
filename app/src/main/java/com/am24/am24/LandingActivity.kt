@@ -57,6 +57,8 @@ import com.google.firebase.auth.*
 import kotlinx.coroutines.delay
 import java.util.Locale
 import com.am24.am24.ui.theme.DarkGrayBackground
+import com.facebook.appevents.AppEventsConstants
+import com.facebook.appevents.AppEventsLogger
 
 /* ──────────────────────────  ACTIVITY  ────────────────────────── */
 
@@ -271,6 +273,14 @@ class LandingActivity : ComponentActivity() {
                     // ① grab the freshly-signed-in user
                     val user = firebaseAuth.currentUser!!
                     val uid  = user.uid
+                    val isNewUser = task.result?.additionalUserInfo?.isNewUser == true
+
+                    // Facebook App Events
+                    val logger = AppEventsLogger.newLogger(this)
+                    logger.logEvent(AppEventsConstants.EVENT_NAME_ACTIVATED_APP)
+                    if (isNewUser) {
+                        logger.logEvent(AppEventsConstants.EVENT_NAME_COMPLETED_REGISTRATION)
+                    }
                     user.getIdToken(true)
                         .addOnSuccessListener { res ->
                             res.token?.let { TokenStorageManager.saveToken(this@LandingActivity, it) }
@@ -285,7 +295,7 @@ class LandingActivity : ComponentActivity() {
                     FirebaseRefs.db.reference
                         .child("users/$uid/email")
                         .setValue(email)
-                    if (task.result?.additionalUserInfo?.isNewUser == true) {
+                    if (isNewUser) {
                         // brand-new social account → skip E-mail/Phone step
                         val prov = when (credential) {
                             is GoogleAuthCredential    -> "google"

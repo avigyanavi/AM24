@@ -2062,4 +2062,29 @@ exports.syncPlaySubscription = functions
     }
   });
 
+// ✅ single, final definition
+exports.notifyOmegleInvite = functions
+  .region('asia-south1')                     // match your other functions
+  .database.instance('kupidxdefault')        // the subdomain BEFORE .asia-southeast1...
+  .ref('/omegleInvites/{partnerId}/{chatId}')
+  .onCreate(async (snapshot, context) => {
+    const partnerId = context.params.partnerId;
+    const chatId    = context.params.chatId;
+    const otherUid  = snapshot.val();
+
+    const tokenSnap = await admin.database()
+      .ref(`users/${partnerId}/fcmTokens`)
+      .once('value');
+    const tokens = tokenSnap.exists() ? Object.keys(tokenSnap.val()) : [];
+    if (!tokens.length) return null;
+
+    const payload = {
+      data: { type: 'omegle_invite', chatId, otherUid },
+      tokens,
+    };
+
+    await admin.messaging().sendEachForMulticast(payload);
+    return null;
+  });
+
 

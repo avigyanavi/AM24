@@ -1558,7 +1558,7 @@
     <string name="clear_selection">Borrar selección</string>
     <string name="basic_filters">Filtros básicos</string>
     <string name="gender_preference">Preferencia de género:</string>
-    <string name="gender_either">Cualquiera</string>
+    <string name="gender_either">Otros</string>
     <string name="age_range">Rango de edad: %1$d - %2$d</string>
     <string name="max_distance">Distancia: %1$dkm</string>
     <string name="max_distance_miles">Distancia: %1$dmi</string>

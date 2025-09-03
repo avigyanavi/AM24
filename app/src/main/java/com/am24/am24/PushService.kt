@@ -118,6 +118,36 @@ class PushService : FirebaseMessagingService() {
                         .build()
                 )
             }
+            "omegle_invite" -> {
+                val chatId = data["chatId"] ?: return
+                val otherUid = data["otherUid"] ?: return
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        this, android.Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED) return
+
+                val pending = PendingIntent.getActivity(
+                    this, 2,
+                    Intent(this, MainActivity::class.java).apply {
+                        putExtra("open_omegle_chat", true)
+                        putExtra("chatId", chatId)
+                        putExtra("otherUid", otherUid)
+                        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    },
+                    PendingIntent.FLAG_IMMUTABLE
+                )
+                ensureChannel()
+                NotificationManagerCompat.from(this).notify(
+                    97,
+                    NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setSmallIcon(R.drawable.kupidx_notification)
+                        .setContentTitle(getString(R.string.app_name))
+                        .setContentText("Random chat invite")
+                        .setAutoCancel(true)
+                        .setContentIntent(pending)
+                        .build()
+                )
+            }
             else -> return
         }
     }

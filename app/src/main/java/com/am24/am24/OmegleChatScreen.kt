@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -93,11 +94,6 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
                     }
                 },
                 actions = {
-                    TextButton(onClick = {
-                        dbRef.child("ended").setValue(true)
-                    }) {
-                        Text(stringResource(R.string.end_chat))
-                    }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
             )
@@ -126,10 +122,20 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
                 }
             }
             Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                FilledIconButton(
+                    onClick = { dbRef.child("ended").setValue(true) },
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.end_chat))
+                }
                 TextField(
                     value = input,
                     onValueChange = { input = it },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
                 )
                 IconButton(onClick = {
                     val text = input.text.trim()

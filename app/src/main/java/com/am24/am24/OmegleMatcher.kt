@@ -23,5 +23,12 @@ suspend fun matchRandomOmegleUser(): OmegleMatch? {
         "ended" to false
     )
     db.child("omegleChats").child(chatId).setValue(chatData).await()
+
+    // Also create an invite so the partner can accept the chat
+    db.child("omegleInvites")
+        .child(partnerId)
+        .child(chatId)
+        .setValue(uid)
+        .await()
     return OmegleMatch(chatId, partnerId)
 }

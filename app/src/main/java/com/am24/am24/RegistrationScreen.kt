@@ -87,6 +87,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.am24.am24.ui.theme.AppTheme
+import com.facebook.appevents.AppEventsConstants
+import com.facebook.appevents.AppEventsLogger
 import com.firebase.geofire.GeoFire
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -624,6 +626,9 @@ private fun createFreshAccount(
     FirebaseAuth.getInstance()
         .createUserWithEmailAndPassword(email, password)
         .addOnSuccessListener {
+            val logger = AppEventsLogger.newLogger(MyApp.instance)
+            logger.logEvent(AppEventsConstants.EVENT_NAME_ACTIVATED_APP)
+            logger.logEvent(AppEventsConstants.EVENT_NAME_COMPLETED_REGISTRATION)
             onSuccess()
         }
         .addOnFailureListener { e ->

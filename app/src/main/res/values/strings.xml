@@ -1671,7 +1671,7 @@
     <string name="interested_in_header">Who are you interested in?</string>
     <string name="male_option">Male</string>
     <string name="female_option">Female</string>
-    <string name="gender_either">Either</string>
+    <string name="gender_either">Other</string>
     <string name="subscription_active">Active</string>
     <string name="subscription_inactive">Inactive</string>
     <string name="subscription_completed">Completed</string>
