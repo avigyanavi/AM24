@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.lifecycle.asFlow
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,6 +46,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
@@ -55,6 +57,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import androidx.wear.compose.material.rememberSwipeableState
@@ -241,6 +244,7 @@ fun MapScreen(
     var swipesLoaded by remember { mutableStateOf(false) }
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
     var isIndian by remember { mutableStateOf(false) }
+    val profileViewModel: ProfileViewModel = viewModel()
     val orientationFilter by navController.currentBackStackEntry?.savedStateHandle
         ?.getStateFlow("mapOrientationFilter", prefs.getString("map_orientation_filter", "") ?: "")?.collectAsState()
         ?: remember { mutableStateOf("") }
@@ -778,13 +782,35 @@ fun MapScreen(
                     }
                 }
 
-                /* ======================= MAP TAB (old map restored) ======================= */
+                /* ======================= CARDS TAB ======================= */
                 1 -> {
                     CardsList(
                         users = sortedPeople,
                         showAds = showAds,
-                        onLike = {},
-                        onDislike = {}
+                        onLike = { user ->
+                            if (swipesLoaded && remainingSwipes <= 0) {
+                                showSwipeLimitOverlay = true
+                            } else {
+                                handleSwipeRight(userId, user.userId, profileViewModel)
+                                nearbyViewModel.addExcluded(user.userId)
+                                if (swipesLoaded) {
+                                    remainingSwipes--
+                                    updateSwipesInFirebase(remainingSwipes)
+                                }
+                            }
+                        },
+                        onDislike = { user ->
+                            if (swipesLoaded && remainingSwipes <= 0) {
+                                showSwipeLimitOverlay = true
+                            } else {
+                                handleSwipeLeft(userId, user.userId)
+                                nearbyViewModel.addExcluded(user.userId)
+                                if (swipesLoaded) {
+                                    remainingSwipes--
+                                    updateSwipesInFirebase(remainingSwipes)
+                                }
+                            }
+                        }
                     )
                 }
 
@@ -1373,6 +1399,10 @@ fun MapScreen(
     }
 }
 
+/* ======================================================================================= */
+/*  Cards list + profile card (new tab)                                                   */
+/* ======================================================================================= */
+
 @Composable
 private fun CardsList(
     users: List<NearbyUser>,
@@ -1439,7 +1469,7 @@ private fun ProfileCard(
         scope.launch { listState.animateScrollToItem(currentIndex) }
     }
     val swipeState = rememberSwipeableState(0)
-    val width = with(LocalDensity.current) { 200.dp.toPx() }
+    val width = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
     LaunchedEffect(swipeState.currentValue) {
         when (swipeState.currentValue) {
             -1 -> onDislike()
@@ -1452,17 +1482,18 @@ private fun ProfileCard(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(3f / 4f)
+            .offset { IntOffset(swipeState.offset.value.roundToInt(), 0) }
             .swipeable(
                 state = swipeState,
                 anchors = mapOf(-width to -1, 0f to 0, width to 1),
                 orientation = Orientation.Horizontal
             )
     ) {
-        Column {
+        Column(Modifier.fillMaxSize()) {
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .weight(3f)
             ) {
                 LazyRow(
                     state = listState,
@@ -1494,19 +1525,30 @@ private fun ProfileCard(
                         Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clickable { onDislike() }
                             .background(Color.Black.copy(alpha = 0.1f))
-                    )
+                            .pointerInput(Unit) { detectTapGestures(onTap = { onDislike() }) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
+                    }
                     Box(
                         Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clickable { onLike() }
                             .background(Color.Black.copy(alpha = 0.1f))
-                    )
+                            .pointerInput(Unit) { detectTapGestures(onTap = { onLike() }) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
+                    }
                 }
             }
-            Column(Modifier.padding(8.dp)) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
                 Text(
                     text = "${user.username}, ${user.age}",
                     style = MaterialTheme.typography.titleLarge.copy(
@@ -1530,7 +1572,6 @@ private fun ProfileCard(
         }
     }
 }
-
 /* ======================================================================================= */
 /*  People grid + cards                                                                    */
 /* ======================================================================================= */
