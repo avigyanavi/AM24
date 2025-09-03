@@ -12,6 +12,7 @@ import com.firebase.geofire.GeoQuery
 import com.firebase.geofire.GeoQueryEventListener
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.database.*
+import kotlin.math.roundToInt
 
 class NearbyViewModel : ViewModel() {
     val people = mutableStateListOf<NearbyUser>()
@@ -24,11 +25,17 @@ class NearbyViewModel : ViewModel() {
     var isPlus by mutableStateOf(false)
     var isPremium by mutableStateOf(false)
     var isRefreshing by mutableStateOf(false)
+    var currentProfile: Profile? = null
 
     fun setTier(isPlus: Boolean, isPremium: Boolean) {
         this.isPlus = isPlus
         this.isPremium = isPremium
     }
+
+    fun setCurrentUserProfile(profile: Profile?) {
+        currentProfile = profile
+    }
+
 
     private var geoQuery: GeoQuery? = null
     private val userCache = mutableMapOf<String, NearbyUser>()
@@ -163,6 +170,22 @@ class NearbyViewModel : ViewModel() {
                     val age = calculateAge(p.dob)
                     val lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: p.lastActive
 
+                    val compat = currentProfile?.let { cp ->
+                        val ageCompat = ageCompatibilityScore(calculateAge(cp.dob), age)
+                        val zodiacCompat = zodiacCompatibilityScore(cp.zodiac ?: "", p.zodiac ?: "")
+                        (((ageCompat + zodiacCompat) / 2.0) * 100).roundToInt()
+                    }
+                    val detailCandidates = listOf(
+                        p.bio,
+                        p.jobRole,
+                        p.hometown,
+                        p.work,
+                        p.college,
+                        p.religion,
+                        p.community
+                    ).filter { it.isNotBlank() }
+                    val randomDetail = detailCandidates.randomOrNull()
+
                     val user = NearbyUser(
                         userId = uid,
                         username = username,
@@ -172,7 +195,9 @@ class NearbyViewModel : ViewModel() {
                         latLng = latLng,
                         distanceMeters = distM,
                         gender = p.gender ?: "",
-                        sexualOrientation = p.sexualOrientation ?: ""
+                        sexualOrientation = p.sexualOrientation ?: "",
+                        compatibilityPct = compat,
+                        randomDetail = randomDetail
                     )
                     userCache[uid] = user
                     cacheTimestamps[uid] = now

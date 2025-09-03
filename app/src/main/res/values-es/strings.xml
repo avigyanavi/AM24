@@ -1546,6 +1546,7 @@
     <string name="college_graduation_year">Año de graduación de universidad</string>
     <string name="number">%d</string>
     <string name="percentage">%d%%</string>
+    <string name="tab_cards">Tarjetas</string>
     <string name="city">Ciudad</string>
     <string name="locality">Localidad</string>
     <string name="shared_kinks_prefix">Fetiches compartidos: %1$s</string>

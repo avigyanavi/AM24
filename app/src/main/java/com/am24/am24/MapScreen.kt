@@ -13,6 +13,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.asFlow
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +38,7 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
@@ -54,6 +56,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import androidx.wear.compose.material.ExperimentalWearMaterialApi
+import androidx.wear.compose.material.rememberSwipeableState
+import androidx.wear.compose.material.swipeable
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.firebase.geofire.*
@@ -115,7 +120,9 @@ data class NearbyUser(
     val latLng: LatLng?,
     val distanceMeters: Double,
     val gender: String,
-    val sexualOrientation: String
+    val sexualOrientation: String,
+    val compatibilityPct: Int? = null,
+    val randomDetail: String? = null
 )
 
 // Leaderboard
@@ -226,7 +233,7 @@ fun MapScreen(
     var sortMode by nearbyViewModel::sortMode
     var radiusKm by nearbyViewModel::radiusKm
     var lastActiveHours by nearbyViewModel::lastActiveHours
-    var selectedTab by rememberSaveable { mutableStateOf(0) } // 0: People, 1: Map
+    var selectedTab by rememberSaveable { mutableStateOf(0) } // 0: People, 1: Cards, 2: Map
     var genderFilter by nearbyViewModel::genderFilter
     var isPlus by remember { mutableStateOf(false) }
     var isPremium by remember { mutableStateOf(false) }
@@ -265,9 +272,11 @@ fun MapScreen(
 
     LaunchedEffect(userId) {
         val snap = FirebaseRefs.db.getReference("users").child(userId).get().await()
+        val profile = snap.getValue(Profile::class.java)
         isPlus = snap.child("isPlus").getValue(Boolean::class.java) ?: false
         isPremium = snap.child("isPremium").getValue(Boolean::class.java) ?: false
         nearbyViewModel.setTier(isPlus, isPremium)
+        nearbyViewModel.setCurrentUserProfile(profile)
         val country = snap.child("country").getValue(String::class.java) ?: ""
         isIndian = country.equals("India", true)
         remainingSwipes = loadAndResetSwipesDaily(userId)
@@ -573,7 +582,7 @@ fun MapScreen(
     }
 
     LaunchedEffect(selectedTab, sortedPeople, matchUids) {
-        if (selectedTab != 1) return@LaunchedEffect
+        if (selectedTab != 2) return@LaunchedEffect
 
         val currentIds = sortedPeople.map { it.userId }.toSet()
 
@@ -705,7 +714,14 @@ fun MapScreen(
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    selectedContentColor = KupidxOrange,   // ← Map tab in orange when selected
+                    selectedContentColor = KupidxOrange,
+                    unselectedContentColor = Color.Gray,
+                    text = { Text(stringResource(R.string.tab_cards)) }
+                )
+                Tab(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    selectedContentColor = KupidxOrange,
                     unselectedContentColor = Color.Gray,
                     text = { Text(stringResource(R.string.tab_map)) }
                 )
@@ -764,6 +780,16 @@ fun MapScreen(
 
                 /* ======================= MAP TAB (old map restored) ======================= */
                 1 -> {
+                    CardsList(
+                        users = sortedPeople,
+                        showAds = showAds,
+                        onLike = {},
+                        onDislike = {}
+                    )
+                }
+
+                /* ======================= MAP TAB (old map restored) ======================= */
+                2 -> {
                     Box(Modifier.fillMaxSize()) {
                         Column(Modifier.fillMaxSize()) {
 
@@ -1344,6 +1370,164 @@ fun MapScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun CardsList(
+    users: List<NearbyUser>,
+    showAds: Boolean,
+    onLike: (NearbyUser) -> Unit,
+    onDislike: (NearbyUser) -> Unit
+) {
+    if (users.isEmpty()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
+        }
+        return
+    }
+    val context = LocalContext.current
+    val items = remember(users, showAds) {
+        val list = mutableListOf<Any>()
+        users.forEachIndexed { index, u ->
+            list += u
+            if (showAds && (index + 1) % 5 == 0) {
+                list += "ad_$index"
+            }
+        }
+        list
+    }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        itemsIndexed(
+            items,
+            key = { idx, item -> if (item is NearbyUser) item.userId else "ad_$idx" }
+        ) { _, item ->
+            if (item is NearbyUser) {
+                ProfileCard(
+                    user = item,
+                    onLike = { onLike(item) },
+                    onDislike = { onDislike(item) }
+                )
+            } else {
+                ComposeNativeAd(
+                    adUnitId = AdUnitIds.native(context),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(3f / 4f)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalWearMaterialApi::class)
+@Composable
+private fun ProfileCard(
+    user: NearbyUser,
+    onLike: () -> Unit,
+    onDislike: () -> Unit
+) {
+    val photos = remember(user.photoUrl) { listOfNotNull(user.photoUrl) }
+    var currentIndex by remember { mutableStateOf(0) }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(currentIndex) {
+        scope.launch { listState.animateScrollToItem(currentIndex) }
+    }
+    val swipeState = rememberSwipeableState(0)
+    val width = with(LocalDensity.current) { 200.dp.toPx() }
+    LaunchedEffect(swipeState.currentValue) {
+        when (swipeState.currentValue) {
+            -1 -> onDislike()
+            1 -> onLike()
+        }
+    }
+    Card(
+        colors = CardDefaults.cardColors(containerColor = KupidxOrange),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(3f / 4f)
+            .swipeable(
+                state = swipeState,
+                anchors = mapOf(-width to -1, 0f to 0, width to 1),
+                orientation = Orientation.Horizontal
+            )
+    ) {
+        Column {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+            ) {
+                LazyRow(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(photos) { url ->
+                        AsyncImage(
+                            model = url,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillParentMaxSize()
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = { if (currentIndex > 0) currentIndex-- },
+                    modifier = Modifier.align(Alignment.CenterStart).alpha(0.5f)
+                ) {
+                    Icon(Icons.Default.ChevronLeft, contentDescription = null, tint = Color.White)
+                }
+                IconButton(
+                    onClick = { if (currentIndex < photos.lastIndex) currentIndex++ },
+                    modifier = Modifier.align(Alignment.CenterEnd).alpha(0.5f)
+                ) {
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.White)
+                }
+                Row(Modifier.matchParentSize()) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable { onDislike() }
+                            .background(Color.Black.copy(alpha = 0.1f))
+                    )
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable { onLike() }
+                            .background(Color.Black.copy(alpha = 0.1f))
+                    )
+                }
+            }
+            Column(Modifier.padding(8.dp)) {
+                Text(
+                    text = "${user.username}, ${user.age}",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                user.compatibilityPct?.let {
+                    Text(
+                        text = "Compatibility: $it%",
+                        style = MaterialTheme.typography.titleMedium.copy(color = Color.Black)
+                    )
+                }
+                user.randomDetail?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyLarge.copy(color = Color.Black)
+                    )
+                }
+            }
+        }
     }
 }
 

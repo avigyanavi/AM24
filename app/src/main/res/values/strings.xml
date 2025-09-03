@@ -14,6 +14,7 @@
     <string name="add_location_optional">Add a location (optional)</string>
     <string name="tab_people">People</string>
     <string name="tab_nearby">Nearby</string>
+    <string name="tab_cards">Cards</string>
     <string name="tab_map">Map</string>
     <string name="daily_login_title">Daily login</string>
     <string name="daily_login_message">Logged in %1$d days in a row</string>
