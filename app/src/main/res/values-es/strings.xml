@@ -155,6 +155,9 @@
     <string name="block">Bloquear</string>
     <string name="more_options">Más opciones</string>
     <string name="cd_omegle">Chat aleatorio</string>
+    <string name="join_random_chat">¿Unirte a un chat aleatorio?</string>
+    <string name="join_chat">Unirse</string>
+    <string name="ignore_chat">Ignorar</string>
     <string name="no_users_online">No hay usuarios en línea</string>
     <string name="end_chat">Terminar</string>
     <string name="feature_no_ads">Sin anuncios</string>

@@ -146,7 +146,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         if (omegleInvite != null) {
             AlertDialog(
                 onDismissRequest = { /* keep dialog until user acts */ },
-                text = { Text("Join random chat?") },
+                text = { Text(stringResource(R.string.join_random_chat), color = KupidxOrange) },
                 confirmButton = {
                     TextButton(onClick = {
                         val match = omegleInvite!!
@@ -155,7 +155,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                             .child(match.chatId).removeValue()
                         navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
                         omegleInvite = null
-                    }) { Text("Join") }
+                    }) { Text(stringResource(R.string.join_chat), color = KupidxOrange) }
                 },
                 dismissButton = {
                     TextButton(onClick = {
@@ -165,7 +165,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                                 .child(match.chatId).removeValue()
                         }
                         omegleInvite = null
-                    }) { Text("Ignore") }
+                    }) { Text(stringResource(R.string.ignore_chat), color = KupidxOrange) }
                 }
             )
         }
@@ -318,6 +318,9 @@ fun TopNavBar(
     val isOnHome = currentDestination
         ?.hierarchy
         ?.any { it.route == "home" } == true
+    val isOnMap = currentDestination
+        ?.hierarchy
+        ?.any { it.route == "map" } == true
     val isAdmin by profileViewModel.isAdmin.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val ctx = LocalContext.current
@@ -355,7 +358,7 @@ fun TopNavBar(
             }
 
 
-            if (isOnHome || isDMScreen) {
+            if (isOnMap) {
                 IconButton(onClick = {
                     Toast.makeText(
                         ctx,

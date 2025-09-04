@@ -236,6 +236,8 @@ fun MapScreen(
     var genderFilter by nearbyViewModel::genderFilter
     var isPlus by remember { mutableStateOf(false) }
     var isPremium by remember { mutableStateOf(false) }
+    var dailyLoginInfo by remember { mutableStateOf<DailyLoginInfo?>(null) }
+    var omegleInvite by remember { mutableStateOf<OmegleMatch?>(null) }
     var remainingSwipes by remember { mutableStateOf(0) }
     var swipesLoaded by remember { mutableStateOf(false) }
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
@@ -282,6 +284,34 @@ fun MapScreen(
         remainingSwipes = loadAndResetSwipesDaily(userId)
         swipesLoaded = true
         nearbyViewModel.setExcluded(fetchExcludedUsers(userId))
+    }
+
+    LaunchedEffect(isPremium, isPlus) {
+        if (!isPremium && !isPlus) {
+            dailyLoginInfo = checkDailyLoginReward(ctx)
+        } else {
+            dailyLoginInfo = null
+        }
+    }
+
+    DisposableEffect(userId) {
+        val ref = FirebaseDatabase.getInstance().reference
+            .child("omegleInvites").child(userId)
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val first = snapshot.children.firstOrNull()
+                if (first != null) {
+                    val chatId = first.key ?: return
+                    val otherUid = first.getValue(String::class.java) ?: return
+                    omegleInvite = OmegleMatch(chatId, otherUid)
+                } else {
+                    omegleInvite = null
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        ref.addValueEventListener(listener)
+        onDispose { ref.removeEventListener(listener) }
     }
 
     /* ---------------- Matches (markers, popup) ---------------- */
@@ -1396,6 +1426,71 @@ fun MapScreen(
                     showSendOverlay = false
                     placeToSend = null
                 }
+            }
+        )
+    }
+
+    if (!isPremium && !isPlus) {
+        dailyLoginInfo?.let { info ->
+            val kupidxOrange = Color(0xFFFF6F00)
+            AlertDialog(
+                onDismissRequest = { dailyLoginInfo = null },
+                confirmButton = {
+                    TextButton(onClick = { dailyLoginInfo = null }) {
+                        Text("OK", color = kupidxOrange)
+                    }
+                },
+                title = { Text(stringResource(R.string.daily_login_title)) },
+                text = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            for (i in 1..5) {
+                                val checked = i <= info.streak
+                                Icon(
+                                    imageVector = if (checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                                    contentDescription = null,
+                                    tint = if (checked) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Text(stringResource(R.string.daily_login_message, info.streak))
+                        if (info.rewardHours > 0) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(stringResource(R.string.daily_login_plus_award, info.rewardHours))
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    if (omegleInvite != null) {
+        AlertDialog(
+            onDismissRequest = { /* keep dialog until user acts */ },
+            text = { Text("Join random chat?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val match = omegleInvite!!
+                    FirebaseDatabase.getInstance().reference
+                        .child("omegleInvites").child(userId)
+                        .child(match.chatId).removeValue()
+                    navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
+                    omegleInvite = null
+                }) { Text("Join") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    omegleInvite?.let { match ->
+                        FirebaseDatabase.getInstance().reference
+                            .child("omegleInvites").child(userId)
+                            .child(match.chatId).removeValue()
+                    }
+                    omegleInvite = null
+                }) { Text("Ignore") }
             }
         )
     }

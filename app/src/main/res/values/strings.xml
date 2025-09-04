@@ -57,7 +57,9 @@
     <string name="searching">Searching...</string>
     <string name="saved_posts_title">Saved Posts</string>
     <string name="saved_posts_empty">No saved posts yet.</string>
-
+    <string name="join_random_chat">Join random chat?</string>
+    <string name="join_chat">Join</string>
+    <string name="ignore_chat">Ignore</string>
     <!-- Subscription feature bullet points -->
     <string name="feature_no_ads">No ads</string>
     <string name="feature_priority_profile">Priority Profile in the dating stack</string>

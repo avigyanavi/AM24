@@ -59,13 +59,6 @@ fun LocationPrivacyDialog(
                     selected = selectedOption,
                     onSelect = setSelectedOption
                 )
-                if (selectedOption == LocationPrivacyOption.PRIVATE) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        stringResource(R.string.private_account_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
             }
         },
         confirmButton = {
