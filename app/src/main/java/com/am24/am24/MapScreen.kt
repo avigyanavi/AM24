@@ -204,7 +204,6 @@ fun MapScreen(
     geoFireDatabaseRef: DatabaseReference,
     navController: NavController,
     onProfileMarkerClicked: (String) -> Unit,
-    currentPrice: String,
     nearbyViewModel: NearbyViewModel,
     radiusKmDefault: Double = 100.0
 ) {

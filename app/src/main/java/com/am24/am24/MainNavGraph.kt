@@ -56,7 +56,6 @@ fun MainNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
     postViewModel: PostViewModel,
-    currentPrice  : String,
     locationManager: LocationManager
 ) {
     var userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
@@ -368,7 +367,6 @@ fun MainNavGraph(
                         navController.navigate("previewUserProfile/$profileId")
                     }
                 },
-                currentPrice = currentPrice,
                 nearbyViewModel = nearbyViewModel
             )
         }

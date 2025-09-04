@@ -64,13 +64,11 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val priceAll = stringResource(id = R.string.price_all)
 
     // ➋ only show the global Top/Bottom bars if NOT on leaderboard
     val showGlobalBars = currentRoute?.startsWith("chat/") == false &&
             currentRoute != "leaderboard"
     val showTopBar    = showGlobalBars
-    val priceTier = rememberSaveable { mutableStateOf(priceAll) }
 
     val profileViewModel: ProfileViewModel = viewModel()
     // ─── collect both flags ───────────────────────────
@@ -119,7 +117,6 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                     profileViewModel = profileViewModel,
                     currentUserId = currentUserId,
                     postViewModel = postViewModel,
-                    onPriceChange = { priceTier.value = it },
                     onLogout = onLogout,
                     isPremium = isPremium,
                     isPlus = isPlus,
@@ -144,7 +141,6 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
             navController = navController,
             modifier = Modifier.padding(paddingValues),
             postViewModel = postViewModel,
-            currentPrice = priceTier.value,
             locationManager = locationManager
         )
         if (omegleInvite != null) {
@@ -184,7 +180,6 @@ fun TopNavBar(
     currentUserId: String,
     postViewModel: PostViewModel,
     onLogout: () -> Unit,
-    onPriceChange: (String) -> Unit = {},
     isPremium: Boolean,
     isPlus: Boolean,
     locationManager: LocationManager
@@ -222,10 +217,6 @@ fun TopNavBar(
         }
     }
 
-    /*  ─────────  STATE FOR PRICE FILTER  ────────── */
-    val priceAll = stringResource(id = R.string.price_all)
-    var priceMenuExpanded by rememberSaveable { mutableStateOf(false) }
-    var selectedPriceRange by rememberSaveable { mutableStateOf(priceAll) }
     var orientationMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var countryMenuExpanded by remember { mutableStateOf(false) }
     var selectedCountry by rememberSaveable { mutableStateOf("") }
@@ -363,20 +354,6 @@ fun TopNavBar(
                 }
             }
 
-                    IconButton(onClick = {
-                        if (currentRoute == "dating") {
-                            navController.popBackStack()
-                        } else {
-                            navController.navigate("dating")
-                        }
-                    }) {
-                    Icon(
-                        imageVector = Icons.Default.Swipe,
-                        contentDescription = stringResource(R.string.cd_dating_shortcut),
-                        tint = if (currentRoute == "dating") Color(0xFFFF6F00) else Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
 
             if (isOnHome || isDMScreen) {
                 IconButton(onClick = {
@@ -525,7 +502,7 @@ fun TopNavBar(
                         onDismissRequest = { orientationMenuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.price_all)) },
+                            text = { Text(stringResource(R.string.gender_all)) },
                             onClick = {
                                 orientationMenuExpanded = false
                                 savedStateHandle?.set("mapOrientationFilter", "")
@@ -547,50 +524,6 @@ fun TopNavBar(
                             )
                         }
                     }
-                /* 1) Price-Filter icon (new) – shows before the old Location icon */
-                if (mapSelectedTab == 1) {
-                    /* 1) Price-Filter icon (new) – shows before the old Location icon */
-                    IconButton(onClick = { priceMenuExpanded = true }) {
-                        Icon(
-                            imageVector = Icons.Default.FilterList,
-                            contentDescription = stringResource(R.string.cd_price_filter),
-                            tint = if (selectedPriceRange != stringResource(R.string.price_all))
-                                Color(0xFFFF6F00) else Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    /* ▼ Dropdown for price tiers */
-                    DropdownMenu(
-                        expanded = priceMenuExpanded,
-                        onDismissRequest = { priceMenuExpanded = false }
-                    ) {
-                        val tiers = listOf(
-                            stringResource(R.string.price_all),
-                            stringResource(R.string.price_1),
-                            stringResource(R.string.price_2),
-                            stringResource(R.string.price_3),
-                            stringResource(R.string.price_4)
-                        )
-                        tiers.forEach { tier ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        tier,
-                                        color = if (tier == selectedPriceRange) Color(0xFFFF6F00) else Color.White
-                                    )
-                                },
-                                onClick = {
-                                    priceMenuExpanded = false
-                                    if (tier != selectedPriceRange) {
-                                        selectedPriceRange = tier
-                                        onPriceChange(tier)
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box {
