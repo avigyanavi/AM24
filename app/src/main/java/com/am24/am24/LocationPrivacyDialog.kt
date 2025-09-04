@@ -74,7 +74,7 @@ fun LocationPrivacyDialog(
                     when (selectedOption) {
                         LocationPrivacyOption.PUBLIC -> onConfirm(true, true, false)
                         LocationPrivacyOption.MATCHES_ONLY -> onConfirm(true, false, false)
-                        LocationPrivacyOption.PRIVATE -> onConfirm(false, false, true)
+                        LocationPrivacyOption.PRIVATE -> onConfirm(false, false, false)
                     }
                 }
             ) { Text(stringResource(R.string.btn_save)) }
