@@ -46,7 +46,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
@@ -59,9 +58,6 @@ import androidx.compose.ui.unit.*
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.wear.compose.material.ExperimentalWearMaterialApi
-import androidx.wear.compose.material.rememberSwipeableState
-import androidx.wear.compose.material.swipeable
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.firebase.geofire.*
@@ -605,9 +601,9 @@ fun MapScreen(
                     val allowForMatches = snap.child("allowLocationForMatches")
                         .getValue(Boolean::class.java) ?: false
                     val allowPublic = snap.child("allowLocationPublic")
-                        .getValue(Boolean::class.java) ?: false
+                        .getValue(Boolean::class.java) ?: true
                     val isMatch = matchUids.contains(u.userId)
-                    mapVisibility[u.userId] = if (isMatch) allowForMatches else allowPublic
+                    mapVisibility[u.userId] = if (isMatch) (allowForMatches || allowPublic) else allowPublic
                 } catch (_: Exception) {
                     mapVisibility[u.userId] = false
                 }
@@ -639,18 +635,18 @@ fun MapScreen(
                 TopAppBar(
                     title = {
                         if (sortMode == SortMode.NEARBY) {
-                                RadiusChip(
-                                    radiusKm = radiusKm,
-                                    onChange = {
-                                        radiusKm = it
-                                        prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
-                                        userLatLng?.let { center ->
-                                            nearbyViewModel.refreshNearbyUsers(userId, center, geoFireDatabaseRef)
-                                        }
-                                    },
-                                    useMiles = useMiles,
-                                    modifier = Modifier.scale(0.9f)
-                                )
+                            RadiusChip(
+                                radiusKm = radiusKm,
+                                onChange = {
+                                    radiusKm = it
+                                    prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
+                                    userLatLng?.let { center ->
+                                        nearbyViewModel.refreshNearbyUsers(userId, center, geoFireDatabaseRef)
+                                    }
+                                },
+                                useMiles = useMiles,
+                                modifier = Modifier.scale(0.9f)
+                            )
                         } else {
                             LastActiveChip(
                                 hours = lastActiveHours,
@@ -688,9 +684,9 @@ fun MapScreen(
                             )
                         }
                     },
-                windowInsets = WindowInsets(0, 0, 0, 0)
-            )
-                }
+                    windowInsets = WindowInsets(0, 0, 0, 0)
+                )
+            }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
@@ -787,6 +783,7 @@ fun MapScreen(
                     CardsList(
                         users = sortedPeople,
                         showAds = showAds,
+                        useMiles = useMiles,          // <-- pass through
                         onLike = { user ->
                             if (swipesLoaded && remainingSwipes <= 0) {
                                 showSwipeLimitOverlay = true
@@ -1403,10 +1400,32 @@ fun MapScreen(
 /*  Cards list + profile card (new tab)                                                   */
 /* ======================================================================================= */
 
+/** Thin grey film-wrapped text used on images */
+@Composable
+private fun FilmText(
+    text: String,
+    modifier: Modifier = Modifier,
+    fontSize: TextUnit = 13.sp,
+    fontWeight: FontWeight = FontWeight.Normal
+) {
+    Text(
+        text = text,
+        color = Color.White,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        modifier = modifier
+            .background(Color(0x66000000), RoundedCornerShape(6.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
+}
+
 @Composable
 private fun CardsList(
     users: List<NearbyUser>,
     showAds: Boolean,
+    useMiles: Boolean,
     onLike: (NearbyUser) -> Unit,
     onDislike: (NearbyUser) -> Unit
 ) {
@@ -1439,6 +1458,7 @@ private fun CardsList(
             if (item is NearbyUser) {
                 ProfileCard(
                     user = item,
+                    useMiles = useMiles,    // <---
                     onLike = { onLike(item) },
                     onDislike = { onDislike(item) }
                 )
@@ -1454,10 +1474,10 @@ private fun CardsList(
     }
 }
 
-@OptIn(ExperimentalWearMaterialApi::class)
 @Composable
 private fun ProfileCard(
     user: NearbyUser,
+    useMiles: Boolean,
     onLike: () -> Unit,
     onDislike: () -> Unit
 ) {
@@ -1468,105 +1488,111 @@ private fun ProfileCard(
     LaunchedEffect(currentIndex) {
         scope.launch { listState.animateScrollToItem(currentIndex) }
     }
-    val swipeState = rememberSwipeableState(0)
-    val width = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
-    LaunchedEffect(swipeState.currentValue) {
-        when (swipeState.currentValue) {
-            -1 -> onDislike()
-            1 -> onLike()
-        }
-    }
+
     Card(
-        colors = CardDefaults.cardColors(containerColor = KupidxOrange),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(3f / 4f)
-            .offset { IntOffset(swipeState.offset.value.roundToInt(), 0) }
-            .swipeable(
-                state = swipeState,
-                anchors = mapOf(-width to -1, 0f to 0, width to 1),
-                orientation = Orientation.Horizontal
-            )
     ) {
-        Column(Modifier.fillMaxSize()) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .weight(3f)
+        Box(Modifier.fillMaxSize()) {
+            LazyRow(
+                state = listState,
+                modifier = Modifier.fillMaxSize()
             ) {
-                LazyRow(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(photos) { url ->
-                        AsyncImage(
-                            model = url,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillParentMaxSize()
-                        )
-                    }
+                items(photos) { url ->
+                    AsyncImage(
+                        model = url,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillParentMaxSize()
+                    )
                 }
+            }
+
+            if (photos.size > 1) {
                 IconButton(
                     onClick = { if (currentIndex > 0) currentIndex-- },
-                    modifier = Modifier.align(Alignment.CenterStart).alpha(0.5f)
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .alpha(0.5f)
                 ) {
                     Icon(Icons.Default.ChevronLeft, contentDescription = null, tint = Color.White)
                 }
                 IconButton(
                     onClick = { if (currentIndex < photos.lastIndex) currentIndex++ },
-                    modifier = Modifier.align(Alignment.CenterEnd).alpha(0.5f)
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .alpha(0.5f)
                 ) {
                     Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.White)
                 }
-                Row(Modifier.matchParentSize()) {
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .background(Color.Black.copy(alpha = 0.1f))
-                            .pointerInput(Unit) { detectTapGestures(onTap = { onDislike() }) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
+            }
+
+            // Top readability gradient
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent),
+                            startY = 0f,
+                            endY = 260f
+                        )
+                    )
+            ) {
+                // ⬆️ Top-left: Name + Compatibility with film
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                ) {
+                    FilmText(
+                        text = "${user.username}, ${user.age}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    user.compatibilityPct?.let {
+                        FilmText(text = "Compatibility: $it%")
                     }
+                }
+
+                // ⬇️ Bottom-left: Distance (replaces randomDetail visually)
+                val distanceLabel = if (user.distanceMeters.isFinite())
+                    prettyDistance(user.distanceMeters, useMiles) else null
+
+                distanceLabel?.let { dist ->
                     Box(
-                        Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .background(Color.Black.copy(alpha = 0.1f))
-                            .pointerInput(Unit) { detectTapGestures(onTap = { onLike() }) },
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(8.dp)
                     ) {
-                        Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
+                        FilmText(text = dist)
                     }
                 }
             }
-            Column(
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(8.dp)
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(48.dp)
             ) {
-                Text(
-                    text = "${user.username}, ${user.age}",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-                user.compatibilityPct?.let {
-                    Text(
-                        text = "Compatibility: $it%",
-                        style = MaterialTheme.typography.titleMedium.copy(color = Color.Black)
-                    )
+                FloatingActionButton(
+                    onClick = onDislike,
+                    shape = CircleShape,
+                    containerColor = Color.DarkGray
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
                 }
-                user.randomDetail?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyLarge.copy(color = Color.Black)
-                    )
+                FloatingActionButton(
+                    onClick = onLike,
+                    shape = CircleShape,
+                    containerColor = Color(0xFFFF6F00)
+                ) {
+                    Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White)
                 }
             }
         }
@@ -1668,8 +1694,9 @@ private fun NearbyCard(
                     .matchParentSize()
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)),
-                            startY = 200f
+                            colors = listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent),
+                            startY = 0f,
+                            endY = 260f
                         )
                     )
             )
@@ -2195,70 +2222,6 @@ fun calculateAge(dob: String): Int {
     if (today.get(Calendar.DAY_OF_YEAR) < birthCalendar.get(Calendar.DAY_OF_YEAR)) age--
     return age
 }
-
-/* ======================================================================================= */
-/*  Firebase wiring                                                                        */
-/* ======================================================================================= */
-
-//private fun upsert(list: MutableList<NearbyUser>, item: NearbyUser) {
-//    val idx = list.indexOfFirst { it.userId == item.userId }
-//    if (idx >= 0) list[idx] = item else list.add(item)
-//}
-//
-//private fun observeNearbyUsers(
-//    currentUserId: String,
-//    center: LatLng,
-//    radiusKm: Double,
-//    geoFireDatabaseRef: DatabaseReference,
-//    onEnterOrMove: (NearbyUser) -> Unit,
-//    onExit: (String) -> Unit
-//) {
-//    val geoFire = GeoFire(geoFireDatabaseRef)
-//    val query: GeoQuery = geoFire.queryAtLocation(GeoLocation(center.latitude, center.longitude), radiusKm)
-//
-//    fun buildUser(uid: String, loc: GeoLocation?) {
-//        val usersRef = FirebaseRefs.db.getReference("users").child(uid)
-//        usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
-//            override fun onDataChange(snapshot: DataSnapshot) {
-//                val p = snapshot.getValue(Profile::class.java) ?: return
-//                if (uid == currentUserId) return
-//
-//                val username = p.username.ifBlank { p.name }
-//                val age = calculateAge(p.dob)
-//                val lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: p.lastActive
-//                val latLng = if (loc != null) LatLng(loc.latitude, loc.longitude) else null
-//                val distM = if (latLng != null) distanceMeters(center, latLng) else Double.POSITIVE_INFINITY
-//
-//                onEnterOrMove(
-//                    NearbyUser(
-//                        userId = uid,
-//                        username = username,
-//                        age = age,
-//                        photoUrl = p.profilepicUrl,
-//                        lastActiveAt = lastActive,
-//                        latLng = latLng,
-//                        distanceMeters = distM,
-//                        gender = p.gender,
-//                        sexualOrientation = p.sexualOrientation
-//                    )
-//                )
-//            }
-//            override fun onCancelled(error: DatabaseError) {
-//                Log.e("MapScreenV2", "User fetch cancelled $uid: ${error.message}")
-//            }
-//        })
-//    }
-//
-//    query.addGeoQueryEventListener(object : GeoQueryEventListener {
-//        override fun onKeyEntered(key: String, location: GeoLocation) = buildUser(key, location)
-//        override fun onKeyExited(key: String) = onExit(key)
-//        override fun onKeyMoved(key: String, location: GeoLocation) = buildUser(key, location)
-//        override fun onGeoQueryReady() {}
-//        override fun onGeoQueryError(error: DatabaseError) { Log.e("MapScreenV2", "GeoQuery error: ${error.message}") }
-//    })
-//}
-
-/* ==== existing helpers from old file ==== */
 
 fun loadUserLocationAndMatches(
     userId: String,
