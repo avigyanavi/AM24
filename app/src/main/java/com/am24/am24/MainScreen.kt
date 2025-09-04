@@ -737,13 +737,15 @@ fun TopNavBar(
                 }
 
                 /* 2) Existing location icon */
-                IconButton(onClick = { showLocationPrefDialog = true }) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = stringResource(R.string.cd_location_settings),
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
+                if (isPlus || isPremium) {
+                    IconButton(onClick = { showLocationPrefDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = stringResource(R.string.cd_location_settings),
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
             if (isOnHome) {
@@ -849,7 +851,7 @@ fun TopNavBar(
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
 
-    if (showLocationPrefDialog) {
+    if (showLocationPrefDialog && (isPlus || isPremium)) {
         LocationPrivacyDialog(
             allowLocationForMatches = allowLocationForMatches,
             allowLocationPublic = allowLocationPublic,

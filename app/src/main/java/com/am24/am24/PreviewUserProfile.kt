@@ -86,7 +86,8 @@ fun PreviewUserProfileScreen(
                     geoFire          = geoFire,
                     postViewModel    = postViewModel,
                     profileViewModel = profileViewModel,
-                    navController    = navController
+                    navController    = navController,
+                    showBackButton   = true
                 )
             }
             errorMessage != null -> Text(

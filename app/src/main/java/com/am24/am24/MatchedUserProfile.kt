@@ -10,6 +10,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +38,7 @@ fun MatchedUserProfileScreen(
     postViewModel: PostViewModel,
     profileViewModel: ProfileViewModel,
     navController: NavController,
+    showBackButton: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -156,16 +160,30 @@ fun MatchedUserProfileScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(12.dp),
-                                horizontalArrangement = Arrangement.Center
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 // matches DatingScreen’s centered meter behavior
+                                if (showBackButton) {
+                                    IconButton(onClick = { navController.popBackStack() }) {
+                                        Icon(
+                                            Icons.Filled.ArrowBack,
+                                            contentDescription = "Back",
+                                            tint = Color.White
+                                        )
+                                    }
+                                }
                                 Box(
-                                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .horizontalScroll(rememberScrollState()),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     CompatibilityMeter(
                                         percent = aiMatchResult?.totalMatchPercentage?.toDouble() ?: 0.0
                                     )
+                                }
+                                if (showBackButton) {
+                                    Spacer(modifier = Modifier.width(48.dp))
                                 }
                             }
                         }

@@ -257,12 +257,14 @@ fun MapScreen(
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
     }
 
-    LaunchedEffect(Unit) {
-        val hasShownDialog = prefs.getBoolean(HAS_SHOWN_LOCATION_DIALOG, false)
-        if (!hasShownLocationDialogThisSession && !hasShownDialog) {
-            navController.currentBackStackEntry?.savedStateHandle?.set("showLocationPrefDialog", true)
-            hasShownLocationDialogThisSession = true
-            prefs.edit().putBoolean(HAS_SHOWN_LOCATION_DIALOG, true).apply()
+    LaunchedEffect(isPremium, isPlus) {
+        if (isPremium || isPlus) {
+            val hasShownDialog = prefs.getBoolean(HAS_SHOWN_LOCATION_DIALOG, false)
+            if (!hasShownLocationDialogThisSession && !hasShownDialog) {
+                navController.currentBackStackEntry?.savedStateHandle?.set("showLocationPrefDialog", true)
+                hasShownLocationDialogThisSession = true
+                prefs.edit().putBoolean(HAS_SHOWN_LOCATION_DIALOG, true).apply()
+            }
         }
         sortMode = prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
         radiusKm = prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble()
@@ -270,6 +272,12 @@ fun MapScreen(
         genderFilter = prefs.getString("map_gender_filter", null)
             ?.let { runCatching { GenderFilter.valueOf(it) }.getOrNull() }
             ?: GenderFilter.BOTH
+    }
+
+    LaunchedEffect(isPremium, isPlus) {
+        if (!(isPremium || isPlus) && selectedTab == 2) {
+            selectedTab = 0
+        }
     }
 
     LaunchedEffect(userId) {
@@ -720,7 +728,11 @@ fun MapScreen(
     ) { padding ->
         Column(Modifier.padding(padding)) {
 
-            // Tabs: People | Map  (orange selected)
+            if (!(isPlus || isPremium) && selectedTab == 2) {
+                selectedTab = 0
+            }
+
+            // Tabs: People | Cards | Map (Map only for Plus/Premium)
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.Transparent,
@@ -746,13 +758,15 @@ fun MapScreen(
                     unselectedContentColor = Color.Gray,
                     text = { Text(stringResource(R.string.tab_cards)) }
                 )
-                Tab(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    selectedContentColor = KupidxOrange,
-                    unselectedContentColor = Color.Gray,
-                    text = { Text(stringResource(R.string.tab_map)) }
-                )
+                if (isPlus || isPremium) {
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        selectedContentColor = KupidxOrange,
+                        unselectedContentColor = Color.Gray,
+                        text = { Text(stringResource(R.string.tab_map)) }
+                    )
+                }
             }
 
             when (selectedTab) {
@@ -835,6 +849,25 @@ fun MapScreen(
                                         remainingSwipes--
                                         updateSwipesInFirebase(remainingSwipes)
                                     }
+                                }
+                            },
+                            onCardClick = { user ->
+                                if (swipesLoaded && remainingSwipes <= 0) {
+                                    showSwipeLimitOverlay = true
+                                } else {
+                                    navController.navigate("previewUserProfile/${user.userId}")
+                                }
+                            },
+                            onRemove = { uid ->
+                                scope.launch {
+                                    nearbyViewModel.addExcluded(uid)
+                                    FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid").setValue(true)
+                                }
+                            },
+                            onBlock = { uid ->
+                                scope.launch {
+                                    FirebaseRefs.db.getReference("blocks/$userId/$uid").setValue(true)
+                                    nearbyViewModel.addExcluded(uid)
                                 }
                             }
                     )
@@ -1527,7 +1560,10 @@ private fun CardsList(
     showAds: Boolean,
     useMiles: Boolean,
     onLike: (NearbyUser) -> Unit,
-    onDislike: (NearbyUser) -> Unit
+    onDislike: (NearbyUser) -> Unit,
+    onCardClick: (NearbyUser) -> Unit,
+    onRemove: (String) -> Unit,
+    onBlock: (String) -> Unit
 ) {
     if (users.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -1560,7 +1596,10 @@ private fun CardsList(
                     user = item,
                     useMiles = useMiles,    // <---
                     onLike = { onLike(item) },
-                    onDislike = { onDislike(item) }
+                    onDislike = { onDislike(item) },
+                    onClick = { onCardClick(item) },
+                    onRemove = { onRemove(item.userId) },
+                    onBlock = { onBlock(item.userId) }
                 )
             } else {
                 ComposeNativeAd(
@@ -1579,17 +1618,22 @@ private fun ProfileCard(
     user: NearbyUser,
     useMiles: Boolean,
     onLike: () -> Unit,
-    onDislike: () -> Unit
+    onDislike: () -> Unit,
+    onClick: () -> Unit,
+    onRemove: () -> Unit,
+    onBlock: () -> Unit
 ) {
     val photos = remember(user.photoUrl) { listOfNotNull(user.photoUrl) }
     var currentIndex by remember { mutableStateOf(0) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    var menuExpanded by remember { mutableStateOf(false) }
     LaunchedEffect(currentIndex) {
         scope.launch { listState.animateScrollToItem(currentIndex) }
     }
 
     Card(
+        onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         modifier = Modifier
@@ -1672,6 +1716,33 @@ private fun ProfileCard(
                         FilmText(text = dist)
                     }
                 }
+            }
+
+            IconButton(
+                onClick = { menuExpanded = true },
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = stringResource(R.string.more_options),
+                    tint = Color.White
+                )
+            }
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.remove_from_stack)) },
+                    onClick = {
+                        menuExpanded = false
+                        onRemove()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.block)) },
+                    onClick = {
+                        menuExpanded = false
+                        onBlock()
+                    }
+                )
             }
 
             Row(
@@ -1800,31 +1871,37 @@ private fun NearbyCard(
                         )
                     )
             )
-            IconButton(
-                onClick = { menuExpanded = true },
-                modifier = Modifier.align(Alignment.TopEnd)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.more_options),
-                    tint = Color.White
-                )
-            }
-            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.remove_from_stack)) },
-                    onClick = {
-                        menuExpanded = false
-                        onRemove()
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.block)) },
-                    onClick = {
-                        menuExpanded = false
-                        onBlock()
-                    }
-                )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .wrapContentSize()
+            ){
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.more_options),
+                        tint = Color.White
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.remove_from_stack)) },
+                        onClick = {
+                            menuExpanded = false
+                            onRemove()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.block)) },
+                        onClick = {
+                            menuExpanded = false
+                            onBlock()
+                        }
+                    )
+                }
             }
             Column(
                 modifier = Modifier
