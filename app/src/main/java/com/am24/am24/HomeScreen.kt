@@ -390,6 +390,7 @@ fun FeedSection(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
+                .visibleScrollbar(listState)
         ) {
             if (isPosting) {
                 item {
@@ -1830,7 +1831,8 @@ fun CommentsDialog(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f), // Take available space for comments
+                            .weight(1f) // Take available space for comments
+                            .visibleScrollbar(listState),
                         state = listState
                     ) {
                         items(sortedCommentsList) { comment ->

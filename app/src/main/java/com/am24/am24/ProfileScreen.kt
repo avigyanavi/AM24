@@ -350,7 +350,8 @@ fun ProfileLazyScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black),
+                .background(Color.Black)
+                .visibleScrollbar(listState),
             state = listState
         ) {
             item {

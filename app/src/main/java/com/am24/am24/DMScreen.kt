@@ -458,7 +458,8 @@ fun DMScreenContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(DarkGrayBackground)
-                        .padding(12.dp),
+                        .padding(12.dp)
+                        .visibleScrollbar(listState),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(complimentItems) { item ->

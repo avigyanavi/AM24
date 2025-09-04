@@ -150,7 +150,9 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                         if (showOnlineUsers) {
                             navController.popBackStack()
                         } else {
-                            navController.navigate("omegleUsers")
+                            interstitial?.show {
+                                navController.navigate("omegleUsers")
+                            } ?: navController.navigate("omegleUsers")
                         }
                     }
                 )

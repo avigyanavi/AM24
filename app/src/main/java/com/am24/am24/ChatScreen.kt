@@ -35,6 +35,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -217,6 +218,7 @@ fun ChatScreenContent(
     var isLoadingMessages by remember { mutableStateOf(true) }
     var isLoadingProfiles by remember { mutableStateOf(true) }
     var isUploadingMedia by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var isRecording by remember { mutableStateOf(false) }
     var recorder: MediaRecorder? by remember { mutableStateOf(null) }
@@ -1170,7 +1172,11 @@ fun ChatScreenContent(
                     }
                 } else {
                     LazyColumn(
-                        Modifier.weight(1f).padding(vertical = 8.dp),
+                        state = listState,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 8.dp)
+                            .visibleScrollbar(listState),
                         reverseLayout = true,
                         verticalArrangement = Arrangement.Bottom
                     ) {

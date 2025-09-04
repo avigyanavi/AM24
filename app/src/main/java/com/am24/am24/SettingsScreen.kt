@@ -12,6 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -184,12 +185,15 @@ fun SettingsScreen(navController: NavController) {
         }
     }
 
+    val listState = rememberLazyListState()
     Scaffold { pads ->
         LazyColumn(
-            Modifier
+            state = listState,
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = pads.calculateBottomPadding())   // ✨ only bottom
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .visibleScrollbar(listState),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (premiumTier == "Free") {
