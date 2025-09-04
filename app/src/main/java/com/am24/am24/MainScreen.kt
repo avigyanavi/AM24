@@ -553,13 +553,13 @@ fun TopNavBar(
                     // 1) City selector icon (only meaningful if country = Mexico)
                     IconButton(
                         onClick = { cityMenuExpanded = !cityMenuExpanded },
-                        enabled = selectedCountry == "Mexico"
+                        enabled = CountryUtil.isMexico(context, selectedCountry)
                     ) {
                         Icon(
                             imageVector = Icons.Default.LocationCity,
                             contentDescription = stringResource(R.string.cd_city_filter),
                             tint = if (selectedCity.isNotBlank()) Color(0xFFFF6F00)
-                            else if (selectedCountry == "Mexico") Color.White
+                            else if (CountryUtil.isMexico(context, selectedCountry)) Color.White
                             else Color(0x66FFFFFF),
                             modifier = Modifier.size(24.dp)
                         )
@@ -610,7 +610,7 @@ fun TopNavBar(
                         )
 
                         // Only show if we are on Mexico (your existing support)
-                        if (selectedCountry == "Mexico") {
+                        if (CountryUtil.isMexico(context, selectedCountry)) {
                             val cityOptions = stringArrayResource(R.array.mexico_cities).toList()
                             cityOptions.forEach { city ->
                                 DropdownMenuItem(
@@ -629,7 +629,6 @@ fun TopNavBar(
                                                     "isLocationSpoofed" to true
                                                 )
                                             )
-                                            selectedCountry = "Mexico"
                                             selectedCity = city
                                             savedStateHandle?.set("mapCountryChanged", true)
                                         } else {
@@ -645,7 +644,7 @@ fun TopNavBar(
                         }
                     }
                     // Show selected city label (Mexico only), right after the city icon
-                    if (selectedCountry == "Mexico" && selectedCity.isNotBlank()) {
+                    if (CountryUtil.isMexico(context, selectedCountry) && selectedCity.isNotBlank()) {
                         Text(
                             selectedCity,
                             color = Color(0xFFFF6F00),

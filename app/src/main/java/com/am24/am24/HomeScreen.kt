@@ -752,12 +752,16 @@ fun FeedItem(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        RatingBar(
-                            rating = userProfile?.averageRating ?: 0.0,
-                            ratingCount = userProfile?.numberOfRatings ?: 0 // Pass the number of ratings
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        val avgRating = userProfile?.averageRating ?: 0.0
+                        val ratingCount = userProfile?.numberOfRatings ?: 0
+                        if (avgRating > 0 && ratingCount > 0) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            RatingBar(
+                                rating = avgRating,
+                                ratingCount = ratingCount
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
                     }
 
                     Spacer(modifier = Modifier.weight(1f))

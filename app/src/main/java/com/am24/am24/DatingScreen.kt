@@ -1571,11 +1571,20 @@ fun showVoiceBio(profile: Profile) {
             VoicePlayer(url = profile.voiceNoteUrl)
             Spacer(modifier = Modifier.height(8.dp))
         }
-        ProfileDetailRow(
-            label = stringResource(R.string.bio),
-            value = profile.bio ?: stringResource(R.string.no_bio_available),
-            icon = Icons.Default.BlurOn
-        )
+
+        if (profile.bio.isNotBlank()) {
+            ProfileDetailRow(
+                label = stringResource(R.string.bio),
+                value = profile.bio,
+                icon = Icons.Default.BlurOn
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        if (profile.averageRating > 0.0 && profile.numberOfRatings > 0) {
+            RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
 }
 
