@@ -351,6 +351,9 @@ fun MainNavGraph(
             val otherId = backStackEntry.arguments?.getString("otherUserId") ?: return@composable
             OmegleChatScreen(navController, chatId, otherId)
         }
+        composable("omegleUsers") {
+            OnlineUsersScreen(navController)
+        }
         // 1) West Bengal top-level map
         composable("map") {
             // Pass references

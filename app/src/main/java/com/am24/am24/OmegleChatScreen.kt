@@ -36,7 +36,8 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
     val messages = remember { mutableStateListOf<OmegleMessage>() }
     var input by remember { mutableStateOf(TextFieldValue("")) }
     val uid = FirebaseAuth.getInstance().currentUser?.uid
-
+    var endedByMe by remember { mutableStateOf(false) }
+    var showEndedDialog by remember { mutableStateOf(false) }
     LaunchedEffect(otherUserId) {
         val snap = FirebaseDatabase.getInstance().reference.child("users").child(otherUserId).get().await()
         otherName = snap.child("name").getValue(String::class.java) ?: ""
@@ -55,7 +56,9 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
         val endListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val ended = snapshot.getValue(Boolean::class.java) == true
-                if (ended) navController.popBackStack()
+                if (ended && !endedByMe) {
+                    showEndedDialog = true
+                }
             }
             override fun onCancelled(error: DatabaseError) {}
         }
@@ -63,6 +66,14 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
         onDispose {
             dbRef.child("messages").removeEventListener(msgListener)
             dbRef.child("ended").removeEventListener(endListener)
+        }
+    }
+
+    LaunchedEffect(showEndedDialog) {
+        if (showEndedDialog) {
+            kotlinx.coroutines.delay(2000)
+            cleanupChat(dbRef, uid, otherUserId, chatId)
+            navController.navigate("omegleUsers")
         }
     }
 
@@ -123,7 +134,12 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
             }
             Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 FilledIconButton(
-                    onClick = { dbRef.child("ended").setValue(true) },
+                    onClick = {
+                        endedByMe = true
+                        dbRef.child("ended").setValue(true)
+                        cleanupChat(dbRef, uid, otherUserId, chatId)
+                        navController.navigate("omegleUsers")
+                    },
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     )
@@ -151,6 +167,21 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
             }
         }
     }
+
+    if (showEndedDialog) {
+        AlertDialog(
+            onDismissRequest = {},
+            text = { Text(stringResource(R.string.user_left_chat)) },
+            confirmButton = {}
+        )
+    }
+}
+
+private fun cleanupChat(dbRef: DatabaseReference, uid: String?, otherUserId: String, chatId: String) {
+    val ref = FirebaseDatabase.getInstance().reference
+    uid?.let { ref.child("omegleInvites").child(it).child(chatId).removeValue() }
+    ref.child("omegleInvites").child(otherUserId).child(chatId).removeValue()
+    dbRef.removeValue()
 }
 
 data class OmegleMessage(

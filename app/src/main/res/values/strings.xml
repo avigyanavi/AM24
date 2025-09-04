@@ -12,6 +12,11 @@
     <string name="whats_on_your_mind">What is on your mind?</string>
     <string name="add_tags_comma_separated">Add Tags (comma separated)</string>
     <string name="add_location_optional">Add a location (optional)</string>
+    <string name="online_users">Online Users</string>
+    <string name="male_header">Male</string>
+    <string name="female_header">Female</string>
+    <string name="other_header">Other</string>
+    <string name="request_canceled">Request canceled</string>
     <string name="tab_people">People</string>
     <string name="tab_nearby">Nearby</string>
     <string name="tab_cards">Cards</string>
@@ -60,6 +65,11 @@
     <string name="join_random_chat">Join random chat?</string>
     <string name="join_chat">Join</string>
     <string name="ignore_chat">Ignore</string>
+    <string name="accept_chat">Accept</string>
+    <string name="reject_chat">Reject</string>
+    <string name="request_sent_waiting">Request sent – waiting for user to join</string>
+    <string name="request_rejected">Request rejected</string>
+    <string name="user_left_chat">User has left the chat</string>
     <!-- Subscription feature bullet points -->
     <string name="feature_no_ads">No ads</string>
     <string name="feature_priority_profile">Priority Profile in the dating stack</string>

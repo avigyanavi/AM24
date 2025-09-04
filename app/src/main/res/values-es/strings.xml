@@ -11,10 +11,20 @@
     <string name="whats_on_your_mind">¿Qué estás pensando?</string>
     <string name="add_tags_comma_separated">Agregar etiquetas (separadas por comas)</string>
     <string name="add_location_optional">Agregar una ubicación (opcional)</string>
+    <string name="online_users">Usuarios en línea</string>
+    <string name="male_header">Hombre</string>
+    <string name="female_header">Mujer</string>
+    <string name="other_header">Otro</string>
+    <string name="request_canceled">Solicitud cancelada</string>
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">Idiomas</string>
     <string name="section_bio_and_voice">Biografía</string>
+    <string name="accept_chat">Aceptar</string>
+    <string name="reject_chat">Rechazar</string>
+    <string name="request_sent_waiting">Solicitud enviada – esperando a que el usuario se una</string>
+    <string name="request_rejected">Solicitud rechazada</string>
+    <string name="user_left_chat">El usuario abandonó el chat</string>
     <!-- res/values/strings.xml (English) -->
     <string name="max_social_causes_error">
     Solo puedes seleccionar hasta %1$d causas sociales.

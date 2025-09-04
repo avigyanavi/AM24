@@ -109,6 +109,30 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         onDispose { ref.removeEventListener(listener) }
     }
 
+    // Listen for invite cancellation
+    DisposableEffect(omegleInvite?.chatId) {
+        val match = omegleInvite
+        if (match == null) return@DisposableEffect onDispose {}
+        val statusRef = FirebaseDatabase.getInstance().reference
+            .child("omegleChats").child(match.chatId).child("status")
+        val statusListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val status = snapshot.getValue(String::class.java)
+                if (status == "canceled") {
+                    omegleInvite = null
+                    Toast.makeText(context, R.string.request_canceled, Toast.LENGTH_SHORT).show()
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        statusRef.addValueEventListener(statusListener)
+        onDispose { statusRef.removeEventListener(statusListener) }
+    }
+
+    var showOnlineUsers by remember { mutableStateOf(false) }
+    LaunchedEffect(navBackStackEntry?.destination?.route) {
+        showOnlineUsers = navBackStackEntry?.destination?.route == "omegleUsers"
+    }
     Scaffold(
         topBar = {
             if (showTopBar) {
@@ -120,7 +144,15 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                     onLogout = onLogout,
                     isPremium = isPremium,
                     isPlus = isPlus,
-                    locationManager = locationManager
+                    locationManager = locationManager,
+                    showOnlineUsers = showOnlineUsers,
+                    onToggleOnlineUsers = {
+                        if (showOnlineUsers) {
+                            navController.popBackStack()
+                        } else {
+                            navController.navigate("omegleUsers")
+                        }
+                    }
                 )
             }
         },
@@ -150,9 +182,9 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                 confirmButton = {
                     TextButton(onClick = {
                         val match = omegleInvite!!
-                        FirebaseDatabase.getInstance().reference
-                            .child("omegleInvites").child(currentUserId)
-                            .child(match.chatId).removeValue()
+                        val ref = FirebaseDatabase.getInstance().reference
+                        ref.child("omegleChats").child(match.chatId).child("status").setValue("accepted")
+                        ref.child("omegleInvites").child(currentUserId).child(match.chatId).removeValue()
                         navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
                         omegleInvite = null
                     }) { Text(stringResource(R.string.join_chat), color = KupidxOrange) }
@@ -160,9 +192,9 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                 dismissButton = {
                     TextButton(onClick = {
                         omegleInvite?.let { match ->
-                            FirebaseDatabase.getInstance().reference
-                                .child("omegleInvites").child(currentUserId)
-                                .child(match.chatId).removeValue()
+                            val ref = FirebaseDatabase.getInstance().reference
+                            ref.child("omegleChats").child(match.chatId).child("status").setValue("rejected")
+                            ref.child("omegleInvites").child(currentUserId).child(match.chatId).removeValue()
                         }
                         omegleInvite = null
                     }) { Text(stringResource(R.string.ignore_chat), color = KupidxOrange) }
@@ -182,7 +214,9 @@ fun TopNavBar(
     onLogout: () -> Unit,
     isPremium: Boolean,
     isPlus: Boolean,
-    locationManager: LocationManager
+    locationManager: LocationManager,
+    showOnlineUsers: Boolean,
+    onToggleOnlineUsers: () -> Unit
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -321,9 +355,10 @@ fun TopNavBar(
     val isOnMap = currentDestination
         ?.hierarchy
         ?.any { it.route == "map" } == true
+    val isOnOnlineScreen = currentDestination
+        ?.hierarchy
+        ?.any { it.route == "omegleUsers" } == true
     val isAdmin by profileViewModel.isAdmin.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
-    val ctx = LocalContext.current
 
     TopAppBar(
         title = {
@@ -358,29 +393,12 @@ fun TopNavBar(
             }
 
 
-            if (isOnMap) {
-                IconButton(onClick = {
-                    Toast.makeText(
-                        ctx,
-                        ctx.getString(R.string.searching),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    coroutineScope.launch {
-                        val match = matchRandomOmegleUser()
-                        if (match != null) {
-                            navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
-                        } else {
-                            Toast.makeText(
-                                ctx,
-                                ctx.getString(R.string.no_users_online),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                }) {
+            if (isOnMap || isOnOnlineScreen) {
+                IconButton(onClick = { onToggleOnlineUsers() }) {
                     Icon(
                         imageVector = Icons.Default.Casino,
-                        contentDescription = stringResource(R.string.cd_omegle)
+                        contentDescription = stringResource(R.string.cd_omegle),
+                        tint = if (showOnlineUsers) KupidxOrange else Color.White
                     )
                 }
             }

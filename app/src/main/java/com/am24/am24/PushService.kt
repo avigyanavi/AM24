@@ -140,9 +140,9 @@ class PushService : FirebaseMessagingService() {
                 NotificationManagerCompat.from(this).notify(
                     97,
                     NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.kupidx_notification)
+                        .setSmallIcon(R.drawable.kupidx_logo1)
                         .setContentTitle(getString(R.string.app_name))
-                        .setContentText("Random chat invite")
+                        .setContentText("Online user sends chat invite")
                         .setAutoCancel(true)
                         .setContentIntent(pending)
                         .build()

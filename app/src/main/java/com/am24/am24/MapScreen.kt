@@ -1471,26 +1471,26 @@ fun MapScreen(
     if (omegleInvite != null) {
         AlertDialog(
             onDismissRequest = { /* keep dialog until user acts */ },
-            text = { Text("Join random chat?") },
+            text = { Text(stringResource(R.string.join_random_chat), color = KupidxOrange) },
             confirmButton = {
                 TextButton(onClick = {
                     val match = omegleInvite!!
-                    FirebaseDatabase.getInstance().reference
-                        .child("omegleInvites").child(userId)
-                        .child(match.chatId).removeValue()
+                    val ref = FirebaseDatabase.getInstance().reference
+                    ref.child("omegleChats").child(match.chatId).child("status").setValue("accepted")
+                    ref.child("omegleInvites").child(userId).child(match.chatId).removeValue()
                     navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
                     omegleInvite = null
-                }) { Text("Join") }
-            },
+                }) { Text(stringResource(R.string.join_chat), color = KupidxOrange) }
+                            },
             dismissButton = {
                 TextButton(onClick = {
                     omegleInvite?.let { match ->
-                        FirebaseDatabase.getInstance().reference
-                            .child("omegleInvites").child(userId)
-                            .child(match.chatId).removeValue()
+                        val ref = FirebaseDatabase.getInstance().reference
+                        ref.child("omegleChats").child(match.chatId).child("status").setValue("rejected")
+                        ref.child("omegleInvites").child(userId).child(match.chatId).removeValue()
                     }
                     omegleInvite = null
-                }) { Text("Ignore") }
+                }) { Text(stringResource(R.string.ignore_chat), color = KupidxOrange) }
             }
         )
     }

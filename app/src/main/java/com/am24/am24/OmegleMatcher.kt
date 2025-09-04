@@ -32,3 +32,22 @@ suspend fun matchRandomOmegleUser(): OmegleMatch? {
         .await()
     return OmegleMatch(chatId, partnerId)
 }
+
+suspend fun inviteOmegleUser(targetUid: String): OmegleMatch? {
+    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return null
+    val db = FirebaseDatabase.getInstance().reference
+    val chatId = db.child("omegleChats").push().key ?: return null
+    val chatData = mapOf(
+        "user1" to uid,
+        "user2" to targetUid,
+        "ended" to false,
+        "status" to "pending"
+    )
+    db.child("omegleChats").child(chatId).setValue(chatData).await()
+    db.child("omegleInvites")
+        .child(targetUid)
+        .child(chatId)
+        .setValue(uid)
+        .await()
+    return OmegleMatch(chatId, targetUid)
+}
