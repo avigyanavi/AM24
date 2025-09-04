@@ -580,11 +580,18 @@ exports.getGlobalBoostedUsers = functions
 exports.getGlobalPremiumUsers = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 60, memory: '256MB' })
-  .https.onCall(async () => {
-    const snap = await USERS.get();
+  .https.onCall(async ({ uid, limit }) => {
+    const cutoff = now() - 30 * 24 * 60 * 60 * 1000; // 30 days
+    const lim = Number(limit) || 20;
+
+    const snap = await USERS
+      .orderByChild('lastActive')
+      .startAt(cutoff)
+      .get();
 
     const profiles = [];
     snap.forEach(s => {
+    if (s.key === uid) return; // exclude caller
       const u = s.val();
       if (u?.isPremium || u?.isPlus) {
         // include the UID so the app can map it back
@@ -592,7 +599,14 @@ exports.getGlobalPremiumUsers = functions
       }
     });
 
-    return { profiles };
+    profiles.sort((a, b) => {
+       const tierA = a.isPremium ? 2 : 1;
+       const tierB = b.isPremium ? 2 : 1;
+       if (tierA !== tierB) return tierB - tierA; // Premium first
+        return a.userId.localeCompare(b.userId);
+       });
+
+    return { profiles: profiles.slice(0, lim) };
   });
   /* ──────────────────────── getGlobalComplimenters ──────────────────────────── */
   /** uid → list every user who has *ever* sent that uid a compliment. */

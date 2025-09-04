@@ -313,28 +313,26 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                     _blockedUsers.value = blockedDeferred.await()
                     _loadingProgress.value = 30
 
-                    val countryProfiles = fetchProfilesByCountry(me, myCountry, limit)
+                    val paidProfiles = fetchGlobalPremiumUsers(me, limit)
                     _loadingProgress.value = 80
 
                     // order: Premium → Plus → Rest; remove me; dedupe by userId; cap to limit
-                    val ordered = countryProfiles
+                    val ordered = paidProfiles
                         .filter { it.userId != me && it.userId.isNotBlank() }
                         .distinctBy { it.userId }
                         .let { list ->
                             val prem = list.filter { it.isPremium }
                             val plus = list.filter { !it.isPremium && it.isPlus }
-                            val rest = list.filter { !it.isPremium && !it.isPlus }
-                            (prem + plus + rest)
+                            prem + plus
                         }
                         .take(limit)
 
-                    Log.d(TAG, "refresh(country=$myCountry, limit=$limit) → fetched=${countryProfiles.size}, ordered=${ordered.size}")
                     _allProfiles.value = ordered
                 }
 
                 updateBoostedUsers(me)
             } catch (e: Exception) {
-                Log.e(TAG, "refreshFilteredProfiles(country) failed: ${e.message}", e)
+                Log.e(TAG, "refreshFilteredProfiles(paid) failed: ${e.message}", e)
             } finally {
                 _isLoading.value = false
                 _loadingProgress.value = 100
@@ -346,118 +344,60 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     // ── Cloud + fallback for country fetch ─────────────────────────────────
     private val functions = FirebaseFunctions.getInstance("asia-south1")
 
-    private suspend fun fetchProfilesByCountry(
+    private suspend fun fetchGlobalPremiumUsers(
         me: String,
-        country: String,
         limit: Int
     ): List<Profile> = withContext(Dispatchers.IO) {
-        if (country.isBlank()) return@withContext emptyList()
-
         // Try Cloud Function first
         runCatching {
             val payload = hashMapOf(
                 "uid" to me,
-                "country" to country,
                 "limit" to limit
             )
-            Log.d(TAG, "➡️ getProfilesByCountry $payload")
-            val callable: HttpsCallableReference =
-                functions.getHttpsCallable("getProfilesByCountry").apply {
-                    setTimeout(60, TimeUnit.SECONDS)
-                }
+            val callable = functions.getHttpsCallable("getGlobalPremiumUsers").apply {
+                setTimeout(60, TimeUnit.SECONDS)
+            }
             @Suppress("UNCHECKED_CAST")
-            val data = callable.call(payload).await().data as? Map<*, *>
-            val list = data?.get("profiles") as? List<*> ?: emptyList<Any>()
-            val mapped = list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
-            Log.d(TAG, "⬅️ getProfilesByCountry returned ${mapped.size} profiles")
-            return@withContext mapped
+            val data = callable.call(payload).await().data as? Map<*, *> ?: return@withContext emptyList()
+            val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
+            list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
         }.getOrElse { e ->
-            Log.w(TAG, "getProfilesByCountry fallback due to: ${e.message}")
-            fetchProfilesByCountryFallback(country, limit)
+            Log.w(TAG, "getGlobalPremiumUsers fallback due to: ${e.message}")
+            fetchGlobalPremiumUsersFallback(me, limit)
         }
     }
 
-    /** Fallback: query Realtime DB /users by country and map to Profile */
-    private suspend fun fetchProfilesByCountryFallback(
-        country: String,
+    private suspend fun fetchGlobalPremiumUsersFallback(
+        me: String,
         limit: Int
     ): List<Profile> {
         return try {
+            val cutoff = System.currentTimeMillis() - 30L * 24L * 60L * 60L * 1000L
             val snap = usersRef
-                .orderByChild("country")
-                .equalTo(country)
+                .orderByChild("lastActive")
+                .startAt(cutoff.toDouble())
                 .get()
                 .await()
 
             val all = snap.children.mapNotNull { child ->
                 val map = child.value as? Map<*, *> ?: return@mapNotNull null
                 val p = map.toProfile()
-                // ensure userId is set
-                if (p.userId.isBlank()) {
-                    try {
-                        p.copy(userId = child.key ?: "")
-                    } catch (_: Throwable) {
-                        // if Profile.userId is a 'var', we can’t copy safely; just drop if blank
-                        null
-                    }
+                val withId = if (p.userId.isBlank()) {
+                    try { p.copy(userId = child.key ?: "") } catch (_: Throwable) { null }
                 } else p
+                withId
             }
 
-            // order + cap here, but let the caller filter out “me”
-            val prem = all.filter { it.isPremium }
-            val plus = all.filter { !it.isPremium && it.isPlus }
-            val rest = all.filter { !it.isPremium && !it.isPlus }
-            (prem + plus + rest).distinctBy { it.userId }.take(limit)
+            val paid = all.filter { it.isPremium || it.isPlus }
+            val prem = paid.filter { it.isPremium }
+            val plus = paid.filter { !it.isPremium && it.isPlus }
+            (prem + plus)
+                .filter { it.userId != me && it.userId.isNotBlank() }
+                .take(limit)
         } catch (e: Exception) {
-            Log.e(TAG, "fallback country query failed: ${e.message}", e)
+            Log.e(TAG, "fallback global premium query failed: ${e.message}", e)
             emptyList()
         }
-    }
-
-
-    private suspend fun fetchNearbyProfilesCloud(
-        me: String,
-        maxDistanceKm: Int
-    ): List<Profile> = withContext(Dispatchers.IO) {
-
-
-        val payload = hashMapOf(
-            "uid"         to me,
-            "maxDistance" to maxDistanceKm
-        )
-        Log.d("VM", "➡️  Calling getNearbyProfiles with $payload")
-
-        // 1️⃣  get the callable reference …
-        val callable: HttpsCallableReference =
-            functions.getHttpsCallable("getNearbyProfiles")
-
-        // … 2️⃣  and adjust its timeout (default is 60 s)
-        callable.setTimeout(60, TimeUnit.SECONDS)     // 2 minutes
-
-        // 3️⃣  invoke the function
-        @Suppress("UNCHECKED_CAST")
-        val data = callable.call(payload).await().data as? Map<*, *> ?: return@withContext emptyList()
-
-        val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
-
-        Log.d(TAG, "⬅️ getNearbyProfiles returned ${list.size} profiles")
-        if (list.size == 1) {
-            Log.w(TAG, "Only one profile returned from getNearbyProfiles")
-        }
-        if (list.size == 0) {
-            Log.w(TAG, "O profile returned from getNearbyProfiles")
-        }
-
-        list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
-    }
-
-    private suspend fun fetchGlobalPremiumUsers(): List<Profile> = withContext(Dispatchers.IO) {
-        val callable = functions.getHttpsCallable("getGlobalPremiumUsers")
-        callable.setTimeout(60, TimeUnit.SECONDS)
-        @Suppress("UNCHECKED_CAST")
-        val data = callable.call().await().data as? Map<*, *> ?: return@withContext emptyList()
-        val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
-        list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
     }
 
 
