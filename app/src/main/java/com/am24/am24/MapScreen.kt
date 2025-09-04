@@ -17,6 +17,7 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -1236,50 +1237,61 @@ fun MapScreen(
                             }
                         }
 
-                        // Leaderboard FAB
-                        FloatingActionButton(
-                            onClick = { showLeaderboard = true },
-                            containerColor = KupidxOrange,
+                        // Controls row: leaderboard, zoom, gender filter
+                        Row(
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
-                                .padding(start = 16.dp, bottom = 32.dp)
-                        ) { Icon(Icons.Outlined.Leaderboard, contentDescription = "Leaderboard") }
+                                .padding(start = 8.dp, bottom = 32.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            FloatingActionButton(
+                                onClick = { showLeaderboard = true },
+                                containerColor = KupidxOrange,
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Leaderboard,
+                                    contentDescription = "Leaderboard",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
 
-                        // Zoom-to-results FAB
-                        FloatingActionButton(
-                            onClick = {
-                                val points = sortedPeople.mapNotNull { it.latLng } + listOfNotNull(userLatLng)
-                                if (points.isNotEmpty()) {
-                                    val builder = LatLngBounds.builder()
-                                    points.forEach { builder.include(it) }
-                                    val bounds = try { builder.build() } catch (e: Exception) { null }
-                                    bounds?.let {
-                                        scope.launch {
-                                            camera.animate(
-                                                CameraUpdateFactory.newLatLngBounds(it, 80)
-                                            )
+                            FloatingActionButton(
+                                onClick = {
+                                    val points = sortedPeople.mapNotNull { it.latLng } + listOfNotNull(userLatLng)
+                                    if (points.isNotEmpty()) {
+                                        val builder = LatLngBounds.builder()
+                                        points.forEach { builder.include(it) }
+                                        val bounds = try { builder.build() } catch (e: Exception) { null }
+                                        bounds?.let {
+                                            scope.launch {
+                                                camera.animate(
+                                                    CameraUpdateFactory.newLatLngBounds(it, 80)
+                                                )
+                                            }
                                         }
                                     }
-                                }
-                            },
-                            containerColor = Color.Black,
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(start = 96.dp, bottom = 32.dp)
+                        },
+                        containerColor = Color.Black,
+                        modifier = Modifier.size(40.dp)
                         ) {
-                            Icon(Icons.Default.ZoomOutMap, contentDescription = "Zoom to results")
-                        }
+                        Icon(
+                            Icons.Default.ZoomOutMap,
+                            contentDescription = "Zoom to results",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
                         GenderFilterChip(
                             selected = genderFilter,
                             onChange = {
                                 genderFilter = it
                                 prefs.edit().putString("map_gender_filter", it.name).apply()
                             },
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(start = 16.dp, bottom = 96.dp)
-                                .scale(0.9f)
+                            modifier = Modifier.scale(0.8f)
                         )
+                    }
 
                         // Leaderboard overlay
                         if (showLeaderboard) {
