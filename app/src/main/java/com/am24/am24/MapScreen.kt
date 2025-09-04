@@ -631,7 +631,6 @@ fun MapScreen(
 
     Scaffold(
         topBar = {
-            if (selectedTab == 0) {
                 TopAppBar(
                     title = {
                         if (sortMode == SortMode.NEARBY) {
@@ -686,7 +685,6 @@ fun MapScreen(
                     },
                     windowInsets = WindowInsets(0, 0, 0, 0)
                 )
-            }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
@@ -780,35 +778,48 @@ fun MapScreen(
 
                 /* ======================= CARDS TAB ======================= */
                 1 -> {
-                    CardsList(
-                        users = sortedPeople,
-                        showAds = showAds,
-                        useMiles = useMiles,          // <-- pass through
-                        onLike = { user ->
-                            if (swipesLoaded && remainingSwipes <= 0) {
-                                showSwipeLimitOverlay = true
-                            } else {
-                                handleSwipeRight(userId, user.userId, profileViewModel)
-                                nearbyViewModel.addExcluded(user.userId)
-                                if (swipesLoaded) {
-                                    remainingSwipes--
-                                    updateSwipesInFirebase(remainingSwipes)
+                    Box(Modifier.fillMaxSize()) {
+                        CardsList(
+                            users = sortedPeople,
+                            showAds = showAds,
+                            useMiles = useMiles,          // <-- pass through
+                            onLike = { user ->
+                                if (swipesLoaded && remainingSwipes <= 0) {
+                                    showSwipeLimitOverlay = true
+                                } else {
+                                    handleSwipeRight(userId, user.userId, profileViewModel)
+                                    nearbyViewModel.addExcluded(user.userId)
+                                    if (swipesLoaded) {
+                                        remainingSwipes--
+                                        updateSwipesInFirebase(remainingSwipes)
+                                    }
+                                }
+                            },
+                            onDislike = { user ->
+                                if (swipesLoaded && remainingSwipes <= 0) {
+                                    showSwipeLimitOverlay = true
+                                } else {
+                                    handleSwipeLeft(userId, user.userId)
+                                    nearbyViewModel.addExcluded(user.userId)
+                                    if (swipesLoaded) {
+                                        remainingSwipes--
+                                        updateSwipesInFirebase(remainingSwipes)
+                                    }
                                 }
                             }
-                        },
-                        onDislike = { user ->
-                            if (swipesLoaded && remainingSwipes <= 0) {
-                                showSwipeLimitOverlay = true
-                            } else {
-                                handleSwipeLeft(userId, user.userId)
-                                nearbyViewModel.addExcluded(user.userId)
-                                if (swipesLoaded) {
-                                    remainingSwipes--
-                                    updateSwipesInFirebase(remainingSwipes)
-                                }
-                            }
-                        }
                     )
+                        GenderFilterChip(
+                            selected = genderFilter,
+                            onChange = {
+                                genderFilter = it
+                                prefs.edit().putString("map_gender_filter", it.name).apply()
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(8.dp)
+                                .scale(0.9f)
+                        )
+                    }
                 }
 
                 /* ======================= MAP TAB (old map restored) ======================= */
@@ -1235,58 +1246,41 @@ fun MapScreen(
                                 .padding(start = 16.dp, bottom = 32.dp)
                         ) { Icon(Icons.Outlined.Leaderboard, contentDescription = "Leaderboard") }
 
-                        // Region recenter FABs
-                        when {
-                            isUserInLA -> {
-                                FloatingActionButton(
-                                    onClick = {
+                        // Zoom-to-results FAB
+                        FloatingActionButton(
+                            onClick = {
+                                val points = sortedPeople.mapNotNull { it.latLng } + listOfNotNull(userLatLng)
+                                if (points.isNotEmpty()) {
+                                    val builder = LatLngBounds.builder()
+                                    points.forEach { builder.include(it) }
+                                    val bounds = try { builder.build() } catch (e: Exception) { null }
+                                    bounds?.let {
                                         scope.launch {
                                             camera.animate(
-                                                CameraUpdateFactory.newLatLngBounds(
-                                                    GREATER_LA_BOUNDS,
-                                                    80
-                                                )
+                                                CameraUpdateFactory.newLatLngBounds(it, 80)
                                             )
                                         }
-                                    },
-                                    containerColor = Color.Black,
-                                    modifier = Modifier
-                                        .align(Alignment.BottomStart)
-                                        .padding(start = 96.dp, bottom = 32.dp)
-                                ) {
-                                    Text(
-                                        ctx.getString(R.string.la_fab_recenter_text),
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    }
                                 }
-                            }
-
-                            isUserInBay -> {
-                                FloatingActionButton(
-                                    onClick = {
-                                        scope.launch {
-                                            camera.animate(
-                                                CameraUpdateFactory.newLatLngBounds(
-                                                    SF_BAY_BOUNDS,
-                                                    80
-                                                )
-                                            )
-                                        }
-                                    },
-                                    containerColor = Color.Black,
-                                    modifier = Modifier
-                                        .align(Alignment.BottomStart)
-                                        .padding(start = 96.dp, bottom = 32.dp)
-                                ) {
-                                    Text(
-                                        ctx.getString(R.string.ba_fab_recenter_text),
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
+                            },
+                            containerColor = Color.Black,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 96.dp, bottom = 32.dp)
+                        ) {
+                            Icon(Icons.Default.ZoomOutMap, contentDescription = "Zoom to results")
                         }
+                        GenderFilterChip(
+                            selected = genderFilter,
+                            onChange = {
+                                genderFilter = it
+                                prefs.edit().putString("map_gender_filter", it.name).apply()
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 16.dp, bottom = 96.dp)
+                                .scale(0.9f)
+                        )
 
                         // Leaderboard overlay
                         if (showLeaderboard) {

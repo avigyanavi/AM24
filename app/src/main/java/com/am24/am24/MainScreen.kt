@@ -507,7 +507,6 @@ fun TopNavBar(
 
             // Location settings icon (map screen)
             if (currentRoute == "map") {
-                if (mapSelectedTab == 0) {
                     val orientationOptions = stringArrayResource(R.array.sexual_orientation_options).toList()
                     IconButton(onClick = {
 //                        if (isPlus || isPremium) {
@@ -548,7 +547,6 @@ fun TopNavBar(
                             )
                         }
                     }
-                }
                 /* 1) Price-Filter icon (new) – shows before the old Location icon */
                 if (mapSelectedTab == 1) {
                     /* 1) Price-Filter icon (new) – shows before the old Location icon */
@@ -594,7 +592,6 @@ fun TopNavBar(
                     }
                 }
 
-                if (mapSelectedTab == 0) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -669,7 +666,6 @@ fun TopNavBar(
                                     )
                                 }
                             }
-                        }
 
                         if (CountryUtil.isMexico(context, selectedCountry.takeIf { it.isNotBlank() })) {
                             Spacer(modifier = Modifier.width(8.dp))
