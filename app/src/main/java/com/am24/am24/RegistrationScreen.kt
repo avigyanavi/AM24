@@ -386,6 +386,12 @@ fun RegistrationScreen(
     }
     val onBack: () -> Unit = {
         when {
+            // Back from step 1 -> return to landing
+            currentStep == 1 -> {
+                val activity = context as? Activity
+                activity?.startActivity(Intent(context, LandingActivity::class.java))
+                activity?.finish()
+            }
             // BACK from Step 2 → Step 1: delete half-baked account, clear email/password, go to step 1
             currentStep == 2 -> {
                 cleanupIncompleteUser(
@@ -433,6 +439,9 @@ fun RegistrationScreen(
                                                 Toast.makeText(context, "You must be at least 14 years old", Toast.LENGTH_LONG).show()
                                             else -> {}
                                         }
+                                    }
+                                    3 -> {
+                                        Toast.makeText(context, "Please upload at least one photo", Toast.LENGTH_LONG).show()
                                     }
                                     8 -> {
                                         Toast.makeText(context, "Pick a valid username and tap Finish", Toast.LENGTH_LONG).show()
@@ -4290,7 +4299,14 @@ fun UploadMediaComposable(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val storageRef = FirebaseRefs.storage.reference
-    LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
+    LaunchedEffect(
+        registrationViewModel.profilePictureUri,
+        registrationViewModel.optionalPhotoUris.size
+    ) {
+        registrationViewModel.nextEnabled =
+            registrationViewModel.profilePictureUri != null ||
+                    registrationViewModel.optionalPhotoUris.isNotEmpty()
+    }
 
     var isRecording by remember { mutableStateOf(false) }
     var isPlaying  by remember { mutableStateOf(false) }
@@ -4304,16 +4320,11 @@ fun UploadMediaComposable(
     val mediaPlayer = remember { MediaPlayer() }
 
     // Helper: combined list of URIs (first = profile or placeholder)
-    val placeholderUriString =
-        "android.resource://${context.packageName}/drawable/local_placeholder"
+//    val placeholderUriString =
+//        "android.resource://${context.packageName}/drawable/local_placeholder"
     val combinedPhotoUris: List<Uri> =
-        if (registrationViewModel.profilePictureUri == null)
-            listOf(Uri.parse(placeholderUriString)) + registrationViewModel.optionalPhotoUris
-        else
-            listOf(registrationViewModel.profilePictureUri!!) + registrationViewModel.optionalPhotoUris
-
-    // Always allow proceeding from this screen
-    val canProceed = true
+        registrationViewModel.profilePictureUri?.let { listOf(it) + registrationViewModel.optionalPhotoUris }
+            ?: registrationViewModel.optionalPhotoUris
 
     suspend fun isExplicit(uri: Uri): Boolean = withContext(Dispatchers.IO) {
         val jpeg = compressImage(context, uri) ?: return@withContext false
@@ -4483,55 +4494,46 @@ fun UploadMediaComposable(
                                         shape = CircleShape
                                     )
                             )
-                            if (!(index == 0 && registrationViewModel.profilePictureUri == null)) {
-                                IconButton(
-                                    onClick = {
-                                        if (index == 0) {
-                                            registrationViewModel.profilePictureUri = null
-                                            if (registrationViewModel.optionalPhotoUris.isNotEmpty()) {
-                                                val newProfile =
-                                                    registrationViewModel.optionalPhotoUris.removeAt(
-                                                        0
-                                                    )
-                                                registrationViewModel.profilePictureUri = newProfile
-                                                if (registrationViewModel.optionalPhotoUrls.isNotEmpty()) {
-                                                    registrationViewModel.optionalPhotoUrls.removeAt(0)
-                                                }
-                                                uploadProfilePicToFirebase(
-                                                    context,
-                                                    storageRef,
-                                                    newProfile,
-                                                    registrationViewModel
-                                                )
+                            IconButton(
+                                onClick = {
+                                    if (index == 0 && registrationViewModel.profilePictureUri != null) {
+                                        registrationViewModel.profilePictureUri = null
+                                        if (registrationViewModel.optionalPhotoUris.isNotEmpty()) {
+                                            val newProfile = registrationViewModel.optionalPhotoUris.removeAt(0)
+                                            registrationViewModel.profilePictureUri = newProfile
+                                            if (registrationViewModel.optionalPhotoUrls.isNotEmpty()) {
+                                                registrationViewModel.optionalPhotoUrls.removeAt(0)
                                             }
-                                        } else {
-                                            val optIndex = index - 1
-                                            if (optIndex < registrationViewModel.optionalPhotoUrls.size) {
-                                                registrationViewModel.optionalPhotoUrls.removeAt(
-                                                    optIndex
+                                            uploadProfilePicToFirebase(
+                                                context,
+                                                storageRef,
+                                                newProfile,
+                                                registrationViewModel
                                                 )
-                                            }
-                                            registrationViewModel.optionalPhotoUrls.removeAt(
-                                                optIndex
-                                            )
                                         }
-                                    },
-                                    modifier = Modifier
-                                        .align(Alignment.TopStart)
-                                        .size(24.dp)
-                                        .background(
-                                            Color.Black.copy(alpha = 0.5f),
-                                            shape = CircleShape
-                                        )
-                                        .padding(2.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(16.dp)
-                                    )
+                                } else {
+                                val optIndex = if (registrationViewModel.profilePictureUri != null) index - 1 else index
+                                if (optIndex < registrationViewModel.optionalPhotoUrls.size) {
+                                    registrationViewModel.optionalPhotoUrls.removeAt(optIndex)
                                 }
+                                registrationViewModel.optionalPhotoUris.removeAt(optIndex)
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .size(24.dp)
+                            .background(
+                                Color.Black.copy(alpha = 0.5f),
+                                shape = CircleShape
+                                    )
+                            .padding(2.dp)
+                        ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
                             }
                         }
                     }

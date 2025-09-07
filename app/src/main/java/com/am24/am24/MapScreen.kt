@@ -121,6 +121,7 @@ data class NearbyUser(
     val distanceMeters: Double,
     val gender: String,
     val sexualOrientation: String,
+    val interests: List<Interest> = emptyList(),
     val compatibilityPct: Int? = null,
     val randomDetail: String? = null
 )
@@ -232,7 +233,7 @@ fun MapScreen(
     var sortMode by nearbyViewModel::sortMode
     var radiusKm by nearbyViewModel::radiusKm
     var lastActiveHours by nearbyViewModel::lastActiveHours
-    var selectedTab by rememberSaveable { mutableStateOf(0) } // 0: People, 1: Cards, 2: Map
+    var selectedTab by rememberSaveable { mutableStateOf(1) } // 0: People, 1: Cards, 2: Map
     var genderFilter by nearbyViewModel::genderFilter
     var isPlus by remember { mutableStateOf(false) }
     var isPremium by remember { mutableStateOf(false) }
@@ -257,8 +258,8 @@ fun MapScreen(
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
     }
 
-    LaunchedEffect(isPremium, isPlus) {
-        if (isPremium || isPlus) {
+    LaunchedEffect(isPremium) {
+        if (isPremium) {
             val hasShownDialog = prefs.getBoolean(HAS_SHOWN_LOCATION_DIALOG, false)
             if (!hasShownLocationDialogThisSession && !hasShownDialog) {
                 navController.currentBackStackEntry?.savedStateHandle?.set("showLocationPrefDialog", true)
@@ -274,8 +275,8 @@ fun MapScreen(
             ?: GenderFilter.BOTH
     }
 
-    LaunchedEffect(isPremium, isPlus) {
-        if (!(isPremium || isPlus) && selectedTab == 2) {
+    LaunchedEffect(isPremium) {
+        if (!(isPremium) && selectedTab == 2) {
             selectedTab = 0
         }
     }
@@ -728,7 +729,7 @@ fun MapScreen(
     ) { padding ->
         Column(Modifier.padding(padding)) {
 
-            if (!(isPlus || isPremium) && selectedTab == 2) {
+            if (!(isPremium) && selectedTab == 2) {
                 selectedTab = 0
             }
 
@@ -758,7 +759,7 @@ fun MapScreen(
                     unselectedContentColor = Color.Gray,
                     text = { Text(stringResource(R.string.tab_cards)) }
                 )
-                if (isPlus || isPremium) {
+                if (isPremium) {
                     Tab(
                         selected = selectedTab == 2,
                         onClick = { selectedTab = 2 },
@@ -1639,7 +1640,7 @@ private fun ProfileCard(
     Card(
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 20.dp),
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(3f / 4f)
@@ -1704,6 +1705,21 @@ private fun ProfileCard(
                     Spacer(Modifier.height(4.dp))
                     user.compatibilityPct?.let {
                         FilmText(text = "Compatibility: $it%")
+                    }
+                    if (user.interests.isNotEmpty()) {
+                        Spacer(Modifier.height(4.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            user.interests.take(3).forEach { interest ->
+                                val text = buildString {
+                                    interest.emoji?.takeIf { it.isNotBlank() }?.let { append(it).append(' ') }
+                                    append(interest.name)
+                                }
+                                TagBox(text)
+                            }
+                        }
                     }
                 }
 
@@ -1850,6 +1866,7 @@ private fun NearbyCard(
     var menuExpanded by remember { mutableStateOf(false) }
     Card(
         onClick = onClick,
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -2218,7 +2235,8 @@ fun MatchesListOverlay(
                             .padding(8.dp)
                             .clickable { selectedMatch = match },
                         border = if (selectedMatch?.userId == match.userId) BorderStroke(2.dp, Color.Green) else null,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
                     ) {
                         Row(Modifier
                             .padding(8.dp)

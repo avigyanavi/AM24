@@ -46,6 +46,7 @@ import androidx.compose.ui.res.stringResource
 import android.content.Context
 import androidx.compose.material.icons.outlined.DynamicFeed
 import androidx.compose.material.icons.outlined.RssFeed
+import androidx.compose.ui.draw.shadow
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.launch
 
@@ -363,6 +364,7 @@ fun TopNavBar(
     val isAdmin by profileViewModel.isAdmin.collectAsState()
 
     TopAppBar(
+        modifier = Modifier.shadow(16.dp),
         title = {
 //            Text(stringResource(R.string.app_name), color = Color(0xFFFF6F00))
         },
@@ -739,7 +741,7 @@ fun TopNavBar(
                 }
 
                 /* 2) Existing location icon */
-                if (isPlus || isPremium) {
+                if (isPremium) {
                     IconButton(onClick = { showLocationPrefDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
@@ -853,7 +855,7 @@ fun TopNavBar(
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
     )
 
-    if (showLocationPrefDialog && (isPlus || isPremium)) {
+    if (showLocationPrefDialog && (isPremium)) {
         LocationPrivacyDialog(
             allowLocationForMatches = allowLocationForMatches,
             allowLocationPublic = allowLocationPublic,
@@ -890,7 +892,11 @@ fun BottomNavigationBar(
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
 
-    NavigationBar(containerColor = Color.Black) {
+    NavigationBar(
+        containerColor = Color.Black,
+        tonalElevation = 16.dp,
+        modifier = Modifier.shadow(16.dp)
+    ) {
         items.forEach { item ->
             val selected = when (item.route) {
                 "dms" -> {

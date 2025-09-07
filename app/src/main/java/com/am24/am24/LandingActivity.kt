@@ -103,7 +103,9 @@ class LandingActivity : ComponentActivity() {
                         .child("users/$uid/registrationStep").get()
                         .addOnSuccessListener { stepSnap ->
                             val startAt = stepSnap.getValue(Long::class.java)?.toInt() ?: 1
-                            launchRegistration(startAt, currentProvider())
+                            if (startAt > 1) {
+                                launchRegistration(startAt, currentProvider())
+                            }
                         }
                         .addOnFailureListener {
                             launchRegistration(1, currentProvider())
@@ -154,7 +156,7 @@ class LandingActivity : ComponentActivity() {
         /* Skip landing if cached user exists */
         if (firebaseAuth.currentUser != null) {
             continueIntoApp()
-            return
+//            return
         }
 
         /* Google */

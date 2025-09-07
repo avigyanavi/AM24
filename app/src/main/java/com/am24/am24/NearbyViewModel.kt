@@ -199,6 +199,7 @@ class NearbyViewModel : ViewModel() {
                         distanceMeters = distM,
                         gender = p.gender ?: "",
                         sexualOrientation = p.sexualOrientation ?: "",
+                        interests = p.interests,
                         compatibilityPct = compat,
                         randomDetail = randomDetail
                     )
