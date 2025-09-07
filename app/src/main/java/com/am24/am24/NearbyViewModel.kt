@@ -123,6 +123,7 @@ class NearbyViewModel : ViewModel() {
                 if (!reachedLimit) {
                     reachedLimit = true
                     query.removeAllListeners()
+                    isRefreshing = false
                 }
                 return
             }
@@ -141,6 +142,7 @@ class NearbyViewModel : ViewModel() {
                 if (people.size >= limit) {
                     reachedLimit = true
                     query.removeAllListeners()
+                    isRefreshing = false
                 }
                 return
             }
@@ -152,6 +154,7 @@ class NearbyViewModel : ViewModel() {
                         if (!reachedLimit) {
                             reachedLimit = true
                             query.removeAllListeners()
+                            isRefreshing = false
                         }
                         return
                     }
@@ -205,6 +208,7 @@ class NearbyViewModel : ViewModel() {
                     if (people.size >= limit) {
                         reachedLimit = true
                         query.removeAllListeners()
+                        isRefreshing = false
                     }
                 }
 

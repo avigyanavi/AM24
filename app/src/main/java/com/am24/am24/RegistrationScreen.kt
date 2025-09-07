@@ -4202,6 +4202,7 @@ fun EnterOrientationScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
                     .background(Color(0xFF1A1A1A))
                     .padding(innerPadding)
                     .padding(16.dp),

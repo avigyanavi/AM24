@@ -9,12 +9,13 @@ plugins {
 android {
     namespace = "com.am24.am24"
     compileSdk = 35
+    ndkVersion = "28.0.12433536"
 
     defaultConfig {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 177
+        versionCode = 178
         versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
