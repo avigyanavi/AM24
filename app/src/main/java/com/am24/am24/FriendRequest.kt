@@ -39,18 +39,10 @@ data class DatingFilterSettings(
     val city: String = "All", // Changed from capitalRegion to city
     val highSchool: String = "",
     val college: String = "",
-    val postGrad: String = "",
     val work: String = "",
     val ageStart: Int = 18,
     val ageEnd: Int = 100,
-    val distance: Int = 100,
-    val gender: String = "",
-    val sexualOrientation: String = "",
-    val minRating:   Float  = 0f,   //  0  = ignore filter
-    val maxRanking:  Int    = 0,    //  0  = ignore filter
-    val community: String = "",
     val religion: String = "",
-    val caste: String = "",
     val ethnicity: String = "",
     val incomeLevel: String = ""
 )

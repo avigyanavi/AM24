@@ -278,8 +278,8 @@ fun MapScreen(
             ?.let { runCatching { GenderFilter.valueOf(it) }.getOrNull() }
             ?: GenderFilter.BOTH
     }
-    LaunchedEffect(isPlus) {
-        if (isPlus) {
+    LaunchedEffect(isPlus || isPremium) {
+        if (isPlus || isPremium) {
             prefs.getString("map_dating_filters", null)?.let {
                 runCatching { nearbyViewModel.datingFilters = Gson().fromJson(it, DatingFilterSettings::class.java) }
             }
@@ -2636,22 +2636,79 @@ private fun DatingFilterDialog(
     onDismiss: () -> Unit,
     onApply: (DatingFilterSettings) -> Unit
 ) {
-    var ageStart by remember { mutableStateOf(initial.ageStart.toString()) }
-    var ageEnd by remember { mutableStateOf(initial.ageEnd.toString()) }
-    var distance by remember { mutableStateOf(initial.distance.toString()) }
-    var gender by remember { mutableStateOf(initial.gender) }
-    var orientation by remember { mutableStateOf(initial.sexualOrientation) }
+    var ageRange by remember { mutableStateOf(initial.ageStart to initial.ageEnd) }
     var highSchool by remember { mutableStateOf(initial.highSchool) }
     var college by remember { mutableStateOf(initial.college) }
-    var postGrad by remember { mutableStateOf(initial.postGrad) }
     var work by remember { mutableStateOf(initial.work) }
-    var community by remember { mutableStateOf(initial.community) }
     var religion by remember { mutableStateOf(initial.religion) }
-    var caste by remember { mutableStateOf(initial.caste) }
     var ethnicity by remember { mutableStateOf(initial.ethnicity) }
     var income by remember { mutableStateOf(initial.incomeLevel) }
-    var minRating by remember { mutableStateOf(initial.minRating.toString()) }
-    var maxRanking by remember { mutableStateOf(initial.maxRanking.toString()) }
+
+    val ageOptions = listOf(
+        18 to 25,
+        26 to 35,
+        36 to 45,
+        46 to 55,
+        56 to 100
+    )
+    val religionResourceIds = listOf(
+        R.string.religion_other,
+        R.string.religion_buddhist,
+        R.string.religion_christian,
+        R.string.religion_christian_catholic,
+        R.string.religion_christian_protestant_mainline,
+        R.string.religion_christian_evangelical,
+        R.string.religion_christian_orthodox,
+        R.string.religion_christian_latter_day_saint,
+        R.string.religion_christian_jehovahs_witness,
+        R.string.religion_christian_other,
+        R.string.religion_hindu,
+        R.string.religion_jain,
+        R.string.religion_jewish,
+        R.string.religion_muslim,
+        R.string.religion_muslim_sunni,
+        R.string.religion_muslim_shia,
+        R.string.religion_muslim_ahmadiyya,
+        R.string.religion_muslim_sufi,
+        R.string.religion_muslim_other,
+        R.string.religion_no_religion,
+        R.string.religion_parsi,
+        R.string.religion_sikh,
+        R.string.religion_indigenous_tribal,
+        R.string.religion_santeria,
+        R.string.religion_voodou,
+        R.string.religion_candomble,
+        R.string.religion_umbanda,
+        R.string.religion_palo_mayombe,
+        R.string.religion_native_traditional,
+        R.string.religion_native_church,
+        R.string.religion_vision_quest,
+        R.string.religion_african_traditional,
+        R.string.religion_obeah,
+        R.string.religion_hoodoo,
+        R.string.religion_rastafari,
+        R.string.religion_black_protestant
+    )
+    val religionOptions = religionResourceIds.map { it to religionResToCanonical.getValue(it) }
+    val ethnicityOptions = listOf(
+        R.string.ethnicity_option_indian to "Bharatiya",
+        R.string.ethnicity_option_white to "White (Caucasian)",
+        R.string.ethnicity_option_black to "Black / African American",
+        R.string.ethnicity_option_hispanic to "Hispanic / Latino",
+        R.string.ethnicity_option_asian to "Asian",
+        R.string.ethnicity_option_native_american to "Native American",
+        R.string.ethnicity_option_middle_eastern to "Middle Eastern",
+        R.string.ethnicity_option_pacific_islander to "Pacific Islander",
+        R.string.ethnicity_option_mixed_other to "Mixed / Other"
+    )
+    val incomeOptions = listOf(
+        R.string.income_level_under_25k to "Under $25k",
+        R.string.income_level_25k_50k to "$25k–$50k",
+        R.string.income_level_50k_75k to "$50k–$75k",
+        R.string.income_level_75k_100k to "$75k–$100k",
+        R.string.income_level_100k_150k to "$100k–$150k",
+        R.string.income_level_over_150k to "Over $150k"
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -2662,45 +2719,71 @@ private fun DatingFilterDialog(
                     DatingFilterSettings(
                         highSchool = highSchool,
                         college = college,
-                        postGrad = postGrad,
                         work = work,
-                        ageStart = ageStart.toIntOrNull() ?: initial.ageStart,
-                        ageEnd = ageEnd.toIntOrNull() ?: initial.ageEnd,
-                        distance = distance.toIntOrNull() ?: initial.distance,
-                        gender = gender,
-                        sexualOrientation = orientation,
-                        minRating = minRating.toFloatOrNull() ?: initial.minRating,
-                        maxRanking = maxRanking.toIntOrNull() ?: initial.maxRanking,
-                        community = community,
+                        ageStart = ageRange.first,
+                        ageEnd = ageRange.second,
                         religion = religion,
-                        caste = caste,
                         ethnicity = ethnicity,
                         incomeLevel = income
                     )
                 )
-            }) { Text("Apply") }
+            }) { Text(stringResource(R.string.apply), color = KupidxOrange) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = KupidxOrange) }
         },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                OutlinedTextField(value = ageStart, onValueChange = { ageStart = it }, label = { Text("Age start") })
-                OutlinedTextField(value = ageEnd, onValueChange = { ageEnd = it }, label = { Text("Age end") })
-                OutlinedTextField(value = distance, onValueChange = { distance = it }, label = { Text("Distance km") })
-                OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Gender") })
-                OutlinedTextField(value = orientation, onValueChange = { orientation = it }, label = { Text("Orientation") })
-                OutlinedTextField(value = highSchool, onValueChange = { highSchool = it }, label = { Text("High school") })
-                OutlinedTextField(value = college, onValueChange = { college = it }, label = { Text("College") })
-                OutlinedTextField(value = postGrad, onValueChange = { postGrad = it }, label = { Text("Post grad") })
-                OutlinedTextField(value = work, onValueChange = { work = it }, label = { Text("Work") })
-                OutlinedTextField(value = community, onValueChange = { community = it }, label = { Text("Community") })
-                OutlinedTextField(value = religion, onValueChange = { religion = it }, label = { Text("Religion") })
-                OutlinedTextField(value = caste, onValueChange = { caste = it }, label = { Text("Caste") })
-                OutlinedTextField(value = ethnicity, onValueChange = { ethnicity = it }, label = { Text("Ethnicity") })
-                OutlinedTextField(value = income, onValueChange = { income = it }, label = { Text("Income") })
-                OutlinedTextField(value = minRating, onValueChange = { minRating = it }, label = { Text("Min rating") })
-                OutlinedTextField(value = maxRanking, onValueChange = { maxRanking = it }, label = { Text("Max ranking") })
+                Text(stringResource(R.string.label_age), fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ageOptions.forEach { (start, end) ->
+                        val label = if (end >= 100) "$start+" else "$start-$end"
+                        FilterChip(
+                            selected = ageRange.first == start && ageRange.second == end,
+                            onClick = {
+                                ageRange = if (ageRange.first == start && ageRange.second == end) initial.ageStart to initial.ageEnd else start to end
+                            },
+                            label = { Text(label) }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(value = highSchool, onValueChange = { highSchool = it }, label = { Text(stringResource(R.string.label_high_school)) })
+                OutlinedTextField(value = college, onValueChange = { college = it }, label = { Text(stringResource(R.string.label_college)) })
+                OutlinedTextField(value = work, onValueChange = { work = it }, label = { Text(stringResource(R.string.label_work)) })
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.label_religion), fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    religionOptions.forEach { (resId, value) ->
+                        FilterChip(
+                            selected = religion == value,
+                            onClick = { religion = if (religion == value) "" else value },
+                            label = { Text(stringResource(resId)) }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.ethnicity_label), fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ethnicityOptions.forEach { (resId, value) ->
+                        FilterChip(
+                            selected = ethnicity == value,
+                            onClick = { ethnicity = if (ethnicity == value) "" else value },
+                            label = { Text(stringResource(resId)) }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.income_level_label), fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    incomeOptions.forEach { (resId, value) ->
+                        FilterChip(
+                            selected = income == value,
+                            onClick = { income = if (income == value) "" else value },
+                            label = { Text(stringResource(resId)) }
+                        )
+                    }
+                }
             }
         }
     )

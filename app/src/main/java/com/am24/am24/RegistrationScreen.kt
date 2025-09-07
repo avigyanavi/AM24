@@ -2434,68 +2434,6 @@ fun EnterGenderCommunityReligionScreen(
         stringResource(R.string.community_tripuri),
         stringResource(R.string.community_urdu_speaker),
     )
-// Religion options
-    val religionOptions = listOf(
-        stringResource(R.string.religion_other),
-        stringResource(R.string.religion_buddhist),
-        stringResource(R.string.religion_christian),
-        stringResource(R.string.religion_christian_catholic),
-        stringResource(R.string.religion_christian_protestant_mainline),
-        stringResource(R.string.religion_christian_evangelical),
-        stringResource(R.string.religion_christian_orthodox),
-        stringResource(R.string.religion_christian_latter_day_saint),
-        stringResource(R.string.religion_christian_jehovahs_witness),
-        stringResource(R.string.religion_christian_other),
-        stringResource(R.string.religion_hindu),
-        stringResource(R.string.religion_jain),
-        stringResource(R.string.religion_jewish),
-        stringResource(R.string.religion_muslim),
-        stringResource(R.string.religion_muslim_sunni),
-        stringResource(R.string.religion_muslim_shia),
-        stringResource(R.string.religion_muslim_ahmadiyya),
-        stringResource(R.string.religion_muslim_sufi),
-        stringResource(R.string.religion_muslim_other),
-        stringResource(R.string.religion_no_religion),
-        stringResource(R.string.religion_parsi),
-        stringResource(R.string.religion_sikh),
-        stringResource(R.string.religion_indigenous_tribal),
-        stringResource(R.string.religion_santeria),
-        stringResource(R.string.religion_voodou),
-        stringResource(R.string.religion_candomble),
-        stringResource(R.string.religion_umbanda),
-        stringResource(R.string.religion_palo_mayombe),
-        stringResource(R.string.religion_native_traditional),
-        stringResource(R.string.religion_native_church),
-        stringResource(R.string.religion_vision_quest),
-        stringResource(R.string.religion_african_traditional),
-        stringResource(R.string.religion_obeah),
-        stringResource(R.string.religion_hoodoo),
-        stringResource(R.string.religion_rastafari),
-        stringResource(R.string.religion_black_protestant),
-    )
-
-    val ethnicityOptions = listOf(
-        stringResource(R.string.ethnicity_option_not_selected),
-        stringResource(R.string.ethnicity_option_white),
-        stringResource(R.string.ethnicity_option_black),
-        stringResource(R.string.ethnicity_option_hispanic),
-        stringResource(R.string.ethnicity_option_asian),
-        stringResource(R.string.ethnicity_option_native_american),
-        stringResource(R.string.ethnicity_option_middle_eastern),
-        stringResource(R.string.ethnicity_option_pacific_islander),
-        stringResource(R.string.ethnicity_option_mixed_other)
-    )
-
-    val incomeLevelOptions = listOf(
-        stringResource(R.string.income_level_option_not_selected),
-        stringResource(R.string.income_level_under_25k),
-        stringResource(R.string.income_level_25k_50k),
-        stringResource(R.string.income_level_50k_75k),
-        stringResource(R.string.income_level_75k_100k),
-        stringResource(R.string.income_level_100k_150k),
-        stringResource(R.string.income_level_over_150k)
-    )
-
 
     // Validation for enabling the "Next" button
     val userAge = calculateAge(registrationViewModel.dob)
@@ -2580,31 +2518,6 @@ fun EnterGenderCommunityReligionScreen(
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Religion Dropdown
-                DropdownWithSearch(
-                    title = stringResource(R.string.select_religion),
-                    options = religionOptions,
-                    selectedOption = registrationViewModel.religion,
-                    onOptionSelected = { registrationViewModel.religion = it }
-                )
-
-
-                Spacer(modifier = Modifier.height(16.dp))
-                DropdownWithSearch(
-                    title = stringResource(R.string.select_ethnicity),
-                    options = ethnicityOptions,
-                    selectedOption = registrationViewModel.ethnicity,
-                    onOptionSelected = { registrationViewModel.ethnicity = it }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-                DropdownWithSearch(
-                    title = stringResource(R.string.select_income_level),
-                    options = incomeLevelOptions,
-                    selectedOption = registrationViewModel.incomeLevel,
-                    onOptionSelected = { registrationViewModel.incomeLevel = it }
-                )
 
                 if (isIndian) {
                     Spacer(modifier = Modifier.height(24.dp))
@@ -4212,6 +4125,101 @@ fun EnterOrientationScreen(
 ) {
     LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
     val options = stringArrayResource(R.array.sexual_orientation_options).toList()
+    // Religion options
+    val religionOptions = listOf(
+        stringResource(R.string.religion_other),
+        stringResource(R.string.religion_buddhist),
+        stringResource(R.string.religion_christian),
+        stringResource(R.string.religion_christian_catholic),
+        stringResource(R.string.religion_christian_protestant_mainline),
+        stringResource(R.string.religion_christian_evangelical),
+        stringResource(R.string.religion_christian_orthodox),
+        stringResource(R.string.religion_christian_latter_day_saint),
+        stringResource(R.string.religion_christian_jehovahs_witness),
+        stringResource(R.string.religion_christian_other),
+        stringResource(R.string.religion_hindu),
+        stringResource(R.string.religion_jain),
+        stringResource(R.string.religion_jewish),
+        stringResource(R.string.religion_muslim),
+        stringResource(R.string.religion_muslim_sunni),
+        stringResource(R.string.religion_muslim_shia),
+        stringResource(R.string.religion_muslim_ahmadiyya),
+        stringResource(R.string.religion_muslim_sufi),
+        stringResource(R.string.religion_muslim_other),
+        stringResource(R.string.religion_no_religion),
+        stringResource(R.string.religion_parsi),
+        stringResource(R.string.religion_sikh),
+        stringResource(R.string.religion_indigenous_tribal),
+        stringResource(R.string.religion_santeria),
+        stringResource(R.string.religion_voodou),
+        stringResource(R.string.religion_candomble),
+        stringResource(R.string.religion_umbanda),
+        stringResource(R.string.religion_palo_mayombe),
+        stringResource(R.string.religion_native_traditional),
+        stringResource(R.string.religion_native_church),
+        stringResource(R.string.religion_vision_quest),
+        stringResource(R.string.religion_african_traditional),
+        stringResource(R.string.religion_obeah),
+        stringResource(R.string.religion_hoodoo),
+        stringResource(R.string.religion_rastafari),
+        stringResource(R.string.religion_black_protestant),
+    )
+
+    val ethnicityOptions = listOf(
+        stringResource(R.string.ethnicity_option_not_selected),
+        stringResource(R.string.ethnicity_option_white),
+        stringResource(R.string.ethnicity_option_black),
+        stringResource(R.string.ethnicity_option_hispanic),
+        stringResource(R.string.ethnicity_option_asian),
+        stringResource(R.string.ethnicity_option_native_american),
+        stringResource(R.string.ethnicity_option_middle_eastern),
+        stringResource(R.string.ethnicity_option_pacific_islander),
+        stringResource(R.string.ethnicity_option_mixed_other)
+    )
+
+    val incomeLevelOptions = listOf(
+        stringResource(R.string.income_level_option_not_selected),
+        stringResource(R.string.income_level_under_25k),
+        stringResource(R.string.income_level_25k_50k),
+        stringResource(R.string.income_level_50k_75k),
+        stringResource(R.string.income_level_75k_100k),
+        stringResource(R.string.income_level_100k_150k),
+        stringResource(R.string.income_level_over_150k)
+    )
+    val lookingForOptions = listOf(
+        stringResource(R.string.looking_for_long_term),
+        stringResource(R.string.looking_for_short_to_long),
+        stringResource(R.string.looking_for_casual),
+        stringResource(R.string.looking_for_dating),
+        stringResource(R.string.looking_for_exclusive),
+        stringResource(R.string.looking_for_romance),
+        stringResource(R.string.looking_for_connection),
+        stringResource(R.string.looking_for_partner),
+        stringResource(R.string.looking_for_marriage)
+    )
+    val loveLanguageOptions = listOf(
+        stringResource(R.string.love_language_option_words_of_affirmation),
+        stringResource(R.string.love_language_option_acts_of_service),
+        stringResource(R.string.love_language_option_receiving_gifts),
+        stringResource(R.string.love_language_option_quality_time),
+        stringResource(R.string.love_language_option_physical_touch),
+        stringResource(R.string.love_language_option_other)
+    )
+    val politicsOptions = listOf(
+        stringResource(R.string.politics_option_far_left),
+        stringResource(R.string.politics_option_left),
+        stringResource(R.string.politics_option_centre_left),
+        stringResource(R.string.politics_option_centre),
+        stringResource(R.string.politics_option_centre_right),
+        stringResource(R.string.politics_option_right),
+        stringResource(R.string.politics_option_far_right),
+        stringResource(R.string.politics_option_liberal),
+        stringResource(R.string.politics_option_conservative),
+        stringResource(R.string.politics_option_moderate),
+        stringResource(R.string.politics_option_socialist),
+        stringResource(R.string.politics_option_communist),
+        stringResource(R.string.politics_option_other)
+    )
     var kinksText by remember { mutableStateOf(registrationViewModel.kinks.joinToString(", ")) }
     Scaffold(
         content = { innerPadding ->
@@ -4253,6 +4261,100 @@ fun EnterOrientationScreen(
                     }
                 }
                 RegistrationAccordion(title = stringResource(R.string.advanced_compatibility)) {
+                    DropdownWithSearch(
+                        title = stringResource(R.string.select_ethnicity),
+                        options = ethnicityOptions,
+                        selectedOption = registrationViewModel.ethnicity,
+                        onOptionSelected = { registrationViewModel.ethnicity = it }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    DropdownWithSearch(
+                        title = stringResource(R.string.select_religion),
+                        options = religionOptions,
+                        selectedOption = registrationViewModel.religion,
+                        onOptionSelected = { registrationViewModel.religion = it }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.looking_for_label),
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        lookingForOptions.forEach { option ->
+                            FilterChip(
+                                selected = registrationViewModel.lookingFor == option,
+                                onClick = {
+                                    registrationViewModel.lookingFor =
+                                        if (registrationViewModel.lookingFor == option) "" else option
+                                },
+                                label = { Text(option, color = Color.White) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFFF6000),
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFF1A1A1A),
+                                    labelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.love_language_label),
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        loveLanguageOptions.forEach { option ->
+                            FilterChip(
+                                selected = registrationViewModel.loveLanguage == option,
+                                onClick = {
+                                    registrationViewModel.loveLanguage =
+                                        if (registrationViewModel.loveLanguage == option) "" else option
+                                },
+                                label = { Text(option, color = Color.White) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFFF6000),
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFF1A1A1A),
+                                    labelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.select_politics),
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        politicsOptions.forEach { option ->
+                            FilterChip(
+                                selected = registrationViewModel.politics == option,
+                                onClick = {
+                                    registrationViewModel.politics =
+                                        if (registrationViewModel.politics == option) "" else option
+                                },
+                                label = { Text(option, color = Color.White) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFFF6000),
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFF1A1A1A),
+                                    labelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = kinksText,
                         onValueChange = {
