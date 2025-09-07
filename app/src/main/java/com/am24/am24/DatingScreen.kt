@@ -230,7 +230,7 @@ fun DatingScreen(
     val loadingProgress   by datingViewModel.loadingProgress.collectAsState()
     val matchPopUpState   by profileViewModel.matchPopUpState.collectAsState()
     val complimentsLeft   by datingViewModel.complimentsLeft.collectAsState()
-    val isIndian = myProfile?.country.equals("India", true)
+    val isIndian = canonicalCountry(myProfile?.country) == "India"
 
     // gender-only filtering; lastActive order already applied later
     val filteredProfiles by remember(baseProfiles, myProfile, genderFilter) {

@@ -26,6 +26,7 @@ class NearbyViewModel : ViewModel() {
     var isPremium by mutableStateOf(false)
     var isRefreshing by mutableStateOf(false)
     var currentProfile: Profile? = null
+    var datingFilters by mutableStateOf(DatingFilterSettings())
 
     fun setTier(isPlus: Boolean, isPremium: Boolean) {
         this.isPlus = isPlus
@@ -171,6 +172,10 @@ class NearbyViewModel : ViewModel() {
                         return
                     }
                     val age = calculateAge(p.dob)
+                    if (isPlus && !matchesFilters(p, age, distM)) {
+                        onExit(uid)
+                        return
+                    }
                     val lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: p.lastActive
 
                     val compat = currentProfile?.let { cp ->
@@ -235,6 +240,32 @@ class NearbyViewModel : ViewModel() {
     private fun upsert(list: MutableList<NearbyUser>, item: NearbyUser) {
         val idx = list.indexOfFirst { it.userId == item.userId }
         if (idx >= 0) list[idx] = item else list.add(item)
+    }
+
+    private fun matchesFilters(p: Profile, age: Int, distanceM: Double): Boolean {
+        val f = datingFilters
+        if (age < f.ageStart || age > f.ageEnd) return false
+        if (f.distance > 0 && distanceM > f.distance * 1000) return false
+        if (f.gender.isNotBlank()) {
+            val g = p.gender.toGenderCode()?.name ?: ""
+            if (!g.equals(f.gender, true)) return false
+        }
+        if (f.sexualOrientation.isNotBlank()) {
+            val o = p.sexualOrientation.toOrientationCode()?.name ?: ""
+            if (!o.equals(f.sexualOrientation, true)) return false
+        }
+        if (f.highSchool.isNotBlank() && !p.highSchool.equals(f.highSchool, true)) return false
+        if (f.college.isNotBlank() && !p.college.equals(f.college, true)) return false
+        if (f.postGrad.isNotBlank() && !((p.postGraduation ?: "").equals(f.postGrad, true))) return false
+        if (f.work.isNotBlank() && !p.work.equals(f.work, true)) return false
+        if (f.community.isNotBlank() && !p.community.equals(f.community, true)) return false
+        if (f.religion.isNotBlank() && !p.religion.equals(f.religion, true)) return false
+        if (f.caste.isNotBlank() && !p.caste.equals(f.caste, true)) return false
+        if (f.ethnicity.isNotBlank() && !p.ethnicity.equals(f.ethnicity, true)) return false
+        if (f.incomeLevel.isNotBlank() && !p.incomeLevel.equals(f.incomeLevel, true)) return false
+        if (f.minRating > 0 && p.averageRating < f.minRating) return false
+        if (f.maxRanking > 0 && p.am24Ranking > f.maxRanking) return false
+        return true
     }
 
     private fun calculateAge(dob: String): Int {

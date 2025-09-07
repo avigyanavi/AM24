@@ -82,6 +82,7 @@ import kotlin.math.*
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.auth.FirebaseAuth
+import com.google.gson.Gson
 import java.text.Normalizer
 
 
@@ -235,6 +236,9 @@ fun MapScreen(
     var lastActiveHours by nearbyViewModel::lastActiveHours
     var selectedTab by rememberSaveable { mutableStateOf(1) } // 0: People, 1: Cards, 2: Map
     var genderFilter by nearbyViewModel::genderFilter
+    var datingFilters by nearbyViewModel::datingFilters
+    var showOverflowMenu by remember { mutableStateOf(false) }
+    var showFiltersDialog by remember { mutableStateOf(false) }
     var isPlus by remember { mutableStateOf(false) }
     var isPremium by remember { mutableStateOf(false) }
     var dailyLoginInfo by remember { mutableStateOf<DailyLoginInfo?>(null) }
@@ -274,6 +278,13 @@ fun MapScreen(
             ?.let { runCatching { GenderFilter.valueOf(it) }.getOrNull() }
             ?: GenderFilter.BOTH
     }
+    LaunchedEffect(isPlus) {
+        if (isPlus) {
+            prefs.getString("map_dating_filters", null)?.let {
+                runCatching { nearbyViewModel.datingFilters = Gson().fromJson(it, DatingFilterSettings::class.java) }
+            }
+        }
+    }
 
     LaunchedEffect(isPremium) {
         if (!(isPremium) && selectedTab == 2) {
@@ -289,7 +300,7 @@ fun MapScreen(
         nearbyViewModel.setTier(isPlus, isPremium)
         nearbyViewModel.setCurrentUserProfile(profile)
         val country = snap.child("country").getValue(String::class.java) ?: ""
-        isIndian = country.equals("India", true)
+        isIndian = canonicalCountry(country) == "India"
         remainingSwipes = loadAndResetSwipesDaily(userId)
         swipesLoaded = true
         nearbyViewModel.setExcluded(fetchExcludedUsers(userId))
@@ -720,6 +731,20 @@ fun MapScreen(
                                     else R.string.sort_last_active
                                 )
                             )
+                        }
+                        if (isPlus  || isPremium) {
+                            IconButton(onClick = { showOverflowMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = null)
+                            }
+                            DropdownMenu(expanded = showOverflowMenu, onDismissRequest = { showOverflowMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.filters)) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        showFiltersDialog = true
+                                    }
+                                )
+                            }
                         }
                     },
                     windowInsets = WindowInsets(0, 0, 0, 0)
@@ -1525,6 +1550,20 @@ fun MapScreen(
                     }
                     omegleInvite = null
                 }) { Text(stringResource(R.string.ignore_chat), color = KupidxOrange) }
+            }
+        )
+    }
+    if (showFiltersDialog) {
+        DatingFilterDialog(
+            initial = datingFilters,
+            onDismiss = { showFiltersDialog = false },
+            onApply = { filters ->
+                showFiltersDialog = false
+                nearbyViewModel.datingFilters = filters
+                prefs.edit().putString("map_dating_filters", Gson().toJson(filters)).apply()
+                userLatLng?.let {
+                    nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef, forceRefresh = true)
+                }
             }
         )
     }
@@ -2589,4 +2628,80 @@ fun RatingBar2(rating: Double, ratingCount: Int) {
         Spacer(Modifier.width(4.dp))
         Text(text = String.format("%.2f (%d)", rating, ratingCount), color = KupidxOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
     }
+}
+
+@Composable
+private fun DatingFilterDialog(
+    initial: DatingFilterSettings,
+    onDismiss: () -> Unit,
+    onApply: (DatingFilterSettings) -> Unit
+) {
+    var ageStart by remember { mutableStateOf(initial.ageStart.toString()) }
+    var ageEnd by remember { mutableStateOf(initial.ageEnd.toString()) }
+    var distance by remember { mutableStateOf(initial.distance.toString()) }
+    var gender by remember { mutableStateOf(initial.gender) }
+    var orientation by remember { mutableStateOf(initial.sexualOrientation) }
+    var highSchool by remember { mutableStateOf(initial.highSchool) }
+    var college by remember { mutableStateOf(initial.college) }
+    var postGrad by remember { mutableStateOf(initial.postGrad) }
+    var work by remember { mutableStateOf(initial.work) }
+    var community by remember { mutableStateOf(initial.community) }
+    var religion by remember { mutableStateOf(initial.religion) }
+    var caste by remember { mutableStateOf(initial.caste) }
+    var ethnicity by remember { mutableStateOf(initial.ethnicity) }
+    var income by remember { mutableStateOf(initial.incomeLevel) }
+    var minRating by remember { mutableStateOf(initial.minRating.toString()) }
+    var maxRanking by remember { mutableStateOf(initial.maxRanking.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.filters)) },
+        confirmButton = {
+            TextButton(onClick = {
+                onApply(
+                    DatingFilterSettings(
+                        highSchool = highSchool,
+                        college = college,
+                        postGrad = postGrad,
+                        work = work,
+                        ageStart = ageStart.toIntOrNull() ?: initial.ageStart,
+                        ageEnd = ageEnd.toIntOrNull() ?: initial.ageEnd,
+                        distance = distance.toIntOrNull() ?: initial.distance,
+                        gender = gender,
+                        sexualOrientation = orientation,
+                        minRating = minRating.toFloatOrNull() ?: initial.minRating,
+                        maxRanking = maxRanking.toIntOrNull() ?: initial.maxRanking,
+                        community = community,
+                        religion = religion,
+                        caste = caste,
+                        ethnicity = ethnicity,
+                        incomeLevel = income
+                    )
+                )
+            }) { Text("Apply") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
+        },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                OutlinedTextField(value = ageStart, onValueChange = { ageStart = it }, label = { Text("Age start") })
+                OutlinedTextField(value = ageEnd, onValueChange = { ageEnd = it }, label = { Text("Age end") })
+                OutlinedTextField(value = distance, onValueChange = { distance = it }, label = { Text("Distance km") })
+                OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Gender") })
+                OutlinedTextField(value = orientation, onValueChange = { orientation = it }, label = { Text("Orientation") })
+                OutlinedTextField(value = highSchool, onValueChange = { highSchool = it }, label = { Text("High school") })
+                OutlinedTextField(value = college, onValueChange = { college = it }, label = { Text("College") })
+                OutlinedTextField(value = postGrad, onValueChange = { postGrad = it }, label = { Text("Post grad") })
+                OutlinedTextField(value = work, onValueChange = { work = it }, label = { Text("Work") })
+                OutlinedTextField(value = community, onValueChange = { community = it }, label = { Text("Community") })
+                OutlinedTextField(value = religion, onValueChange = { religion = it }, label = { Text("Religion") })
+                OutlinedTextField(value = caste, onValueChange = { caste = it }, label = { Text("Caste") })
+                OutlinedTextField(value = ethnicity, onValueChange = { ethnicity = it }, label = { Text("Ethnicity") })
+                OutlinedTextField(value = income, onValueChange = { income = it }, label = { Text("Income") })
+                OutlinedTextField(value = minRating, onValueChange = { minRating = it }, label = { Text("Min rating") })
+                OutlinedTextField(value = maxRanking, onValueChange = { maxRanking = it }, label = { Text("Max ranking") })
+            }
+        }
+    )
 }

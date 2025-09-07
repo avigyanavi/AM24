@@ -21,6 +21,14 @@ const USERS  = db.ref('users');
 const now    = () => Date.now();
 const BOOST_DURATION_MS = 1 * 60 * 60 * 1_000;   // 1 h
 const PAGE_SIZE = 50;
+// Accent/case-insensitive string normalizer for country fields.
+function normalizeCountry(name = '') {
+  return String(name)
+    .normalize('NFD')                      // split accents
+    .replace(/[\u0300-\u036f]/g, '')      // strip accents
+    .trim()
+    .toLowerCase();
+}
 
 // ── Your Razorpay secret (the one you pasted: 27346b6a8…1c01) ──
 const RAZORPAY_SECRET = '27346b6a824152fe1d0404a56f7d587b326fcb7e4bfd287225188bd25c771c01';
@@ -555,9 +563,85 @@ exports.getNearbyProfiles = functions
 
     const profiles = profileSnaps
       .map(s => (s.val() ? { ...s.val(), userId: s.key } : null))
-      .filter(p => p && p.lastActive >= cutoff && p.country === myCountry);
+      .filter(p =>
+              p &&
+              p.lastActive >= cutoff &&
+              normalizeCountry(p.country) === normalizeCountry(myCountry)
+            );
 
     return { profiles };
+  });
+
+
+function getByPath(obj, path) {
+  return path.split(".").reduce((o, k) => (o && o[k] !== undefined ? o[k] : undefined), obj);
+}
+
+exports.getMexicoUserCoords1 = functions
+  .region("asia-south1")
+  .runWith({ timeoutSeconds: 60, memory: "256MB" })
+  .https.onRequest(async (req, res) => {
+    try {
+      // --- tune these if your schema differs ---
+      const GEO_PATH = "geoFireLocations"; // where GeoFire keeps { g, l:[lat,lng] }
+      const USER_ROOTS = ["users", "usersPublic", "profiles", "publicUsers", "userProfiles"];
+      const COUNTRY_FIELDS = ["country", "country_lower", "profile.country", "location.country", "countryName"];
+      const COUNTRY_WANTED = (req.query.country || "mexico").toString().toLowerCase();
+      const LIMIT = Math.min(parseInt(req.query.limit) || 10000, 100000);
+      // -----------------------------------------
+
+      const geoSnap = await db.ref(GEO_PATH).get();
+      if (!geoSnap.exists()) return res.status(200).json({ count: 0, users: [] });
+
+      // Preload potential user trees once (fast join)
+      const userTrees = {};
+      await Promise.all(
+        USER_ROOTS.map(async (root) => {
+          try {
+            const s = await db.ref(root).get();
+            if (s.exists()) userTrees[root] = s.val();
+          } catch {}
+        })
+      );
+
+      const findCountry = (uid) => {
+        for (const root of Object.keys(userTrees)) {
+          const u = userTrees[root]?.[uid];
+          if (!u) continue;
+          for (const f of COUNTRY_FIELDS) {
+            const v = getByPath(u, f);
+            if (typeof v === "string") return v;
+          }
+        }
+        return undefined;
+      };
+
+      const out = [];
+      geoSnap.forEach((child) => {
+        const uid = child.key;
+        const v = child.val() || {};
+        // GeoFire shapes: l: [lat, lng] (primary), sometimes location:{lat,lng}
+        let lat, lng;
+        if (Array.isArray(v?.l) && v.l.length === 2) {
+          lat = Number(v.l[0]); lng = Number(v.l[1]);
+        } else if (v?.location && typeof v.location.lat === "number" && typeof v.location.lng === "number") {
+          lat = v.location.lat; lng = v.location.lng;
+        }
+        if (typeof lat !== "number" || typeof lng !== "number") return false;
+
+        const country = findCountry(uid);
+        if (!country) return false;
+        if (country.toString().toLowerCase() !== COUNTRY_WANTED) return false;
+
+        out.push({ uid, lat, lng });
+        return out.length >= LIMIT; // stop early if limit reached
+      });
+
+      res.status(200).json({ count: out.length, users: out });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: String(e?.message || e) });
+    }
   });
 
 exports.getGlobalBoostedUsers = functions
@@ -1699,6 +1783,7 @@ exports.listMexicanUsersByGender = functions
 
       const pushUser = (child) => {
         const u = child.val() || {};
+        if (normalizeCountry(u.country) !== 'Mexico') return;
         const g = (u.gender || '').toString().trim().toLowerCase();
 
         const payload = {

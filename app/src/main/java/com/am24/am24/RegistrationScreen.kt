@@ -2374,7 +2374,7 @@ fun EnterGenderCommunityReligionScreen(
 
     var other = stringResource(R.string.college_other)
     // Predefined lists for dropdown options
-    val isIndian = registrationViewModel.country.equals("India", ignoreCase = true)
+    val isIndian = canonicalCountry(registrationViewModel.country) == "India"
     LaunchedEffect(isIndian) {
         if (!isIndian) registrationViewModel.community = ""
     }
@@ -2864,7 +2864,11 @@ suspend fun saveProfileToFirebase(
         val profile = Profile(
             phoneNumber = if (allowPhoneAuth) raw else null, // ← not stored abroad
             userId = userId,
-            country       = if (registrationViewModel.country == other) registrationViewModel.customCountry else registrationViewModel.country,
+            country       = canonicalCountry(
+                if (registrationViewModel.country == other)
+                    registrationViewModel.customCountry
+                else registrationViewModel.country
+            ),
             customCountry = registrationViewModel.customCountry,
 
             username = registrationViewModel.username,
@@ -2876,8 +2880,11 @@ suspend fun saveProfileToFirebase(
                 ?: registrationViewModel.gender,
             interests = registrationViewModel.interests.toList(),
             // Save the city using customCity if "Other" is selected
-            city = if (registrationViewModel.city == other) registrationViewModel.customCity.trim() else registrationViewModel.city.trim(),
-            // Hometown represents locality; if empty, fallback to a custom value if provided
+            city = canonicalCity(
+                if (registrationViewModel.city == other)
+                    registrationViewModel.customCity.trim()
+                else registrationViewModel.city.trim()
+            ),
             hometown = if (registrationViewModel.hometown == other)
                 registrationViewModel.customHometown.trim()
             else registrationViewModel.hometown.trim(),
@@ -3244,7 +3251,7 @@ fun EnterBirthdateCityHometownScreen(
     onNext: () -> Unit,
     fusedLocationClient: FusedLocationProviderClient
 ) {
-    val isIndian = registrationViewModel.country.equals("India", ignoreCase = true)
+    val isIndian = canonicalCountry(registrationViewModel.country) == "India"
     val context = LocalContext.current
     val resources = context.resources
     val countries = remember { resources.getStringArray(R.array.country_names).toList() }
@@ -3478,7 +3485,7 @@ fun EnterBirthdateCityHometownScreen(
                 selectedCountry = country
                 registrationViewModel.country = if (country == other) customCountry else country
 
-                if (country.equals("India", ignoreCase = true)) {
+                if (canonicalCountry(country) == "India") {
                     selectedCity     = city
                     selectedLocality = locality
                     if (city == other) {
@@ -3534,7 +3541,7 @@ fun EnterBirthdateCityHometownScreen(
                 selectedCountry = country
                 registrationViewModel.country = if (country == other) customCountry else country
 
-                if (country.equals("India", ignoreCase = true)) {
+                if (canonicalCountry(country) == "India") {
                     selectedCity     = city
                     selectedLocality = locality
                     if (city == other) {

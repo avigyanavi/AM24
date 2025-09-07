@@ -41,8 +41,7 @@ object CountryUtil {
     }
 
     fun isMexico(ctx: Context, selectedCountry: String?): Boolean {
-        if (selectedCountry?.equals("Mexico", ignoreCase = true) == true ||
-            selectedCountry?.equals("México", ignoreCase = true) == true) return true
+        if (canonicalCountry(selectedCountry) == "Mexico") return true
         val isoBySim = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
                 as? TelephonyManager)?.simCountryIso?.uppercase(Locale.US)
         val isoByNet = (ctx.getSystemService(Context.TELEPHONY_SERVICE)

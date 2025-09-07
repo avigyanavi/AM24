@@ -92,11 +92,13 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
             }
         }
 
-        sf.country?.takeIf(String::isNotBlank)?.let { ct ->         // ➍ NEW
-                 list = list.filter { it.country.equals(ct, true) }      //  your Profile has `country`
-             }
+        sf.country?.takeIf(String::isNotBlank)?.let { ct ->
+            list = list.filter { it.country.sameCountry(ct) }
+        }
 
-        sf.city?.takeIf(String::isNotBlank)?.let { c -> list = list.filter { it.city.equals(c, true) }}
+        sf.city?.takeIf(String::isNotBlank)?.let { c ->
+            list = list.filter { it.city.sameCity(c) }
+        }
         sf.locality?.takeIf(String::isNotBlank)?.let { l ->
             list = list.filter {
                 it.hometown.equals(l, true) || it.customHometown?.equals(l, true) == true

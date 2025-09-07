@@ -276,8 +276,8 @@ fun ProfileLazyScreen(
         // 2) city-level rank
         val cityList = allProfiles
             .filter {
-                it.city.equals(profile.city, ignoreCase = true) ||
-                        it.customCity.equals(profile.city, ignoreCase = true)
+                it.city.sameCity(profile.city) ||
+                        it.customCity!!.sameCity(profile.city)
             }
             .sortedByDescending { it.compositeScore }
         val cityIdx = cityList.indexOfFirst { it.userId == profile.userId }
@@ -962,7 +962,7 @@ fun BasicInfoSection(profile: Profile) {
         "${profile.height2[0]} ft ${profile.height2[1]} in"
     else
         "${profile.height} cm"
-    val isIndian = profile.country.equals("India", ignoreCase = true)
+    val isIndian = canonicalCountry(profile.country) == "India"
 
     // --- Name, caste, gender, city, locality, username, job, work ---
     ProfileDetailRow(stringResource(R.string.label_username),
@@ -1116,7 +1116,7 @@ fun BasicInfoEditSection(
     var feet by remember { mutableStateOf(tempProfile.height2.getOrNull(0) ?: 0) }
     var inches by remember { mutableStateOf(tempProfile.height2.getOrNull(1) ?: 0) }
     var heightCm by remember { mutableStateOf(tempProfile.height) }
-    val isIndian = tempProfile.country.equals("India", ignoreCase = true)
+    val isIndian = canonicalCountry(tempProfile.country) == "India"
     var ethnicity by remember { mutableStateOf(tempProfile.ethnicity.ifBlank { notSelected }) }
     var incomeLevel by remember { mutableStateOf(tempProfile.incomeLevel.ifBlank { notSelected }) }
 

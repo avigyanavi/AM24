@@ -132,7 +132,7 @@ fun SettingsScreen(navController: NavController) {
     var working           by remember { mutableStateOf(false) }
 
     var rewardDialogFor   by remember { mutableStateOf<PurchaseType?>(null) }
-    val isIndian = remember(country) { country.equals("India", ignoreCase = true) }
+    val isIndian = remember(country) { canonicalCountry(country) == "India" }
     val activity = LocalContext.current as Activity
     val rewardedComplimentManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedCompliment(activity)) }
     val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
