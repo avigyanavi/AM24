@@ -45,6 +45,7 @@ private val PLUS_FEATURES = listOf(
 
 private val PREMIUM_FEATURES = listOf(
     R.string.feature_video_rank_section,
+    R.string.feature_unlock_maps,
     R.string.feature_unlimited_swipes,
     R.string.feature_5_compliments,
 )

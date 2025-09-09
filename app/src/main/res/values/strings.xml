@@ -952,6 +952,7 @@
     <string name="love_language_option_physical_touch">Physical touch</string>
     <string name="love_language_option_other">Other</string>
     <string name="apply">Apply</string>
+    <string name="feature_unlock_maps">Unlock Maps</string>
     <string name="label_age">Age</string>
     <!-- ── Politics dropdown ── -->
     <string name="select_politics">Select politics</string>

@@ -102,7 +102,7 @@ data class Profile(
 
     // NEW: New variables for location preferences
     var allowLocationForMatches: Boolean = false,
-    var allowLocationPublic: Boolean = true,          //  ← variable name you asked for
+    var allowLocationPublic: Boolean = false,          //  ← variable name you asked for
 
     val am24RankingAge: Int = 0,
     val am24RankingHighSchool: Int = 0,

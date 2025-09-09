@@ -294,14 +294,14 @@ fun SettingsScreen(navController: NavController) {
 //                        Divider(Modifier.padding(start = 56.dp))
                     }
 
-                    if (premiumTier != "Free") {
-                        SettingsRow(
-                            icon  = { Icon(Icons.Default.Swipe, null) },
-                            title = stringResource(R.string.paid_user_stack),
-                            onClick = { navController.navigate("dating") }
-                        )
-                        Divider(Modifier.padding(start = 56.dp))
-                    }
+//                    if (premiumTier != "Free") {
+//                        SettingsRow(
+//                            icon  = { Icon(Icons.Default.Swipe, null) },
+//                            title = stringResource(R.string.paid_user_stack),
+//                            onClick = { navController.navigate("dating") }
+//                        )
+//                        Divider(Modifier.padding(start = 56.dp))
+//                    }
 
                     /* STATIC SWIPES ROW  */
                     SettingsRow(

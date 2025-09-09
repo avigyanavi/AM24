@@ -732,11 +732,14 @@ fun MapScreen(
                                 )
                             )
                         }
-                        if (isPlus  || isPremium) {
+                        Box {
                             IconButton(onClick = { showOverflowMenu = true }) {
                                 Icon(Icons.Default.MoreVert, contentDescription = null)
                             }
-                            DropdownMenu(expanded = showOverflowMenu, onDismissRequest = { showOverflowMenu = false }) {
+                            DropdownMenu(
+                                expanded = showOverflowMenu,
+                                onDismissRequest = { showOverflowMenu = false }
+                            ) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.filters)) },
                                     onClick = {
@@ -2643,6 +2646,7 @@ private fun DatingFilterDialog(
     var religion by remember { mutableStateOf(initial.religion) }
     var ethnicity by remember { mutableStateOf(initial.ethnicity) }
     var income by remember { mutableStateOf(initial.incomeLevel) }
+    val defaultAgeRange = DatingFilterSettings().let { it.ageStart to it.ageEnd }
 
     val ageOptions = listOf(
         18 to 25,
@@ -2741,7 +2745,11 @@ private fun DatingFilterDialog(
                         FilterChip(
                             selected = ageRange.first == start && ageRange.second == end,
                             onClick = {
-                                ageRange = if (ageRange.first == start && ageRange.second == end) initial.ageStart to initial.ageEnd else start to end
+                                ageRange = if (ageRange.first == start && ageRange.second == end) {
+                                    defaultAgeRange
+                                } else {
+                                    start to end
+                                }
                             },
                             label = { Text(label) }
                         )

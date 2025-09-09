@@ -1,5 +1,5 @@
 // RegistrationActivity.kt
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
 package com.am24.am24
 

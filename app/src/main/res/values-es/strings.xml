@@ -16,6 +16,7 @@
     <string name="female_header">Mujer</string>
     <string name="apply">Aplicar</string>
     <string name="label_age">Edad</string>
+    <string name="feature_unlock_maps">Desbloquear Mapas</string>
     <string name="other_header">Otro</string>
     <string name="request_canceled">Solicitud cancelada</string>
     <string name="app_name">Kupidx</string>
