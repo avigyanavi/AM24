@@ -460,39 +460,6 @@ fun ChatScreenContent(
            ────────────────────────────────────────────────── */
         if (selectedMediaUri != null && selectedMediaType != null) {
             scope.launch {
-                /* 1-A  Moderate content */
-                val flagged = when (selectedMediaType) {
-                    "photo" -> moderateImages(listOf(context.uriToBase64(selectedMediaUri!!)))
-                    "video" -> moderateImages(context.videoFramesEvery2s(selectedMediaUri!!))
-                    else    -> false
-                }
-
-                /* 1-B  If explicit but one side blocks it → cancel */
-                if (flagged && !(privateAlbumSharedMe && privateAlbumSharedPartner)) {
-                    Toast.makeText(
-                        context,
-                        "Explicit media blocked – both users must enable it.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    selectedMediaUri  = null
-                    selectedMediaType = null
-                    isSendingMessage  = false
-                    return@launch
-                }
-
-                /* 1-C  If both allow, still ask the sender for consent */
-                if (flagged && !askProceed(
-                        context,
-                        "This ${selectedMediaType} looks explicit. Send anyway?"
-                    )
-                ) {
-                    selectedMediaUri  = null
-                    selectedMediaType = null
-                    isSendingMessage  = false
-                    return@launch
-                }
-
-                /* 1-C  Upload + send (your old code) */
                 isUploadingMedia = true
                 try {
                     sendMediaMessage(
@@ -505,7 +472,7 @@ fun ChatScreenContent(
                         toUserId = otherUserId,
                         fromUserId = currentUserId,
                         fromUsername = currentUserProfile?.username ?: "",
-                        message = "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }} Message]"
+                        message = "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }} Message]",
                     )
                 } finally {
                     selectedMediaUri  = null
@@ -543,15 +510,6 @@ fun ChatScreenContent(
            ────────────────────────────────────────────────── */
         if (messageText.isNotBlank()) {
             scope.launch {
-                /* 3-A  Moderate */
-                val flagged = moderateText(messageText)
-                /* 3-B  Ask user if unsafe */
-                if (flagged && !askProceed(context,
-                        "This message may be explicit.  Send anyway?")) {
-                    isSendingMessage = false
-                    return@launch
-                }
-
                 /* 3-C  Push to Firebase (your old code) */
                 val newId = messagesRef.push().key ?: return@launch
                 val msg = Message(
