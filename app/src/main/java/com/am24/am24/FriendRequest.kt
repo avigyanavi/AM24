@@ -37,14 +37,13 @@ data class FilterSettings(
 data class DatingFilterSettings(
     val localities: List<String> = emptyList(),
     val city: String = "All", // Changed from capitalRegion to city
-    val highSchool: String = "",
-    val college: String = "",
-    val work: String = "",
     val ageStart: Int = 18,
     val ageEnd: Int = 100,
     val religion: String = "",
     val ethnicity: String = "",
-    val incomeLevel: String = ""
+    val roles: List<String> = emptyList(),
+    val tribes: List<String> = emptyList(),
+    val kinks: List<String> = emptyList()
 )
 
 data class FeedFilterSettings(

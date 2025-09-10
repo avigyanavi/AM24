@@ -20,7 +20,6 @@ class NearbyViewModel : ViewModel() {
     // Default radius shown in the People tab
     var radiusKm by mutableStateOf(50.0)
     var lastActiveHours by mutableStateOf(24.0)
-    var genderFilter by mutableStateOf(GenderFilter.BOTH)
     var excludedUserIds by mutableStateOf<Set<String>>(emptySet())
     var isPlus by mutableStateOf(false)
     var isPremium by mutableStateOf(false)
@@ -197,7 +196,6 @@ class NearbyViewModel : ViewModel() {
                         lastActiveAt = lastActive,
                         latLng = latLng,
                         distanceMeters = distM,
-                        gender = p.gender ?: "",
                         interests = p.interests,
                         compatibilityPct = compat,
                         randomDetail = randomDetail
@@ -239,12 +237,11 @@ class NearbyViewModel : ViewModel() {
     private fun matchesFilters(p: Profile, age: Int): Boolean {
         val f = datingFilters
         if (age < f.ageStart || age > f.ageEnd) return false
-        if (f.highSchool.isNotBlank() && !p.highSchool.equals(f.highSchool, true)) return false
-        if (f.college.isNotBlank() && !p.college.equals(f.college, true)) return false
-        if (f.work.isNotBlank() && !p.work.equals(f.work, true)) return false
         if (f.religion.isNotBlank() && canonicalReligion(p.religion) != canonicalReligion(f.religion)) return false
         if (f.ethnicity.isNotBlank() && canonicalEthnicity(p.ethnicity) != canonicalEthnicity(f.ethnicity)) return false
-        if (f.incomeLevel.isNotBlank() && canonicalIncome(p.incomeLevel) != canonicalIncome(f.incomeLevel)) return false
+        if (f.roles.isNotEmpty() && p.roles.none { it in f.roles }) return false
+        if (f.tribes.isNotEmpty() && p.tribes.none { it in f.tribes }) return false
+        if (f.kinks.isNotEmpty() && p.kinks.none { it in f.kinks }) return false
         return true
     }
 

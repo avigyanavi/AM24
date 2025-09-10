@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -110,8 +111,6 @@ enum class SortMode { NEARBY, ACTIVE }
 
 enum class Region { LA, SF_BAY, NONE }
 
-enum class GenderFilter { BOTH, WOMEN, MEN, OTHER }
-
 data class NearbyUser(
     val userId: String,
     val username: String,
@@ -120,7 +119,6 @@ data class NearbyUser(
     val lastActiveAt: Long,
     val latLng: LatLng?,
     val distanceMeters: Double,
-    val gender: String,
     val interests: List<Interest> = emptyList(),
     val compatibilityPct: Int? = null,
     val randomDetail: String? = null
@@ -234,7 +232,6 @@ fun MapScreen(
     var radiusKm by nearbyViewModel::radiusKm
     var lastActiveHours by nearbyViewModel::lastActiveHours
     var selectedTab by rememberSaveable { mutableStateOf(1) } // 0: People, 1: Cards, 2: Map
-    var genderFilter by nearbyViewModel::genderFilter
     var datingFilters by nearbyViewModel::datingFilters
     var showOverflowMenu by remember { mutableStateOf(false) }
     var showFiltersDialog by remember { mutableStateOf(false) }
@@ -266,9 +263,6 @@ fun MapScreen(
         sortMode = prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
         radiusKm = prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble()
         lastActiveHours = prefs.getFloat("map_last_active_hours", 168f).toDouble()
-        genderFilter = prefs.getString("map_gender_filter", null)
-            ?.let { runCatching { GenderFilter.valueOf(it) }.getOrNull() }
-            ?: GenderFilter.BOTH
     }
     LaunchedEffect(isPlus || isPremium) {
         if (isPlus || isPremium) {
@@ -577,15 +571,10 @@ fun MapScreen(
 
     // filtering + sorting (wrapped in remember)
     val filteredPeople by remember(
-        people, genderFilter, sortMode, lastActiveHours, isPlus, isPremium
+        people, sortMode, lastActiveHours, isPlus, isPremium
     ) {
         derivedStateOf {
-            var list = when (genderFilter) {
-                GenderFilter.BOTH  -> people
-                GenderFilter.WOMEN -> people.filter { it.gender.toGenderCode() == Gender.FEMALE }
-                GenderFilter.MEN   -> people.filter { it.gender.toGenderCode() == Gender.MALE }
-                GenderFilter.OTHER -> people.filter { it.gender.toGenderCode() == Gender.OTHER }
-            }
+            var list = people
             if (sortMode == SortMode.ACTIVE) {
                 val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(lastActiveHours.toLong())
                 list = list.filter { it.lastActiveAt >= cutoff }
@@ -603,21 +592,6 @@ fun MapScreen(
         }
     }
 
-    /* 👇 Add this debug effect right here */
-    LaunchedEffect(people, genderFilter) {
-        if (genderFilter != GenderFilter.BOTH) {
-            val misses = people.filter {
-                val c = canonicalGender(it.gender)
-                (genderFilter == GenderFilter.WOMEN && c != "female") ||
-                        (genderFilter == GenderFilter.MEN   && c != "male") ||
-                        (genderFilter == GenderFilter.OTHER && c != "other")
-            }.take(20)
-            if (misses.isNotEmpty()) {
-                Log.d("GenderDebug", "Unmatched (${misses.size}): " +
-                        misses.joinToString { "${it.userId}:${it.gender}" })
-            }
-        }
-    }
 
     LaunchedEffect(selectedTab, sortedPeople, matchUids) {
         if (selectedTab != 2) return@LaunchedEffect
@@ -822,18 +796,6 @@ fun MapScreen(
                                 }
                             )
                         }
-
-                        GenderFilterChip(
-                            selected = genderFilter,
-                            onChange = {
-                                genderFilter = it
-                                prefs.edit().putString("map_gender_filter", it.name).apply()
-                            },
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(8.dp)
-                                .scale(0.9f)
-                        )
                     }
                 }
 
@@ -888,17 +850,6 @@ fun MapScreen(
                                 }
                             }
                     )
-                        GenderFilterChip(
-                            selected = genderFilter,
-                            onChange = {
-                                genderFilter = it
-                                prefs.edit().putString("map_gender_filter", it.name).apply()
-                            },
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(8.dp)
-                                .scale(0.9f)
-                        )
                     }
                 }
 
@@ -1362,15 +1313,6 @@ fun MapScreen(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-
-                        GenderFilterChip(
-                            selected = genderFilter,
-                            onChange = {
-                                genderFilter = it
-                                prefs.edit().putString("map_gender_filter", it.name).apply()
-                            },
-                            modifier = Modifier.scale(0.8f)
-                        )
                     }
 
                         // Leaderboard overlay
@@ -1994,45 +1936,6 @@ private fun NearbyCard(
     }
 }
 
-@Composable
-private fun GenderFilterChip(
-    selected: GenderFilter,
-    onChange: (GenderFilter) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        tonalElevation = 3.dp,
-        shadowElevation = 3.dp,
-        border = BorderStroke(1.dp, Color(0x33FFFFFF))
-    ) {
-        Row(
-            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Show only Women / Men chips
-            listOf(
-                GenderFilter.BOTH to stringResource(R.string.gender_all),
-                GenderFilter.WOMEN to stringResource(R.string.gender_women),
-                GenderFilter.MEN   to stringResource(R.string.gender_men),
-                GenderFilter.OTHER to stringResource(R.string.gender_other)
-            ).forEach { (type, label) ->
-                FilterChip(
-                    selected = selected == type,
-                    onClick = {
-                        onChange(
-                            if (type == GenderFilter.BOTH) GenderFilter.BOTH
-                            else if (selected == type) GenderFilter.BOTH else type
-                        )
-                    },
-                    label = { Text(label) }
-                )
-            }
-        }
-    }
-}
 private fun deaccent(s: String): String {
     // NFD = split accents into separate code points, then strip marks (\p{Mn})
     val nfd = Normalizer.normalize(s, Normalizer.Form.NFD)
@@ -2628,12 +2531,11 @@ private fun DatingFilterDialog(
     onApply: (DatingFilterSettings) -> Unit
 ) {
     var ageRange by remember { mutableStateOf(initial.ageStart to initial.ageEnd) }
-    var highSchool by remember { mutableStateOf(initial.highSchool) }
-    var college by remember { mutableStateOf(initial.college) }
-    var work by remember { mutableStateOf(initial.work) }
     var religion by remember { mutableStateOf(initial.religion) }
     var ethnicity by remember { mutableStateOf(initial.ethnicity) }
-    var income by remember { mutableStateOf(initial.incomeLevel) }
+    val selectedRoles = remember { mutableStateListOf<String>().apply { addAll(initial.roles) } }
+    val selectedTribes = remember { mutableStateListOf<String>().apply { addAll(initial.tribes) } }
+    val selectedKinks = remember { mutableStateListOf<String>().apply { addAll(initial.kinks) } }
     val defaultAgeRange = DatingFilterSettings().let { it.ageStart to it.ageEnd }
 
     val ageOptions = listOf(
@@ -2693,14 +2595,9 @@ private fun DatingFilterDialog(
         R.string.ethnicity_option_pacific_islander to "Pacific Islander",
         R.string.ethnicity_option_mixed_other to "Mixed / Other"
     )
-    val incomeOptions = listOf(
-        R.string.income_level_under_25k to "Under $25k",
-        R.string.income_level_25k_50k to "$25k–$50k",
-        R.string.income_level_50k_75k to "$50k–$75k",
-        R.string.income_level_75k_100k to "$75k–$100k",
-        R.string.income_level_100k_150k to "$100k–$150k",
-        R.string.income_level_over_150k to "Over $150k"
-    )
+    val roleOptions = stringArrayResource(R.array.roles_options).toList()
+    val tribeOptions = stringArrayResource(R.array.tribes_options).toList()
+    val kinkOptions = stringArrayResource(R.array.kink_options).toList()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -2709,14 +2606,13 @@ private fun DatingFilterDialog(
             TextButton(onClick = {
                 onApply(
                     DatingFilterSettings(
-                        highSchool = highSchool,
-                        college = college,
-                        work = work,
+                        roles = selectedRoles.toList(),
+                        tribes = selectedTribes.toList(),
+                        kinks = selectedKinks.toList(),
                         ageStart = ageRange.first,
                         ageEnd = ageRange.second,
                         religion = religion,
                         ethnicity = ethnicity,
-                        incomeLevel = income
                     )
                 )
             }) { Text(stringResource(R.string.apply), color = KupidxOrange) }
@@ -2744,10 +2640,6 @@ private fun DatingFilterDialog(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = highSchool, onValueChange = { highSchool = it }, label = { Text(stringResource(R.string.label_high_school)) })
-                OutlinedTextField(value = college, onValueChange = { college = it }, label = { Text(stringResource(R.string.label_college)) })
-                OutlinedTextField(value = work, onValueChange = { work = it }, label = { Text(stringResource(R.string.label_work)) })
-                Spacer(Modifier.height(8.dp))
                 Text(stringResource(R.string.label_religion), fontWeight = FontWeight.SemiBold)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     religionOptions.forEach { (resId, value) ->
@@ -2770,13 +2662,41 @@ private fun DatingFilterDialog(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.income_level_label), fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.roles_label), fontWeight = FontWeight.SemiBold)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    incomeOptions.forEach { (resId, value) ->
+                    roleOptions.forEach { option ->
                         FilterChip(
-                            selected = income == value,
-                            onClick = { income = if (income == value) "" else value },
-                            label = { Text(stringResource(resId)) }
+                            selected = option in selectedRoles,
+                            onClick = {
+                                if (option in selectedRoles) selectedRoles.remove(option) else selectedRoles.add(option)
+                            },
+                            label = { Text(option) }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.tribes_label), fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    tribeOptions.forEach { option ->
+                        FilterChip(
+                            selected = option in selectedTribes,
+                            onClick = {
+                                if (option in selectedTribes) selectedTribes.remove(option) else selectedTribes.add(option)
+                            },
+                            label = { Text(option) }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.kinks_label), fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    kinkOptions.forEach { option ->
+                        FilterChip(
+                            selected = option in selectedKinks,
+                            onClick = {
+                                if (option in selectedKinks) selectedKinks.remove(option) else selectedKinks.add(option)
+                            },
+                            label = { Text(option) }
                         )
                     }
                 }

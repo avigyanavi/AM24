@@ -437,8 +437,6 @@ fun RegistrationScreen(
                                 when (currentStep) {
                                     2 -> {
                                         when {
-                                            registrationViewModel.gender.isEmpty() ->
-                                                Toast.makeText(context, "Please select your gender", Toast.LENGTH_LONG).show()
                                             registrationViewModel.dob.isBlank() ->
                                                 Toast.makeText(context, "Please select your birth date", Toast.LENGTH_LONG).show()
                                             calculateAge(registrationViewModel.dob) < 14 ->
@@ -2384,7 +2382,6 @@ fun EnterGenderCommunityReligionScreen(
     LaunchedEffect(isIndian) {
         if (!isIndian) registrationViewModel.community = ""
     }
-    val genderOptions = listOf(stringResource(R.string.male_option), stringResource(R.string.female_option), stringResource(R.string.gender_either))
     val communityOptions = listOf(
         stringResource(R.string.community_other),
         stringResource(R.string.community_adi),
@@ -2443,7 +2440,7 @@ fun EnterGenderCommunityReligionScreen(
 
     // Validation for enabling the "Next" button
     val userAge = calculateAge(registrationViewModel.dob)
-    val isNextEnabled = registrationViewModel.gender.isNotEmpty() &&
+    val isNextEnabled =
             registrationViewModel.dob.isNotBlank() &&
             userAge >= 14
     LaunchedEffect(isNextEnabled) { registrationViewModel.nextEnabled = isNextEnabled }
@@ -2514,16 +2511,6 @@ fun EnterGenderCommunityReligionScreen(
 //                    fontWeight = FontWeight.Bold,
 //                    modifier = Modifier.padding(bottom = 24.dp)
 //                )
-
-                // Gender Dropdown
-                DropdownWithSearch(
-                    title = stringResource(R.string.select_gender),
-                    options = genderOptions,
-                    selectedOption = registrationViewModel.gender,
-                    onOptionSelected = { registrationViewModel.gender = it }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 if (isIndian) {
                     Spacer(modifier = Modifier.height(24.dp))
@@ -4500,11 +4487,11 @@ fun UploadMediaComposable(
     val mediaPlayer = remember { MediaPlayer() }
 
     // Helper: combined list of URIs (first = profile or placeholder)
-//    val placeholderUriString =
-//        "android.resource://${context.packageName}/drawable/local_placeholder"
+    val placeholderUriString =
+        "android.resource://${context.packageName}/drawable/local_placeholder"
     val combinedPhotoUris: List<Uri> =
-        registrationViewModel.profilePictureUri?.let { listOf(it) + registrationViewModel.optionalPhotoUris }
-            ?: registrationViewModel.optionalPhotoUris
+        (registrationViewModel.profilePictureUri ?: Uri.parse(placeholderUriString))
+            .let { listOf(it) + registrationViewModel.optionalPhotoUris }
 
     suspend fun isExplicit(uri: Uri): Boolean = withContext(Dispatchers.IO) {
         val jpeg = compressImage(context, uri) ?: return@withContext false
@@ -4674,46 +4661,63 @@ fun UploadMediaComposable(
                                         shape = CircleShape
                                     )
                             )
-                            IconButton(
-                                onClick = {
-                                    if (index == 0 && registrationViewModel.profilePictureUri != null) {
-                                        registrationViewModel.profilePictureUri = null
-                                        if (registrationViewModel.optionalPhotoUris.isNotEmpty()) {
-                                            val newProfile = registrationViewModel.optionalPhotoUris.removeAt(0)
-                                            registrationViewModel.profilePictureUri = newProfile
-                                            if (registrationViewModel.optionalPhotoUrls.isNotEmpty()) {
-                                                registrationViewModel.optionalPhotoUrls.removeAt(0)
-                                            }
-                                            uploadProfilePicToFirebase(
-                                                context,
-                                                storageRef,
-                                                newProfile,
-                                                registrationViewModel
-                                                )
-                                        }
-                                } else {
-                                val optIndex = if (registrationViewModel.profilePictureUri != null) index - 1 else index
-                                if (optIndex < registrationViewModel.optionalPhotoUrls.size) {
-                                    registrationViewModel.optionalPhotoUrls.removeAt(optIndex)
-                                }
-                                registrationViewModel.optionalPhotoUris.removeAt(optIndex)
-                            }
-                        },
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .size(24.dp)
-                            .background(
-                                Color.Black.copy(alpha = 0.5f),
-                                shape = CircleShape
+                            if (index == 0 && registrationViewModel.profilePictureUri == null) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                                        .clickable { photoPickerLauncher.launch("image/*") },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AddAPhoto,
+                                        contentDescription = stringResource(R.string.add_photos_button),
+                                        tint = Color.White,
+                                        modifier = Modifier.size(32.dp)
                                     )
-                            .padding(2.dp)
-                        ) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
+                                }
+                            } else {
+                                IconButton(
+                                    onClick = {
+                                        if (index == 0 && registrationViewModel.profilePictureUri != null) {
+                                            registrationViewModel.profilePictureUri = null
+                                            if (registrationViewModel.optionalPhotoUris.isNotEmpty()) {
+                                                val newProfile = registrationViewModel.optionalPhotoUris.removeAt(0)
+                                                registrationViewModel.profilePictureUri = newProfile
+                                                if (registrationViewModel.optionalPhotoUrls.isNotEmpty()) {
+                                                    registrationViewModel.optionalPhotoUrls.removeAt(0)
+                                                }
+                                                uploadProfilePicToFirebase(
+                                                    context,
+                                                    storageRef,
+                                                    newProfile,
+                                                    registrationViewModel
+                                                )
+                                            }
+                                        } else {
+                                            val optIndex = if (registrationViewModel.profilePictureUri != null) index - 1 else index
+                                            if (optIndex < registrationViewModel.optionalPhotoUrls.size) {
+                                                registrationViewModel.optionalPhotoUrls.removeAt(optIndex)
+                                            }
+                                            registrationViewModel.optionalPhotoUris.removeAt(optIndex)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .size(24.dp)
+                                        .background(
+                                            Color.Black.copy(alpha = 0.5f),
+                                            shape = CircleShape
+                                        )
+                                        .padding(2.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }

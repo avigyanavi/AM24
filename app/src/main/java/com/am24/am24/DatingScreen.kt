@@ -138,16 +138,6 @@ private fun canonicalGender(raw: String?): String {
     }
 }
 
-private fun Profile.matchesMapGender(selected: GenderFilter): Boolean {
-    val c = canonicalGender(this.gender)
-    return when (selected) {
-        GenderFilter.BOTH  -> true
-        GenderFilter.WOMEN -> c == "female"
-        GenderFilter.MEN   -> c == "male"
-        GenderFilter.OTHER -> c == "other"
-    }
-}
-
 /* Write a temp exclusion that expires in 14 days */
 private fun addToExclusions(currentUserId: String, otherUserId: String, reason: String) {
     val ref = FirebaseRefs.db.getReference("exclusions/$currentUserId/$otherUserId")
@@ -182,25 +172,6 @@ fun DatingScreen(
     var likers by remember { mutableStateOf<Set<String>>(emptySet()) }
     val ctx = LocalContext.current
     val prefs = remember { ctx.getSharedPreferences("settings", Context.MODE_PRIVATE) }
-    var genderFilter by remember { mutableStateOf(GenderFilter.BOTH) }
-
-    // Initial read + live updates if MapScreen changes it
-    LaunchedEffect(Unit) {
-        genderFilter = prefs.getString("map_gender_filter", GenderFilter.BOTH.name)
-            ?.let { runCatching { GenderFilter.valueOf(it) }.getOrNull() } ?: GenderFilter.BOTH
-    }
-    DisposableEffect(prefs) {
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == "map_gender_filter") {
-                genderFilter = prefs.getString("map_gender_filter", GenderFilter.BOTH.name)
-                    ?.let { runCatching { GenderFilter.valueOf(it) }.getOrNull() } ?: GenderFilter.BOTH
-                // On external changes, still do a full VM refresh
-                datingViewModel.refreshFilteredProfiles()
-            }
-        }
-        prefs.registerOnSharedPreferenceChangeListener(listener)
-        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
-    }
 
     // 1) watch for “are we still on the Dating route?”
     val backstackEntry by navController.currentBackStackEntryAsState()
@@ -233,12 +204,11 @@ fun DatingScreen(
     val isIndian = canonicalCountry(myProfile?.country) == "India"
 
     // gender-only filtering; lastActive order already applied later
-    val filteredProfiles by remember(baseProfiles, myProfile, genderFilter) {
+    val filteredProfiles by remember(baseProfiles, myProfile) {
         derivedStateOf {
             baseProfiles
                 .asSequence()
                 .filter { prof -> prof.userId.isNotBlank() }
-                .filter { prof -> prof.matchesMapGender(genderFilter) }   // only gender filter
                 .sortedByDescending { it.lastActive }
                 .toList()
         }
@@ -407,18 +377,6 @@ fun DatingScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left: Gender Filter Pills
-            GenderFilterBar(
-                selected = genderFilter,
-                onChange = { newVal ->
-                    genderFilter = newVal
-                    // persist and inform other screens
-                    prefs.edit().putString("map_gender_filter", newVal.name).apply()
-                    // do a full refresh per requirement
-                    datingViewModel.refreshFilteredProfiles()
-                }
-            )
-
             // Center: Compatibility meter when there is a profile selected
             currentSwipeProfile?.let {
                 Box(
@@ -572,42 +530,6 @@ fun DatingScreen(
             },
             onDismiss = { showComplimentDlg = false }
         )
-    }
-}
-
-@Composable
-fun GenderFilterBar(
-    selected: GenderFilter,
-    onChange: (GenderFilter) -> Unit
-) {
-    val items = listOf(
-        GenderFilter.BOTH  to "All",
-        GenderFilter.WOMEN to "Women",
-        GenderFilter.MEN   to "Men",
-        GenderFilter.OTHER to "Other"
-    )
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .wrapContentWidth()
-            .horizontalScroll(rememberScrollState())
-    ) {
-        items.forEach { (value, label) ->
-            val isSel = value == selected
-            Button(
-                onClick = { if (!isSel) onChange(value) },
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = if (isSel) Color(0xFFFF6F00) else Color(0xFF1A1A1A)
-                ),
-                shape = RoundedCornerShape(50),
-                border = BorderStroke(1.dp, Color.White),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                modifier = Modifier.height(30.dp)
-            ) {
-                Text(label, color = Color.White, fontSize = 12.sp)
-            }
-        }
     }
 }
 
