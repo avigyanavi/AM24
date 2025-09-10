@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import com.firebase.geofire.GeoFire
 import com.firebase.geofire.GeoLocation
@@ -12,7 +13,13 @@ import com.firebase.geofire.GeoQuery
 import com.firebase.geofire.GeoQueryEventListener
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.database.*
+import com.am24.am24.calculateAge
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlin.math.roundToInt
+import java.util.concurrent.TimeUnit
 
 class NearbyViewModel : ViewModel() {
     val people = mutableStateListOf<NearbyUser>()
@@ -26,6 +33,20 @@ class NearbyViewModel : ViewModel() {
     var isRefreshing by mutableStateOf(false)
     var currentProfile: Profile? = null
     var datingFilters by mutableStateOf(DatingFilterSettings())
+
+    val nearbyUsers: Flow<List<NearbyUser>> = snapshotFlow {
+        Triple(people.toList(), sortMode, lastActiveHours)
+    }.map { (people, mode, hours) ->
+        var list: List<NearbyUser> = people
+        if (mode == SortMode.ACTIVE) {
+            val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(hours.toLong())
+            list = list.filter { it.lastActiveAt >= cutoff }
+        }
+        when (mode) {
+            SortMode.NEARBY -> list.sortedBy { it.distanceMeters }
+            SortMode.ACTIVE -> list.sortedByDescending { it.lastActiveAt }
+        }
+    }.flowOn(Dispatchers.Default)
 
     fun setTier(isPlus: Boolean, isPremium: Boolean) {
         this.isPlus = isPlus
@@ -41,7 +62,11 @@ class NearbyViewModel : ViewModel() {
     private val userCache = mutableMapOf<String, NearbyUser>()
     private val cacheTimestamps = mutableMapOf<String, Long>()
     private val cacheTtlMs = 5 * 60 * 1000L
+    private val onlineThresholdMs = TimeUnit.MINUTES.toMillis(5)
 
+    internal fun isUserOnline(now: Long, lastActiveAt: Long): Boolean {
+        return now - lastActiveAt < onlineThresholdMs
+    }
     /**
      * Refresh the People tab:
      * - NEARBY: live GeoFire radius query (ignores allowLocationPublic/allowLocationForMatches).
@@ -51,7 +76,8 @@ class NearbyViewModel : ViewModel() {
         userId: String,
         center: LatLng,
         geoFireDatabaseRef: DatabaseReference,
-        forceRefresh: Boolean = false
+        forceRefresh: Boolean = false,
+        previousResults: Map<String, NearbyUser>? = null
     ) {
         if (forceRefresh) invalidateCache()
         // Reset
@@ -59,6 +85,20 @@ class NearbyViewModel : ViewModel() {
         geoQuery = null
         isRefreshing = true
         people.clear()
+
+        previousResults?.values
+            ?.filter { prev ->
+                prev.userId !in excludedUserIds && prev.latLng != null &&
+                        distanceMeters(center, prev.latLng!!) <= radiusKm * 1000
+            }
+            ?.forEach { prev ->
+                val loc = prev.latLng!!
+                val distM = distanceMeters(center, loc)
+                val updated = prev.copy(distanceMeters = distM)
+                people.add(updated)
+                userCache[prev.userId] = updated
+                cacheTimestamps[prev.userId] = System.currentTimeMillis()
+            }
 
         val limit = Int.MAX_VALUE
         // Always run the NEARBY GeoFire query (People tab dataset),
@@ -131,7 +171,11 @@ class NearbyViewModel : ViewModel() {
             val cached = userCache[uid]
             val timestamp = cacheTimestamps[uid] ?: 0L
             if (cached != null && now - timestamp < cacheTtlMs) {
-                val updated = cached.copy(latLng = latLng, distanceMeters = distM)
+                val updated = cached.copy(
+                    latLng = latLng,
+                    distanceMeters = distM,
+                    isOnline = isUserOnline(now, cached.lastActiveAt)
+                )
                 userCache[uid] = updated
                 onEnterOrMove(updated)
                 if (people.size >= limit) {
@@ -172,6 +216,8 @@ class NearbyViewModel : ViewModel() {
                     }
                     val lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: p.lastActive
 
+                    val online = isUserOnline(now, lastActive)
+
                     val compat = currentProfile?.let { cp ->
                         val ageCompat = ageCompatibilityScore(calculateAge(cp.dob), age)
                         val zodiacCompat = zodiacCompatibilityScore(cp.zodiac ?: "", p.zodiac ?: "")
@@ -194,6 +240,7 @@ class NearbyViewModel : ViewModel() {
                         age = age,
                         photoUrl = p.profilepicUrl,
                         lastActiveAt = lastActive,
+                        isOnline = online,
                         latLng = latLng,
                         distanceMeters = distM,
                         interests = p.interests,
@@ -250,20 +297,6 @@ class NearbyViewModel : ViewModel() {
             if (p.kinks.none { canonicalKink(it) in canon }) return false
         }
         return true
-    }
-
-    private fun calculateAge(dob: String): Int {
-        return try {
-            val sdf = java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.US)
-            val date = sdf.parse(dob)
-            val cal = java.util.Calendar.getInstance().apply { time = date!! }
-            val now = java.util.Calendar.getInstance()
-            var age = now.get(java.util.Calendar.YEAR) - cal.get(java.util.Calendar.YEAR)
-            if (now.get(java.util.Calendar.DAY_OF_YEAR) < cal.get(java.util.Calendar.DAY_OF_YEAR)) age--
-            age
-        } catch (e: Exception) {
-            0
-        }
     }
 
     private fun distanceMeters(a: LatLng, b: LatLng): Double {

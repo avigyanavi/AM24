@@ -84,6 +84,10 @@ import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.gson.Gson
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
 import java.text.Normalizer
 
 
@@ -117,6 +121,7 @@ data class NearbyUser(
     val age: Int,
     val photoUrl: String?,
     val lastActiveAt: Long,
+    val isOnline: Boolean,
     val latLng: LatLng?,
     val distanceMeters: Double,
     val interests: List<Interest> = emptyList(),
@@ -197,6 +202,7 @@ private fun prettyDistance(meters: Double, useMiles: Boolean): String {
 /*  Main screen                                                                            */
 /* ======================================================================================= */
 
+@OptIn(FlowPreview::class)
 @Composable
 fun MapScreen(
     userId: String,
@@ -227,7 +233,6 @@ fun MapScreen(
 
     /* ---------------- People / grid state ---------------- */
     var userLatLng by remember { mutableStateOf<LatLng?>(null) }
-    val people = nearbyViewModel.people
     var sortMode by nearbyViewModel::sortMode
     var radiusKm by nearbyViewModel::radiusKm
     var lastActiveHours by nearbyViewModel::lastActiveHours
@@ -454,9 +459,21 @@ fun MapScreen(
     }
 
     // listen for nearby users (grid)
-    LaunchedEffect(userLatLng, radiusKm, isPlus, isPremium) {
+    LaunchedEffect(userLatLng, isPlus, isPremium) {
         val me = userLatLng ?: return@LaunchedEffect
         nearbyViewModel.refreshNearbyUsers(userId, me, geoFireDatabaseRef)
+        snapshotFlow { radiusKm }
+            .drop(1)
+            .debounce(300)
+            .collectLatest {
+                val previous = nearbyViewModel.people.associateBy { it.userId }
+                nearbyViewModel.refreshNearbyUsers(
+                    userId,
+                    me,
+                    geoFireDatabaseRef,
+                    previousResults = previous
+                )
+            }
     }
 
     // react to new excludes coming back from PreviewUserProfile
@@ -570,27 +587,7 @@ fun MapScreen(
     }
 
     // filtering + sorting (wrapped in remember)
-    val filteredPeople by remember(
-        people, sortMode, lastActiveHours, isPlus, isPremium
-    ) {
-        derivedStateOf {
-            var list: List<NearbyUser> = people
-            if (sortMode == SortMode.ACTIVE) {
-                val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(lastActiveHours.toLong())
-                list = list.filter { it.lastActiveAt >= cutoff }
-            }
-            list
-        }
-    }
-
-    val sortedPeople by remember(sortMode, filteredPeople) {
-        derivedStateOf {
-            when (sortMode) {
-                SortMode.NEARBY -> filteredPeople.sortedBy { it.distanceMeters }
-                SortMode.ACTIVE -> filteredPeople.sortedByDescending { it.lastActiveAt }
-            }
-        }
-    }
+    val sortedPeople by nearbyViewModel.nearbyUsers.collectAsState(emptyList())
 
 
     LaunchedEffect(selectedTab, sortedPeople, matchUids) {
@@ -651,9 +648,6 @@ fun MapScreen(
                                 onChange = {
                                     radiusKm = it
                                     prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
-                                    userLatLng?.let { center ->
-                                        nearbyViewModel.refreshNearbyUsers(userId, center, geoFireDatabaseRef)
-                                    }
                                 },
                                 useMiles = useMiles,
                                 modifier = Modifier.scale(0.9f)
@@ -1710,31 +1704,33 @@ private fun ProfileCard(
                 }
             }
 
-            IconButton(
-                onClick = { menuExpanded = true },
-                modifier = Modifier.align(Alignment.TopEnd)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.more_options),
-                    tint = Color.White
-                )
-            }
-            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.remove_from_stack)) },
-                    onClick = {
-                        menuExpanded = false
-                        onRemove()
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.block)) },
-                    onClick = {
-                        menuExpanded = false
-                        onBlock()
-                    }
-                )
+            Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.align(Alignment.TopEnd)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.more_options),
+                        tint = Color.White
+                    )
+                }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.remove_from_stack)) },
+                        onClick = {
+                            menuExpanded = false
+                            onRemove()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.block)) },
+                        onClick = {
+                            menuExpanded = false
+                            onBlock()
+                        }
+                    )
+                }
             }
 
             Row(
@@ -1911,11 +1907,13 @@ private fun NearbyCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.width(6.dp))
-                    if (System.currentTimeMillis() - user.lastActiveAt < TimeUnit.MINUTES.toMillis(5)) {
-                        Box(Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF2ECC71)))
+                    if (user.isOnline) {
+                        Box(
+                            Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF2ECC71))
+                        )
                     }
                 }
                 Spacer(Modifier.height(2.dp))
