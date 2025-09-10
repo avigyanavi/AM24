@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import java.util.Locale
 import kotlin.math.roundToInt
 import java.util.concurrent.TimeUnit
 
@@ -320,6 +321,11 @@ class NearbyViewModel : ViewModel() {
         if (f.kinks.isNotEmpty()) {
             val canon = f.kinks.map { canonicalKink(it) }
             if (p.kinks.none { canonicalKink(it) in canon }) return false
+        }
+        if (f.interests.isNotEmpty()) {
+            val selected = f.interests.map { it.name.trim().lowercase(Locale.ROOT) }
+            val userInts = p.interests.map { it.name.trim().lowercase(Locale.ROOT) }
+            if (userInts.none { it in selected }) return false
         }
         return true
     }

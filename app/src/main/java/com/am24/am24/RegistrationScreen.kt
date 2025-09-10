@@ -282,6 +282,7 @@ class RegistrationViewModel : ViewModel() {
     var hometown by mutableStateOf("")     // Treated as Locality
     var bio by mutableStateOf("")
     var gender by mutableStateOf("")
+    var sexualOrientation by mutableStateOf("")
     var customHometown by mutableStateOf("")
     var religion by mutableStateOf("")
     var community by mutableStateOf("")
@@ -2788,6 +2789,7 @@ suspend fun saveProfileToFirebase(
             bio = registrationViewModel.bio,
             gender = registrationViewModel.gender.toGenderCode()?.name
                 ?: registrationViewModel.gender,
+            sexualOrientation = registrationViewModel.sexualOrientation,
             interests = registrationViewModel.interests.toList(),
             // Save the city using customCity if "Other" is selected
             city = canonicalCity(
@@ -4147,6 +4149,9 @@ fun EnterOrientationScreen(
     onNext: () -> Unit
 ) {
     LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
+    val context = LocalContext.current
+    val orientationOptions = SexualOrientation.values().toList()
+    var selectedOrientation by remember { mutableStateOf(registrationViewModel.sexualOrientation) }
     // Religion options
     val religionOptions = listOf(
         stringResource(R.string.religion_other),
@@ -4255,6 +4260,12 @@ fun EnterOrientationScreen(
     var showBodyTypeOnProfile by remember { mutableStateOf(registrationViewModel.showBodyTypeOnProfile) }
     var selectedKinks = remember { mutableStateListOf<String>().apply { addAll(registrationViewModel.kinks) } }
     var showKinksOnProfile by remember { mutableStateOf(registrationViewModel.showKinksOnProfile) }
+    LaunchedEffect(selectedOrientation) {
+        if (selectedOrientation != SexualOrientation.GAY.name) {
+            selectedTribes.clear()
+            showTribesOnProfile = false
+        }
+    }
     Scaffold(
         content = { innerPadding ->
             Column(
@@ -4266,6 +4277,31 @@ fun EnterOrientationScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                Text(
+                    text = stringResource(R.string.sexual_orientation_label),
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    orientationOptions.forEach { option ->
+                        FilterChip(
+                            selected = selectedOrientation == option.name,
+                            onClick = {
+                                selectedOrientation = if (selectedOrientation == option.name) "" else option.name
+                            },
+                            label = { Text(option.localized(context), color = Color.White) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFFFF6000),
+                                selectedLabelColor = Color.White,
+                                containerColor = Color(0xFF1A1A1A),
+                                labelColor = Color.White
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
                 RegistrationAccordion(title = stringResource(R.string.advanced_compatibility)) {
                     Text(text = stringResource(R.string.roles_label), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -4289,28 +4325,36 @@ fun EnterOrientationScreen(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = stringResource(R.string.tribes_label), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.show_on_profile), color = Color.White)
-                        Switch(checked = showTribesOnProfile, onCheckedChange = { showTribesOnProfile = it })
-                    }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        tribeOptions.forEach { option ->
-                            FilterChip(
-                                selected = option in selectedTribes,
-                                onClick = {
-                                    if (option in selectedTribes) selectedTribes.remove(option) else selectedTribes.add(option)
-                                },
-                                label = { Text(option, color = Color.White) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(0xFFFF6000),
-                                    selectedLabelColor = Color.White,
-                                    containerColor = Color(0xFF1A1A1A),
-                                    labelColor = Color.White
+                    if (selectedOrientation == SexualOrientation.GAY.name) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(R.string.tribes_label),
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.show_on_profile), color = Color.White)
+                            Switch(checked = showTribesOnProfile, onCheckedChange = { showTribesOnProfile = it })
+                        }
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            tribeOptions.forEach { option ->
+                                FilterChip(
+                                    selected = option in selectedTribes,
+                                    onClick = {
+                                        if (option in selectedTribes) selectedTribes.remove(option) else selectedTribes.add(
+                                            option
+                                        )
+                                    },
+                                    label = { Text(option, color = Color.White) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFFFF6000),
+                                        selectedLabelColor = Color.White,
+                                        containerColor = Color(0xFF1A1A1A),
+                                        labelColor = Color.White
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
 
@@ -4441,12 +4485,17 @@ fun EnterOrientationScreen(
                 }
                 Button(
                     onClick = {
+                        registrationViewModel.sexualOrientation = selectedOrientation
                         registrationViewModel.roles.clear()
                         registrationViewModel.roles.addAll(selectedRoles)
                         registrationViewModel.showRolesOnProfile = showRolesOnProfile
                         registrationViewModel.tribes.clear()
-                        registrationViewModel.tribes.addAll(selectedTribes)
-                        registrationViewModel.showTribesOnProfile = showTribesOnProfile
+                        if (selectedOrientation == SexualOrientation.GAY.name) {
+                            registrationViewModel.tribes.addAll(selectedTribes)
+                            registrationViewModel.showTribesOnProfile = showTribesOnProfile
+                        } else {
+                            registrationViewModel.showTribesOnProfile = false
+                        }
                         registrationViewModel.bodyType = selectedBodyType
                         registrationViewModel.showBodyTypeOnProfile = showBodyTypeOnProfile
                         registrationViewModel.kinks.clear()

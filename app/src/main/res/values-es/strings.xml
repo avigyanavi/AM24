@@ -939,6 +939,7 @@
     <string name="policy_refund_policy">Política de reembolso</string>
     <string name="policy_shipping_delivery">Envío y entrega</string>
     <string name="policy_delete_account">Eliminar cuenta</string>
+    <string name="sexual_orientation_label">Orientación sexual</string>
 
     <!-- PROFILE DETAIL LABELS -->
     <string name="label_name">Nombre</string>

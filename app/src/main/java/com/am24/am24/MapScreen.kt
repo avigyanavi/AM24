@@ -875,8 +875,7 @@ fun MapScreen(
                             },
                             onNextPage = {
                                 userLatLng?.let {
-                                    nearbyViewModel.loadNextPage(80, userId, it, geoFireDatabaseRef)
-                                }
+                                    nearbyViewModel.loadNextPage(10, userId, it, geoFireDatabaseRef)                                }
                             }
                         )
                     }
@@ -2605,6 +2604,8 @@ private fun DatingFilterDialog(
     val selectedRoles = remember { mutableStateListOf<String>().apply { addAll(initial.roles) } }
     val selectedTribes = remember { mutableStateListOf<String>().apply { addAll(initial.tribes) } }
     val selectedKinks = remember { mutableStateListOf<String>().apply { addAll(initial.kinks) } }
+    val selectedInterests = remember { mutableStateListOf<Interest>().apply { addAll(initial.interests) } }
+    var interestInput by remember { mutableStateOf("") }
     val defaultAgeRange = DatingFilterSettings().let { it.ageStart to it.ageEnd }
 
     val ageOptions = listOf(
@@ -2640,6 +2641,7 @@ private fun DatingFilterDialog(
                         roles = selectedRoles.toList(),
                         tribes = selectedTribes.toList(),
                         kinks = selectedKinks.toList(),
+                        interests = selectedInterests.toList(),
                         ageStart = ageRange.first,
                         ageEnd = ageRange.second,
                         ethnicity = ethnicity,
@@ -2707,6 +2709,33 @@ private fun DatingFilterDialog(
                             label = { Text(option) }
                         )
                     }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.interests), fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    selectedInterests.forEach { interest ->
+                        FilterChip(
+                            selected = true,
+                            onClick = { selectedInterests.remove(interest) },
+                            label = { Text(interest.name) }
+                        )
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = interestInput,
+                        onValueChange = { interestInput = it },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text(stringResource(R.string.interests)) }
+                    )
+                    TextButton(onClick = {
+                        val name = interestInput.trim()
+                        if (name.isNotEmpty()) {
+                            selectedInterests.add(Interest(name, null))
+                            interestInput = ""
+                        }
+                    }) { Text(stringResource(R.string.add), color = KupidxOrange) }
                 }
             }
         }

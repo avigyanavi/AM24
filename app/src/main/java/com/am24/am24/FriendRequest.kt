@@ -42,7 +42,8 @@ data class DatingFilterSettings(
     val ethnicity: String = "",
     val roles: List<String> = emptyList(),
     val tribes: List<String> = emptyList(),
-    val kinks: List<String> = emptyList()
+    val kinks: List<String> = emptyList(),
+    val interests: List<Interest> = emptyList()
 )
 
 data class FeedFilterSettings(
