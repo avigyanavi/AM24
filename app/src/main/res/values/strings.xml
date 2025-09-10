@@ -6,6 +6,14 @@
     <string name="text_post_label">Text Post</string>
     <string name="voice_post_label">Voice Post</string>
     <string name="dont_show_location">Don\'t show location</string>
+    <string name="private_album">Private album</string>
+    <string name="private_album_title">Private Album</string>
+    <string name="private_album_settings">Private album settings</string>
+    <string name="share_private_album">Share private album</string>
+    <string name="user_shared_private_album">%1$s has shared their private album</string>
+    <string name="user_hidden_private_album">%1$s has hidden their private album</string>
+    <string name="view_users_private_album">View %1$s's private album</string>
+    <string name="your_match">Your match</string>
     <string name="image_post_label">Image Post</string>
     <string name="video_post_label">Video Post</string>
     <string name="upgrade_plus_image_warning">Upgrade to Plus to create Image Posts</string>

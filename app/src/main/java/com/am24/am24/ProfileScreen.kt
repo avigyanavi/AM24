@@ -391,7 +391,7 @@ fun ProfileLazyScreen(
                         .padding(horizontal = 16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
                 ) {
-                    Text("Private Album", color = Color.White)
+                    Text(stringResource(R.string.private_album_title), color = Color.White)
                 }
             }
             item {

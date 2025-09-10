@@ -4769,7 +4769,7 @@ fun UploadMediaComposable(
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Private album", color = Color.White, modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.private_album), color = Color.White, modifier = Modifier.weight(1f))
                         Icon(
                             if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = null,

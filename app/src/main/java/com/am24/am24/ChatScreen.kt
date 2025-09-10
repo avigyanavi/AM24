@@ -904,8 +904,12 @@ fun ChatScreenContent(
                         DropdownMenuItem(
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Share private album")
+                                    Text(stringResource(R.string.share_private_album))
                                     Spacer(Modifier.weight(1f))
+                                    val fallbackName = stringResource(R.string.your_match)
+                                    val name = currentUserProfile?.name ?: fallbackName
+                                    val sharedAlbumMsg = stringResource(R.string.user_shared_private_album, name)
+                                    val hiddenAlbumMsg = stringResource(R.string.user_hidden_private_album, name)
                                     Switch(
                                         checked = privateAlbumSharedMe,
                                         onCheckedChange = { allowed ->
@@ -917,12 +921,7 @@ fun ChatScreenContent(
                                                     .setValue(allowed)
                                             }
 
-                                            // ② Notify the other user
-                                            val name = currentUserProfile?.name ?: "Your match"
-                                            val notifMsg = if (allowed)
-                                                "$name has shared their private album"
-                                            else
-                                                "$name has hidden their private album"
+                                            val notifMsg = if (allowed) sharedAlbumMsg else hiddenAlbumMsg
 
                                             postNotification(
                                                 notificationsRef = notificationsRef,
@@ -1176,7 +1175,7 @@ fun ChatScreenContent(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
                     ) {
                         val name = otherUserProfile?.username ?: "user"
-                        Text("View ${'$'}name's private album", color = Color.White)
+                        Text(stringResource(R.string.view_users_private_album, name), color = Color.White)
                     }
                 }
 

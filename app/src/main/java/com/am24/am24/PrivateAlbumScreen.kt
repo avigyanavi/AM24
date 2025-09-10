@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
@@ -45,7 +46,7 @@ fun PrivateAlbumScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         TopAppBar(
-            title = { Text("Private Album", color = Color.White) },
+            title = { Text(stringResource(R.string.private_album_title), color = Color.White) },
             navigationIcon = {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)

@@ -16,6 +16,14 @@
     <string name="show_on_profile">Mostrar en el perfil</string>
     <string name="dont_show_location">No mostrar ubicación</string>
     <string name="roles_label">Roles</string>
+    <string name="private_album">Álbum privado</string>
+    <string name="private_album_title">Álbum privado</string>
+    <string name="private_album_settings">Configuración del álbum privado</string>
+    <string name="share_private_album">Compartir álbum privado</string>
+    <string name="user_shared_private_album">%1$s ha compartido su álbum privado</string>
+    <string name="user_hidden_private_album">%1$s ha ocultado su álbum privado</string>
+    <string name="view_users_private_album">Ver el álbum privado de %1$s</string>
+    <string name="your_match">Tu match</string>
     <string-array name="roles_options">
         <item>⚡️ Dominante</item>
         <item>🛡️ Sumiso</item>
