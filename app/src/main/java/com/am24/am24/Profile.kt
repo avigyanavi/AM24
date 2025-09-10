@@ -25,6 +25,7 @@ data class Profile(
     val kinks: List<String> = emptyList(),
     var showKinksOnProfile: Boolean = false,
     var isLocationSpoofed: Boolean = false,
+    val privateAlbumUrls: List<String> = emptyList(),   // URLs of private album media
 
     // Keep this: what the user is interested in (Men, Women, etc.)
     val interestedIn: List<String> = emptyList(),

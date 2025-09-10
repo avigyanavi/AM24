@@ -383,6 +383,18 @@ fun ProfileLazyScreen(
                 )
             }
             item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { navController.navigate("privateAlbum/${currentProfile.userId}") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+                ) {
+                    Text("Private Album", color = Color.White)
+                }
+            }
+            item {
 
                 ProfileCollapsibleSections(
                     profile = currentProfile,

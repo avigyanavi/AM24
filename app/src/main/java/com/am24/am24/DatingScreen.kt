@@ -1296,7 +1296,8 @@ fun PerformanceMetricsSectionDating(profile: Profile, showLocation: Boolean = tr
 fun ProfileCollapsibleSectionsAll(
     profile: Profile,
     currentUserProfile: Profile?,
-    aiMatchResult: AiMatchCheckResult?
+    aiMatchResult: AiMatchCheckResult?,
+    showLocation: Boolean = true,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current

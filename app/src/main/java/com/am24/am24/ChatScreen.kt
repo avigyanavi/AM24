@@ -181,8 +181,8 @@ fun ChatScreenContent(
     var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
     var otherUserProfile by remember { mutableStateOf<Profile?>(null) }
 
-    val explicitAllowedMe       = currentUserProfile?.allowExplicitPics  == true
-    val explicitAllowedPartner  = otherUserProfile ?.allowExplicitPics  == true
+    val privateAlbumSharedMe       = currentUserProfile?.allowExplicitPics  == true
+    val privateAlbumSharedPartner  = otherUserProfile ?.allowExplicitPics  == true
     var deleteForever           = currentUserProfile?.deleteTimerOverride == true
     val messages = remember { mutableStateListOf<Message>() }
     var messageText by remember { mutableStateOf("") }
@@ -468,7 +468,7 @@ fun ChatScreenContent(
                 }
 
                 /* 1-B  If explicit but one side blocks it → cancel */
-                if (flagged && !(explicitAllowedMe && explicitAllowedPartner)) {
+                if (flagged && !(privateAlbumSharedMe && privateAlbumSharedPartner)) {
                     Toast.makeText(
                         context,
                         "Explicit media blocked – both users must enable it.",
@@ -778,7 +778,7 @@ fun ChatScreenContent(
 
     Scaffold(
         topBar = {
-            var showExplicitMenu by remember { mutableStateOf(false) }
+            var showPrivateMenu by remember { mutableStateOf(false) }
             TopAppBar(
                 title = {
                     val scrollState = rememberScrollState()
@@ -827,7 +827,7 @@ fun ChatScreenContent(
                                         .background(Color.Gray),
                                     contentScale = ContentScale.Crop
                                 )
-                                if (!explicitAllowedPartner) {  // overlay but DON'T eat clicks
+                                if (!privateAlbumSharedPartner) {  // overlay but DON'T eat clicks
                                     Icon(
                                         Icons.Default.Block,
                                         contentDescription = null,
@@ -848,7 +848,7 @@ fun ChatScreenContent(
                                         .clip(CircleShape)
                                         .background(Color.Gray)
                                 )
-                                if (!explicitAllowedPartner) {  // overlay but DON'T eat clicks
+                                if (!privateAlbumSharedPartner) {  // overlay but DON'T eat clicks
                                     Icon(
                                         Icons.Default.Block,
                                         contentDescription = null,
@@ -889,24 +889,25 @@ fun ChatScreenContent(
                 actions = {
                     val outOfCredits = aiMessagesLeft <= 0        // helper
 // ----------------  explicit-pics button  ----------------
-                    IconButton(onClick = { showExplicitMenu = true }) {
+                    // ----------------  private-album share button  ----------------
+                    IconButton(onClick = { showPrivateMenu = true }) {
                         Icon(
-                            if (explicitAllowedMe) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Explicit-pics settings",
-                            tint = if (explicitAllowedMe) Color(0xFFFF5252) else LocalContentColor.current
+                            if (privateAlbumSharedMe) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Private album settings",
+                            tint = if (privateAlbumSharedMe) Color(0xFFFF5252) else LocalContentColor.current
                         )
                     }
                     DropdownMenu(
-                        expanded = showExplicitMenu,
-                        onDismissRequest = { showExplicitMenu = false }
+                        expanded = showPrivateMenu,
+                        onDismissRequest = { showPrivateMenu = false }
                     ) {
                         DropdownMenuItem(
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Allow explicit photos")
+                                    Text("Share private album")
                                     Spacer(Modifier.weight(1f))
                                     Switch(
-                                        checked = explicitAllowedMe,
+                                        checked = privateAlbumSharedMe,
                                         onCheckedChange = { allowed ->
                                             // ① Update local state + Firebase
                                             currentUserProfile = currentUserProfile?.copy(allowExplicitPics = allowed)
@@ -919,14 +920,14 @@ fun ChatScreenContent(
                                             // ② Notify the other user
                                             val name = currentUserProfile?.name ?: "Your match"
                                             val notifMsg = if (allowed)
-                                                "$name has enabled explicit pics"
+                                                "$name has shared their private album"
                                             else
-                                                "$name has disabled explicit pics"
+                                                "$name has hidden their private album"
 
                                             postNotification(
-                                                notificationsRef = notificationsRef,          // your "notifications" ref
-                                                toUserId = otherUserId,                // to the partner
-                                                fromUserId = currentUserId,              // from you
+                                                notificationsRef = notificationsRef,
+                                                toUserId = otherUserId,
+                                                fromUserId = currentUserId,
                                                 fromUsername = currentUserProfile?.username ?: "",
                                                 message = notifMsg
                                             )
@@ -1164,6 +1165,19 @@ fun ChatScreenContent(
                             .align(Alignment.CenterHorizontally)
                             .padding(bottom = 4.dp)
                     )
+                }
+
+                if (privateAlbumSharedPartner) {
+                    Button(
+                        onClick = { navController.navigate("privateAlbum/$otherUserId") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
+                    ) {
+                        val name = otherUserProfile?.username ?: "user"
+                        Text("View ${'$'}name's private album", color = Color.White)
+                    }
                 }
 
                 if (isLoadingMessages) {

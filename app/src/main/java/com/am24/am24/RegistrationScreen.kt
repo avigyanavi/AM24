@@ -44,11 +44,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Female
 import androidx.compose.material.icons.filled.Male
@@ -268,6 +271,8 @@ class RegistrationViewModel : ViewModel() {
     var profilePicUrl by mutableStateOf<String?>(null)
     var voiceNoteUrl by mutableStateOf<String?>(null)
     var optionalPhotoUrls = mutableStateListOf<String>()
+    var privateAlbumUris = mutableStateListOf<Uri>()
+    var privateAlbumUrls = mutableStateListOf<String>()
 
     var height by mutableStateOf(0)            // Height in centimeters
     var height2 by mutableStateOf(listOf(0, 0))  // Height in feet + inches (default example: 5'7")
@@ -2799,6 +2804,7 @@ suspend fun saveProfileToFirebase(
             work = if (registrationViewModel.work == other) registrationViewModel.customWork else registrationViewModel.work,
             profilepicUrl = registrationViewModel.profilePicUrl,
             optionalPhotoUrls = registrationViewModel.optionalPhotoUrls.toList(),
+            privateAlbumUrls = registrationViewModel.privateAlbumUrls.toList(),
             religion = registrationViewModel.religion,
             community = registrationViewModel.community,
             ethnicity = registrationViewModel.ethnicity,
@@ -4537,6 +4543,18 @@ fun UploadMediaComposable(
         cropLauncher.launch(uCropIntent)
     }
 
+    val privateAlbumPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        if (registrationViewModel.privateAlbumUris.size >= 10) {
+            Toast.makeText(context, "Maximum 10 items", Toast.LENGTH_SHORT).show()
+            return@rememberLauncherForActivityResult
+        }
+        registrationViewModel.privateAlbumUris.add(uri)
+        uploadPrivateAlbumMedia(context, storageRef, uri, registrationViewModel)
+    }
+
     // Voice-bio helpers
     fun validateVoiceBio() {
         try {
@@ -4737,6 +4755,82 @@ fun UploadMediaComposable(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
+            item {
+                var expanded by remember { mutableStateOf(false) }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF2A2A2A))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { expanded = !expanded }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Private album", color = Color.White, modifier = Modifier.weight(1f))
+                        Icon(
+                            if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
+                    if (expanded) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            itemsIndexed(registrationViewModel.privateAlbumUris) { index, uri ->
+                                Box(modifier = Modifier.size(100.dp)) {
+                                    AsyncImage(
+                                        model = uri,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .clip(RoundedCornerShape(8.dp))
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            registrationViewModel.privateAlbumUris.removeAt(index)
+                                            if (index < registrationViewModel.privateAlbumUrls.size) {
+                                                registrationViewModel.privateAlbumUrls.removeAt(index)
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .size(24.dp)
+                                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            if (registrationViewModel.privateAlbumUris.size < 10) {
+                                item {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .size(100.dp)
+                                            .border(2.dp, Color(0xFFFF6000), RoundedCornerShape(8.dp))
+                                            .clickable { privateAlbumPickerLauncher.launch("*/*") }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+            }
 
             /* ---------------- Voice bio (optional) ---------------- */
             item {
@@ -4849,6 +4943,26 @@ fun uploadOptionalPhoto(
     }
 }
 
+fun uploadPrivateAlbumMedia(
+    context: Context,
+    storageRef: StorageReference,
+    uri: Uri,
+    registrationViewModel: RegistrationViewModel
+) {
+    (context as? ComponentActivity)?.lifecycleScope?.launch {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+        val ref = storageRef.child("users/$userId/private/${uri.lastPathSegment ?: System.currentTimeMillis()}")
+        ref.putFile(uri)
+            .addOnSuccessListener {
+                ref.downloadUrl.addOnSuccessListener { downloadUri ->
+                    registrationViewModel.privateAlbumUrls.add(downloadUri.toString())
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("UploadMedia", "Private-media upload failed: ${e.message}")
+            }
+    }
+}
 
 //@OptIn(ExperimentalMaterial3Api::class)
 //@Composable

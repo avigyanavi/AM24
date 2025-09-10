@@ -280,6 +280,18 @@ fun MainNavGraph(
         composable("editPicAndVoiceBio") {
             EditPicAndVoiceBioScreen(navController, profileViewModel)
         }
+        composable(
+            route = "privateAlbum/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val uid = backStackEntry.arguments?.getString("userId") ?: return@composable
+            val currentUid = FirebaseAuth.getInstance().currentUser?.uid
+            PrivateAlbumScreen(
+                navController = navController,
+                userId = uid,
+                isOwner = uid == currentUid
+            )
+        }
         composable("settings") {
             SettingsScreen(navController = navController)
         }
