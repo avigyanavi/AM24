@@ -87,7 +87,8 @@ fun PreviewUserProfileScreen(
                     postViewModel    = postViewModel,
                     profileViewModel = profileViewModel,
                     navController    = navController,
-                    showBackButton   = true
+                    showBackButton   = true,
+                    isMatch          = false
                 )
             }
             errorMessage != null -> Text(

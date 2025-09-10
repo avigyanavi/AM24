@@ -156,3 +156,71 @@ fun canonicalIncome(name: String?): String {
         else -> name
     }
 }
+
+fun canonicalRole(name: String?): String {
+    if (name.isNullOrBlank()) return ""
+    val n = name.stripAccents().lowercase()
+    return when {
+        n.contains("switch") -> "switch"
+        n.contains("vers") -> "vers"
+        n.contains("open") || n.contains("abierto") || n.contains("preguntame") -> "open"
+        n.contains("side") -> "side"
+        n.contains("top") || n.contains("activo") -> "top"
+        n.contains("bottom") || n.contains("pasivo") -> "bottom"
+        n.contains("dom") -> "dom"
+        n.contains("sub") || n.contains("sumiso") -> "sub"
+        else -> n
+    }
+}
+
+fun canonicalTribe(name: String?): String {
+    if (name.isNullOrBlank()) return ""
+    val n = name.stripAccents().lowercase()
+    return when {
+        n.contains("bear") || n.contains("oso") -> "bear"
+        n.contains("cub") || n.contains("osito") -> "cub"
+        n.contains("otter") || n.contains("nutria") -> "otter"
+        n.contains("twink") -> "twink"
+        n.contains("jock") || n.contains("deportista") -> "jock"
+        n.contains("daddy") -> "daddy"
+        n.contains("boy") || n.contains("chico") -> "boy"
+        n.contains("chub") || n.contains("gordito") -> "chub"
+        n.contains("leather") -> "leather"
+        n.contains("discreet") || n.contains("discreto") -> "discreet"
+        else -> n
+    }
+}
+
+fun canonicalKink(name: String?): String {
+    if (name.isNullOrBlank()) return ""
+    val n = name.stripAccents().lowercase()
+    return when {
+        n.contains("bdsm") -> "bdsm"
+        n.contains("rope") || n.contains("cuerda") || n.contains("bondage") -> "rope/bondage"
+        n.contains("chastity") || n.contains("castidad") -> "chastity"
+        n.contains("roleplay") || n.contains("juego de roles") -> "roleplay"
+        n.contains("costume") || n.contains("disfraces") -> "costume"
+        n.contains("blindfold") || n.contains("antifaces") || n.contains("vendas") -> "blindfolds"
+        n.contains("sensation") || n.contains("sensorial") -> "sensation play"
+        n.contains("spanking") || n.contains("nalgadas") || n.contains("impact") || n.contains("impacto") -> "spanking/impact"
+        n.contains("edging") -> "edging"
+        n.contains("temperature") || n.contains("temperatura") -> "temperature play"
+        n.contains("wax") || n.contains("cera") -> "wax play"
+        n.contains("voyeur") -> "voyeurism"
+        n.contains("exhibition") || n.contains("exhibicion") -> "exhibitionism"
+        n.contains("outdoor") || n.contains("aire libre") -> "outdoor"
+        n.contains("pet") || n.contains("mascotas") -> "pet play"
+        n.contains("leather") || n.contains("cuero") -> "leather"
+        n.contains("latex") || n.contains("goma") -> "latex/rubber"
+        n.contains("glove") || n.contains("guante") -> "gloves"
+        n.contains("boot") || n.contains("bota") -> "boots"
+        n.contains("feet") || n.contains("pies") -> "feet"
+        n.contains("toy") || n.contains("juguet") -> "toys"
+        n.contains("group") || n.contains("grupo") -> "group"
+        n.contains("dirty") || n.contains("sucio") -> "dirty talk"
+        n.contains("shower") || n.contains("ducha") -> "shower play"
+        n.contains("power dynamics") || n.contains("dinamicas de poder") -> "power dynamics"
+        n.contains("aftercare") || n.contains("cuidado posterior") -> "aftercare"
+        else -> n
+    }
+}

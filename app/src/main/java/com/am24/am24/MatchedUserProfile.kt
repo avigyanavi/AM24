@@ -38,6 +38,7 @@ fun MatchedUserProfileScreen(
     postViewModel: PostViewModel,
     profileViewModel: ProfileViewModel,
     navController: NavController,
+    isMatch: Boolean = false,
     showBackButton: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -53,7 +54,7 @@ fun MatchedUserProfileScreen(
     val coroutineScope = rememberCoroutineScope()
     var isVerified by remember { mutableStateOf(false) }
     val datingViewModel: DatingViewModel = viewModel()
-
+    val showLocation = if (isMatch) profile.allowLocationForMatches else profile.allowLocationPublic
 
     // Fetch data on initial load
     LaunchedEffect(Unit) {
@@ -204,7 +205,7 @@ fun MatchedUserProfileScreen(
                             )
                         }
                         item {
-                            ProfileCollapsibleSectionsAll(profile, currentUserProfile, aiMatchResult)
+                            ProfileCollapsibleSectionsAll(profile, currentUserProfile, aiMatchResult, showLocation)
                         }
                         if (featuredPosts.isNotEmpty()) {
                             item {

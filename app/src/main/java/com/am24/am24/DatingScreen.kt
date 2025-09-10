@@ -771,7 +771,7 @@ fun DatingProfileCard(
                     )
                 }
                 item {
-                    ProfileCollapsibleSectionsAll(profile, currentProfile, aiMatchResult)
+                    ProfileCollapsibleSectionsAll(profile, currentProfile, aiMatchResult, profile.allowLocationPublic)
                 }
                 if (sortedByUpvotes.isNotEmpty()) {
                     item {
@@ -1186,7 +1186,7 @@ private fun AutoMarqueeRow(
 
 
 @Composable
-fun PerformanceMetricsSectionDating(profile: Profile) {
+fun PerformanceMetricsSectionDating(profile: Profile, showLocation: Boolean = true) {
     var showPerformance by rememberSaveable { mutableStateOf(false) }
     CollapsibleSection(
         title = stringResource(R.string.performance_metrics),
@@ -1219,32 +1219,34 @@ fun PerformanceMetricsSectionDating(profile: Profile) {
             icon = Icons.Default.Public
         )
 
-        val cityRank = if (profile.city == "Other")
-            profile.am24RankingCustomCity
-        else
-            profile.am24RankingCity
-        if (cityRank > 0) {
-            ProfileDetailRow(
-                label = stringResource(
-                    R.string.city_ranking,
-                    profile.city.ifBlank { stringResource(R.string.city) }),
-                value = stringResource(R.string.number, cityRank),
-                icon = Icons.Default.LocationCity
-            )
-        }
+        if (showLocation) {
+            val cityRank = if (profile.city == "Other")
+                profile.am24RankingCustomCity
+            else
+                profile.am24RankingCity
+            if (cityRank > 0) {
+                ProfileDetailRow(
+                    label = stringResource(
+                        R.string.city_ranking,
+                        profile.city.ifBlank { stringResource(R.string.city) }),
+                    value = stringResource(R.string.number, cityRank),
+                    icon = Icons.Default.LocationCity
+                )
+            }
 
-        val hoodRank = if (profile.hometown == "Other")
-            profile.am24RankingCustomHometown
-        else
-            profile.am24RankingHometown
-        if (hoodRank > 0) {
-            ProfileDetailRow(
-                label = stringResource(
-                    R.string.locality_ranking,
-                    profile.hometown.ifBlank { stringResource(R.string.locality) }),
-                value = stringResource(R.string.number, hoodRank),
-                icon = Icons.Default.Home
-            )
+            val hoodRank = if (profile.hometown == "Other")
+                profile.am24RankingCustomHometown
+            else
+                profile.am24RankingHometown
+            if (hoodRank > 0) {
+                ProfileDetailRow(
+                    label = stringResource(
+                        R.string.locality_ranking,
+                        profile.hometown.ifBlank { stringResource(R.string.locality) }),
+                    value = stringResource(R.string.number, hoodRank),
+                    icon = Icons.Default.Home
+                )
+            }
         }
         ProfileDetailRow(
             label = stringResource(R.string.age_ranking),
@@ -1315,11 +1317,11 @@ fun ProfileCollapsibleSectionsAll(
             title = stringResource(R.string.basic_information),
             icon = Icons.Default.Person
         ) {
-            BasicInfoSection(profile)
+            BasicInfoSection(profile, showLocation)
         }
         Spacer(modifier = Modifier.height(8.dp))
         if (currentUserProfile?.isPremium == true) {
-            PerformanceMetricsSectionDating(profile)
+            PerformanceMetricsSectionDating(profile, showLocation)
             Spacer(modifier = Modifier.height(12.dp))
         }
         CollapsibleSection(
@@ -1906,19 +1908,18 @@ fun calculateExhaustiveCompatibilityScore(
 
     fun rolesAreCompatible(a: Set<String>, b: Set<String>): Boolean {
         if (a.isEmpty() || b.isEmpty()) return false
-        val normA = a.map { it.lowercase() }
-        val normB = b.map { it.lowercase() }
-        val flexible = listOf("switch", "vers", "open", "side")
-        if (normA.any { r -> flexible.any { r.contains(it) } } ||
-            normB.any { r -> flexible.any { r.contains(it) } }) return true
-        val topA = normA.any { it.contains("top") }
-        val bottomA = normA.any { it.contains("bottom") }
-        val domA = normA.any { it.contains("dom") }
-        val subA = normA.any { it.contains("sub") }
-        val topB = normB.any { it.contains("top") }
-        val bottomB = normB.any { it.contains("bottom") }
-        val domB = normB.any { it.contains("dom") }
-        val subB = normB.any { it.contains("sub") }
+        val normA = a.map { canonicalRole(it) }
+        val normB = b.map { canonicalRole(it) }
+        val flexible = setOf("switch", "vers", "open", "side")
+        if (normA.any { it in flexible } || normB.any { it in flexible }) return true
+        val topA = "top" in normA
+        val bottomA = "bottom" in normA
+        val domA = "dom" in normA
+        val subA = "sub" in normA
+        val topB = "top" in normB
+        val bottomB = "bottom" in normB
+        val domB = "dom" in normB
+        val subB = "sub" in normB
         return (topA && bottomB) || (bottomA && topB) || (domA && subB) || (subA && domB)
     }
 
@@ -1929,22 +1930,24 @@ fun calculateExhaustiveCompatibilityScore(
         insights += MatchInsight("✅", context.getString(R.string.roles_compatible), true)
     }
 
-    val tribesA = profileA.tribes.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-    val tribesB = profileB.tribes.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-    val sharedTribes = tribesA intersect tribesB
+    val tribesA = profileA.tribes.map { canonicalTribe(it) to it }.filter { it.first.isNotEmpty() }.toMap()
+    val tribesB = profileB.tribes.map { canonicalTribe(it) to it }.filter { it.first.isNotEmpty() }.toMap()
+    val sharedTribes = tribesA.keys intersect tribesB.keys
     if (sharedTribes.isNotEmpty()) {
-        insights += MatchInsight("✅", context.getString(R.string.shared_tribes_prefix, sharedTribes.joinToString()), true)
+        val display = sharedTribes.map { key -> tribesA[key] ?: tribesB[key]!! }
+        insights += MatchInsight("✅", context.getString(R.string.shared_tribes_prefix, display.joinToString()), true)
     }
 
-    val kinksA = profileA.kinks.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
-    val kinksB = profileB.kinks.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
+    val kinksA = profileA.kinks.map { canonicalKink(it) to it }.filter { it.first.isNotEmpty() }.toMap()
+    val kinksB = profileB.kinks.map { canonicalKink(it) to it }.filter { it.first.isNotEmpty() }.toMap()
     if (kinksA.isNotEmpty() && kinksB.isNotEmpty()) {
         kinkWeight = 0.25
-        val shared = kinksA intersect kinksB
-        val union = kinksA union kinksB
+        val shared = kinksA.keys intersect kinksB.keys
+        val union = kinksA.keys union kinksB.keys
         kinkScore = if (union.isNotEmpty()) (shared.size.toDouble() / union.size.toDouble()) * 100.0 else 0.0
         if (shared.isNotEmpty()) {
-            insights += MatchInsight("✅", context.getString(R.string.shared_kinks_prefix, shared.joinToString()), true)
+            val display = shared.map { key -> kinksA[key] ?: kinksB[key]!! }
+            insights += MatchInsight("✅", context.getString(R.string.shared_kinks_prefix, display.joinToString()), true)
         }
     }
 

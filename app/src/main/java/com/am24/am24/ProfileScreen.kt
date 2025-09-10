@@ -951,7 +951,7 @@ fun MatrimonyToggleRow(
 }
 
 @Composable
-fun BasicInfoSection(profile: Profile) {
+fun BasicInfoSection(profile: Profile, showLocation: Boolean = true) {
     val genderIcon = when (profile.gender.toGenderCode()) {
         Gender.MALE   -> Icons.Default.Male
         Gender.FEMALE -> Icons.Default.Female
@@ -1008,15 +1008,17 @@ fun BasicInfoSection(profile: Profile) {
         profile.incomeLevel.ifBlank { stringResource(R.string.not_set) },
         Icons.Default.AttachMoney)
 
-    ProfileDetailRow(
-        stringResource(R.string.city_label),
-        localizedCity(profile.city).ifBlank { stringResource(R.string.not_set) },
-        Icons.Default.LocationCity)
+    if (showLocation) {
+        ProfileDetailRow(
+            stringResource(R.string.city_label),
+            localizedCity(profile.city).ifBlank { stringResource(R.string.not_set) },
+            Icons.Default.LocationCity)
 
-    ProfileDetailRow(
-        stringResource(R.string.label_locality),
-        localizedLocality(profile.city, profile.hometown),
-        Icons.Default.LocationCity)
+        ProfileDetailRow(
+            stringResource(R.string.label_locality),
+            localizedLocality(profile.city, profile.hometown),
+            Icons.Default.LocationCity)
+    }
 
     val displayJobRole = profile.customJobRole
         .takeUnless { it.isNullOrBlank() }

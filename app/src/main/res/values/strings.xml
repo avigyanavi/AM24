@@ -5,6 +5,7 @@
     <string name="create_post_title">Create New Post</string>
     <string name="text_post_label">Text Post</string>
     <string name="voice_post_label">Voice Post</string>
+    <string name="dont_show_location">Don\'t show location</string>
     <string name="image_post_label">Image Post</string>
     <string name="video_post_label">Video Post</string>
     <string name="upgrade_plus_image_warning">Upgrade to Plus to create Image Posts</string>

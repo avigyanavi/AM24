@@ -177,15 +177,15 @@ class NearbyViewModel : ViewModel() {
                         val zodiacCompat = zodiacCompatibilityScore(cp.zodiac ?: "", p.zodiac ?: "")
                         (((ageCompat + zodiacCompat) / 2.0) * 100).roundToInt()
                     }
-                    val detailCandidates = listOf(
-                        p.bio,
-                        p.jobRole,
-                        p.hometown,
-                        p.work,
-                        p.college,
-                        p.religion,
-                        p.community
-                    ).filter { it.isNotBlank() }
+                    val detailCandidates = buildList {
+                        add(p.bio)
+                        add(p.jobRole)
+                        add(p.work)
+                        add(p.college)
+                        add(p.religion)
+                        add(p.community)
+                        if (p.allowLocationPublic) add(p.hometown)
+                    }.filter { it.isNotBlank() }
                     val randomDetail = detailCandidates.randomOrNull()
 
                     val user = NearbyUser(
@@ -239,9 +239,18 @@ class NearbyViewModel : ViewModel() {
         if (age < f.ageStart || age > f.ageEnd) return false
         if (f.religion.isNotBlank() && canonicalReligion(p.religion) != canonicalReligion(f.religion)) return false
         if (f.ethnicity.isNotBlank() && canonicalEthnicity(p.ethnicity) != canonicalEthnicity(f.ethnicity)) return false
-        if (f.roles.isNotEmpty() && p.roles.none { it in f.roles }) return false
-        if (f.tribes.isNotEmpty() && p.tribes.none { it in f.tribes }) return false
-        if (f.kinks.isNotEmpty() && p.kinks.none { it in f.kinks }) return false
+        if (f.roles.isNotEmpty()) {
+            val canon = f.roles.map { canonicalRole(it) }
+            if (p.roles.none { canonicalRole(it) in canon }) return false
+        }
+        if (f.tribes.isNotEmpty()) {
+            val canon = f.tribes.map { canonicalTribe(it) }
+            if (p.tribes.none { canonicalTribe(it) in canon }) return false
+        }
+        if (f.kinks.isNotEmpty()) {
+            val canon = f.kinks.map { canonicalKink(it) }
+            if (p.kinks.none { canonicalKink(it) in canon }) return false
+        }
         return true
     }
 

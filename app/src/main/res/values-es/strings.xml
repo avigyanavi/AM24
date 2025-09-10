@@ -14,6 +14,7 @@
     <string name="add_tags_comma_separated">Agregar etiquetas (separadas por comas)</string>
     <string name="add_location_optional">Agregar una ubicación (opcional)</string>
     <string name="show_on_profile">Mostrar en el perfil</string>
+    <string name="dont_show_location">No mostrar ubicación</string>
     <string name="roles_label">Roles</string>
     <string-array name="roles_options">
         <item>⚡️ Dominante</item>

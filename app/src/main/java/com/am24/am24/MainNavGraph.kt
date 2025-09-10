@@ -451,7 +451,8 @@ fun MainNavGraph(
                         geoFire = geoFire,
                         postViewModel = postViewModel,
                         profileViewModel = profileViewModel,
-                        navController = navController
+                        navController = navController,
+                        isMatch = true
                     )
                 } else if (errorMessage != null) {
                     Text(text = errorMessage!!, color = Color.Red, modifier = Modifier.padding(16.dp))
