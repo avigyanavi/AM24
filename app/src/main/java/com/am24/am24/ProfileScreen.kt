@@ -4331,6 +4331,104 @@ fun PreferencesEditSection(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // --- Roles ---
+        Text(stringResource(R.string.roles_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
+            Switch(checked = showRolesOnProfile, onCheckedChange = { showRolesOnProfile = it })
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            roleOptions.forEach { option ->
+                FilterChip(
+                    selected = option in selectedRoles,
+                    onClick = {
+                        if (option in selectedRoles) selectedRoles.remove(option) else selectedRoles.add(option)
+                    },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White
+                    )
+                )
+            }
+        }
+
+        // --- Tribes ---
+        Text(stringResource(R.string.tribes_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
+            Switch(checked = showTribesOnProfile, onCheckedChange = { showTribesOnProfile = it })
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            tribeOptions.forEach { option ->
+                FilterChip(
+                    selected = option in selectedTribes,
+                    onClick = {
+                        if (option in selectedTribes) selectedTribes.remove(option) else selectedTribes.add(option)
+                    },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White
+                    )
+                )
+            }
+        }
+
+        // --- Body Type ---
+        Text(stringResource(R.string.body_type_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
+            Switch(checked = showBodyTypeOnProfile, onCheckedChange = { showBodyTypeOnProfile = it })
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            bodyTypeOptions.forEach { option ->
+                FilterChip(
+                    selected = selectedBodyType == option,
+                    onClick = {
+                        selectedBodyType = if (selectedBodyType == option) notSelected else option
+                    },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White
+                    )
+                )
+            }
+        }
+
+        // --- Kinks ---
+        Text(stringResource(R.string.kinks_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
+            Switch(checked = showKinksOnProfile, onCheckedChange = { showKinksOnProfile = it })
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            kinkOptions.forEach { option ->
+                FilterChip(
+                    selected = option in selectedKinks,
+                    onClick = {
+                        if (option in selectedKinks) selectedKinks.remove(option) else selectedKinks.add(
+                            option
+                        )
+                    },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor = Color.White
+                    )
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
         // --- Looking For ---
         Text(stringResource(R.string.looking_for_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -4433,105 +4531,6 @@ fun PreferencesEditSection(
             )
         }
 
-        // --- Sexual Orientation ---
-// --- Roles ---
-        Text(stringResource(R.string.roles_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
-            Switch(checked = showRolesOnProfile, onCheckedChange = { showRolesOnProfile = it })
-        }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            roleOptions.forEach { option ->
-                FilterChip(
-                    selected = option in selectedRoles,
-                    onClick = {
-                        if (option in selectedRoles) selectedRoles.remove(option) else selectedRoles.add(option)
-                    },
-                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor     = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor     = Color.White
-                    )
-                )
-            }
-        }
-
-        // --- Tribes ---
-        Text(stringResource(R.string.tribes_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
-            Switch(checked = showTribesOnProfile, onCheckedChange = { showTribesOnProfile = it })
-        }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            tribeOptions.forEach { option ->
-                FilterChip(
-                    selected = option in selectedTribes,
-                    onClick = {
-                        if (option in selectedTribes) selectedTribes.remove(option) else selectedTribes.add(option)
-                    },
-                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor     = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor     = Color.White
-                    )
-                )
-            }
-        }
-
-        // --- Body Type ---
-        Text(stringResource(R.string.body_type_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
-            Switch(checked = showBodyTypeOnProfile, onCheckedChange = { showBodyTypeOnProfile = it })
-        }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            bodyTypeOptions.forEach { option ->
-                FilterChip(
-                    selected = selectedBodyType == option,
-                    onClick = {
-                        selectedBodyType = if (selectedBodyType == option) notSelected else option
-                    },
-                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor     = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor     = Color.White
-                    )
-                )
-            }
-        }
-
-        // --- Kinks ---
-        Text(stringResource(R.string.kinks_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
-            Switch(checked = showKinksOnProfile, onCheckedChange = { showKinksOnProfile = it })
-        }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            kinkOptions.forEach { option ->
-                FilterChip(
-                    selected = option in selectedKinks,
-                    onClick = {
-                        if (option in selectedKinks) selectedKinks.remove(option) else selectedKinks.add(
-                            option
-                        )
-                    },
-                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        disabledContainerColor = Color.Transparent,
-                        disabledLabelColor = Color(0xFFFF6F00),
-                        selectedContainerColor = Color(0xFFFF6F00),
-                        selectedLabelColor = Color.White
-                    )
-                )
-            }
-        }
-        Spacer(Modifier.height(8.dp))
 
         ButtonRow(
             onSave = {
@@ -4543,13 +4542,13 @@ fun PreferencesEditSection(
                     politics     = selectedPolitics.takeIf { it != notSelected } ?: "",
                     customPolitics = if (selectedPolitics == politicsOptions.last())
                         customPolitics.ifBlank { null } else null,
-                    roles = selectedRoles,
+                    roles = selectedRoles.toList(),
                     showRolesOnProfile = showRolesOnProfile,
-                    tribes = selectedTribes,
+                    tribes = selectedTribes.toList(),
                     showTribesOnProfile = showTribesOnProfile,
                     bodyType = selectedBodyType.takeIf { it != notSelected } ?: "",
                     showBodyTypeOnProfile = showBodyTypeOnProfile,
-                    kinks = selectedKinks,
+                    kinks = selectedKinks.toList(),
                     showKinksOnProfile = showKinksOnProfile
                 )
                 onSave(updated)

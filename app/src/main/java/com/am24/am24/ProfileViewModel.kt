@@ -239,6 +239,16 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     },
                     "lifestyle"                   to profileWithScore.lifestyle,
 
+                    // identity chips & visibility flags
+                    "roles"                       to profileWithScore.roles,
+                    "showRolesOnProfile"         to profileWithScore.showRolesOnProfile,
+                    "tribes"                      to profileWithScore.tribes,
+                    "showTribesOnProfile"        to profileWithScore.showTribesOnProfile,
+                    "bodyType"                   to profileWithScore.bodyType,
+                    "showBodyTypeOnProfile"      to profileWithScore.showBodyTypeOnProfile,
+                    "kinks"                       to profileWithScore.kinks,
+                    "showKinksOnProfile"         to profileWithScore.showKinksOnProfile,
+
                     // job & work
                     "jobRole"                     to profileWithScore.jobRole,
                     "customJobRole"               to profileWithScore.customJobRole,

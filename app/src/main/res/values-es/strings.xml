@@ -17,27 +17,72 @@
         <item>⚡️ Dominante</item>
         <item>🛡️ Sumiso</item>
         <item>🔄 Switch</item>
+        <item>⬆️ Activo</item>
+        <item>⬇️ Pasivo</item>
+        <item>⬆️ Versátil Activo</item>
+        <item>⬇️ Versátil Pasivo</item>
+        <item>↔️ Side (Sin Penetración)</item>
+        <item>❓ Abierto / Pregúntame</item>
     </string-array>
 
     <string-array name="tribes_options">
         <item>🐻 Oso</item>
+        <item>🧸 Osito</item>
+        <item>🦦 Nutria</item>
         <item>💜 Twink</item>
-        <item>🥊 Nutria</item>
-        <item>⚽ Jock</item>
+        <item>🏈 Deportista</item>
+        <item>👨‍🦳 Daddy</item>
+        <item>👦 Chico</item>
+        <item>🐽 Gordito</item>
+        <item>🧥 Leather</item>
+        <item>🤫 Discreto</item>
     </string-array>
 
     <string-array name="body_type_options">
         <item>💪 Musculoso</item>
         <item>🧘‍♂️ Delgado</item>
-        <item>👨‍💣 Promedio</item>
-        <item>🐽 Llenito</item>
+        <item>👨‍ Complexión media</item>
+        <item>🐽 Gordito</item>
+        <item>🏋️ Atlético</item>
+        <item>🍑 Con curvas</item>
+        <item>💪 Marcado</item>
+        <item>🧱 Robusto</item>
+        <item>🐘 Grande</item>
     </string-array>
 
     <string-array name="kink_options">
-        <item>🔱 BDSM</item>
+        <item>⛓️ BDSM</item>
+        <item>🪢 Cuerdas / Bondage</item>
+        <item>🔒 Castidad</item>
+
         <item>🎠 Juego de roles</item>
-        <item>🌳 Al aire libre</item>
         <item>🎭 Disfraces</item>
+        <item>🫣 Antifaces / Vendas</item>
+        <item>🪶 Juego sensorial</item>
+
+        <item>🍑 Nalgadas / Impacto</item>
+        <item>⏳ Edging (control del orgasmo)</item>
+        <item>❄️🔥 Juego de temperatura</item>
+        <item>🕯️ Juego con cera</item>
+
+        <item>👀 Voyeurismo</item>
+        <item>📷 Exhibicionismo</item>
+        <item>🌳 Al aire libre</item>
+
+        <item>🐾 Pet play (juego de mascotas)</item>
+        <item>🧥 Leather</item>
+        <item>🧪 Látex / Goma</item>
+        <item>🧤 Guantes</item>
+        <item>🥾 Botas</item>
+
+        <item>🦶 Pies</item>
+        <item>🪄 Juguetes</item>
+        <item>👥 Grupo</item>
+
+        <item>🗣️ Hablar sucio</item>
+        <item>🚿 Juego en la ducha</item>
+        <item>👑 Dinámicas de poder</item>
+        <item>☕ Cuidado posterior (aftercare)</item>
     </string-array>
     <string name="tribes_label">Tribus</string>
     <string name="body_type_label">Tipo de cuerpo</string>

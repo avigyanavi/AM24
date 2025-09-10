@@ -39,24 +39,69 @@
         <item>⚡️ Dom</item>
         <item>🛡️ Sub</item>
         <item>🔄 Switch</item>
+        <item>⬆️ Top</item>
+        <item>⬇️ Bottom</item>
+        <item>⬆️ Vers Top</item>
+        <item>⬇️ Vers Bottom</item>
+        <item>↔️ Side</item>
+        <item>❓ Open/Ask Me</item>
     </string-array>
     <string-array name="tribes_options">
         <item>🐻 Bear</item>
+        <item>🧸 Cub</item>
+        <item>🦦 Otter</item>
         <item>💜 Twink</item>
-        <item>🥊 Otter</item>
-        <item>⚽ Jock</item>
+        <item>🏈 Jock</item>
+        <item>👨‍🦳 Daddy</item>
+        <item>👦 Boy</item>
+        <item>🐽 Chub</item>
+        <item>🧥 Leather</item>
+        <item>🤫 Discreet</item>
     </string-array>
     <string-array name="body_type_options">
         <item>💪 Muscular</item>
         <item>🧘‍♂️ Slim</item>
-        <item>👨‍💣 Average</item>
+        <item>👨‍ Average</item>
         <item>🐽 Chubby</item>
+        <item>🏋️ Athletic</item>
+        <item>🍑 Curvy</item>
+        <item>💪 Toned</item>
+        <item>🧱 Stocky</item>
+        <item>🐘 Big</item>
     </string-array>
     <string-array name="kink_options">
         <item>⛓️ BDSM</item>
+        <item>🪢 Rope / Bondage</item>
+        <item>🔒 Chastity</item>
+
         <item>🎠 Roleplay</item>
-        <item>🌳 Outdoor</item>
         <item>🎭 Costume</item>
+        <item>🫣 Blindfolds</item>
+        <item>🪶 Sensation play</item>
+
+        <item>🍑 Spanking / Impact</item>
+        <item>⏳ Edging</item>
+        <item>❄️🔥 Temperature play</item>
+        <item>🕯️ Wax play</item>
+
+        <item>👀 Voyeurism</item>
+        <item>📷 Exhibitionism</item>
+        <item>🌳 Outdoor</item>
+
+        <item>🐾 Pet play</item>
+        <item>🧥 Leather</item>
+        <item>🧪 Latex / Rubber</item>
+        <item>🧤 Gloves</item>
+        <item>🥾 Boots</item>
+
+        <item>🦶 Feet</item>
+        <item>🪄 Toys</item>
+        <item>👥 Group</item>
+
+        <item>🗣️ Dirty talk</item>
+        <item>🚿 Shower play</item>
+        <item>👑 Power dynamics</item>
+        <item>☕ Aftercare</item>
     </string-array>
     <string name="notification_streak_plus_message">Your streak unlocked Plus—see who liked you!</string>
     <string name="watch_ad_boost">Watch ad for 1 Boost</string>
