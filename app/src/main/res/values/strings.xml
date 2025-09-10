@@ -528,6 +528,8 @@
     <!-- Sort control -->
     <string name="sort_nearby">Nearby</string>
     <string name="sort_last_active">Last active</string>
+    <string name="sort_farthest">Farthest</string>
+    <string name="next_page">Next page</string>
 
     <!-- People grid -->
     <string name="no_one_nearby_yet">No one nearby yet</string>
@@ -1792,13 +1794,13 @@
     <string name="subscription_suspended">Suspended</string>
     <string name="subscription_expired">Expired</string>
     <string name="payment_failed">Payment failed</string>
-    <string name="orientation_straight">Straight</string>
-    <string name="orientation_gay">Gay</string>
-    <string name="orientation_lesbian">Lesbian</string>
-    <string name="orientation_bisexual">Bisexual</string>
-    <string name="orientation_pansexual">Pansexual</string>
-    <string name="orientation_asexual">Asexual</string>
-    <string name="orientation_queer">Queer</string>
+    <string name="orientation_straight">⚤ Straight</string>
+    <string name="orientation_gay">⚣ Gay</string>
+    <string name="orientation_lesbian">⚢ Lesbian</string>
+    <string name="orientation_bisexual">💜 Bisexual</string>
+    <string name="orientation_pansexual">💖 Pansexual</string>
+    <string name="orientation_asexual">🖤 Asexual</string>
+    <string name="orientation_queer">🌈 Queer</string>
     <string name="country_coords_unavailable">Coordinates unavailable for %1$s</string>
 
     <string name="verify_email">Verify Email</string>

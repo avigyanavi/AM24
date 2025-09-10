@@ -33,6 +33,8 @@ class NearbyViewModel : ViewModel() {
     var isRefreshing by mutableStateOf(false)
     var currentProfile: Profile? = null
     var datingFilters by mutableStateOf(DatingFilterSettings())
+    var currentLimit by mutableStateOf(10)
+
 
     val nearbyUsers: Flow<List<NearbyUser>> = snapshotFlow {
         Triple(people.toList(), sortMode, lastActiveHours)
@@ -45,6 +47,7 @@ class NearbyViewModel : ViewModel() {
         when (mode) {
             SortMode.NEARBY -> list.sortedBy { it.distanceMeters }
             SortMode.ACTIVE -> list.sortedByDescending { it.lastActiveAt }
+            SortMode.FAR -> list.sortedByDescending { it.distanceMeters }
         }
     }.flowOn(Dispatchers.Default)
 
@@ -100,7 +103,7 @@ class NearbyViewModel : ViewModel() {
                 cacheTimestamps[prev.userId] = System.currentTimeMillis()
             }
 
-        val limit = Int.MAX_VALUE
+        val limit = currentLimit
         // Always run the NEARBY GeoFire query (People tab dataset),
         // and let the UI's toggle handle last-active filtering/sorting.
         geoQuery = observeNearbyUsers(
@@ -133,6 +136,24 @@ class NearbyViewModel : ViewModel() {
             cacheTimestamps.remove(userId)
         }
     }
+
+    fun loadNextPage(
+        increment: Int,
+        userId: String,
+        center: LatLng,
+        geoFireDatabaseRef: DatabaseReference
+    ) {
+        val prev = people.associateBy { it.userId }
+        currentLimit += increment
+        refreshNearbyUsers(
+            userId = userId,
+            center = center,
+            geoFireDatabaseRef = geoFireDatabaseRef,
+            forceRefresh = false,
+            previousResults = prev
+        )
+    }
+
 
     /**
      * GeoFire listener that IGNORES visibility/matches and only honors radius/exclusions.
@@ -244,6 +265,10 @@ class NearbyViewModel : ViewModel() {
                         latLng = latLng,
                         distanceMeters = distM,
                         interests = p.interests,
+                        roles = p.roles,
+                        tribes = p.tribes,
+                        kinks = p.kinks,
+                        sexualOrientation = p.sexualOrientation,
                         compatibilityPct = compat,
                         randomDetail = randomDetail
                     )

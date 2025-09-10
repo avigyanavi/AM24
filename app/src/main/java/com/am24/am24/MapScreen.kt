@@ -111,7 +111,7 @@ data class MatchProfile(
     val photoUrl: String?
 )
 
-enum class SortMode { NEARBY, ACTIVE }
+enum class SortMode { NEARBY, ACTIVE, FAR }
 
 enum class Region { LA, SF_BAY, NONE }
 
@@ -125,6 +125,10 @@ data class NearbyUser(
     val latLng: LatLng?,
     val distanceMeters: Double,
     val interests: List<Interest> = emptyList(),
+    val roles: List<String> = emptyList(),
+    val tribes: List<String> = emptyList(),
+    val kinks: List<String> = emptyList(),
+    val sexualOrientation: String = "",
     val compatibilityPct: Int? = null,
     val randomDetail: String? = null
 )
@@ -254,6 +258,13 @@ fun MapScreen(
 
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
+        userLatLng?.let { ll ->
+            if (selectedTab == 0 && nearbyViewModel.currentLimit < 240) {
+                nearbyViewModel.loadNextPage(240 - nearbyViewModel.currentLimit, userId, ll, geoFireDatabaseRef)
+            } else if (selectedTab == 1 && nearbyViewModel.currentLimit < 10) {
+                nearbyViewModel.loadNextPage(10 - nearbyViewModel.currentLimit, userId, ll, geoFireDatabaseRef)
+            }
+        }
     }
 
     LaunchedEffect(isPremium) {
@@ -642,7 +653,16 @@ fun MapScreen(
         topBar = {
                 TopAppBar(
                     title = {
-                        if (sortMode == SortMode.NEARBY) {
+                        if (sortMode == SortMode.ACTIVE) {
+                            LastActiveChip(
+                                hours = lastActiveHours,
+                                onChange = {
+                                    lastActiveHours = it
+                                    prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
+                                },
+                                modifier = Modifier.scale(0.9f)
+                            )
+                        } else {
                             RadiusChip(
                                 radiusKm = radiusKm,
                                 onChange = {
@@ -652,21 +672,16 @@ fun MapScreen(
                                 useMiles = useMiles,
                                 modifier = Modifier.scale(0.9f)
                             )
-                        } else {
-                            LastActiveChip(
-                                hours = lastActiveHours,
-                                onChange = {
-                                    lastActiveHours = it
-                                    prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
-                                },
-                                modifier = Modifier.scale(0.9f)
-                            )
                         }
                     },
                     actions = {
                         FilledTonalButton(
                             onClick = {
-                                sortMode = if (sortMode == SortMode.NEARBY) SortMode.ACTIVE else SortMode.NEARBY
+                                sortMode = when (sortMode) {
+                                    SortMode.NEARBY -> SortMode.ACTIVE
+                                    SortMode.ACTIVE -> SortMode.FAR
+                                    SortMode.FAR -> SortMode.NEARBY
+                                }
                                 prefs.edit().putString("map_sort_mode", sortMode.name).apply()
                                 userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
                             },
@@ -677,14 +692,21 @@ fun MapScreen(
                             shape = RoundedCornerShape(20.dp)
                         ) {
                             Icon(
-                                imageVector = if (sortMode == SortMode.NEARBY) Icons.Default.MyLocation else Icons.Default.Schedule,
+                                imageVector = when (sortMode) {
+                                    SortMode.NEARBY -> Icons.Default.MyLocation
+                                    SortMode.ACTIVE -> Icons.Default.Schedule
+                                    SortMode.FAR -> Icons.Default.Place
+                                },
                                 contentDescription = null
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 stringResource(
-                                    if (sortMode == SortMode.NEARBY) R.string.sort_nearby
-                                    else R.string.sort_last_active
+                                    when (sortMode) {
+                                        SortMode.NEARBY -> R.string.sort_nearby
+                                        SortMode.ACTIVE -> R.string.sort_last_active
+                                        SortMode.FAR -> R.string.sort_farthest
+                                    }
                                 )
                             )
                         }
@@ -781,11 +803,17 @@ fun MapScreen(
                                         FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid").setValue(true)
                                     }
                                 },
-                                showAds = showAds,
                                 onBlock = { uid ->
                                     scope.launch {
-                                        FirebaseRefs.db.getReference("blocks/$userId/$uid").setValue(true)
+                                        FirebaseRefs.db.getReference("blocks/$userId/$uid")
+                                            .setValue(true)
                                         nearbyViewModel.addExcluded(uid)
+                                    }
+                                },
+                                showAds = showAds,
+                                onNextPage = {
+                                    userLatLng?.let {
+                                        nearbyViewModel.loadNextPage(240, userId, it, geoFireDatabaseRef)
                                     }
                                 }
                             )
@@ -834,16 +862,23 @@ fun MapScreen(
                             onRemove = { uid ->
                                 scope.launch {
                                     nearbyViewModel.addExcluded(uid)
-                                    FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid").setValue(true)
+                                    FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid")
+                                        .setValue(true)
                                 }
                             },
                             onBlock = { uid ->
                                 scope.launch {
-                                    FirebaseRefs.db.getReference("blocks/$userId/$uid").setValue(true)
+                                    FirebaseRefs.db.getReference("blocks/$userId/$uid")
+                                        .setValue(true)
                                     nearbyViewModel.addExcluded(uid)
                                 }
+                            },
+                            onNextPage = {
+                                userLatLng?.let {
+                                    nearbyViewModel.loadNextPage(80, userId, it, geoFireDatabaseRef)
+                                }
                             }
-                    )
+                        )
                     }
                 }
 
@@ -1530,7 +1565,8 @@ private fun CardsList(
     onDislike: (NearbyUser) -> Unit,
     onCardClick: (NearbyUser) -> Unit,
     onRemove: (String) -> Unit,
-    onBlock: (String) -> Unit
+    onBlock: (String) -> Unit,
+    onNextPage: () -> Unit
 ) {
     if (users.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -1579,6 +1615,16 @@ private fun CardsList(
                         .fillMaxWidth()
                         .aspectRatio(3f / 4f)
                 )
+            }
+        }
+        item {
+            Button(
+                onClick = onNextPage,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(stringResource(R.string.next_page))
             }
         }
     }
@@ -1672,19 +1718,34 @@ private fun ProfileCard(
                     user.compatibilityPct?.let {
                         FilmText(text = "Compatibility: $it%")
                     }
-                    if (user.interests.isNotEmpty()) {
+                    val context = LocalContext.current
+                    val orientationTag = user.sexualOrientation
+                        .toOrientationCode()
+                        ?.localized(context)
+
+                    val tags = mutableListOf<String>()
+                    orientationTag?.let { tags.add(it) }
+
+                    val roleTribeKink = user.roles + user.tribes + user.kinks
+                    if (roleTribeKink.isNotEmpty()) {
+                        tags.addAll(roleTribeKink.take(3))
+                    } else {
+                        user.interests.take(3).forEach { interest ->
+                            val text = buildString {
+                                interest.emoji?.takeIf { it.isNotBlank() }?.let { append(it).append(' ') }
+                                append(interest.name)
+                            }
+                            tags.add(text)
+                        }
+                    }
+
+                    if (tags.isNotEmpty()) {
                         Spacer(Modifier.height(4.dp))
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            user.interests.take(3).forEach { interest ->
-                                val text = buildString {
-                                    interest.emoji?.takeIf { it.isNotBlank() }?.let { append(it).append(' ') }
-                                    append(interest.name)
-                                }
-                                TagBox(text)
-                            }
+                            tags.forEach { TagBox(it) }
                         }
                     }
                 }
@@ -1768,7 +1829,8 @@ private fun PeopleGrid(
     useMiles: Boolean,
     onRemove: (String) -> Unit,
     onBlock: (String) -> Unit,
-    showAds: Boolean
+    showAds: Boolean,
+    onNextPage: () -> Unit
 ) {
     if (users.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -1817,6 +1879,16 @@ private fun PeopleGrid(
                         .wrapContentHeight()
                         .padding(vertical = 8.dp)
                 )
+            }
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Button(
+                onClick = onNextPage,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(stringResource(R.string.next_page))
             }
         }
     }

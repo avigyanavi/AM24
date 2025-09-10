@@ -1783,14 +1783,16 @@
     <string name="subscription_expired">Vencida</string>
     <string name="payment_failed">Pago fallido</string>
 
+    <string name="sort_farthest">Más lejos</string>
+    <string name="next_page">Página siguiente</string>
 
-    <string name="orientation_straight">Heterosexual</string>
-    <string name="orientation_gay">Gay</string>
-    <string name="orientation_lesbian">Lesbiana</string>
-    <string name="orientation_bisexual">Bisexual</string>
-    <string name="orientation_pansexual">Pansexual</string>
-    <string name="orientation_asexual">Asexual</string>
-    <string name="orientation_queer">Queer</string>
+    <string name="orientation_straight">⚤ Heterosexual</string>
+    <string name="orientation_gay">⚣ Gay</string>
+    <string name="orientation_lesbian">⚢ Lesbiana</string>
+    <string name="orientation_bisexual">💜 Bisexual</string>
+    <string name="orientation_pansexual">💖 Pansexual</string>
+    <string name="orientation_asexual">🖤 Asexual</string>
+    <string name="orientation_queer">🌈 Queer</string>
 
     <string name="verify_email">Verificar correo</string>
     <string name="resend_link">Reenviar enlace</string>

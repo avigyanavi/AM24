@@ -42,6 +42,8 @@ data class Profile(
 
     // The user's own gender (Male/Female/Other)
     val gender: String = "",
+    // Sexual orientation (e.g. straight, gay, etc.)
+    val sexualOrientation: String = "",
 
     val lastActive: Long = System.currentTimeMillis(),
     val badges: List<String> = emptyList(),

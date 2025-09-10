@@ -39,6 +39,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _currentUserProfile = MutableStateFlow<Profile?>(null)
     val currentUserProfile: StateFlow<Profile?> get() = _currentUserProfile
 
+    // Sexual orientation of current user
+    private val _sexualOrientation = MutableStateFlow<String?>(null)
+    val sexualOrientation: StateFlow<String?> get() = _sexualOrientation
+
     private val _complimentsLeft = MutableStateFlow(0)
     val complimentsLeft: StateFlow<Int> get() = _complimentsLeft
 
@@ -86,6 +90,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     Log.d(TAG, "Fetched profile with isMatrimonyMode: ${profile.isMatrimonyMode}")
                     _currentUserProfile.value = profile
                     _complimentsLeft.value = profile.availableCompliments
+                    _sexualOrientation.value = profile.sexualOrientation
                     startComplimentsWatcher(currentUserId)
                 } else {
                     Log.e(TAG, "Failed to fetch current user's profile: Profile is null")
@@ -234,6 +239,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     "incomeLevel"               to profileWithScore.incomeLevel,
                     "lookingFor"                  to profileWithScore.lookingFor,
                     "loveLanguage"                  to profileWithScore.loveLanguage,
+                    "sexualOrientation"          to profileWithScore.sexualOrientation,
                     "interests"                   to profileWithScore.interests.map {
                         mapOf("name" to it.name, "emoji" to it.emoji)
                     },
@@ -281,6 +287,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
                 // 4) If you keep local state
                 _currentUserProfile.value = profileWithScore
+                _sexualOrientation.value = profileWithScore.sexualOrientation
                 onSuccess()
 
             } catch (e: Exception) {
