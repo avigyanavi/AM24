@@ -271,7 +271,10 @@ class NearbyViewModel : ViewModel() {
                         kinks = p.kinks,
                         sexualOrientation = p.sexualOrientation,
                         compatibilityPct = compat,
-                        randomDetail = randomDetail
+                        randomDetail = randomDetail,
+                        loveLanguage = p.loveLanguage,
+                        socialCauses = p.socialCauses,
+                        politics = p.politics
                     )
                     userCache[uid] = user
                     cacheTimestamps[uid] = now

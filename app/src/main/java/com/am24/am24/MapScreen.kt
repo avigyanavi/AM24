@@ -1,4 +1,8 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@file:OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalLayoutApi::class,
+    ExperimentalFoundationApi::class
+)
 
 package com.am24.am24
 
@@ -60,6 +64,10 @@ import androidx.compose.ui.unit.*
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.wear.compose.material.ExperimentalWearMaterialApi
+import androidx.wear.compose.material.FractionalThreshold
+import androidx.wear.compose.material.rememberSwipeableState
+import androidx.wear.compose.material.swipeable
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.firebase.geofire.*
@@ -130,7 +138,10 @@ data class NearbyUser(
     val kinks: List<String> = emptyList(),
     val sexualOrientation: String = "",
     val compatibilityPct: Int? = null,
-    val randomDetail: String? = null
+    val randomDetail: String? = null,
+    val loveLanguage: String = "",
+    val socialCauses: List<String> = emptyList(),
+    val politics: String = ""
 )
 
 // Leaderboard
@@ -1629,6 +1640,7 @@ private fun CardsList(
     }
 }
 
+@OptIn(ExperimentalWearMaterialApi::class)
 @Composable
 private fun ProfileCard(
     user: NearbyUser,
@@ -1644,175 +1656,247 @@ private fun ProfileCard(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var menuExpanded by remember { mutableStateOf(false) }
+    val swipeableState = rememberSwipeableState(initialValue = 0)
+    val anchors = mapOf(-300f to -1, 0f to 0, 300f to 1)
+    val swipeOffset = swipeableState.offset.value
+
+    LaunchedEffect(swipeableState.currentValue) {
+        when (swipeableState.currentValue) {
+            -1 -> {
+                onDislike()
+                swipeableState.snapTo(0)
+            }
+            1 -> {
+                onLike()
+                swipeableState.snapTo(0)
+            }
+        }
+    }
+    val maxDrag = 300f
+    val rawAlpha = (abs(swipeOffset) / maxDrag).coerceIn(0f, 1f)
+    val showCheck = swipeOffset > 0f
+    val showClose = swipeOffset < 0f
     LaunchedEffect(currentIndex) {
         scope.launch { listState.animateScrollToItem(currentIndex) }
     }
 
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 20.dp),
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(3f / 4f)
+            .offset { IntOffset(swipeOffset.roundToInt(), 0) }
+            .swipeable(
+                state = swipeableState,
+                anchors = anchors,
+                thresholds = { _, _ -> FractionalThreshold(0.3f) },
+                orientation = Orientation.Horizontal
+            )
     ) {
-        Box(Modifier.fillMaxSize()) {
-            LazyRow(
-                state = listState,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(photos) { url ->
-                    AsyncImage(
-                        model = url,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillParentMaxSize()
-                    )
-                }
-            }
-
-            if (photos.size > 1) {
-                IconButton(
-                    onClick = { if (currentIndex > 0) currentIndex-- },
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .alpha(0.5f)
+        Card(
+            onClick = onClick,
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 20.dp),
+            modifier = Modifier.matchParentSize()
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                LazyRow(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Icon(Icons.Default.ChevronLeft, contentDescription = null, tint = Color.White)
-                }
-                IconButton(
-                    onClick = { if (currentIndex < photos.lastIndex) currentIndex++ },
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .alpha(0.5f)
-                ) {
-                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.White)
-                }
-            }
-
-            // Top readability gradient
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent),
-                            startY = 0f,
-                            endY = 260f
+                    items(photos) { url ->
+                        AsyncImage(
+                            model = url,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillParentMaxSize()
                         )
-                    )
-            ) {
-                // ⬆️ Top-left: Name + Compatibility with film
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp)
-                ) {
-                    FilmText(
-                        text = "${user.username}, ${user.age}",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    user.compatibilityPct?.let {
-                        FilmText(text = "Compatibility: $it%")
-                    }
-                    val context = LocalContext.current
-                    val orientationTag = user.sexualOrientation
-                        .toOrientationCode()
-                        ?.localized(context)
-
-                    val tags = mutableListOf<String>()
-                    orientationTag?.let { tags.add(it) }
-
-                    val roleTribeKink = user.roles + user.tribes + user.kinks
-                    if (roleTribeKink.isNotEmpty()) {
-                        tags.addAll(roleTribeKink.take(3))
-                    } else {
-                        user.interests.take(3).forEach { interest ->
-                            val text = buildString {
-                                interest.emoji?.takeIf { it.isNotBlank() }?.let { append(it).append(' ') }
-                                append(interest.name)
-                            }
-                            tags.add(text)
-                        }
-                    }
-
-                    if (tags.isNotEmpty()) {
-                        Spacer(Modifier.height(4.dp))
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            tags.forEach { TagBox(it) }
-                        }
                     }
                 }
 
-                // ⬇️ Bottom-left: Distance (replaces randomDetail visually)
-                val distanceLabel = if (user.distanceMeters.isFinite())
-                    prettyDistance(user.distanceMeters, useMiles) else null
-
-                distanceLabel?.let { dist ->
-                    Box(
+                if (photos.size > 1) {
+                    IconButton(
+                        onClick = { if (currentIndex > 0) currentIndex-- },
                         modifier = Modifier
-                            .align(Alignment.BottomStart)
+                            .align(Alignment.CenterStart)
+                            .alpha(0.5f)
+                    ) {
+                        Icon(
+                            Icons.Default.ChevronLeft,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
+                    IconButton(
+                        onClick = { if (currentIndex < photos.lastIndex) currentIndex++ },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .alpha(0.5f)
+                    ) {
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                // Top readability gradient
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent),
+                                startY = 0f,
+                                endY = 260f
+                            )
+                        )
+                ) {
+                    // ⬆️ Top-left: Name + Compatibility with film
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
                             .padding(8.dp)
                     ) {
-                        FilmText(text = dist)
+                        FilmText(
+                            text = "${user.username}, ${user.age}",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        user.compatibilityPct?.let {
+                            FilmText(text = "Compatibility: $it%")
+                        }
+                        val context = LocalContext.current
+                        val orientationTag = user.sexualOrientation
+                            .toOrientationCode()
+                            ?.localized(context)
+
+                        val tags = mutableListOf<String>()
+                        orientationTag?.let { tags.add(it) }
+
+                        val roleTribeKink = user.roles + user.tribes + user.kinks
+                        if (roleTribeKink.isNotEmpty()) {
+                            tags.addAll(roleTribeKink.take(3))
+                        }
+
+                        if (tags.size < 3) {
+                            if (user.interests.isNotEmpty()) {
+                                user.interests.take(3 - tags.size).forEach { interest ->
+                                    val text = buildString {
+                                        interest.emoji?.takeIf { it.isNotBlank() }
+                                            ?.let { append(it).append(' ') }
+                                        append(interest.name)
+                                    }
+                                    tags.add(text)
+                                }
+                            } else {
+                                if (user.loveLanguage.isNotBlank()) tags.add(user.loveLanguage)
+                                user.socialCauses.forEach { cause ->
+                                    if (tags.size < 3) tags.add(cause)
+                                }
+                                if (user.politics.isNotBlank() && tags.size < 3) tags.add(user.politics)
+                            }
+                        }
+
+                        if (tags.isNotEmpty()) {
+                            Spacer(Modifier.height(4.dp))
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                tags.forEach { TagBox(it) }
+                            }
+                        }
+                    }
+
+                    // ⬇️ Bottom-left: Distance (replaces randomDetail visually)
+                    val distanceLabel = if (user.distanceMeters.isFinite())
+                        prettyDistance(user.distanceMeters, useMiles) else null
+
+                    distanceLabel?.let { dist ->
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(8.dp)
+                        ) {
+                            FilmText(text = dist)
+                        }
+                    }
+                }
+
+
+                Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.align(Alignment.TopEnd)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = stringResource(R.string.more_options),
+                            tint = Color.White
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.remove_from_stack)) },
+                            onClick = {
+                                menuExpanded = false
+                                onRemove()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.block)) },
+                            onClick = {
+                                menuExpanded = false
+                                onBlock()
+                            }
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(48.dp)
+                ) {
+                    FloatingActionButton(
+                        onClick = onDislike,
+                        shape = CircleShape,
+                        containerColor = Color.DarkGray
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
+                    }
+                    FloatingActionButton(
+                        onClick = onLike,
+                        shape = CircleShape,
+                        containerColor = Color(0xFFFF6F00)
+                    ) {
+                        Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White)
                     }
                 }
             }
-
-            Box(modifier = Modifier.align(Alignment.TopEnd)) {
-                IconButton(
-                    onClick = { menuExpanded = true },
-                    modifier = Modifier.align(Alignment.TopEnd)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = stringResource(R.string.more_options),
-                        tint = Color.White
-                    )
-                }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.remove_from_stack)) },
-                        onClick = {
-                            menuExpanded = false
-                            onRemove()
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.block)) },
-                        onClick = {
-                            menuExpanded = false
-                            onBlock()
-                        }
-                    )
-                }
+            if (showCheck) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Swipe Right",
+                    tint = Color.Green.copy(alpha = rawAlpha),
+                    modifier = Modifier
+                        .size(96.dp)
+                )
             }
-
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(48.dp)
-            ) {
-                FloatingActionButton(
-                    onClick = onDislike,
-                    shape = CircleShape,
-                    containerColor = Color.DarkGray
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = null, tint = Color.White)
-                }
-                FloatingActionButton(
-                    onClick = onLike,
-                    shape = CircleShape,
-                    containerColor = Color(0xFFFF6F00)
-                ) {
-                    Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White)
-                }
+            if (showClose) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Swipe Left",
+                    tint = Color.Red.copy(alpha = rawAlpha),
+                    modifier = Modifier
+//                        .align(Alignment.Center)
+                        .size(96.dp)
+                )
             }
         }
     }
@@ -1904,12 +1988,12 @@ private fun NearbyCard(
     val placeholder = painterResource(R.drawable.local_placeholder)
     var menuExpanded by remember { mutableStateOf(false) }
     Card(
-        onClick = onClick,
         elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(3f / 4f)
+            .combinedClickable(onClick = onClick, onLongClick = { menuExpanded = true })
     ) {
         Box(Modifier.fillMaxSize()) {
             AsyncImage(
@@ -2604,8 +2688,9 @@ private fun DatingFilterDialog(
     val selectedRoles = remember { mutableStateListOf<String>().apply { addAll(initial.roles) } }
     val selectedTribes = remember { mutableStateListOf<String>().apply { addAll(initial.tribes) } }
     val selectedKinks = remember { mutableStateListOf<String>().apply { addAll(initial.kinks) } }
+
     val selectedInterests = remember { mutableStateListOf<Interest>().apply { addAll(initial.interests) } }
-    var interestInput by remember { mutableStateOf("") }
+    val interestOptions = allInterestOptions()
     val defaultAgeRange = DatingFilterSettings().let { it.ageStart to it.ageEnd }
 
     val ageOptions = listOf(
@@ -2721,21 +2806,28 @@ private fun DatingFilterDialog(
                         )
                     }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = interestInput,
-                        onValueChange = { interestInput = it },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text(stringResource(R.string.interests)) }
-                    )
-                    TextButton(onClick = {
-                        val name = interestInput.trim()
-                        if (name.isNotEmpty()) {
-                            selectedInterests.add(Interest(name, null))
-                            interestInput = ""
-                        }
-                    }) { Text(stringResource(R.string.add), color = KupidxOrange) }
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.interests), fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    interestOptions.forEach { option ->
+                        val isSelected = selectedInterests.any { it.name.equals(option.name, true) }
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                if (isSelected) {
+                                    selectedInterests.removeAll { it.name.equals(option.name, true) }
+                                } else {
+                                    selectedInterests.add(option)
+                                }
+                            },
+                            label = {
+                                Text(buildString {
+                                    option.emoji?.takeIf { it.isNotBlank() }?.let { append(it).append(' ') }
+                                    append(option.name)
+                                })
+                            }
+                        )
+                    }
                 }
             }
         }
