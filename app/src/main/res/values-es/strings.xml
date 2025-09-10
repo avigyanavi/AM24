@@ -6,6 +6,8 @@
     <string name="voice_post_label">Publicación de voz</string>
     <string name="image_post_label">Publicación de imagen</string>
     <string name="video_post_label">Publicación de video</string>
+    <string name="roles_compatible">Roles compatibles</string>
+    <string name="shared_tribes_prefix">Tribus compartidas: %1$s</string>
     <string name="upgrade_plus_image_warning">Actualiza a Plus para crear publicaciones de imagen</string>
     <string name="upgrade_premium_video_warning">Actualiza a Premium para crear publicaciones de video</string>
     <string name="whats_on_your_mind">¿Qué estás pensando?</string>

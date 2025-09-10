@@ -1897,32 +1897,43 @@ fun calculateExhaustiveCompatibilityScore(
         val aTrim = a.orEmpty().trim()
         val bTrim = b.orEmpty().trim()
         if (aTrim.isEmpty() || bTrim.isEmpty()) return
+        possible += pts
         if (aTrim.equals(bTrim, true)) {
             score    += pts
-            possible += pts
             insights += MatchInsight("✅", "$label: $aTrim", true)
-        } else {
-            possible += pts
-            insights += MatchInsight("⚠️", "$label: \"$aTrim\" vs \"$bTrim\"", false)
         }
     }
 
-    fun resolveField(p: String, f: String?) = if (p.trim().isNotEmpty()) p.trim() else f.orEmpty().trim()
+    fun rolesAreCompatible(a: Set<String>, b: Set<String>): Boolean {
+        if (a.isEmpty() || b.isEmpty()) return false
+        val normA = a.map { it.lowercase() }
+        val normB = b.map { it.lowercase() }
+        val flexible = listOf("switch", "vers", "open", "side")
+        if (normA.any { r -> flexible.any { r.contains(it) } } ||
+            normB.any { r -> flexible.any { r.contains(it) } }) return true
+        val topA = normA.any { it.contains("top") }
+        val bottomA = normA.any { it.contains("bottom") }
+        val domA = normA.any { it.contains("dom") }
+        val subA = normA.any { it.contains("sub") }
+        val topB = normB.any { it.contains("top") }
+        val bottomB = normB.any { it.contains("bottom") }
+        val domB = normB.any { it.contains("dom") }
+        val subB = normB.any { it.contains("sub") }
+        return (topA && bottomB) || (bottomA && topB) || (domA && subB) || (subA && domB)
+    }
 
-    val ageA = profileA.age
-    val ageB = profileB.age
-    if (ageA > 0 && ageB > 0) {
-        possible += 5.0
-        val aScore = ageCompatibilityScore(ageA, ageB)
-        score += 5.0 * aScore
-        val pct = (aScore * 100).roundToInt()
-        val positive = aScore >= 0.5
-        val emoji = if (positive) "✅" else "⚠️"
-        insights += MatchInsight(
-            emoji,
-            context.getString(R.string.age_compatibility_prefix, ageA, ageB, pct),
-            positive
-        )
+    // Advanced compatibility
+    val rolesA = profileA.roles.toSet()
+    val rolesB = profileB.roles.toSet()
+    if (rolesAreCompatible(rolesA, rolesB)) {
+        insights += MatchInsight("✅", context.getString(R.string.roles_compatible), true)
+    }
+
+    val tribesA = profileA.tribes.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    val tribesB = profileB.tribes.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    val sharedTribes = tribesA intersect tribesB
+    if (sharedTribes.isNotEmpty()) {
+        insights += MatchInsight("✅", context.getString(R.string.shared_tribes_prefix, sharedTribes.joinToString()), true)
     }
 
     val kinksA = profileA.kinks.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
@@ -1934,8 +1945,22 @@ fun calculateExhaustiveCompatibilityScore(
         kinkScore = if (union.isNotEmpty()) (shared.size.toDouble() / union.size.toDouble()) * 100.0 else 0.0
         if (shared.isNotEmpty()) {
             insights += MatchInsight("✅", context.getString(R.string.shared_kinks_prefix, shared.joinToString()), true)
-        } else {
-            insights += MatchInsight("⚠️", context.getString(R.string.no_common_kinks), false)
+        }
+    }
+
+    val ageA = profileA.age
+    val ageB = profileB.age
+    if (ageA > 0 && ageB > 0) {
+        possible += 5.0
+        val aScore = ageCompatibilityScore(ageA, ageB)
+        score += 5.0 * aScore
+        val pct = (aScore * 100).roundToInt()
+        if (aScore >= 0.5) {
+            insights += MatchInsight(
+                "✅",
+                context.getString(R.string.age_compatibility_prefix, ageA, ageB, pct),
+                true
+            )
         }
     }
 
@@ -1972,29 +1997,13 @@ fun calculateExhaustiveCompatibilityScore(
         val commonNames = lifeCommonKeys.mapNotNull { keyToLabel[it] }.map { context.getString(it) }
         val listStr = if (commonNames.isEmpty()) context.getString(R.string.lifestyle_none_common) else commonNames.joinToString()
         val pct = (lifeScore * 100).roundToInt()
-        val positive = pct >= 50
-        val emoji = if (positive) "✅" else "⚠️"
-        insights += MatchInsight(
-            emoji,
-            context.getString(R.string.lifestyle_similarity_format, pct, lifeCount, listStr),
-            positive
-        )
-    }
-
-    val collegeA = resolveField(profileA.college, profileA.customCollege)
-    val collegeB = resolveField(profileB.college, profileB.customCollege)
-    if (collegeA.isNotBlank() && collegeB.isNotBlank()) {
-        possible += 6.0
-        if (collegeA.equals(collegeB, true)) score += 6.0
-        else insights += MatchInsight("⚠️", context.getString(R.string.college_mismatch_format, collegeA, collegeB), false)
-    }
-
-    val pgA = resolveField(profileA.postGraduation ?: "", profileA.customPostGraduation)
-    val pgB = resolveField(profileB.postGraduation ?: "", profileB.customPostGraduation)
-    if (pgA.isNotBlank() && pgB.isNotBlank()) {
-        possible += 6.0
-        if (pgA.equals(pgB, true)) score += 6.0
-        else insights += MatchInsight("⚠️", context.getString(R.string.post_graduation_mismatch_format, pgA, pgB), false)
+        if (pct >= 50) {
+            insights += MatchInsight(
+                "✅",
+                context.getString(R.string.lifestyle_similarity_format, pct, lifeCount, listStr),
+                true
+            )
+        }
     }
 
     compareStringField(profileA.work,              profileB.work,              context.getString(R.string.workplace_label),          8.0)
@@ -2015,7 +2024,7 @@ fun calculateExhaustiveCompatibilityScore(
             val pts = (shared.size * 2).coerceAtMost(8)
             score += pts
             insights += MatchInsight("✅", context.getString(R.string.shared_interests_prefix, shared.joinToString()), true)
-        } else insights += MatchInsight("⚠️", context.getString(R.string.no_common_interests), false)
+        }
     }
 
     val causesA = profileA.socialCauses.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
@@ -2027,7 +2036,7 @@ fun calculateExhaustiveCompatibilityScore(
             val pts = (shared.size * 2).coerceAtMost(6)
             score += pts
             insights += MatchInsight("✅", context.getString(R.string.shared_social_causes_prefix, shared.joinToString()), true)
-        } else insights += MatchInsight("⚠️", context.getString(R.string.no_common_social_causes), false)
+        }
     }
 
     val zodiacA = if (!profileA.zodiac.isNullOrBlank()) profileA.zodiac!! else deriveZodiac(profileA.dob)
@@ -2037,18 +2046,18 @@ fun calculateExhaustiveCompatibilityScore(
         val zScore = zodiacCompatibilityScore(zodiacA, zodiacB)
         score += 5.0 * zScore
         val pct = (zScore * 100).roundToInt()
-        val positive = zScore >= 0.5
-        val emoji = if (positive) "✅" else "⚠️"
-        insights += MatchInsight(
-            emoji,
-            context.getString(
-                R.string.zodiac_compatibility_prefix,
-                zodiacA,
-                zodiacB,
-                pct
-            ),
-            positive
-        )
+        if (zScore >= 0.5) {
+            insights += MatchInsight(
+                "✅",
+                context.getString(
+                    R.string.zodiac_compatibility_prefix,
+                    zodiacA,
+                    zodiacB,
+                    pct
+                ),
+                true
+            )
+        }
     }
 
     if (profileA.isMatrimonyMode && profileB.isMatrimonyMode) {
@@ -2091,7 +2100,7 @@ fun calculateExhaustiveCompatibilityScore(
             val pts = shared.size.coerceAtMost(2)
             score += pts
             insights += MatchInsight("✅", context.getString(R.string.shared_tags_prefix, shared.joinToString()), true)
-        } else insights += MatchInsight("⚠️", context.getString(R.string.tags_not_set_or_no_overlap), false)
+        }
     }
 
     val base = if (possible == 0.0) 0.0 else (score / possible) * 100.0

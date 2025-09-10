@@ -13,6 +13,8 @@
     <string name="add_tags_comma_separated">Add Tags (comma separated)</string>
     <string name="add_location_optional">Add a location (optional)</string>
     <string name="online_users">Online Users</string>
+    <string name="roles_compatible">Roles align</string>
+    <string name="shared_tribes_prefix">Shared tribes: %1$s</string>
     <string name="male_header">Male</string>
     <string name="female_header">Female</string>
     <string name="other_header">Other</string>
