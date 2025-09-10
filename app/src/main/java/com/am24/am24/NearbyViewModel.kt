@@ -237,8 +237,6 @@ class NearbyViewModel : ViewModel() {
     private fun matchesFilters(p: Profile, age: Int): Boolean {
         val f = datingFilters
         if (age < f.ageStart || age > f.ageEnd) return false
-        if (f.religion.isNotBlank() && canonicalReligion(p.religion) != canonicalReligion(f.religion)) return false
-        if (f.ethnicity.isNotBlank() && canonicalEthnicity(p.ethnicity) != canonicalEthnicity(f.ethnicity)) return false
         if (f.roles.isNotEmpty()) {
             val canon = f.roles.map { canonicalRole(it) }
             if (p.roles.none { canonicalRole(it) in canon }) return false

@@ -39,7 +39,6 @@ data class DatingFilterSettings(
     val city: String = "All", // Changed from capitalRegion to city
     val ageStart: Int = 18,
     val ageEnd: Int = 100,
-    val religion: String = "",
     val ethnicity: String = "",
     val roles: List<String> = emptyList(),
     val tribes: List<String> = emptyList(),

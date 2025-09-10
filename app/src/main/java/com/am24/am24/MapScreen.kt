@@ -2531,7 +2531,6 @@ private fun DatingFilterDialog(
     onApply: (DatingFilterSettings) -> Unit
 ) {
     var ageRange by remember { mutableStateOf(initial.ageStart to initial.ageEnd) }
-    var religion by remember { mutableStateOf(initial.religion) }
     var ethnicity by remember { mutableStateOf(initial.ethnicity) }
     val selectedRoles = remember { mutableStateListOf<String>().apply { addAll(initial.roles) } }
     val selectedTribes = remember { mutableStateListOf<String>().apply { addAll(initial.tribes) } }
@@ -2545,45 +2544,7 @@ private fun DatingFilterDialog(
         46 to 55,
         56 to 100
     )
-    val religionResourceIds = listOf(
-        R.string.religion_other,
-        R.string.religion_buddhist,
-        R.string.religion_christian,
-        R.string.religion_christian_catholic,
-        R.string.religion_christian_protestant_mainline,
-        R.string.religion_christian_evangelical,
-        R.string.religion_christian_orthodox,
-        R.string.religion_christian_latter_day_saint,
-        R.string.religion_christian_jehovahs_witness,
-        R.string.religion_christian_other,
-        R.string.religion_hindu,
-        R.string.religion_jain,
-        R.string.religion_jewish,
-        R.string.religion_muslim,
-        R.string.religion_muslim_sunni,
-        R.string.religion_muslim_shia,
-        R.string.religion_muslim_ahmadiyya,
-        R.string.religion_muslim_sufi,
-        R.string.religion_muslim_other,
-        R.string.religion_no_religion,
-        R.string.religion_parsi,
-        R.string.religion_sikh,
-        R.string.religion_indigenous_tribal,
-        R.string.religion_santeria,
-        R.string.religion_voodou,
-        R.string.religion_candomble,
-        R.string.religion_umbanda,
-        R.string.religion_palo_mayombe,
-        R.string.religion_native_traditional,
-        R.string.religion_native_church,
-        R.string.religion_vision_quest,
-        R.string.religion_african_traditional,
-        R.string.religion_obeah,
-        R.string.religion_hoodoo,
-        R.string.religion_rastafari,
-        R.string.religion_black_protestant
-    )
-    val religionOptions = religionResourceIds.map { it to religionResToCanonical.getValue(it) }
+
     val ethnicityOptions = listOf(
         R.string.ethnicity_option_indian to "Bharatiya",
         R.string.ethnicity_option_white to "White (Caucasian)",
@@ -2611,7 +2572,6 @@ private fun DatingFilterDialog(
                         kinks = selectedKinks.toList(),
                         ageStart = ageRange.first,
                         ageEnd = ageRange.second,
-                        religion = religion,
                         ethnicity = ethnicity,
                     )
                 )
@@ -2636,28 +2596,6 @@ private fun DatingFilterDialog(
                                 }
                             },
                             label = { Text(label) }
-                        )
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.label_religion), fontWeight = FontWeight.SemiBold)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    religionOptions.forEach { (resId, value) ->
-                        FilterChip(
-                            selected = religion == value,
-                            onClick = { religion = if (religion == value) "" else value },
-                            label = { Text(stringResource(resId)) }
-                        )
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.ethnicity_label), fontWeight = FontWeight.SemiBold)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ethnicityOptions.forEach { (resId, value) ->
-                        FilterChip(
-                            selected = ethnicity == value,
-                            onClick = { ethnicity = if (ethnicity == value) "" else value },
-                            label = { Text(stringResource(resId)) }
                         )
                     }
                 }
