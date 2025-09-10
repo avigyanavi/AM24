@@ -574,7 +574,7 @@ fun MapScreen(
         people, sortMode, lastActiveHours, isPlus, isPremium
     ) {
         derivedStateOf {
-            var list = people
+            var list: List<NearbyUser> = people
             if (sortMode == SortMode.ACTIVE) {
                 val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(lastActiveHours.toLong())
                 list = list.filter { it.lastActiveAt >= cutoff }

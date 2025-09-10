@@ -444,9 +444,6 @@ fun RegistrationScreen(
                                             else -> {}
                                         }
                                     }
-                                    3 -> {
-                                        Toast.makeText(context, "Please upload at least one photo", Toast.LENGTH_LONG).show()
-                                    }
                                     8 -> {
                                         Toast.makeText(context, "Pick a valid username and tap Finish", Toast.LENGTH_LONG).show()
                                     }
@@ -4242,100 +4239,6 @@ fun EnterOrientationScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 RegistrationAccordion(title = stringResource(R.string.advanced_compatibility)) {
-                    DropdownWithSearch(
-                        title = stringResource(R.string.select_ethnicity),
-                        options = ethnicityOptions,
-                        selectedOption = registrationViewModel.ethnicity,
-                        onOptionSelected = { registrationViewModel.ethnicity = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    DropdownWithSearch(
-                        title = stringResource(R.string.select_religion),
-                        options = religionOptions,
-                        selectedOption = registrationViewModel.religion,
-                        onOptionSelected = { registrationViewModel.religion = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.looking_for_label),
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        lookingForOptions.forEach { option ->
-                            FilterChip(
-                                selected = registrationViewModel.lookingFor == option,
-                                onClick = {
-                                    registrationViewModel.lookingFor =
-                                        if (registrationViewModel.lookingFor == option) "" else option
-                                },
-                                label = { Text(option, color = Color.White) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(0xFFFF6000),
-                                    selectedLabelColor = Color.White,
-                                    containerColor = Color(0xFF1A1A1A),
-                                    labelColor = Color.White
-                                )
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.love_language_label),
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        loveLanguageOptions.forEach { option ->
-                            FilterChip(
-                                selected = registrationViewModel.loveLanguage == option,
-                                onClick = {
-                                    registrationViewModel.loveLanguage =
-                                        if (registrationViewModel.loveLanguage == option) "" else option
-                                },
-                                label = { Text(option, color = Color.White) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(0xFFFF6000),
-                                    selectedLabelColor = Color.White,
-                                    containerColor = Color(0xFF1A1A1A),
-                                    labelColor = Color.White
-                                )
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.select_politics),
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        politicsOptions.forEach { option ->
-                            FilterChip(
-                                selected = registrationViewModel.politics == option,
-                                onClick = {
-                                    registrationViewModel.politics =
-                                        if (registrationViewModel.politics == option) "" else option
-                                },
-                                label = { Text(option, color = Color.White) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(0xFFFF6000),
-                                    selectedLabelColor = Color.White,
-                                    containerColor = Color(0xFF1A1A1A),
-                                    labelColor = Color.White
-                                )
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
                     Text(text = stringResource(R.string.roles_label), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.show_on_profile), color = Color.White)
@@ -4430,6 +4333,83 @@ fun EnterOrientationScreen(
                             )
                         }
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.looking_for_label),
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        lookingForOptions.forEach { option ->
+                            FilterChip(
+                                selected = registrationViewModel.lookingFor == option,
+                                onClick = {
+                                    registrationViewModel.lookingFor =
+                                        if (registrationViewModel.lookingFor == option) "" else option
+                                },
+                                label = { Text(option, color = Color.White) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFFF6000),
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFF1A1A1A),
+                                    labelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.love_language_label),
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        loveLanguageOptions.forEach { option ->
+                            FilterChip(
+                                selected = registrationViewModel.loveLanguage == option,
+                                onClick = {
+                                    registrationViewModel.loveLanguage =
+                                        if (registrationViewModel.loveLanguage == option) "" else option
+                                },
+                                label = { Text(option, color = Color.White) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFFF6000),
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFF1A1A1A),
+                                    labelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.select_politics),
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        politicsOptions.forEach { option ->
+                            FilterChip(
+                                selected = registrationViewModel.politics == option,
+                                onClick = {
+                                    registrationViewModel.politics =
+                                        if (registrationViewModel.politics == option) "" else option
+                                },
+                                label = { Text(option, color = Color.White) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFFF6000),
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFF1A1A1A),
+                                    labelColor = Color.White
+                                )
+                            )
+                        }
+                    }
                 }
                 Button(
                     onClick = {
@@ -4466,14 +4446,8 @@ fun UploadMediaComposable(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val storageRef = FirebaseRefs.storage.reference
-    LaunchedEffect(
-        registrationViewModel.profilePictureUri,
-        registrationViewModel.optionalPhotoUris.size
-    ) {
-        registrationViewModel.nextEnabled =
-            registrationViewModel.profilePictureUri != null ||
-                    registrationViewModel.optionalPhotoUris.isNotEmpty()
-    }
+
+    LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
 
     var isRecording by remember { mutableStateOf(false) }
     var isPlaying  by remember { mutableStateOf(false) }
