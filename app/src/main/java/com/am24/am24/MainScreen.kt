@@ -241,11 +241,6 @@ fun TopNavBar(
         ?: remember { mutableStateOf(0) }
     val triggerLocationDialog by savedStateHandle?.getStateFlow("showLocationPrefDialog", false)
         ?.collectAsState() ?: remember { mutableStateOf(false) }
-    val orientationFilter by savedStateHandle?.getStateFlow(
-        "mapOrientationFilter",
-        LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
-            .getString("map_orientation_filter", "") ?: ""
-    )?.collectAsState() ?: remember { mutableStateOf("") }
 
     LaunchedEffect(triggerLocationDialog) {
         if (triggerLocationDialog) {
@@ -254,7 +249,6 @@ fun TopNavBar(
         }
     }
 
-    var orientationMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var countryMenuExpanded by remember { mutableStateOf(false) }
     var selectedCountry by rememberSaveable { mutableStateOf("") }
     var cityMenuExpanded by remember { mutableStateOf(false) }
@@ -348,9 +342,6 @@ fun TopNavBar(
         prefs.edit().putString("home_country_filter", homeSelectedCountry).apply()
     }
 
-    LaunchedEffect(orientationFilter) {
-        prefs.edit().putString("map_orientation_filter", orientationFilter).apply()
-    }
     // anywhere before TopAppBar:
     val isOnHome = currentDestination
         ?.hierarchy
@@ -509,46 +500,6 @@ fun TopNavBar(
 
             // Location settings icon (map screen)
             if (currentRoute == "map") {
-                    val orientationOptions = stringArrayResource(R.array.sexual_orientation_options).toList()
-                    IconButton(onClick = {
-//                        if (isPlus || isPremium) {
-                        orientationMenuExpanded = true
-//                    }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Wc,
-                            contentDescription = stringResource(R.string.sexual_orientation_label),
-                            tint = if (orientationFilter.isNotBlank()) Color(0xFFFF6F00) else Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = orientationMenuExpanded,
-                        onDismissRequest = { orientationMenuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.gender_all)) },
-                            onClick = {
-                                orientationMenuExpanded = false
-                                savedStateHandle?.set("mapOrientationFilter", "")
-                            }
-                        )
-                        orientationOptions.forEach { opt ->
-                            val code = opt.toOrientationCode()?.name
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        opt,
-                                        color = if (code == orientationFilter) Color(0xFFFF6F00) else Color.White
-                                    )
-                                },
-                                onClick = {
-                                    orientationMenuExpanded = false
-                                    savedStateHandle?.set("mapOrientationFilter", code ?: "")
-                                }
-                            )
-                        }
-                    }
                 // --- NEW ORDER & LAYOUT ---------------------------------------------------
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

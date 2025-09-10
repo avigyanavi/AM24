@@ -969,7 +969,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
                 // Save post to Realtime Database
                 postsRef.child(postId).setValue(post).await()
-
+                refreshPosts()
                 onSuccess()
 
                 // Send notifications to friends and matches
@@ -1809,6 +1809,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val postRef = FirebaseRefs.db.getReference("posts").child(postId)
                 postRef.removeValue().await()
+                refreshPosts()
                 onSuccess()
             } catch (e: Exception) {
                 Log.e("PostViewModel", "Error deleting post: ${e.message}", e)

@@ -310,9 +310,15 @@ class RegistrationViewModel : ViewModel() {
     var interestedIn = mutableStateListOf<String>()      // List for "Men," "Women," "Other"
     var zodiac: String = "" // Add this to hold the zodiac sign
 
-    // Sexual orientation & kinks
-    var sexualOrientation by mutableStateOf("")
+    // Roles, Tribes, Body type and Kinks
+    var roles = mutableStateListOf<String>()
+    var showRolesOnProfile by mutableStateOf(true)
+    var tribes = mutableStateListOf<String>()
+    var showTribesOnProfile by mutableStateOf(true)
+    var bodyType by mutableStateOf("")
+    var showBodyTypeOnProfile by mutableStateOf(true)
     var kinks = mutableStateListOf<String>()
+    var showKinksOnProfile by mutableStateOf(false)
 
     // ---------------------------------------------------
     // Voice Recording Methods
@@ -2814,9 +2820,14 @@ suspend fun saveProfileToFirebase(
             educationLevel = registrationViewModel.educationLevel,
             lifestyle = registrationViewModel.lifestyle,
             lookingFor = registrationViewModel.lookingFor,
-            sexualOrientation = registrationViewModel.sexualOrientation.toOrientationCode()?.name
-                ?: registrationViewModel.sexualOrientation,
+            roles = registrationViewModel.roles.toList(),
+            showRolesOnProfile = registrationViewModel.showRolesOnProfile,
+            tribes = registrationViewModel.tribes.toList(),
+            showTribesOnProfile = registrationViewModel.showTribesOnProfile,
+            bodyType = registrationViewModel.bodyType,
+            showBodyTypeOnProfile = registrationViewModel.showBodyTypeOnProfile,
             kinks = registrationViewModel.kinks.toList(),
+            showKinksOnProfile = registrationViewModel.showKinksOnProfile,
             politics = registrationViewModel.politics,
             socialCauses = registrationViewModel.socialCauses.toList(),
             height = finalHeightCm,
@@ -4124,7 +4135,6 @@ fun EnterOrientationScreen(
     onNext: () -> Unit
 ) {
     LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
-    val options = stringArrayResource(R.array.sexual_orientation_options).toList()
     // Religion options
     val religionOptions = listOf(
         stringResource(R.string.religion_other),
@@ -4220,7 +4230,19 @@ fun EnterOrientationScreen(
         stringResource(R.string.politics_option_communist),
         stringResource(R.string.politics_option_other)
     )
-    var kinksText by remember { mutableStateOf(registrationViewModel.kinks.joinToString(", ")) }
+    val roleOptions = stringArrayResource(R.array.roles_options).toList()
+    val tribeOptions = stringArrayResource(R.array.tribes_options).toList()
+    val bodyTypeOptions = stringArrayResource(R.array.body_type_options).toList()
+    val kinkOptions = stringArrayResource(R.array.kink_options).toList()
+
+    var selectedRoles = remember { mutableStateListOf<String>().apply { addAll(registrationViewModel.roles) } }
+    var showRolesOnProfile by remember { mutableStateOf(registrationViewModel.showRolesOnProfile) }
+    var selectedTribes = remember { mutableStateListOf<String>().apply { addAll(registrationViewModel.tribes) } }
+    var showTribesOnProfile by remember { mutableStateOf(registrationViewModel.showTribesOnProfile) }
+    var selectedBodyType by remember { mutableStateOf(registrationViewModel.bodyType) }
+    var showBodyTypeOnProfile by remember { mutableStateOf(registrationViewModel.showBodyTypeOnProfile) }
+    var selectedKinks = remember { mutableStateListOf<String>().apply { addAll(registrationViewModel.kinks) } }
+    var showKinksOnProfile by remember { mutableStateOf(registrationViewModel.showKinksOnProfile) }
     Scaffold(
         content = { innerPadding ->
             Column(
@@ -4232,34 +4254,6 @@ fun EnterOrientationScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(stringResource(R.string.sexual_orientation_label), color = Color.White, fontSize = 16.sp)
-                options.forEach { opt ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                registrationViewModel.sexualOrientation = opt
-                                registrationViewModel.interestedIn.clear()
-                                registrationViewModel.interestedIn.addAll(
-                                    inferInterestedIn(registrationViewModel.gender, opt)
-                                )
-                            }
-                    ) {
-                        RadioButton(
-                            selected = registrationViewModel.sexualOrientation == opt,
-                            onClick = {
-                                registrationViewModel.sexualOrientation = opt
-                                registrationViewModel.interestedIn.clear()
-                                registrationViewModel.interestedIn.addAll(
-                                    inferInterestedIn(registrationViewModel.gender, opt)
-                                )
-                            },
-                            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFFF6F00))
-                        )
-                        Text(opt, color = Color.White)
-                    }
-                }
                 RegistrationAccordion(title = stringResource(R.string.advanced_compatibility)) {
                     DropdownWithSearch(
                         title = stringResource(R.string.select_ethnicity),
@@ -4355,28 +4349,116 @@ fun EnterOrientationScreen(
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    OutlinedTextField(
-                        value = kinksText,
-                        onValueChange = {
-                            kinksText = it
-                            registrationViewModel.kinks.clear()
-                            registrationViewModel.kinks.addAll(
-                                it.split(",").map { s -> s.trim() }.filter { s -> s.isNotEmpty() }
+                    Text(text = stringResource(R.string.roles_label), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.show_on_profile), color = Color.White)
+                        Switch(checked = showRolesOnProfile, onCheckedChange = { showRolesOnProfile = it })
+                    }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        roleOptions.forEach { option ->
+                            FilterChip(
+                                selected = option in selectedRoles,
+                                onClick = {
+                                    if (option in selectedRoles) selectedRoles.remove(option) else selectedRoles.add(option)
+                                },
+                                label = { Text(option, color = Color.White) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFFF6000),
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFF1A1A1A),
+                                    labelColor = Color.White
+                                )
                             )
-                        },
-                        label = { Text(stringResource(R.string.kinks_label), color = Color(0xFFFF6F00)) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFFF6F00),
-                            unfocusedBorderColor = Color.Gray,
-                            cursorColor = Color.White,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(text = stringResource(R.string.tribes_label), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.show_on_profile), color = Color.White)
+                        Switch(checked = showTribesOnProfile, onCheckedChange = { showTribesOnProfile = it })
+                    }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        tribeOptions.forEach { option ->
+                            FilterChip(
+                                selected = option in selectedTribes,
+                                onClick = {
+                                    if (option in selectedTribes) selectedTribes.remove(option) else selectedTribes.add(option)
+                                },
+                                label = { Text(option, color = Color.White) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFFF6000),
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFF1A1A1A),
+                                    labelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(text = stringResource(R.string.body_type_label), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.show_on_profile), color = Color.White)
+                        Switch(checked = showBodyTypeOnProfile, onCheckedChange = { showBodyTypeOnProfile = it })
+                    }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        bodyTypeOptions.forEach { option ->
+                            FilterChip(
+                                selected = selectedBodyType == option,
+                                onClick = {
+                                    selectedBodyType = if (selectedBodyType == option) "" else option
+                                },
+                                label = { Text(option, color = Color.White) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFFF6000),
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFF1A1A1A),
+                                    labelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(text = stringResource(R.string.kinks_label), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.show_on_profile), color = Color.White)
+                        Switch(checked = showKinksOnProfile, onCheckedChange = { showKinksOnProfile = it })
+                    }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        kinkOptions.forEach { option ->
+                            FilterChip(
+                                selected = option in selectedKinks,
+                                onClick = {
+                                    if (option in selectedKinks) selectedKinks.remove(option) else selectedKinks.add(option)
+                                },
+                                label = { Text(option, color = Color.White) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFFF6000),
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFF1A1A1A),
+                                    labelColor = Color.White
+                                )
+                            )
+                        }
+                    }
                 }
                 Button(
-                    onClick = onNext,
+                    onClick = {
+                        registrationViewModel.roles.clear()
+                        registrationViewModel.roles.addAll(selectedRoles)
+                        registrationViewModel.showRolesOnProfile = showRolesOnProfile
+                        registrationViewModel.tribes.clear()
+                        registrationViewModel.tribes.addAll(selectedTribes)
+                        registrationViewModel.showTribesOnProfile = showTribesOnProfile
+                        registrationViewModel.bodyType = selectedBodyType
+                        registrationViewModel.showBodyTypeOnProfile = showBodyTypeOnProfile
+                        registrationViewModel.kinks.clear()
+                        registrationViewModel.kinks.addAll(selectedKinks)
+                        registrationViewModel.showKinksOnProfile = showKinksOnProfile
+                        onNext()
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
                 ) {
@@ -4385,17 +4467,6 @@ fun EnterOrientationScreen(
             }
         }
     )
-}
-
-fun inferInterestedIn(gender: String, orientation: String): List<String> {
-    val g = gender.toGenderCode()
-    return when (orientation.toOrientationCode()) {
-        SexualOrientation.STRAIGHT -> if (g == Gender.MALE) listOf("Women") else listOf("Men")
-        SexualOrientation.GAY -> listOf("Men")
-        SexualOrientation.LESBIAN -> listOf("Women")
-        SexualOrientation.BISEXUAL, SexualOrientation.PANSEXUAL, SexualOrientation.QUEER -> listOf("Men", "Women")
-        else -> emptyList()
-    }
 }
 
 

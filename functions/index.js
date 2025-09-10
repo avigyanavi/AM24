@@ -265,20 +265,6 @@ exports.backfillOrientationAndKinks = functions
 
       snap.forEach(userSnap => {
         const data = userSnap.val() || {};
-        const gender = (data.gender || '').toLowerCase();
-        const interestedIn = (data.interestedIn || []).map(s => (s || '').toLowerCase());
-
-        if (!data.sexualOrientation) {
-          const men = interestedIn.includes('men');
-          const women = interestedIn.includes('women');
-          let orientation = '';
-          if (men && women) orientation = 'Bisexual';
-          else if (gender === 'male' && women) orientation = 'Straight';
-          else if (gender === 'female' && men) orientation = 'Straight';
-          else if (men) orientation = gender === 'male' ? 'Gay' : '';
-          else if (women) orientation = gender === 'female' ? 'Lesbian' : '';
-          if (orientation) updates[`${userSnap.key}/sexualOrientation`] = orientation;
-        }
         if (data.kinks === undefined) {
           updates[`${userSnap.key}/kinks`] = [];
         }
@@ -664,9 +650,8 @@ exports.getGlobalBoostedUsers = functions
 exports.getGlobalPremiumUsers = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 60, memory: '256MB' })
-  .https.onCall(async ({ uid, limit }) => {
+  .https.onCall(async ({ uid }) => {
     const cutoff = now() - 30 * 24 * 60 * 60 * 1000; // 30 days
-    const lim = Number(limit) || 20;
 
     const snap = await USERS
       .orderByChild('lastActive')
@@ -690,8 +675,8 @@ exports.getGlobalPremiumUsers = functions
         return a.userId.localeCompare(b.userId);
        });
 
-    return { profiles: profiles.slice(0, lim) };
-  });
+     return { profiles };
+   });
   /* ──────────────────────── getGlobalComplimenters ──────────────────────────── */
   /** uid → list every user who has *ever* sent that uid a compliment. */
 exports.getGlobalComplimenters = functions

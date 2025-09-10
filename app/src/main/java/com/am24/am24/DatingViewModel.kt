@@ -297,18 +297,8 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
                 coroutineScope {
                     // load user country + tier
-                    val meSnapDeferred = async { usersRef.child(me).get().await() }
                     val blockedDeferred = async { fetchBlockedUsers(me) }
-
-                    val meSnap = meSnapDeferred.await()
-                    val myCountry = meSnap.child("country").getValue(String::class.java).orEmpty()
-                    val isPremium = meSnap.child("isPremium").getValue(Boolean::class.java) ?: false
-                    val isPlus    = meSnap.child("isPlus").getValue(Boolean::class.java)    ?: false
-                    val limit = when {
-                        isPremium -> 100
-                        isPlus    -> 50
-                        else      -> 20
-                    }
+                    val limit = Int.MAX_VALUE
 
                     _blockedUsers.value = blockedDeferred.await()
                     _loadingProgress.value = 30
@@ -325,8 +315,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                             val plus = list.filter { !it.isPremium && it.isPlus }
                             prem + plus
                         }
-                        .take(limit)
-
                     _allProfiles.value = ordered
                 }
 
@@ -352,7 +340,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         runCatching {
             val payload = hashMapOf(
                 "uid" to me,
-                "limit" to limit
             )
             val callable = functions.getHttpsCallable("getGlobalPremiumUsers").apply {
                 setTimeout(60, TimeUnit.SECONDS)

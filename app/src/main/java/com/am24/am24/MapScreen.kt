@@ -121,7 +121,6 @@ data class NearbyUser(
     val latLng: LatLng?,
     val distanceMeters: Double,
     val gender: String,
-    val sexualOrientation: String,
     val interests: List<Interest> = emptyList(),
     val compatibilityPct: Int? = null,
     val randomDetail: String? = null
@@ -248,15 +247,8 @@ fun MapScreen(
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
     var isIndian by remember { mutableStateOf(false) }
     val profileViewModel: ProfileViewModel = viewModel()
-    val orientationFilter by navController.currentBackStackEntry?.savedStateHandle
-        ?.getStateFlow("mapOrientationFilter", prefs.getString("map_orientation_filter", "") ?: "")?.collectAsState()
-        ?: remember { mutableStateOf("") }
 
     val showAds = !isPremium && !isPlus
-
-    LaunchedEffect(orientationFilter) {
-        prefs.edit().putString("map_orientation_filter", orientationFilter).apply()
-    }
 
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
@@ -585,7 +577,7 @@ fun MapScreen(
 
     // filtering + sorting (wrapped in remember)
     val filteredPeople by remember(
-        people, genderFilter, sortMode, lastActiveHours, orientationFilter, isPlus, isPremium
+        people, genderFilter, sortMode, lastActiveHours, isPlus, isPremium
     ) {
         derivedStateOf {
             var list = when (genderFilter) {
@@ -594,10 +586,6 @@ fun MapScreen(
                 GenderFilter.MEN   -> people.filter { it.gender.toGenderCode() == Gender.MALE }
                 GenderFilter.OTHER -> people.filter { it.gender.toGenderCode() == Gender.OTHER }
             }
-            if (orientationFilter.isNotBlank()) {
-                list = list.filter { it.sexualOrientation.toOrientationCode()?.name == orientationFilter }
-            }
-
             if (sortMode == SortMode.ACTIVE) {
                 val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(lastActiveHours.toLong())
                 list = list.filter { it.lastActiveAt >= cutoff }

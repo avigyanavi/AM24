@@ -28,8 +28,6 @@
     <string name="cd_city_filter">Browse by city</string>
     <string name="clear_city_filter">Clear city filter</string>
     <string name="city_coords_unavailable">Coordinates unavailable for %1$s</string>
-    <string name="sexual_orientation_label">Sexual Orientation</string>
-    <string name="kinks_label">Kinks (separated by ,)</string>
     <string name="advanced_compatibility">Advanced Compatibility</string>
     <string name="remove_from_stack">Remove from stack</string>
     <string name="block">Block</string>
@@ -37,14 +35,28 @@
     <string name="cd_omegle">Random chat</string>
     <string name="no_users_online">No users online</string>
     <string name="end_chat">End</string>
-    <string-array name="sexual_orientation_options">
-        <item>Straight</item>
-        <item>Gay</item>
-        <item>Lesbian</item>
-        <item>Bisexual</item>
-        <item>Pansexual</item>
-        <item>Asexual</item>
-        <item>Queer</item>
+    <string-array name="roles_options">
+        <item>⚡️ Dom</item>
+        <item>🛡️ Sub</item>
+        <item>🔄 Switch</item>
+    </string-array>
+    <string-array name="tribes_options">
+        <item>🐻 Bear</item>
+        <item>💜 Twink</item>
+        <item>🥊 Otter</item>
+        <item>⚽ Jock</item>
+    </string-array>
+    <string-array name="body_type_options">
+        <item>💪 Muscular</item>
+        <item>🧘‍♂️ Slim</item>
+        <item>👨‍💣 Average</item>
+        <item>🐽 Chubby</item>
+    </string-array>
+    <string-array name="kink_options">
+        <item>⛓️ BDSM</item>
+        <item>🎠 Roleplay</item>
+        <item>🌳 Outdoor</item>
+        <item>🎭 Costume</item>
     </string-array>
     <string name="notification_streak_plus_message">Your streak unlocked Plus—see who liked you!</string>
     <string name="watch_ad_boost">Watch ad for 1 Boost</string>
@@ -971,6 +983,11 @@
     <string name="politics_option_socialist">Socialist</string>          <!-- new -->
     <string name="politics_option_communist">Communist</string>          <!-- new -->
     <string name="politics_option_other">Other</string>
+    <string name="roles_label">Roles</string>
+    <string name="tribes_label">Tribes</string>
+    <string name="body_type_label">Body Type</string>
+    <string name="kinks_label">Kinks</string>
+    <string name="show_on_profile">Show on profile</string>
 
     <!-- ── Job-role dropdown ── -->
     <string name="select_job_role">Select job role</string>

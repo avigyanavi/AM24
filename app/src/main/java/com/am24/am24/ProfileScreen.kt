@@ -2523,17 +2523,34 @@ fun PreferencesSection(profile: Profile) {
         displayPolitics.ifBlank { stringResource(R.string.not_set) },
         Icons.Default.HowToVote
     )
-    ProfileDetailRow(
-        stringResource(R.string.sexual_orientation_label),
-        profile.sexualOrientation.toOrientationCode()?.localized(ctx)
-            ?: if (profile.sexualOrientation.isBlank()) stringResource(R.string.not_specified) else profile.sexualOrientation,
-        Icons.Default.Favorite
-    )
-    ProfileDetailRow(
-        stringResource(R.string.kinks_label),
-        if (profile.kinks.isEmpty()) stringResource(R.string.not_specified) else profile.kinks.joinToString(", "),
-        Icons.Default.LocalParking
-    )
+    if (profile.showRolesOnProfile) {
+        ProfileDetailRow(
+            stringResource(R.string.roles_label),
+            if (profile.roles.isEmpty()) stringResource(R.string.not_specified) else profile.roles.joinToString(", "),
+            Icons.Default.Badge
+        )
+    }
+    if (profile.showTribesOnProfile) {
+        ProfileDetailRow(
+            stringResource(R.string.tribes_label),
+            if (profile.tribes.isEmpty()) stringResource(R.string.not_specified) else profile.tribes.joinToString(", "),
+            Icons.Default.Groups
+        )
+    }
+    if (profile.showBodyTypeOnProfile) {
+        ProfileDetailRow(
+            stringResource(R.string.body_type_label),
+            profile.bodyType.ifBlank { stringResource(R.string.not_specified) },
+            Icons.Default.AccessibilityNew
+        )
+    }
+    if (profile.showKinksOnProfile) {
+        ProfileDetailRow(
+            stringResource(R.string.kinks_label),
+            if (profile.kinks.isEmpty()) stringResource(R.string.not_specified) else profile.kinks.joinToString(", "),
+            Icons.Default.LocalParking
+        )
+    }
 }
 
 fun isLifestyleEmpty(lifestyle: Lifestyle?): Boolean {
@@ -4291,14 +4308,22 @@ fun PreferencesEditSection(
         )
     }
 
-    val orientationOptions = stringArrayResource(R.array.sexual_orientation_options).toList()
-    var selectedOrientation by remember {
-        mutableStateOf(
-            tempProfile.sexualOrientation.toOrientationCode()?.localized(context)
-                ?: tempProfile.sexualOrientation.ifBlank { notSelected }
-        )
-    }
-    var kinksText by remember { mutableStateOf(tempProfile.kinks.joinToString(", ")) }
+    val roleOptions = stringArrayResource(R.array.roles_options).toList()
+    val tribeOptions = stringArrayResource(R.array.tribes_options).toList()
+    val bodyTypeOptions = stringArrayResource(R.array.body_type_options).toList()
+    val kinkOptions = stringArrayResource(R.array.kink_options).toList()
+
+    var selectedRoles = remember { mutableStateListOf<String>().apply { addAll(tempProfile.roles) } }
+    var showRolesOnProfile by remember { mutableStateOf(tempProfile.showRolesOnProfile) }
+
+    var selectedTribes = remember { mutableStateListOf<String>().apply { addAll(tempProfile.tribes) } }
+    var showTribesOnProfile by remember { mutableStateOf(tempProfile.showTribesOnProfile) }
+
+    var selectedBodyType by remember { mutableStateOf(tempProfile.bodyType.ifBlank { notSelected }) }
+    var showBodyTypeOnProfile by remember { mutableStateOf(tempProfile.showBodyTypeOnProfile) }
+
+    var selectedKinks = remember { mutableStateListOf<String>().apply { addAll(tempProfile.kinks) } }
+    var showKinksOnProfile by remember { mutableStateOf(tempProfile.showKinksOnProfile) }
 
     Column(
         modifier = Modifier
@@ -4409,13 +4434,18 @@ fun PreferencesEditSection(
         }
 
         // --- Sexual Orientation ---
-        Text(stringResource(R.string.sexual_orientation_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+// --- Roles ---
+        Text(stringResource(R.string.roles_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
+            Switch(checked = showRolesOnProfile, onCheckedChange = { showRolesOnProfile = it })
+        }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            orientationOptions.forEach { option ->
+            roleOptions.forEach { option ->
                 FilterChip(
-                    selected = selectedOrientation == option,
+                    selected = option in selectedRoles,
                     onClick = {
-                        selectedOrientation = if (selectedOrientation == option) notSelected else option
+                        if (option in selectedRoles) selectedRoles.remove(option) else selectedRoles.add(option)
                     },
                     label = { Text(option, fontSize = 12.sp, color = Color.White) },
                     colors = FilterChipDefaults.filterChipColors(
@@ -4427,27 +4457,84 @@ fun PreferencesEditSection(
                 )
             }
         }
-        OutlinedTextField(
-            value = kinksText,
-            onValueChange = { kinksText = it },
-            label = { Text(stringResource(R.string.kinks_label), fontSize = 12.sp, color = Color(0xFFFF6F00)) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFFFF6F00),
-                unfocusedBorderColor = Color.Gray,
-                cursorColor = Color.White,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White
-            )
-        )
 
+        // --- Tribes ---
+        Text(stringResource(R.string.tribes_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
+            Switch(checked = showTribesOnProfile, onCheckedChange = { showTribesOnProfile = it })
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            tribeOptions.forEach { option ->
+                FilterChip(
+                    selected = option in selectedTribes,
+                    onClick = {
+                        if (option in selectedTribes) selectedTribes.remove(option) else selectedTribes.add(option)
+                    },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White
+                    )
+                )
+            }
+        }
+
+        // --- Body Type ---
+        Text(stringResource(R.string.body_type_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
+            Switch(checked = showBodyTypeOnProfile, onCheckedChange = { showBodyTypeOnProfile = it })
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            bodyTypeOptions.forEach { option ->
+                FilterChip(
+                    selected = selectedBodyType == option,
+                    onClick = {
+                        selectedBodyType = if (selectedBodyType == option) notSelected else option
+                    },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor     = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor     = Color.White
+                    )
+                )
+            }
+        }
+
+        // --- Kinks ---
+        Text(stringResource(R.string.kinks_label), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF6F00))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.show_on_profile), color = Color.White, fontSize = 12.sp)
+            Switch(checked = showKinksOnProfile, onCheckedChange = { showKinksOnProfile = it })
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            kinkOptions.forEach { option ->
+                FilterChip(
+                    selected = option in selectedKinks,
+                    onClick = {
+                        if (option in selectedKinks) selectedKinks.remove(option) else selectedKinks.add(
+                            option
+                        )
+                    },
+                    label = { Text(option, fontSize = 12.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor = Color.White
+                    )
+                )
+            }
+        }
         Spacer(Modifier.height(8.dp))
 
         ButtonRow(
             onSave = {
-                val orientationFinal = selectedOrientation.takeIf { it != notSelected }?.toOrientationCode()?.name ?: ""
-                val kinksList = kinksText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                val orientGenders = inferInterestedIn(tempProfile.gender, orientationFinal)
                 val updated = tempProfile.copy(
                     lookingFor   = selectedLookingFor.takeIf { it != notSelected } ?: "",
                     loveLanguage = selectedLoveLanguage.takeIf { it != notSelected } ?: "",
@@ -4456,9 +4543,14 @@ fun PreferencesEditSection(
                     politics     = selectedPolitics.takeIf { it != notSelected } ?: "",
                     customPolitics = if (selectedPolitics == politicsOptions.last())
                         customPolitics.ifBlank { null } else null,
-                    sexualOrientation = orientationFinal,
-                    kinks = kinksList,
-                    interestedIn = if (orientGenders.isNotEmpty()) orientGenders else tempProfile.interestedIn
+                    roles = selectedRoles,
+                    showRolesOnProfile = showRolesOnProfile,
+                    tribes = selectedTribes,
+                    showTribesOnProfile = showTribesOnProfile,
+                    bodyType = selectedBodyType.takeIf { it != notSelected } ?: "",
+                    showBodyTypeOnProfile = showBodyTypeOnProfile,
+                    kinks = selectedKinks,
+                    showKinksOnProfile = showKinksOnProfile
                 )
                 onSave(updated)
             },
@@ -6032,8 +6124,14 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
         "ethnicity" to updatedProfile.ethnicity,
         "incomeLevel" to updatedProfile.incomeLevel,
         "lookingFor" to updatedProfile.lookingFor,
-        "sexualOrientation" to updatedProfile.sexualOrientation,
+        "roles" to updatedProfile.roles,
+        "showRolesOnProfile" to updatedProfile.showRolesOnProfile,
+        "tribes" to updatedProfile.tribes,
+        "showTribesOnProfile" to updatedProfile.showTribesOnProfile,
+        "bodyType" to updatedProfile.bodyType,
+        "showBodyTypeOnProfile" to updatedProfile.showBodyTypeOnProfile,
         "kinks" to updatedProfile.kinks,
+        "showKinksOnProfile" to updatedProfile.showKinksOnProfile,
         "interestedIn" to updatedProfile.interestedIn,
         "interests" to updatedProfile.interests.map {
             mapOf("name" to it.name, "emoji" to it.emoji)

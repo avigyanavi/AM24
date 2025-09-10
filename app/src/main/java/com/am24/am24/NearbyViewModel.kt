@@ -61,12 +61,7 @@ class NearbyViewModel : ViewModel() {
         isRefreshing = true
         people.clear()
 
-        val limit = when {
-            isPremium -> 100
-            isPlus -> 50
-            else -> 20
-        }
-
+        val limit = Int.MAX_VALUE
         // Always run the NEARBY GeoFire query (People tab dataset),
         // and let the UI's toggle handle last-active filtering/sorting.
         geoQuery = observeNearbyUsers(
@@ -203,7 +198,6 @@ class NearbyViewModel : ViewModel() {
                         latLng = latLng,
                         distanceMeters = distM,
                         gender = p.gender ?: "",
-                        sexualOrientation = p.sexualOrientation ?: "",
                         interests = p.interests,
                         compatibilityPct = compat,
                         randomDetail = randomDetail

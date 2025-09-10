@@ -11,6 +11,36 @@
     <string name="whats_on_your_mind">¿Qué estás pensando?</string>
     <string name="add_tags_comma_separated">Agregar etiquetas (separadas por comas)</string>
     <string name="add_location_optional">Agregar una ubicación (opcional)</string>
+    <string name="show_on_profile">Mostrar en el perfil</string>
+    <string name="roles_label">Roles</string>
+    <string-array name="roles_options">
+        <item>⚡️ Dominante</item>
+        <item>🛡️ Sumiso</item>
+        <item>🔄 Switch</item>
+    </string-array>
+
+    <string-array name="tribes_options">
+        <item>🐻 Oso</item>
+        <item>💜 Twink</item>
+        <item>🥊 Nutria</item>
+        <item>⚽ Jock</item>
+    </string-array>
+
+    <string-array name="body_type_options">
+        <item>💪 Musculoso</item>
+        <item>🧘‍♂️ Delgado</item>
+        <item>👨‍💣 Promedio</item>
+        <item>🐽 Llenito</item>
+    </string-array>
+
+    <string-array name="kink_options">
+        <item>🔱 BDSM</item>
+        <item>🎠 Juego de roles</item>
+        <item>🌳 Al aire libre</item>
+        <item>🎭 Disfraces</item>
+    </string-array>
+    <string name="tribes_label">Tribus</string>
+    <string name="body_type_label">Tipo de cuerpo</string>
     <string name="online_users">Usuarios en línea</string>
     <string name="male_header">Hombre</string>
     <string name="female_header">Mujer</string>
@@ -38,7 +68,6 @@
     <string name="daily_login_message">Has iniciado sesión %1$d días consecutivos</string>
     <string name="daily_login_plus_award">Plus desbloqueado durante %1$d horas</string>
     <string name="settings_streak_line">Racha de inicio de sesión: %1$d días • %2$s</string>
-    <string name="sexual_orientation_label">Orientación sexual</string>
     <string name="kinks_label">Fetiches (separados por comas)</string>
 
     <string name="sort_nearby">Cerca</string>
@@ -120,16 +149,6 @@
 
     <!-- Profile popup -->
     <string name="btn_view_full_profile">Ver perfil completo</string>
-
-    <string-array name="sexual_orientation_options">
-        <item>Heterosexual</item>
-        <item>Gay</item>
-        <item>Lesbiana</item>
-        <item>Bisexual</item>
-        <item>Pansexual</item>
-        <item>Asexual</item>
-        <item>Queer</item>
-    </string-array>
 
     <string name="advanced_compatibility">Compatibilidad avanzada</string>
 
