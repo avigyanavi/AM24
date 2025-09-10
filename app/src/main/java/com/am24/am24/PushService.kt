@@ -82,8 +82,11 @@ class PushService : FirebaseMessagingService() {
                         .setSmallIcon(R.drawable.kupidx_notification)
                         .setContentTitle(getString(R.string.app_name))
                         .setContentText(
-                            "You have $unread unread notification" +
-                                    if (unread > 1) "s" else ""
+                            resources.getQuantityString(
+                                R.plurals.notification_unread_messages,
+                                unread,
+                                unread
+                            )
                         )
                         .setNumber(unread)
                         .setAutoCancel(true)
@@ -112,7 +115,7 @@ class PushService : FirebaseMessagingService() {
                     NotificationCompat.Builder(this, CHANNEL_ID)
                         .setSmallIcon(R.drawable.kupidx_notification)
                         .setContentTitle(getString(R.string.app_name))
-                        .setContentText("Upgrade for no Ads!")
+                        .setContentText(getString(R.string.notification_upgrade_prompt))
                         .setAutoCancel(true)
                         .setContentIntent(pending)
                         .build()
@@ -142,7 +145,7 @@ class PushService : FirebaseMessagingService() {
                     NotificationCompat.Builder(this, CHANNEL_ID)
                         .setSmallIcon(R.drawable.kupidx_logo1)
                         .setContentTitle(getString(R.string.app_name))
-                        .setContentText("Online user sends chat invite")
+                        .setContentText(getString(R.string.notification_omegle_invite))
                         .setAutoCancel(true)
                         .setContentIntent(pending)
                         .build()
@@ -160,7 +163,7 @@ class PushService : FirebaseMessagingService() {
                 mgr.createNotificationChannel(
                     NotificationChannel(
                         CHANNEL_ID,
-                        "AM24 notifications",
+                        getString(R.string.notification_channel_name),
                         NotificationManager.IMPORTANCE_HIGH
                     )
                 )

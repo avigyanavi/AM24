@@ -24,6 +24,30 @@
     <string name="user_hidden_private_album">%1$s ha ocultado su álbum privado</string>
     <string name="view_users_private_album">Ver el álbum privado de %1$s</string>
     <string name="your_match">Tu match</string>
+    <plurals name="notification_unread_messages">
+        <item quantity="one">Tienes %d notificación sin leer</item>
+        <item quantity="other">Tienes %d notificaciones sin leer</item>
+    </plurals>
+    <string name="notification_upgrade_prompt">¡Actualiza para no ver anuncios!</string>
+    <string name="notification_omegle_invite">Usuario en línea envió invitación de chat</string>
+    <string name="notification_channel_name">Notificaciones de Kupidx</string>
+
+    <string name="toast_not_logged_in">No has iniciado sesión</string>
+    <string name="toast_camera_permission_required">Se requiere permiso de cámara para tomar una foto</string>
+    <string name="toast_id_capture_failed">Error al capturar la identificación</string>
+    <string name="toast_selfie_capture_failed">Error al capturar la selfie</string>
+    <string name="retake_id">Repetir ID</string>
+    <string name="retake_selfie">Repetir selfie</string>
+    <string name="submitting">Enviando&#8230;</string>
+    <string name="submit_for_review">Enviar para revisión</string>
+    <string name="verification_pending">Verificación pendiente</string>
+    <string name="already_verified">Ya estás verificado</string>
+    <string name="photo_rejected_try_again">Foto rechazada, inténtalo de nuevo</string>
+    <string name="capture_new_id">Capturar nueva ID</string>
+    <string name="verify_id_title">Verifica tu identificación y selfie</string>
+    <string name="capture_id_with_camera">Captura tu identificación con la cámara</string>
+    <string name="prompt_selfie_with_id">¡Genial! Ahora toma una selfie sosteniendo tu identificación</string>
+    <string name="capture_selfie_with_id">Captura selfie con identificación</string>
     <string-array name="roles_options">
         <item>⚡️ Dominante</item>
         <item>🛡️ Sumiso</item>

@@ -12,7 +12,7 @@
     <string name="share_private_album">Share private album</string>
     <string name="user_shared_private_album">%1$s has shared their private album</string>
     <string name="user_hidden_private_album">%1$s has hidden their private album</string>
-    <string name="view_users_private_album">View %1$s's private album</string>
+    <string name="view_users_private_album">View %1$s \'s private album</string>
     <string name="your_match">Your match</string>
     <string name="image_post_label">Image Post</string>
     <string name="video_post_label">Video Post</string>
@@ -46,6 +46,30 @@
     <string name="cd_omegle">Random chat</string>
     <string name="no_users_online">No users online</string>
     <string name="end_chat">End</string>
+    <plurals name="notification_unread_messages">
+        <item quantity="one">You have %d unread notification</item>
+        <item quantity="other">You have %d unread notifications</item>
+    </plurals>
+    <string name="notification_upgrade_prompt">Upgrade for no Ads!</string>
+    <string name="notification_omegle_invite">Online user sends chat invite</string>
+    <string name="notification_channel_name">Kupidx notifications</string>
+
+    <string name="toast_not_logged_in">Not logged in</string>
+    <string name="toast_camera_permission_required">Camera permission is required to take a photo</string>
+    <string name="toast_id_capture_failed">ID capture failed</string>
+    <string name="toast_selfie_capture_failed">Selfie capture failed</string>
+    <string name="retake_id">Retake ID</string>
+    <string name="retake_selfie">Retake Selfie</string>
+    <string name="submitting">Submitting&#8230;</string>
+    <string name="submit_for_review">Submit for Review</string>
+    <string name="verification_pending">Verification Pending</string>
+    <string name="already_verified">You\'re already verified</string>
+    <string name="photo_rejected_try_again">Photo rejected, try again</string>
+    <string name="capture_new_id">Capture New ID</string>
+    <string name="verify_id_title">Verify Your Government ID &amp; Selfie</string>
+    <string name="capture_id_with_camera">Capture ID with Camera</string>
+    <string name="prompt_selfie_with_id">Great! Now please take a selfie holding your ID</string>
+    <string name="capture_selfie_with_id">Capture Selfie with ID</string>
     <string-array name="roles_options">
         <item>⚡️ Dom</item>
         <item>🛡️ Sub</item>
