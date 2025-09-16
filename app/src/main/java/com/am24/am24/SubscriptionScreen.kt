@@ -360,7 +360,7 @@ fun SubscriptionScreen(
                             )
                             val priceLabel = when {
                                 isIndia -> "₹${plan.price} / ${plan.period.label.lowercase()}"
-                                isMexico -> "MX$${mxnPrice(plan)} / ${plan.period.label.lowercase()}"
+                                isMexico -> "MXN${mxnPrice(plan)} / ${plan.period.label.lowercase()}"
                                 else -> "$${usdPrice(plan)} / ${plan.period.label.lowercase()}"
                             }
                             Text(priceLabel, color = Color.LightGray, fontSize = 14.sp)
