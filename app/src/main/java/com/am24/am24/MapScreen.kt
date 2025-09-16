@@ -144,6 +144,16 @@ data class NearbyUser(
     val politics: String = ""
 )
 
+private data class GenderFilterOption(val canonicalValue: String, val labelRes: Int)
+
+private val genderFilterOptions = listOf(
+    GenderFilterOption("", R.string.gender_all),
+    GenderFilterOption(canonicalGender("male"), canonicalGenderRes("male") ?: R.string.male_option),
+    GenderFilterOption(canonicalGender("female"), canonicalGenderRes("female") ?: R.string.female_option),
+    GenderFilterOption(canonicalGender("other"), canonicalGenderRes("other") ?: R.string.gender_other)
+)
+
+
 // Leaderboard
 data class LeaderboardEntry(
     val placeId: String,
@@ -230,6 +240,7 @@ fun MapScreen(
 ) {
     val ctx = LocalContext.current
     val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    val gson = remember { Gson() }
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val useMiles = remember { !CountryUtil.usesKilometers(ctx) } // decide unit once
@@ -294,7 +305,8 @@ fun MapScreen(
     LaunchedEffect(isPlus || isPremium) {
         if (isPlus || isPremium) {
             prefs.getString("map_dating_filters", null)?.let {
-                runCatching { nearbyViewModel.datingFilters = Gson().fromJson(it, DatingFilterSettings::class.java) }
+                runCatching { nearbyViewModel.datingFilters = gson.fromJson(it, DatingFilterSettings::class.java)
+                }
             }
         }
     }
@@ -727,8 +739,58 @@ fun MapScreen(
                             }
                             DropdownMenu(
                                 expanded = showOverflowMenu,
-                                onDismissRequest = { showOverflowMenu = false }
+                                onDismissRequest = { showOverflowMenu = false },
+                                modifier = Modifier.widthIn(max = 280.dp)
                             ) {
+                                Column(
+                                    Modifier
+                                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                                        .widthIn(max = 280.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.label_gender),
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                    val selectedCanonicalGender = canonicalGender(datingFilters.gender)
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    ) {
+                                        genderFilterOptions.forEach { option ->
+                                            val optionCanonical = option.canonicalValue
+                                            val isSelected = if (optionCanonical.isBlank()) {
+                                                selectedCanonicalGender.isBlank()
+                                            } else {
+                                                selectedCanonicalGender == optionCanonical
+                                            }
+                                            FilterChip(
+                                                selected = isSelected,
+                                                onClick = {
+                                                    val newGender = when {
+                                                        optionCanonical.isBlank() -> ""
+                                                        isSelected -> ""
+                                                        else -> optionCanonical
+                                                    }
+                                                    val updatedFilters = datingFilters.copy(gender = newGender)
+                                                    datingFilters = updatedFilters
+                                                    prefs.edit().putString("map_dating_filters", gson.toJson(updatedFilters)).apply()
+                                                    userLatLng?.let {
+                                                        nearbyViewModel.refreshNearbyUsers(
+                                                            userId,
+                                                            it,
+                                                            geoFireDatabaseRef,
+                                                            forceRefresh = true
+                                                        )
+                                                    }
+                                                    showOverflowMenu = false
+                                                },
+                                                label = { Text(stringResource(option.labelRes)) }
+                                            )
+                                        }
+                                    }
+                                }
+                                HorizontalDivider()
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.filters)) },
                                     onClick = {
@@ -1532,7 +1594,7 @@ fun MapScreen(
             onApply = { filters ->
                 showFiltersDialog = false
                 nearbyViewModel.datingFilters = filters
-                prefs.edit().putString("map_dating_filters", Gson().toJson(filters)).apply()
+                prefs.edit().putString("map_dating_filters", gson.toJson(filters)).apply()
                 userLatLng?.let {
                     nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef, forceRefresh = true)
                 }
@@ -2087,12 +2149,6 @@ private fun NearbyCard(
             }
         }
     }
-}
-
-private fun deaccent(s: String): String {
-    // NFD = split accents into separate code points, then strip marks (\p{Mn})
-    val nfd = Normalizer.normalize(s, Normalizer.Form.NFD)
-    return nfd.replace(Regex("\\p{Mn}+"), "")
 }
 
 @Composable
@@ -2659,6 +2715,7 @@ private fun DatingFilterDialog(
 ) {
     var ageRange by remember { mutableStateOf(initial.ageStart to initial.ageEnd) }
     var ethnicity by remember { mutableStateOf(initial.ethnicity) }
+    var gender by remember { mutableStateOf(canonicalGender(initial.gender)) }
     val selectedRoles = remember { mutableStateListOf<String>().apply { addAll(initial.roles) } }
     val selectedTribes = remember { mutableStateListOf<String>().apply { addAll(initial.tribes) } }
     val selectedKinks = remember { mutableStateListOf<String>().apply { addAll(initial.kinks) } }
@@ -2704,7 +2761,7 @@ private fun DatingFilterDialog(
                         ageStart = ageRange.first,
                         ageEnd = ageRange.second,
                         ethnicity = ethnicity,
-                        gender = initial.gender,
+                        gender = gender,
                     )
                 )
             }) { Text(stringResource(R.string.apply), color = KupidxOrange) }
@@ -2714,6 +2771,30 @@ private fun DatingFilterDialog(
         },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text(stringResource(R.string.label_gender), fontWeight = FontWeight.SemiBold)
+                val currentCanonicalGender = canonicalGender(gender)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    genderFilterOptions.forEach { option ->
+                        val optionCanonical = option.canonicalValue
+                        val isSelected = if (optionCanonical.isBlank()) {
+                            currentCanonicalGender.isBlank()
+                        } else {
+                            currentCanonicalGender == optionCanonical
+                        }
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                gender = when {
+                                    optionCanonical.isBlank() -> ""
+                                    isSelected -> ""
+                                    else -> optionCanonical
+                                }
+                            },
+                            label = { Text(stringResource(option.labelRes)) }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
                 Text(stringResource(R.string.label_age), fontWeight = FontWeight.SemiBold)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ageOptions.forEach { (start, end) ->
