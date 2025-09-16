@@ -32,8 +32,8 @@ fun canonicalGender(raw: String?): String {
     val normalized = raw.stripAccents().lowercase(Locale.ROOT)
     return when (normalized) {
         // English
-        "male", "m", "man", "men" -> "male"
-        "female", "f", "woman", "women" -> "female"
+        "male", "m", "man", "men", "gender_men" -> "male"
+        "female", "f", "woman", "women", "gender_women" -> "female"
         "other", "others", "non-binary", "nonbinary", "nb" -> "other"
 
         // Spanish
@@ -45,6 +45,7 @@ fun canonicalGender(raw: String?): String {
         "male_option" -> "male"
         "female_option" -> "female"
         "gender_other" -> "other"
+        "gender_all", "all", "todos", "todas" -> ""
         "gender_either", "either", "both", "gender_both", "ambos" -> ""
 
         else -> normalized

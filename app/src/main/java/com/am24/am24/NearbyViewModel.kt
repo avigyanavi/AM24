@@ -23,6 +23,13 @@ import kotlin.math.roundToInt
 import java.util.concurrent.TimeUnit
 
 class NearbyViewModel : ViewModel() {
+    private data class NearbyUiState(
+        val people: List<NearbyUser>,
+        val sortMode: SortMode,
+        val lastActiveHours: Double,
+        val genderFilter: String,
+    )
+
     val people = mutableStateListOf<NearbyUser>()
     var sortMode by mutableStateOf(SortMode.NEARBY)
     // Default radius shown in the People tab
@@ -38,14 +45,23 @@ class NearbyViewModel : ViewModel() {
 
 
     val nearbyUsers: Flow<List<NearbyUser>> = snapshotFlow {
-        Triple(people.toList(), sortMode, lastActiveHours)
-    }.map { (people, mode, hours) ->
-        var list: List<NearbyUser> = people
-        if (mode == SortMode.ACTIVE) {
-            val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(hours.toLong())
+        NearbyUiState(
+            people = people.toList(),
+            sortMode = sortMode,
+            lastActiveHours = lastActiveHours,
+            genderFilter = datingFilters.gender,
+        )
+    }.map { state ->
+        var list: List<NearbyUser> = state.people
+        val genderFilter = canonicalGender(state.genderFilter)
+        if (genderFilter.isNotBlank()) {
+            list = list.filter { matchesCanonicalGender(it.gender, genderFilter) }
+        }
+        if (state.sortMode == SortMode.ACTIVE) {
+            val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(state.lastActiveHours.toLong())
             list = list.filter { it.lastActiveAt >= cutoff }
         }
-        when (mode) {
+        when (state.sortMode) {
             SortMode.NEARBY -> list.sortedBy { it.distanceMeters }
             SortMode.ACTIVE -> list.sortedByDescending { it.lastActiveAt }
             SortMode.FAR -> list.sortedByDescending { it.distanceMeters }
@@ -260,6 +276,7 @@ class NearbyViewModel : ViewModel() {
                         userId = uid,
                         username = username,
                         age = age,
+                        gender = canonicalGender(p.gender),
                         photoUrl = p.profilepicUrl,
                         lastActiveAt = lastActive,
                         isOnline = online,
@@ -313,20 +330,10 @@ class NearbyViewModel : ViewModel() {
     private fun matchesFilters(p: Profile, age: Int): Boolean {
         val f = datingFilters
         if (age < f.ageStart || age > f.ageEnd) return false
-        if (f.gender.isNotBlank()) {
-            val target = canonicalGender(f.gender)
-            if (target.isNotBlank()) {
-                val userGender = canonicalGender(p.gender)
-                when (target) {
-                    "male" -> if (userGender != "male") return false
-                    "female" -> if (userGender != "female") return false
-                    "other" -> {
-                        if (userGender == "male" || userGender == "female") return false
-                    }
-
-                    else -> if (userGender != target) return false
-                }
-            }
+        val targetGender = canonicalGender(f.gender)
+        if (targetGender.isNotBlank()) {
+            val userGender = canonicalGender(p.gender)
+            if (!matchesCanonicalGender(userGender, targetGender)) return false
         }
         if (f.roles.isNotEmpty()) {
             val canon = f.roles.map { canonicalRole(it) }
@@ -346,6 +353,13 @@ class NearbyViewModel : ViewModel() {
             if (userInts.none { it in selected }) return false
         }
         return true
+    }
+
+    private fun matchesCanonicalGender(userGender: String, target: String): Boolean = when (target) {
+        "male" -> userGender == "male"
+        "female" -> userGender == "female"
+        "other" -> userGender != "male" && userGender != "female"
+        else -> userGender == target
     }
 
     private fun distanceMeters(a: LatLng, b: LatLng): Double {

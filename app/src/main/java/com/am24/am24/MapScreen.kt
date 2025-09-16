@@ -127,6 +127,7 @@ data class NearbyUser(
     val userId: String,
     val username: String,
     val age: Int,
+    val gender: String = "",
     val photoUrl: String?,
     val lastActiveAt: Long,
     val isOnline: Boolean,
