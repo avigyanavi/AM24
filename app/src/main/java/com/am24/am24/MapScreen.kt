@@ -1545,6 +1545,11 @@ fun MapScreen(
             onDismiss = { showFiltersDialog = false },
             onApply = { filters ->
                 showFiltersDialog = false
+                val defaultLimit = when (selectedTab) {
+                    1 -> 10
+                    else -> 240
+                }
+                nearbyViewModel.currentLimit = defaultLimit
                 nearbyViewModel.datingFilters = filters
                 prefs.edit()
                     .putString("map_dating_filters", gson.toJson(filters))

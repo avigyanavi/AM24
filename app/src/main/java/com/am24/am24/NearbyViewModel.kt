@@ -59,6 +59,10 @@ class NearbyViewModel : ViewModel() {
         if (genderFilter.isNotBlank()) {
             list = list.filter { matchesCanonicalGender(it.gender, genderFilter) }
         }
+        val orientationFilter = canonicalOrientation(state.orientationFilter)
+        if (orientationFilter.isNotBlank()) {
+            list = list.filter { canonicalOrientation(it.sexualOrientation) == orientationFilter }
+        }
         if (state.sortMode == SortMode.ACTIVE) {
             val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(state.lastActiveHours.toLong())
             list = list.filter { it.lastActiveAt >= cutoff }
