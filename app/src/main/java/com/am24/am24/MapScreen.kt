@@ -1546,7 +1546,10 @@ fun MapScreen(
             onApply = { filters ->
                 showFiltersDialog = false
                 nearbyViewModel.datingFilters = filters
-                prefs.edit().putString("map_dating_filters", gson.toJson(filters)).apply()
+                prefs.edit()
+                    .putString("map_dating_filters", gson.toJson(filters))
+                    .putString("map_orientation_filter", filters.orientation)
+                    .apply()
                 userLatLng?.let {
                     nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef, forceRefresh = true)
                 }
@@ -2668,13 +2671,16 @@ private fun DatingFilterDialog(
     var ageRange by remember { mutableStateOf(initial.ageStart to initial.ageEnd) }
     var ethnicity by remember { mutableStateOf(initial.ethnicity) }
     var gender by remember { mutableStateOf(canonicalGender(initial.gender)) }
+    var orientation by remember { mutableStateOf(canonicalOrientation(initial.orientation)) }
     val selectedRoles = remember { mutableStateListOf<String>().apply { addAll(initial.roles) } }
     val selectedTribes = remember { mutableStateListOf<String>().apply { addAll(initial.tribes) } }
     val selectedKinks = remember { mutableStateListOf<String>().apply { addAll(initial.kinks) } }
 
     val selectedInterests = remember { mutableStateListOf<Interest>().apply { addAll(initial.interests) } }
     val interestOptions = allInterestOptions()
+    val orientationOptions = remember { SexualOrientation.values().toList() }
     val defaultAgeRange = DatingFilterSettings().let { it.ageStart to it.ageEnd }
+    val context = LocalContext.current
 
     val ageOptions = listOf(
         18 to 25,
@@ -2714,6 +2720,7 @@ private fun DatingFilterDialog(
                         ageEnd = ageRange.second,
                         ethnicity = ethnicity,
                         gender = gender,
+                        orientation = orientation,
                     )
                 )
             }) { Text(stringResource(R.string.apply), color = KupidxOrange) }
@@ -2743,6 +2750,21 @@ private fun DatingFilterDialog(
                                 }
                             },
                             label = { Text(stringResource(option.labelRes)) }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.sexual_orientation_label), fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    orientationOptions.forEach { option ->
+                        val canonicalName = option.name.lowercase(Locale.ROOT)
+                        val isSelected = orientation == canonicalName
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                orientation = if (isSelected) "" else canonicalName
+                            },
+                            label = { Text(option.localized(context)) }
                         )
                     }
                 }

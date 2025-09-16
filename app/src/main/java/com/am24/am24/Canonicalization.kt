@@ -16,15 +16,22 @@ fun String.toGenderCode(): Gender? = when (trim().lowercase()) {
     else -> null
 }
 
-fun String.toOrientationCode(): SexualOrientation? = when (trim().lowercase()) {
-    "straight", "heterosexual" -> SexualOrientation.STRAIGHT
-    "gay" -> SexualOrientation.GAY
-    "lesbian", "lesbiana" -> SexualOrientation.LESBIAN
-    "bisexual" -> SexualOrientation.BISEXUAL
-    "pansexual" -> SexualOrientation.PANSEXUAL
-    "asexual" -> SexualOrientation.ASEXUAL
-    "queer" -> SexualOrientation.QUEER
-    else -> null
+fun String.toOrientationCode(): SexualOrientation? {
+    val normalized = stripAccents()
+        .lowercase(Locale.ROOT)
+        .replace("[^a-z\\s]".toRegex(), "")
+        .replace("\\s+".toRegex(), " ")
+        .trim()
+    return when (normalized) {
+        "straight", "heterosexual" -> SexualOrientation.STRAIGHT
+        "gay" -> SexualOrientation.GAY
+        "lesbian", "lesbiana" -> SexualOrientation.LESBIAN
+        "bisexual" -> SexualOrientation.BISEXUAL
+        "pansexual" -> SexualOrientation.PANSEXUAL
+        "asexual" -> SexualOrientation.ASEXUAL
+        "queer" -> SexualOrientation.QUEER
+        else -> null
+    }
 }
 
 fun canonicalGender(raw: String?): String {
@@ -50,6 +57,18 @@ fun canonicalGender(raw: String?): String {
 
         else -> normalized
     }
+}
+
+fun canonicalOrientation(raw: String?): String {
+    if (raw.isNullOrBlank()) return ""
+    val value = raw
+    val code = value.toOrientationCode()
+    if (code != null) return code.name.lowercase(Locale.ROOT)
+    return value.stripAccents()
+        .lowercase(Locale.ROOT)
+        .replace("[^a-z\\s]".toRegex(), "")
+        .replace("\\s+".toRegex(), " ")
+        .trim()
 }
 
 // ─── Country & City canonicalization ──────────────────────────────────────────

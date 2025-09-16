@@ -28,6 +28,7 @@ class NearbyViewModel : ViewModel() {
         val sortMode: SortMode,
         val lastActiveHours: Double,
         val genderFilter: String,
+        val orientationFilter: String,
     )
 
     val people = mutableStateListOf<NearbyUser>()
@@ -50,7 +51,8 @@ class NearbyViewModel : ViewModel() {
             sortMode = sortMode,
             lastActiveHours = lastActiveHours,
             genderFilter = datingFilters.gender,
-        )
+            orientationFilter = datingFilters.orientation,
+            )
     }.map { state ->
         var list: List<NearbyUser> = state.people
         val genderFilter = canonicalGender(state.genderFilter)
@@ -334,6 +336,11 @@ class NearbyViewModel : ViewModel() {
         if (targetGender.isNotBlank()) {
             val userGender = canonicalGender(p.gender)
             if (!matchesCanonicalGender(userGender, targetGender)) return false
+        }
+        val targetOrientation = canonicalOrientation(f.orientation)
+        if (targetOrientation.isNotBlank()) {
+            val userOrientation = canonicalOrientation(p.sexualOrientation)
+            if (userOrientation != targetOrientation) return false
         }
         if (f.roles.isNotEmpty()) {
             val canon = f.roles.map { canonicalRole(it) }
