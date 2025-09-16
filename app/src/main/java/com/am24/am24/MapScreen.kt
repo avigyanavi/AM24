@@ -2095,32 +2095,6 @@ private fun deaccent(s: String): String {
     return nfd.replace(Regex("\\p{Mn}+"), "")
 }
 
-
-private fun canonicalGender(raw: String?): String {
-    if (raw.isNullOrBlank()) return ""
-    val t = deaccent(raw).trim().lowercase(Locale.ROOT)
-
-    return when (t) {
-        // English
-        "male", "m", "man" -> "male"
-        "female", "f", "woman" -> "female"
-        "other", "others", "non-binary", "nonbinary", "nb" -> "other"
-
-        // Spanish (lowercase; include common forms)
-        "hombre", "hombres", "masculino" -> "male"
-        "mujer", "mujeres", "femenino" -> "female"
-        "otro", "otra", "otros", "otras",
-        "no binario", "no-binario", "no_binario", "nobinario" -> "other"
-
-        // Stored resource keys
-        "male_option" -> "male"
-        "female_option" -> "female"
-        "gender_other" -> "other"
-
-        else -> t
-    }
-}
-
 @Composable
 private fun RadiusChip(
     radiusKm: Double,                  // keep km internally for GeoFire
@@ -2730,6 +2704,7 @@ private fun DatingFilterDialog(
                         ageStart = ageRange.first,
                         ageEnd = ageRange.second,
                         ethnicity = ethnicity,
+                        gender = initial.gender,
                     )
                 )
             }) { Text(stringResource(R.string.apply), color = KupidxOrange) }

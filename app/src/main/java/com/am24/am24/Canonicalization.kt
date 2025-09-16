@@ -27,6 +27,30 @@ fun String.toOrientationCode(): SexualOrientation? = when (trim().lowercase()) {
     else -> null
 }
 
+fun canonicalGender(raw: String?): String {
+    if (raw.isNullOrBlank()) return ""
+    val normalized = raw.stripAccents().lowercase(Locale.ROOT)
+    return when (normalized) {
+        // English
+        "male", "m", "man", "men" -> "male"
+        "female", "f", "woman", "women" -> "female"
+        "other", "others", "non-binary", "nonbinary", "nb" -> "other"
+
+        // Spanish
+        "hombre", "hombres", "masculino" -> "male"
+        "mujer", "mujeres", "femenino" -> "female"
+        "otro", "otra", "otros", "otras", "no binario", "no-binario", "no_binario", "nobinario" -> "other"
+
+        // Stored resource keys
+        "male_option" -> "male"
+        "female_option" -> "female"
+        "gender_other" -> "other"
+        "gender_either", "either", "both", "gender_both", "ambos" -> ""
+
+        else -> normalized
+    }
+}
+
 // ─── Country & City canonicalization ──────────────────────────────────────────
 
 private fun String.stripAccents(): String =

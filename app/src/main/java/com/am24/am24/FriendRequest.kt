@@ -40,6 +40,7 @@ data class DatingFilterSettings(
     val ageStart: Int = 18,
     val ageEnd: Int = 100,
     val ethnicity: String = "",
+    val gender: String = "",
     val roles: List<String> = emptyList(),
     val tribes: List<String> = emptyList(),
     val kinks: List<String> = emptyList(),
