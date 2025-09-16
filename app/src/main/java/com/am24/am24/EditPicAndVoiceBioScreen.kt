@@ -35,7 +35,10 @@ import com.am24.am24.compressImage
 import com.am24.am24.moderateImages
 import com.am24.am24.ui.theme.DarkGrayBackground
 import com.google.firebase.auth.FirebaseAuth
-import com.yalantis.ucrop.UCrop
+import com.canhub.cropper.CropImageContract
+import com.canhub.cropper.CropImageContractOptions
+import com.canhub.cropper.CropImageOptions
+import com.canhub.cropper.CropImageView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -96,11 +99,9 @@ fun EditPicAndVoiceBioScreen(
     }
 
     // Crop launcher
-    val cropLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val outUri = UCrop.getOutput(result.data!!) ?: return@rememberLauncherForActivityResult
+    val cropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
+        if (result.isSuccessful) {
+            val outUri = result.uriContent ?: return@rememberLauncherForActivityResult
             val idx = slotIndexToReplace ?: return@rememberLauncherForActivityResult
             scope.launch {
                 if (isExplicit(outUri)) {
@@ -115,9 +116,9 @@ fun EditPicAndVoiceBioScreen(
                 }
                 try {
                     val jpegBytes = compressImage(context, outUri) ?: return@launch
-                    val fileName = "${System.currentTimeMillis()}.jpg"
+                    val fileName = "${'$'}{System.currentTimeMillis()}.jpg"
                     val imgRef = FirebaseRefs.storage.reference
-                        .child("users/$currentUserId/$fileName")
+                        .child("users/${'$'}currentUserId/${'$'}fileName")
 
                     imgRef.putBytes(jpegBytes)
                         .addOnSuccessListener {
@@ -126,10 +127,10 @@ fun EditPicAndVoiceBioScreen(
                             }
                         }
                         .addOnFailureListener { e ->
-                            Log.e("PhotoUpload", "Upload failed: ${e.message}")
+                            Log.e("PhotoUpload", "Upload failed: ${'$'}{e.message}")
                         }
                 } catch (e: Exception) {
-                    Log.e("PhotoCompress", "Compression error: ${e.message}")
+                    Log.e("PhotoCompress", "Compression error: ${'$'}{e.message}")
                 }
             }
         }
@@ -141,12 +142,14 @@ fun EditPicAndVoiceBioScreen(
     ) { rawUri: Uri? ->
         rawUri ?: return@rememberLauncherForActivityResult
         val idx = slotIndexToReplace ?: return@rememberLauncherForActivityResult
-        val destUri = Uri.fromFile(File(context.cacheDir, "crop_${System.currentTimeMillis()}.jpg"))
-        val uCropIntent = UCrop.of(rawUri, destUri)
-            .withAspectRatio(1f, 1f)
-            .withMaxResultSize(800, 800)
-            .getIntent(context)
-        cropLauncher.launch(uCropIntent)
+        val options = CropImageOptions().apply {
+            fixAspectRatio = true
+            aspectRatioX = 1
+            aspectRatioY = 1
+            maxCropResultWidth = 800
+            maxCropResultHeight = 800
+        }
+        cropLauncher.launch(CropImageContractOptions(rawUri, options))
     }
 
     // Save function
