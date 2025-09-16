@@ -125,19 +125,6 @@ private fun deaccent(s: String): String {
     return nfd.replace(Regex("\\p{Mn}+"), "")
 }
 
-private fun canonicalGender(raw: String?): String {
-    if (raw.isNullOrBlank()) return ""
-    val t = deaccent(raw).trim().lowercase(Locale.ROOT)
-    return when (t) {
-        "male", "m", "man", "hombre", "hombres", "masculino", "male_option" -> "male"
-        "female", "f", "woman", "mujer", "mujeres", "femenino", "female_option" -> "female"
-        "other", "others", "non-binary", "nonbinary", "nb",
-        "otro", "otra", "otros", "otras", "no binario", "no-binario", "no_binario", "nobinario",
-        "gender_other" -> "other"
-        else -> t
-    }
-}
-
 /* Write a temp exclusion that expires in 14 days */
 private fun addToExclusions(currentUserId: String, otherUserId: String, reason: String) {
     val ref = FirebaseRefs.db.getReference("exclusions/$currentUserId/$otherUserId")
