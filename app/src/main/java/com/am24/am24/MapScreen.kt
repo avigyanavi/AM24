@@ -743,55 +743,6 @@ fun MapScreen(
                                 onDismissRequest = { showOverflowMenu = false },
                                 modifier = Modifier.widthIn(max = 280.dp)
                             ) {
-                                Column(
-                                    Modifier
-                                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                                        .widthIn(max = 280.dp)
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.label_gender),
-                                        style = MaterialTheme.typography.labelLarge
-                                    )
-                                    val selectedCanonicalGender = canonicalGender(datingFilters.gender)
-                                    FlowRow(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.padding(top = 8.dp)
-                                    ) {
-                                        genderFilterOptions.forEach { option ->
-                                            val optionCanonical = option.canonicalValue
-                                            val isSelected = if (optionCanonical.isBlank()) {
-                                                selectedCanonicalGender.isBlank()
-                                            } else {
-                                                selectedCanonicalGender == optionCanonical
-                                            }
-                                            FilterChip(
-                                                selected = isSelected,
-                                                onClick = {
-                                                    val newGender = when {
-                                                        optionCanonical.isBlank() -> ""
-                                                        isSelected -> ""
-                                                        else -> optionCanonical
-                                                    }
-                                                    val updatedFilters = datingFilters.copy(gender = newGender)
-                                                    datingFilters = updatedFilters
-                                                    prefs.edit().putString("map_dating_filters", gson.toJson(updatedFilters)).apply()
-                                                    userLatLng?.let {
-                                                        nearbyViewModel.refreshNearbyUsers(
-                                                            userId,
-                                                            it,
-                                                            geoFireDatabaseRef,
-                                                            forceRefresh = true
-                                                        )
-                                                    }
-                                                    showOverflowMenu = false
-                                                },
-                                                label = { Text(stringResource(option.labelRes)) }
-                                            )
-                                        }
-                                    }
-                                }
-                                HorizontalDivider()
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.filters)) },
                                     onClick = {
