@@ -282,8 +282,8 @@ fun MapScreen(
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
         userLatLng?.let { ll ->
-            if (selectedTab == 0 && nearbyViewModel.currentLimit < 240) {
-                nearbyViewModel.loadNextPage(240 - nearbyViewModel.currentLimit, userId, ll, geoFireDatabaseRef)
+            if (selectedTab == 0 && nearbyViewModel.currentLimit < 25) {
+                nearbyViewModel.loadNextPage(25 - nearbyViewModel.currentLimit, userId, ll, geoFireDatabaseRef)
             } else if (selectedTab == 1 && nearbyViewModel.currentLimit < 10) {
                 nearbyViewModel.loadNextPage(10 - nearbyViewModel.currentLimit, userId, ll, geoFireDatabaseRef)
             }
@@ -838,7 +838,7 @@ fun MapScreen(
                                 showAds = showAds,
                                 onNextPage = {
                                     userLatLng?.let {
-                                        nearbyViewModel.loadNextPage(240, userId, it, geoFireDatabaseRef)
+                                        nearbyViewModel.loadNextPage(25, userId, it, geoFireDatabaseRef)
                                     }
                                 }
                             )
@@ -1547,7 +1547,7 @@ fun MapScreen(
                 showFiltersDialog = false
                 val defaultLimit = when (selectedTab) {
                     1 -> 10
-                    else -> 240
+                    else -> 25
                 }
                 nearbyViewModel.currentLimit = defaultLimit
                 nearbyViewModel.datingFilters = filters
