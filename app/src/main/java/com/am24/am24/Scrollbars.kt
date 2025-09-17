@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -20,6 +21,8 @@ import androidx.compose.ui.input.pointer.consumeDownChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /**
@@ -28,11 +31,25 @@ import kotlin.math.roundToInt
  */
 fun Modifier.visibleScrollbar(state: LazyListState): Modifier = composed {
     val density = LocalDensity.current
-    val widthPx = with(density) { 4.dp.toPx() }
+    val widthPx = with(density) { 10.dp.toPx() }
     val minHeightPx = with(density) { 16.dp.toPx() }
     val inactiveColor = Color.White.copy(alpha = 0.4f)
     val activeColor = Color.White.copy(alpha = 0.7f)
     var isDragging by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var scrollJob by remember { mutableStateOf<Job?>(null) }
+    data class ScrollbarTarget(val index: Int, val offset: Int)
+
+    var lastRequestedTarget by remember { mutableStateOf<ScrollbarTarget?>(null) }
+
+    fun requestScroll(target: ScrollbarTarget) {
+        if (lastRequestedTarget == target) return
+        lastRequestedTarget = target
+        scrollJob?.cancel()
+        scrollJob = scope.launch {
+            state.scrollToItem(target.index, target.offset)
+        }
+    }
 
     fun LazyListLayoutInfo.averageItemSize(): Float? {
         val visibleItems = visibleItemsInfo
@@ -42,23 +59,27 @@ fun Modifier.visibleScrollbar(state: LazyListState): Modifier = composed {
         return totalSize.toFloat() / visibleItems.size
     }
 
-    suspend fun LazyListState.scrollToScrollbarPosition(positionY: Float, containerHeight: Float) {
-        if (containerHeight <= 0f) return
+
+    fun LazyListState.calculateScrollbarTarget(
+        positionY: Float,
+        containerHeight: Float
+    ): ScrollbarTarget? {
+        if (containerHeight <= 0f) return null
         val layoutInfo = layoutInfo
         val totalItems = layoutInfo.totalItemsCount
-        if (totalItems == 0) return
-        val averageItemSize = layoutInfo.averageItemSize() ?: return
+        if (totalItems == 0) return null
+        val averageItemSize = layoutInfo.averageItemSize() ?: return null
         val totalHeight = averageItemSize * totalItems
-        if (totalHeight <= containerHeight) return
+        if (totalHeight <= containerHeight) return null
         val maxScroll = totalHeight - containerHeight
-        if (maxScroll <= 0f) return
+        if (maxScroll <= 0f) return null
 
         val clampedY = positionY.coerceIn(0f, containerHeight)
         val fraction = (clampedY / containerHeight).coerceIn(0f, 1f)
         val targetScroll = fraction * maxScroll
         val targetIndex = (targetScroll / averageItemSize).toInt().coerceIn(0, totalItems - 1)
         val targetOffset = (targetScroll - targetIndex * averageItemSize).roundToInt().coerceAtLeast(0)
-        scrollToItem(targetIndex, targetOffset)
+        return ScrollbarTarget(targetIndex, targetOffset)
     }
 
     pointerInput(state) {
@@ -81,13 +102,18 @@ fun Modifier.visibleScrollbar(state: LazyListState): Modifier = composed {
             down.consumeDownChange()
             isDragging = true
             try {
-                state.scrollToScrollbarPosition(down.position.y, layoutHeight)
+                state.calculateScrollbarTarget(down.position.y, layoutHeight)?.let { target ->
+                    requestScroll(target)
+                }
                 drag(down.id) { change ->
                     change.consumeAllChanges()
-                    state.scrollToScrollbarPosition(change.position.y, layoutHeight)
+                    state.calculateScrollbarTarget(change.position.y, layoutHeight)?.let { target ->
+                        requestScroll(target)
+                    }
                 }
             } finally {
                 isDragging = false
+                lastRequestedTarget = null
             }
         }
     }.drawWithContent {
