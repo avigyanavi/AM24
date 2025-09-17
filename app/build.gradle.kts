@@ -15,7 +15,7 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 183
+        versionCode = 184
         versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -141,7 +141,7 @@ dependencies {
     implementation("androidx.webkit:webkit:1.10.0")    // optional helper for modern WebView
     implementation("com.facebook.android:facebook-login:18.0.3")
     implementation("com.facebook.android:facebook-android-sdk:18.0.3")
-    implementation("com.vanniktech:android-image-cropper:4.6.0")
+    implementation("com.github.yalantis:ucrop:2.2.8")
 
 //    implementation(libs.core) // ARCore
     implementation(libs.picasso)

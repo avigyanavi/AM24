@@ -1,4 +1,5 @@
 import android.app.Activity
+import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -35,10 +36,7 @@ import com.am24.am24.compressImage
 import com.am24.am24.moderateImages
 import com.am24.am24.ui.theme.DarkGrayBackground
 import com.google.firebase.auth.FirebaseAuth
-import com.canhub.cropper.CropImageContract
-import com.canhub.cropper.CropImageContractOptions
-import com.canhub.cropper.CropImageOptions
-import com.canhub.cropper.CropImageView
+import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -98,10 +96,12 @@ fun EditPicAndVoiceBioScreen(
         moderateImages(listOf(b64))
     }
 
-    // Crop launcher
-    val cropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
-        if (result.isSuccessful) {
-            val outUri = result.uriContent ?: return@rememberLauncherForActivityResult
+    val cropLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val outUri = result.data?.let { UCrop.getOutput(it) }
+                ?: return@rememberLauncherForActivityResult
             val idx = slotIndexToReplace ?: return@rememberLauncherForActivityResult
             scope.launch {
                 if (isExplicit(outUri)) {
@@ -133,6 +133,9 @@ fun EditPicAndVoiceBioScreen(
                     Log.e("PhotoCompress", "Compression error: ${'$'}{e.message}")
                 }
             }
+        } else if (result.resultCode == UCrop.RESULT_ERROR) {
+            val error = result.data?.let { UCrop.getError(it) }
+            error?.let { Log.e("UCrop", "Crop failed", it) }
         }
     }
 
@@ -142,14 +145,19 @@ fun EditPicAndVoiceBioScreen(
     ) { rawUri: Uri? ->
         rawUri ?: return@rememberLauncherForActivityResult
         val idx = slotIndexToReplace ?: return@rememberLauncherForActivityResult
-        val options = CropImageOptions().apply {
-            fixAspectRatio = true
-            aspectRatioX = 1
-            aspectRatioY = 1
-            maxCropResultWidth = 800
-            maxCropResultHeight = 800
+        val destinationFile = File(context.cacheDir, "cropped_${'$'}{System.currentTimeMillis()}.jpg")
+        val destinationUri = Uri.fromFile(destinationFile)
+        val options = UCrop.Options().apply {
+            setCompressionFormat(Bitmap.CompressFormat.JPEG)
+            setCompressionQuality(90)
+            setHideBottomControls(false)
+            setFreeStyleCropEnabled(false)
         }
-        cropLauncher.launch(CropImageContractOptions(rawUri, options))
+        val uCrop = UCrop.of(rawUri, destinationUri)
+            .withAspectRatio(1f, 1f)
+            .withMaxResultSize(800, 800)
+            .withOptions(options)
+        cropLauncher.launch(uCrop.getIntent(context))
     }
 
     // Save function

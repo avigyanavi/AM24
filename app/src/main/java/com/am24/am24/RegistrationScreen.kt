@@ -78,9 +78,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.am24.am24.ui.theme.AppTheme
-import com.canhub.cropper.CropImageContract
-import com.canhub.cropper.CropImageContractOptions
-import com.canhub.cropper.CropImageOptions
+import com.yalantis.ucrop.UCrop
 import com.facebook.appevents.AppEventsConstants
 import com.facebook.appevents.AppEventsLogger
 import com.firebase.geofire.GeoFire
@@ -4426,10 +4424,12 @@ fun UploadMediaComposable(
         moderateImages(listOf(b64))
     }
 
-    // 1) Crop launcher
-    val cropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
-        if (result.isSuccessful) {
-            val outUri = result.uriContent ?: return@rememberLauncherForActivityResult
+    val cropLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val outUri = result.data?.let { UCrop.getOutput(it) }
+                ?: return@rememberLauncherForActivityResult
             scope.launch {
                 if (isExplicit(outUri)) {
                     withContext(Dispatchers.Main) {
@@ -4449,6 +4449,9 @@ fun UploadMediaComposable(
                     uploadOptionalPhoto(context, storageRef, outUri, registrationViewModel)
                 }
             }
+        } else if (result.resultCode == UCrop.RESULT_ERROR) {
+            val error = result.data?.let { UCrop.getError(it) }
+            error?.let { Log.e("UCrop", "Crop failed", it) }
         }
     }
 
@@ -4457,14 +4460,19 @@ fun UploadMediaComposable(
         ActivityResultContracts.GetContent()
     ) { uri ->
         uri ?: return@rememberLauncherForActivityResult
-        val options = CropImageOptions().apply {
-            fixAspectRatio = true
-            aspectRatioX = 1
-            aspectRatioY = 1
-            maxCropResultWidth = 800
-            maxCropResultHeight = 800
+        val destinationFile = File(context.cacheDir, "cropped_${'$'}{System.currentTimeMillis()}.jpg")
+        val destinationUri = Uri.fromFile(destinationFile)
+        val options = UCrop.Options().apply {
+            setCompressionFormat(Bitmap.CompressFormat.JPEG)
+            setCompressionQuality(90)
+            setHideBottomControls(false)
+            setFreeStyleCropEnabled(false)
         }
-        cropLauncher.launch(CropImageContractOptions(uri, options))
+        val uCrop = UCrop.of(uri, destinationUri)
+            .withAspectRatio(1f, 1f)
+            .withMaxResultSize(800, 800)
+            .withOptions(options)
+        cropLauncher.launch(uCrop.getIntent(context))
     }
 
     val privateAlbumPickerLauncher = rememberLauncherForActivityResult(

@@ -76,9 +76,11 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-3206974923602803~7728780693"/>
 
-<!--        <activity-->
-<!--            android:name="com.canhub.cropper.CropImageActivity"-->
-<!--            android:exported="false" />-->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <!-- Required for the Facebook SDK -->
         <activity
