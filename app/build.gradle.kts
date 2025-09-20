@@ -15,7 +15,7 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 184
+        versionCode = 185
         versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -96,6 +96,7 @@ dependencies {
     implementation("com.android.billingclient:billing-ktx:8.0.0")
     implementation(libs.places)
     // For Coil image loading
+
     implementation(libs.coil.compose.v222)
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("io.coil-kt:coil-video:2.2.2")

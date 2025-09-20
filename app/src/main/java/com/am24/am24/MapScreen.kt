@@ -677,29 +677,36 @@ fun MapScreen(
         topBar = {
                 TopAppBar(
                     title = {
-                        if (sortMode == SortMode.ACTIVE) {
-                            LastActiveChip(
-                                hours = lastActiveHours,
-                                onChange = {
-                                    lastActiveHours = it
-                                    prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
-                                },
-                                modifier = Modifier.scale(0.9f)
-                            )
-                        } else {
-                            RadiusChip(
-                                radiusKm = radiusKm,
-                                onChange = {
-                                    radiusKm = it
-                                    prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
-                                },
-                                useMiles = useMiles,
-                                modifier = Modifier.scale(0.9f)
-                            )
+                        Box(Modifier.fillMaxWidth()) {
+                            if (sortMode == SortMode.ACTIVE) {
+                                LastActiveChip(
+                                    hours = lastActiveHours,
+                                    onChange = {
+                                        lastActiveHours = it
+                                        prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                RadiusChip(
+                                    radiusKm = radiusKm,
+                                    onChange = {
+                                        radiusKm = it
+                                        prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
+                                    },
+                                    useMiles = useMiles,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     },
                     actions = {
-                        FilledTonalButton(
+                        val (sortIcon, sortLabelRes) = when (sortMode) {
+                            SortMode.NEARBY -> Icons.Default.MyLocation to R.string.sort_nearby
+                            SortMode.ACTIVE -> Icons.Default.Schedule to R.string.sort_last_active
+                            SortMode.FAR -> Icons.Default.Place to R.string.sort_farthest
+                        }
+                        FilledTonalIconButton(
                             onClick = {
                                 sortMode = when (sortMode) {
                                     SortMode.NEARBY -> SortMode.ACTIVE
@@ -709,29 +716,15 @@ fun MapScreen(
                                 prefs.edit().putString("map_sort_mode", sortMode.name).apply()
                                 userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
                             },
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = KupidxOrange.copy(alpha = 0.20f),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = KupidxOrange.copy(alpha = 0.00f),
                                 contentColor = KupidxOrange
                             ),
                             shape = RoundedCornerShape(20.dp)
                         ) {
                             Icon(
-                                imageVector = when (sortMode) {
-                                    SortMode.NEARBY -> Icons.Default.MyLocation
-                                    SortMode.ACTIVE -> Icons.Default.Schedule
-                                    SortMode.FAR -> Icons.Default.Place
-                                },
-                                contentDescription = null
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                stringResource(
-                                    when (sortMode) {
-                                        SortMode.NEARBY -> R.string.sort_nearby
-                                        SortMode.ACTIVE -> R.string.sort_last_active
-                                        SortMode.FAR -> R.string.sort_farthest
-                                    }
-                                )
+                                imageVector = sortIcon,
+                                contentDescription = stringResource(sortLabelRes)
                             )
                         }
                         Box {
@@ -2141,7 +2134,12 @@ private fun RadiusChip(
         shadowElevation = 3.dp,
         border = BorderStroke(1.dp, Color(0x33FFFFFF))
     ) {
-        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Icon(Icons.Default.Radar, contentDescription = null)
             Spacer(Modifier.width(6.dp))
             Text(label)
@@ -2153,7 +2151,7 @@ private fun RadiusChip(
                     onChange(newKm.coerceIn(minKm, maxKm))
                 },
                 valueRange = 0f..1f,
-                modifier = Modifier.width(100.dp)
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -2178,7 +2176,9 @@ private fun LastActiveChip(
         border = BorderStroke(1.dp, Color(0x33FFFFFF))
     ) {
         Row(
-            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(Icons.Default.Schedule, contentDescription = null)
@@ -2189,7 +2189,7 @@ private fun LastActiveChip(
                 value = hours.toFloat(),
                 onValueChange = { onChange(it.toDouble().coerceIn(minHours, maxHours)) },
                 valueRange = minHours.toFloat()..maxHours.toFloat(),
-                modifier = Modifier.width(100.dp)
+                modifier = Modifier.weight(1f)
             )
         }
     }

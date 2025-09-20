@@ -5,6 +5,7 @@ package com.am24.am24
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -13,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -39,6 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.Lifecycle
 import com.am24.am24.KupidxOrange
 import com.am24.am24.ui.theme.AppTheme
 import com.am24.am24.ui.theme.DarkGrayBackground
@@ -126,6 +129,7 @@ class LandingActivity : ComponentActivity() {
     }
 
     /* ─────────  onCreate  ───────── */
+    @RequiresApi(Build.VERSION_CODES.P)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -188,10 +192,31 @@ class LandingActivity : ComponentActivity() {
 
     /* ───────── Google flow ───────── */
 
+    @RequiresApi(Build.VERSION_CODES.P)
     private fun signInWithGoogle() {
         isSigningIn = true
-        googleSignInClient.signOut().addOnCompleteListener {
-            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+        googleSignInClient.signOut().addOnCompleteListener { task ->
+            mainExecutor.execute {
+                val currentState = lifecycle.currentState
+                if (currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                    googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                } else {
+                    Log.w(
+                        "LandingActivity",
+                        "Skipping Google sign-in launch — lifecycle state: $currentState"
+                    )
+                    isSigningIn = false
+                    if (!isFinishing && !isDestroyed) {
+                        val message = buildString {
+                            append("Couldn't start Google sign-in. Please try again.")
+                            task.exception?.localizedMessage?.takeIf { it.isNotBlank() }?.let { reason ->
+                                append('\n').append(reason)
+                            }
+                        }
+                        toast(message)
+                    }
+                }
+            }
         }
     }
 
