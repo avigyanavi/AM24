@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         auth = FirebaseAuth.getInstance()
+        GclidStorageManager.cacheFromUri(this, intent?.data)
 
         setContent {
             AppTheme {
@@ -102,6 +103,12 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         // It's best practice to attach the listener in onStart()
         authListener?.let { auth.addAuthStateListener(it) }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        GclidStorageManager.cacheFromUri(this, intent.data)
     }
 
     override fun onStop() {
@@ -148,6 +155,12 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             val db = FirebaseDatabase.getInstance().reference
             val snap = db.child("users").child(user.uid).get().await()
+
+            GclidStorageManager.flushPendingGclid(
+                this@MainActivity,
+                user.uid,
+                snap.child("gclid").getValue(String::class.java)
+            )
 
             val finished = snap.child("registrationFinished")
                 .getValue(Boolean::class.java) ?: false

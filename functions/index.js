@@ -301,6 +301,36 @@ exports.normalizeGender = functions
     }
   });
 
+   exports.seedTestMujer = functions
+     .region("asia-south1")
+     .https.onRequest(async (_req, res) => {
+       const testUid = "test_mujer_001";
+
+       const testUser = {
+         username: "test_mujer",
+         name: "María Test",
+         city: "",
+         hometown: "CDMX",
+         lastActive: Date.now(),
+         dateOfJoin: Date.now(),
+         gender: "Mujer",
+         gclid: "TEST-1234-5678-ABCD"
+       };
+
+       try {
+         // Write to kupidxdefault women node
+         await admin.database().ref("women").child(testUid).set(testUser);
+
+         // Mirror to US RTDB women node
+         await dbUS.ref("women").child(testUid).set(testUser);
+
+         res.status(200).send("Test Mujer profile created in both DBs");
+       } catch (e) {
+         console.error("seedTestMujer error:", e);
+         res.status(500).send(e.message);
+       }
+     });
+
   exports.mirrorWomenToUS = functions
     .region("asia-south1")
     .database.instance("kupidxdefault")     // source DB

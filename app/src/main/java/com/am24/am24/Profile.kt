@@ -12,6 +12,7 @@ import java.util.Locale
 data class Profile(
     val email: String = "",
     val password: String = "",
+    val gclid: String? = null,
 
     var premiumExpiryDate: Long? = null,      // ms-since-epoch of next renewal
     var razorpaySubscriptionId: String? = null,

@@ -10,6 +10,8 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.storage.FirebaseStorage
 import com.am24.am24.billing.BillingManager
 import com.am24.am24.ui.purchase.PurchaseType
+import com.android.installreferrer.api.InstallReferrerClient
+import com.android.installreferrer.api.InstallReferrerStateListener
 import com.facebook.FacebookSdk
 import com.facebook.appevents.AppEventsLogger
 
@@ -59,6 +61,39 @@ class MyApp : Application() {
 
         // ───────── Storage bucket ─────────
         FirebaseStorage.getInstance("gs://am-twentyfour")
+        try {
+            val referrerClient = InstallReferrerClient.newBuilder(this).build()
+            referrerClient.startConnection(object : InstallReferrerStateListener {
+                override fun onInstallReferrerSetupFinished(responseCode: Int) {
+                    when (responseCode) {
+                        InstallReferrerClient.InstallReferrerResponse.OK -> {
+                            try {
+                                val response = referrerClient.installReferrer
+                                GclidStorageManager.cacheFromQueryString(
+                                    this@MyApp,
+                                    response.installReferrer
+                                )
+                            } catch (e: Exception) {
+                                Log.w("MyApp", "Failed to read install referrer", e)
+                            } finally {
+                                referrerClient.endConnection()
+                            }
+                        }
+                        InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED,
+                        InstallReferrerClient.InstallReferrerResponse.SERVICE_UNAVAILABLE -> {
+                            referrerClient.endConnection()
+                        }
+                        else -> referrerClient.endConnection()
+                    }
+                }
+
+                override fun onInstallReferrerServiceDisconnected() {
+                    // No-op: we only need a single fetch.
+                }
+            })
+        } catch (e: Exception) {
+            Log.w("MyApp", "Unable to initialise install referrer", e)
+        }
     }
 
     private fun isEmulator(): Boolean {

@@ -132,6 +132,13 @@ class RegistrationActivity : ComponentActivity() {
                 // grab your ViewModel so you can pass it in:
                 val registrationViewModel: RegistrationViewModel = viewModel()
 
+                LaunchedEffect(Unit) {
+                    if (registrationViewModel.gclid.isNullOrBlank()) {
+                        registrationViewModel.gclid =
+                            GclidStorageManager.getPendingGclid(this@RegistrationActivity)
+                    }
+                }
+
                 RegistrationScreen(
                     onRegistrationComplete = {
                         // ① first save the whole profile under /users/{uid}
@@ -229,6 +236,7 @@ class RegistrationViewModel : ViewModel() {
     var city by mutableStateOf("")
     var customCity by mutableStateOf("")
     var phoneNumber by mutableStateOf("")   // <── add this line
+    var gclid by mutableStateOf<String?>(null)
     // RegistrationViewModel
     var country       by mutableStateOf("")
     var customCountry by mutableStateOf("")
@@ -2732,6 +2740,9 @@ suspend fun saveProfileToFirebase(
     try {
         val database = FirebaseRefs.db.reference
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val pendingGclid = registrationViewModel.gclid
+            ?: GclidStorageManager.getPendingGclid(context)
+        registrationViewModel.gclid = pendingGclid
         val raw = registrationViewModel.phoneNumber
             .ifBlank { FirebaseAuth.getInstance().currentUser?.phoneNumber }
         val e164 = raw?.let { formatPhoneNumber(it) } ?: ""
@@ -2762,6 +2773,7 @@ suspend fun saveProfileToFirebase(
         val profile = Profile(
             phoneNumber = if (allowPhoneAuth) raw else null, // ← not stored abroad
             userId = userId,
+            gclid = pendingGclid,
             country       = canonicalCountry(
                 if (registrationViewModel.country == other)
                     registrationViewModel.customCountry
@@ -2827,6 +2839,15 @@ suspend fun saveProfileToFirebase(
         )
 
         database.child("users").child(userId).setValue(profile).await()
+
+        pendingGclid?.takeIf { it.isNotBlank() }?.let { gclid ->
+            try {
+                GclidStorageManager.saveGclidToFirebase(userId, gclid)
+                GclidStorageManager.clearPendingGclid(context)
+            } catch (e: Exception) {
+                Log.w("Registration", "Failed to persist gclid: ${e.message}")
+            }
+        }
 
         val womenRef = database.child("women").child(userId)
         if (canonicalGender(storedGender) == "female") {
