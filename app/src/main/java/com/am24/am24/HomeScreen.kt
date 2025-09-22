@@ -363,6 +363,10 @@ fun FeedSection(
     showAds: Boolean
 ) {
     val context = LocalContext.current
+    val visibleItemKeys by remember {
+        derivedStateOf { listState.layoutInfo.visibleItemsInfo.map { it.key } }
+    }
+    val adLoadStates = remember { mutableStateMapOf<Int, Boolean>() }
 
     // Swipe Refresh State
     var isRefreshing by remember { mutableStateOf(false) }
@@ -409,7 +413,7 @@ fun FeedSection(
                 }
             }
 
-            itemsIndexed(posts) { index, post ->
+            itemsIndexed(posts, key = { idx, post -> post.postId.ifEmpty { "post_$idx" } }) { index, post ->
                 val profile = userProfiles[post.userId]
                 val isSaved = savedPostIds.contains(post.postId)
                 FeedItem(
@@ -533,8 +537,20 @@ fun FeedSection(
                 // ─── debug log + native ad every 5 items ─────────────────
                 if (showAds && (index + 1) % 5 == 0) {
                     Log.d("HomeScreen", ">>> inserting native ad at index: $index")
+                    val itemKey = post.postId.ifEmpty { "post_$index" }
+                    val isItemVisible = visibleItemKeys.contains(itemKey)
+                    val hasStartedLoading = adLoadStates[index] == true
+
+                    LaunchedEffect(isItemVisible, hasStartedLoading) {
+                        if (isItemVisible && !hasStartedLoading) {
+                            adLoadStates[index] = true
+                        }
+                    }
+
+                    val shouldLoadAd = adLoadStates[index] == true
                     ComposeNativeAd(
                         adUnitId  = AdUnitIds.native(context),
+                        shouldLoad = shouldLoadAd,
                         modifier  = Modifier
                             .fillMaxWidth()
                             .wrapContentHeight()

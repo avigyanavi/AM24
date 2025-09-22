@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -1611,6 +1612,10 @@ private fun CardsList(
         list
     }
     val listState = rememberLazyListState()
+    val visibleItemIndices by remember {
+        derivedStateOf { listState.layoutInfo.visibleItemsInfo.map { it.index } }
+    }
+    val adLoadStates = remember { mutableStateMapOf<Int, Boolean>() }
     LazyColumn(
         state = listState,
         modifier = Modifier
@@ -1622,7 +1627,7 @@ private fun CardsList(
         itemsIndexed(
             items,
             key = { idx, item -> if (item is NearbyUser) item.userId else "ad_$idx" }
-        ) { _, item ->
+        ) { index, item ->
             if (item is NearbyUser) {
                 ProfileCard(
                     user = item,
@@ -1634,8 +1639,19 @@ private fun CardsList(
                     onBlock = { onBlock(item.userId) }
                 )
             } else {
+                val isItemVisible = visibleItemIndices.contains(index)
+                val hasStartedLoading = adLoadStates[index] == true
+
+                LaunchedEffect(isItemVisible, hasStartedLoading) {
+                    if (isItemVisible && !hasStartedLoading) {
+                        adLoadStates[index] = true
+                    }
+                }
+
+                val shouldLoadAd = adLoadStates[index] == true
                 ComposeNativeAd(
                     adUnitId = AdUnitIds.native(context),
+                    shouldLoad = shouldLoadAd,
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(3f / 4f)
@@ -1947,8 +1963,14 @@ private fun PeopleGrid(
         }
         items
     }
+    val gridState = rememberLazyGridState()
+    val visibleItemIndices by remember {
+        derivedStateOf { gridState.layoutInfo.visibleItemsInfo.map { it.index } }
+    }
+    val adLoadStates = remember { mutableStateMapOf<Int, Boolean>() }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 120.dp),
+        state = gridState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -1960,7 +1982,7 @@ private fun PeopleGrid(
             span = { _, item ->
                 if (item is NearbyUser) GridItemSpan(1) else GridItemSpan(maxLineSpan)
             }
-        ) { _, item ->
+        ) { index, item ->
             if (item is NearbyUser) {
                 NearbyCard(
                     user = item,
@@ -1970,8 +1992,19 @@ private fun PeopleGrid(
                     onBlock = { onBlock(item.userId) }
                 )
             } else {
+                val isItemVisible = visibleItemIndices.contains(index)
+                val hasStartedLoading = adLoadStates[index] == true
+
+                LaunchedEffect(isItemVisible, hasStartedLoading) {
+                    if (isItemVisible && !hasStartedLoading) {
+                        adLoadStates[index] = true
+                    }
+                }
+
+                val shouldLoadAd = adLoadStates[index] == true
                 ComposeNativeAd(
                     adUnitId = AdUnitIds.native(context),
+                    shouldLoad = shouldLoadAd,
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight()

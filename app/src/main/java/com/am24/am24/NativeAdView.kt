@@ -40,7 +40,8 @@ import androidx.compose.runtime.DisposableEffect
 @Composable
 fun ComposeNativeAd(
     adUnitId: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    shouldLoad: Boolean
 ) {
     val context = LocalContext.current
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
@@ -51,8 +52,10 @@ fun ComposeNativeAd(
         }
     }
 
-    // kick off load
-    LaunchedEffect(adUnitId) {
+    // kick off load only when requested
+    LaunchedEffect(adUnitId, shouldLoad) {
+        if (!shouldLoad || nativeAd != null) return@LaunchedEffect
+
         val loader = AdLoader.Builder(context, adUnitId)
             .forNativeAd { ad ->
                 nativeAd?.destroy()
