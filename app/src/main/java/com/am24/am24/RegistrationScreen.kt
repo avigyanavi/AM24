@@ -484,10 +484,10 @@ fun RegistrationScreen(
                     2 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)   // now includes DOB
                     3 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
                     4 -> EnterBirthdateCityHometownScreen(registrationViewModel, onNext, fusedLocationClient)
-//                    5 -> EnterInterestsScreen(registrationViewModel, onNext)
-                    5 -> EnterOrientationScreen(registrationViewModel, onNext)
-//                    7 -> EnterLifestyleScreen(registrationViewModel, onNext)
-                    6 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
+                    5 -> EnterInterestsScreen(registrationViewModel, onNext)
+                    6 -> EnterOrientationScreen(registrationViewModel, onNext)
+                    7 -> EnterLifestyleScreen(registrationViewModel, onNext)
+                    8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
                 }
             }
         }

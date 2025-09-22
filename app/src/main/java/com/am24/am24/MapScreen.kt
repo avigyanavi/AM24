@@ -277,11 +277,20 @@ fun MapScreen(
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
     var isIndian by remember { mutableStateOf(false) }
     val profileViewModel: ProfileViewModel = viewModel()
-
     val showAds = !isPremium && !isPlus
 
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
+        val desiredSortMode = when (selectedTab) {
+            0 -> SortMode.ACTIVE
+            1 -> SortMode.NEARBY
+            else -> null
+        }
+
+        desiredSortMode?.takeIf { it != sortMode }?.let { mode ->
+            sortMode = mode
+            prefs.edit().putString("map_sort_mode", mode.name).apply()
+        }
         userLatLng?.let { ll ->
             if (selectedTab == 0 && nearbyViewModel.currentLimit < 25) {
                 nearbyViewModel.loadNextPage(25 - nearbyViewModel.currentLimit, userId, ll, geoFireDatabaseRef)
