@@ -94,6 +94,7 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.gson.Gson
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
@@ -1621,6 +1622,12 @@ private fun CardsList(
         list
     }
     val listState = rememberLazyListState()
+    LaunchedEffect(items) {
+        if (items.isNotEmpty()) {
+            delay(300) // adjust ms to taste
+            listState.scrollToItem(0)
+        }
+    }
     val visibleItemIndices by remember {
         derivedStateOf { listState.layoutInfo.visibleItemsInfo.map { it.index } }
     }

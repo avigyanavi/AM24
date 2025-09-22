@@ -256,6 +256,160 @@ exports.backfillProfilepicThumbnailUrl = functions
     }
   });
 
+exports.normalizeGender = functions
+  .region('asia-south1')
+  .https.onRequest(async (_req, res) => {
+    try {
+      const usersRef = admin.database().ref('users');
+      const snap     = await usersRef.once('value');
+
+      const updates  = {};
+      const touched  = new Set();
+
+      snap.forEach(userSnap => {
+        const uid  = userSnap.key;
+        const data = userSnap.val() || {};
+        let gender = data.gender;
+
+        if (typeof gender !== 'string') {
+          if (gender == null) {
+            gender = ''; // or "unknown" if you want to track missing
+          } else if (Array.isArray(gender)) {
+            gender = gender[0] || '';
+          } else if (typeof gender === 'object') {
+            gender = gender.value || '';
+          } else {
+            gender = String(gender);
+          }
+
+          updates[`${uid}/gender`] = gender;
+          touched.add(uid);
+        }
+      });
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(200).send('No users needed normalization.');
+      }
+
+      await usersRef.update(updates);
+      res
+        .status(200)
+        .send(`Normalized gender for ${touched.size} user(s).`);
+    } catch (err) {
+      console.error('normalizeGender error:', err);
+      res.status(500).send(err.message);
+    }
+  });
+
+  exports.mirrorWomenToUS = functions
+    .region("asia-south1")
+    .database.instance("kupidxdefault")     // source DB
+    .ref("/women/{uid}")                    // 👈 only watch the women node
+    .onWrite(async (change, context) => {
+      const uid = context.params.uid;
+
+      if (!change.after.exists()) {
+        // Deleted → remove from US mirror
+        await dbUS.ref(`women/${uid}`).remove();
+        console.log(`[mirrorWomenToUS] Removed ${uid} from US women node`);
+        return null;
+      }
+
+      // Mirror the payload as-is
+      const data = change.after.val() || {};
+      await dbUS.ref(`women/${uid}`).set(data);
+
+      console.log(`[mirrorWomenToUS] Mirrored ${uid} to US women node`);
+      return null;
+    });
+
+exports.backfillWomenToUS = functions
+  .region("asia-south1")
+  .runWith({ timeoutSeconds: 540, memory: "1GB" }) // allow large scans
+  .https.onRequest(async (_req, res) => {
+    try {
+      // Source: kupidxdefault
+      const snap = await admin.database().ref("users").once("value");
+      const updates = {};
+
+      snap.forEach(userSnap => {
+        const uid = userSnap.key;
+        const data = userSnap.val() || {};
+        const genderRaw = (data.gender || "").toString().trim();
+        const gender = genderRaw.toLowerCase();
+
+        if (["female", "f", "mujer"].includes(gender)) {
+          updates[`women/${uid}`] = {
+            username: data.username || "",
+            name: data.name || "",
+            city: data.city || "",
+            hometown: data.hometown || "",
+            lastActive: data.lastActive || null,
+            dateOfJoin: data.dateOfJoin || null,
+            gender: genderRaw,
+            profilePicUrl: data.profilePicUrl || "",
+            thumbnailUrl: data.thumbnailUrl || ""
+          };
+        }
+      });
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(200).send("No women found in kupidxdefault.");
+      }
+
+      // Write into US DB
+      await dbUS.ref().update(updates);
+
+      res
+        .status(200)
+        .send(`Backfilled ${Object.keys(updates).length} women into US RTDB.`);
+    } catch (err) {
+      console.error("backfillWomenToUS error:", err);
+      res.status(500).send(err.message);
+    }
+  });
+
+exports.syncWomenRecord = functions
+  .region("asia-south1")
+  .runWith({ timeoutSeconds: 300, memory: "512MB" })
+  .https.onRequest(async (_req, res) => {
+    try {
+      const snap = await admin.database().ref("users").once("value");
+      const updates = {};
+
+      snap.forEach(userSnap => {
+        const uid = userSnap.key;
+        const data = userSnap.val() || {};
+        const genderRaw = (data.gender || "").toString().trim();
+        const gender = genderRaw.toLowerCase();
+
+        // Match English + Spanish
+        if (["female", "f", "mujer"].includes(gender)) {
+          updates[`women/${uid}`] = {
+            username: data.username || "",
+            name: data.name || "",
+            city: data.city || "",
+            hometown: data.hometown || "",
+            lastActive: data.lastActive || null,
+            dateOfJoin: data.dateOfJoin || null,
+            gender: genderRaw  // keep original case/value
+          };
+        }
+      });
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(200).send("No female/mujer users found.");
+      }
+
+      await admin.database().ref().update(updates);
+      res.status(200).send(`Synced ${Object.keys(updates).length} women records.`);
+    } catch (err) {
+      console.error("syncWomenRecord error:", err);
+      res.status(500).send(err.message);
+    }
+  });
+
+
 exports.backfillOrientationAndKinks = functions
   .region('asia-south1')
   .https.onRequest(async (_req, res) => {

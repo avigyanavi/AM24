@@ -15,7 +15,7 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 185
+        versionCode = 187
         versionName = "2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -95,6 +95,7 @@ dependencies {
     implementation("com.google.maps.android:android-maps-utils:2.3.0")
     implementation("com.android.billingclient:billing-ktx:8.0.0")
     implementation(libs.places)
+    implementation("com.android.installreferrer:installreferrer:2.2")
     // For Coil image loading
 
     implementation(libs.coil.compose.v222)

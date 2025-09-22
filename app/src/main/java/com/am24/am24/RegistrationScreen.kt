@@ -2756,6 +2756,8 @@ suspend fun saveProfileToFirebase(
         } else {
             registrationViewModel.height
         }
+          val storedGender = registrationViewModel.gender.toGenderCode()?.name
+            ?: registrationViewModel.gender
 
         val profile = Profile(
             phoneNumber = if (allowPhoneAuth) raw else null, // ← not stored abroad
@@ -2826,6 +2828,12 @@ suspend fun saveProfileToFirebase(
 
         database.child("users").child(userId).setValue(profile).await()
 
+        val womenRef = database.child("women").child(userId)
+        if (canonicalGender(storedGender) == "female") {
+            womenRef.setValue(true).await()
+        } else {
+            womenRef.removeValue().await()
+        }
         withContext(Dispatchers.Main) {
             onRegistrationComplete()
         }
