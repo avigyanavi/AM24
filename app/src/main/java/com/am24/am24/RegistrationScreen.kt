@@ -439,9 +439,17 @@ fun RegistrationScreen(
                                     2 -> {
                                         when {
                                             registrationViewModel.dob.isBlank() ->
-                                                Toast.makeText(context, "Please select your birth date", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.toast_select_birth_date),
+                                                    Toast.LENGTH_LONG
+                                                ).show()
                                             calculateAge(registrationViewModel.dob) < 14 ->
-                                                Toast.makeText(context, "You must be at least 14 years old", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.toast_minimum_age),
+                                                    Toast.LENGTH_LONG
+                                                ).show()
                                             registrationViewModel.gender.isBlank() ->
                                                 Toast.makeText(
                                                     context,
@@ -452,10 +460,18 @@ fun RegistrationScreen(
                                         }
                                     }
                                     8 -> {
-                                        Toast.makeText(context, "Pick a valid username and tap Finish", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.toast_pick_valid_username),
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
                                     else -> {
-                                        Toast.makeText(context, "Please complete the required fields", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.toast_complete_required_fields),
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
                                 }
                             }
@@ -2064,7 +2080,12 @@ fun EnterEmailAndPasswordScreen(
                 }
                 override fun onVerificationFailed(e: FirebaseException) {
                     Log.e("OTP", "Verification failed", e)
-                    Toast.makeText(ctx, "OTP failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    val reason = e.message ?: ctx.getString(R.string.toast_unknown_error)
+                    Toast.makeText(
+                        ctx,
+                        ctx.getString(R.string.toast_otp_failed, reason),
+                        Toast.LENGTH_LONG
+                    ).show()
                     isSubmitting = false
                 }
                 override fun onCodeSent(id: String, token: PhoneAuthProvider.ForceResendingToken) {
@@ -2082,7 +2103,12 @@ fun EnterEmailAndPasswordScreen(
             Log.d("OTP", "verifyPhoneNumber called successfully")
         } catch (e: Exception) {
             Log.e("OTP", "Error calling verifyPhoneNumber", e)
-            Toast.makeText(ctx, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            val reason = e.message ?: ctx.getString(R.string.toast_unknown_error)
+            Toast.makeText(
+                ctx,
+                ctx.getString(R.string.toast_error_with_reason, reason),
+                Toast.LENGTH_LONG
+            ).show()
             isSubmitting = false
         }
     }
@@ -2102,7 +2128,12 @@ fun EnterEmailAndPasswordScreen(
                 FirebaseAuth.getInstance().currentUser?.phoneNumber ?: registrationViewModel.phoneNumber
                 onNext() }
             .addOnFailureListener { e ->
-                Toast.makeText(ctx, "OTP error: ${e.message}", Toast.LENGTH_LONG).show()
+                val reason = e.message ?: ctx.getString(R.string.toast_unknown_error)
+                Toast.makeText(
+                    ctx,
+                    ctx.getString(R.string.toast_otp_error, reason),
+                    Toast.LENGTH_LONG
+                ).show()
                 isSubmitting = false
             }
     }
@@ -2118,7 +2149,12 @@ fun EnterEmailAndPasswordScreen(
                     auth.signInWithCredential(cred).addOnSuccessListener { onNext() }
                 }
                 override fun onVerificationFailed(e: FirebaseException) {
-                    Toast.makeText(ctx, "OTP failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    val reason = e.message ?: ctx.getString(R.string.toast_unknown_error)
+                    Toast.makeText(
+                        ctx,
+                        ctx.getString(R.string.toast_otp_failed, reason),
+                        Toast.LENGTH_LONG
+                    ).show()
                     isSubmitting = false
                 }
                 override fun onCodeSent(id: String, token: PhoneAuthProvider.ForceResendingToken) {
@@ -2315,7 +2351,11 @@ fun EnterEmailAndPasswordScreen(
                             if (pwd != pwd2) { passwordError = true; return@Button }
                             passwordError = false
                             if (botField.text.isNotBlank()) {
-                                Toast.makeText(ctx, "Invalid form", Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    ctx,
+                                    ctx.getString(R.string.toast_invalid_form),
+                                    Toast.LENGTH_LONG
+                                ).show()
                                 return@Button
                             }
                             isSubmitting  = true
@@ -2685,6 +2725,7 @@ fun EnterUsernameScreen(
             )
 
             Spacer(Modifier.height(24.dp))
+            var errormsg = stringResource(R.string.that_username_is_taken)
 
             // ---- Finish Button ----
             Button(
@@ -2706,17 +2747,20 @@ fun EnterUsernameScreen(
                     isLoading = true
                     val key = raw.lowercase(Locale.getDefault())
                     val uid = auth.currentUser?.uid ?: run {
-                        Toast.makeText(context, "No signed-in user", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.toast_no_signed_in_user),
+                            Toast.LENGTH_LONG
+                        ).show()
                         isLoading = false
                         return@Button
                     }
-
                     // 1) check availability
                     db.child("usernames").child(key).get()
                         .addOnSuccessListener { snap ->
                             if (snap.exists()) {
                                 isValid  = false
-                                errorMsg = "That username is taken."
+                                errorMsg = errormsg
                                 isLoading = false
                             } else {
                                 // 2) reserve under /usernames/{key}
@@ -3500,7 +3544,11 @@ fun EnterBirthdateCityHometownScreen(
                 isLocating = false
             }
         } else {
-            Toast.makeText(context, "Location permission denied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                context.getString(R.string.toast_location_permission_denied),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -4509,7 +4557,7 @@ fun UploadMediaComposable(
                     withContext(Dispatchers.Main) {
                         Toast.makeText(
                             context,
-                            "That photo looks explicit – please choose another.",
+                            context.getString(R.string.toast_explicit_photo),
                             Toast.LENGTH_LONG
                         ).show()
                     }
@@ -4554,7 +4602,11 @@ fun UploadMediaComposable(
     ) { uri ->
         uri ?: return@rememberLauncherForActivityResult
         if (registrationViewModel.privateAlbumUris.size >= 10) {
-            Toast.makeText(context, "Maximum 10 items", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                context.getString(R.string.toast_private_album_limit),
+                Toast.LENGTH_SHORT
+            ).show()
             return@rememberLauncherForActivityResult
         }
         registrationViewModel.privateAlbumUris.add(uri)
@@ -4590,7 +4642,11 @@ fun UploadMediaComposable(
             isRecording = true
             registrationViewModel.startVoiceRecording(context, voiceFilePath)
         } else {
-            Toast.makeText(context, "Mic permission denied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                context.getString(R.string.toast_mic_permission_denied),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
