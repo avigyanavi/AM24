@@ -442,6 +442,12 @@ fun RegistrationScreen(
                                                 Toast.makeText(context, "Please select your birth date", Toast.LENGTH_LONG).show()
                                             calculateAge(registrationViewModel.dob) < 14 ->
                                                 Toast.makeText(context, "You must be at least 14 years old", Toast.LENGTH_LONG).show()
+                                            registrationViewModel.gender.isBlank() ->
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.please_select_gender),
+                                                    Toast.LENGTH_LONG
+                                                ).show()
                                             else -> {}
                                         }
                                     }
@@ -2367,6 +2373,8 @@ fun EnterGenderCommunityReligionScreen(
     var selectedDay    by remember { mutableStateOf(dayRange.first()) }
     var selectedMonth  by remember { mutableStateOf(0) }
     var selectedYear   by remember { mutableStateOf(yearRange.first().toInt()) }
+    val context = LocalContext.current
+    val genderOptions = remember { Gender.values().toList() }
 
     fun updateDob() {
         registrationViewModel.dob = "$selectedDay/${selectedMonth+1}/$selectedYear"
@@ -2379,6 +2387,12 @@ fun EnterGenderCommunityReligionScreen(
     val isIndian = canonicalCountry(registrationViewModel.country) == "India"
     LaunchedEffect(isIndian) {
         if (!isIndian) registrationViewModel.community = ""
+    }
+    val selectedGender = when (canonicalGender(registrationViewModel.gender)) {
+        "male" -> Gender.MALE
+        "female" -> Gender.FEMALE
+        "other" -> Gender.OTHER
+        else -> null
     }
     val communityOptions = listOf(
         stringResource(R.string.community_other),
@@ -2440,7 +2454,8 @@ fun EnterGenderCommunityReligionScreen(
     val userAge = calculateAge(registrationViewModel.dob)
     val isNextEnabled =
             registrationViewModel.dob.isNotBlank() &&
-            userAge >= 14
+                    userAge >= 14 &&
+                    registrationViewModel.gender.isNotBlank()
     LaunchedEffect(isNextEnabled) { registrationViewModel.nextEnabled = isNextEnabled }
 
     Scaffold(
@@ -2509,6 +2524,36 @@ fun EnterGenderCommunityReligionScreen(
 //                    fontWeight = FontWeight.Bold,
 //                    modifier = Modifier.padding(bottom = 24.dp)
 //                )
+                Text(
+                    text = stringResource(R.string.gender_label),
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(Modifier.height(8.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    genderOptions.forEach { option ->
+                        val isSelected = selectedGender == option
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                registrationViewModel.gender =
+                                    if (isSelected) "" else option.name
+                            },
+                            label = { Text(option.localized(context), color = Color.White) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFFFF6000),
+                                selectedLabelColor = Color.White,
+                                containerColor = Color(0xFF1A1A1A),
+                                labelColor = Color.White
+                            )
+                        )
+                    }
+                }
 
                 if (isIndian) {
                     Spacer(modifier = Modifier.height(24.dp))

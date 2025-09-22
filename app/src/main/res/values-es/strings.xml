@@ -265,6 +265,7 @@
     <string name="city_coords_unavailable">Coordenadas no disponibles para %1$s</string>
     <string name="remove_from_stack">Eliminar de la pila</string>
     <string name="block">Bloquear</string>
+    <string name="please_select_gender">Selecciona tu género</string>
     <string name="more_options">Más opciones</string>
     <string name="cd_omegle">Chat aleatorio</string>
     <string name="join_random_chat">¿Unirte a un chat aleatorio?</string>

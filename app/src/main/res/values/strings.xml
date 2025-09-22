@@ -40,6 +40,7 @@
     <string name="clear_city_filter">Clear city filter</string>
     <string name="city_coords_unavailable">Coordinates unavailable for %1$s</string>
     <string name="advanced_compatibility">Advanced Compatibility</string>
+    <string name="please_select_gender">Please select your gender</string>
     <string name="remove_from_stack">Remove from stack</string>
     <string name="block">Block</string>
     <string name="more_options">More options</string>
