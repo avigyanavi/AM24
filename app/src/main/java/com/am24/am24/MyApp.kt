@@ -21,15 +21,22 @@ class MyApp : Application() {
         super.onCreate()
         instance = this
 
-        // ───────── Facebook: EXPLICIT "old style" init for reliable install capture ─────────
-        // Make sure Manifest also uses the SAME App ID and fb<APP_ID> scheme.
-        FacebookSdk.setApplicationId("606416195185970")                       // ← OLD APP ID
-        FacebookSdk.setClientToken("c2deeaa408a6cc080a2f914008805bcd")       // ← Your client token
-        FacebookSdk.setAutoInitEnabled(false)                                // we control init manually
+// ───────── Facebook: Explicit init ─────────
+        FacebookSdk.setApplicationId("606416195185970")
+        FacebookSdk.setClientToken("c2deeaa408a6cc080a2f914008805bcd")
+        FacebookSdk.setAutoInitEnabled(true) // let it auto-init at boot
         FacebookSdk.setAutoLogAppEventsEnabled(true)
         FacebookSdk.setAdvertiserIDCollectionEnabled(true)
-        FacebookSdk.sdkInitialize(applicationContext)                        // ← explicit init
-        AppEventsLogger.activateApp(this)                                    // ← install/activate ping
+
+// Kick off init synchronously
+        FacebookSdk.sdkInitialize(applicationContext)
+        AppEventsLogger.activateApp(this) // safe even if called multiple times
+
+        Log.d("MyApp", "Facebook SDK initialized synchronously")
+        // ───────── AdMob ─────────
+        com.google.android.gms.ads.MobileAds.initialize(this) { status ->
+            Log.d("MyApp", "AdMob initialized: $status")
+        }
 
         // ───────── Firebase App Check ─────────
         val appCheck = FirebaseAppCheck.getInstance()

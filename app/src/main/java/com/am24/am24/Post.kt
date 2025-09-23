@@ -8,6 +8,7 @@ import com.google.gson.Gson
 
 data class Post(
     val postId: String = "",
+    val country: String? = null,
     val userId: String = "",  // ID of the user who created the post
     val username: String = "",  // Username of the person who posted
 //    val country: String = "", // Country of the user who posted
