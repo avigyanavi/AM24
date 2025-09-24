@@ -248,9 +248,15 @@ fun MapScreen(
     val focusManager = LocalFocusManager.current
     val useMiles = remember { !CountryUtil.usesKilometers(ctx) } // decide unit once
     val activity = LocalContext.current as Activity
-    val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
+    var userCountry by remember { mutableStateOf<String?>(null) }
+    val rewardedSwipeAdUnit = remember(userCountry) {
+        AdUnitIds.rewardedSwipe(activity, userCountry)
+    }
+    val rewardedSwipeManager = remember(rewardedSwipeAdUnit) {
+        RewardedAdManager(activity, rewardedSwipeAdUnit)
+    }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(rewardedSwipeManager) {
         onDispose { rewardedSwipeManager.clearCallbacks() }
     }
 
@@ -335,8 +341,10 @@ fun MapScreen(
         isPremium = snap.child("isPremium").getValue(Boolean::class.java) ?: false
         nearbyViewModel.setTier(isPlus, isPremium)
         nearbyViewModel.setCurrentUserProfile(profile)
-        val country = snap.child("country").getValue(String::class.java) ?: ""
-        isIndian = canonicalCountry(country) == "India"
+        val countryRaw = snap.child("country").getValue(String::class.java) ?: ""
+        val canonical = canonicalCountry(countryRaw)
+        userCountry = canonical.takeIf { it.isNotBlank() }
+        isIndian = canonical == "India"
         remainingSwipes = loadAndResetSwipesDaily(userId)
         swipesLoaded = true
         nearbyViewModel.setExcluded(fetchExcludedUsers(userId))

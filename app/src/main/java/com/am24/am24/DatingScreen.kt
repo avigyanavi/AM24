@@ -211,10 +211,23 @@ fun DatingScreen(
 
     val context = LocalContext.current
     val activity = LocalContext.current as Activity
-    val rewardedComplimentManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedCompliment(activity)) }
-    val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
+    val selectedCountry = remember(myProfile?.country) {
+        canonicalCountry(myProfile?.country).takeIf { it.isNotBlank() }
+    }
+    val rewardedComplimentAdUnit = remember(selectedCountry) {
+        AdUnitIds.rewardedCompliment(activity, selectedCountry)
+    }
+    val rewardedComplimentManager = remember(rewardedComplimentAdUnit) {
+        RewardedAdManager(activity, rewardedComplimentAdUnit)
+    }
+    val rewardedSwipeAdUnit = remember(selectedCountry) {
+        AdUnitIds.rewardedSwipe(activity, selectedCountry)
+    }
+    val rewardedSwipeManager = remember(rewardedSwipeAdUnit) {
+        RewardedAdManager(activity, rewardedSwipeAdUnit)
+    }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(rewardedComplimentManager, rewardedSwipeManager) {
         onDispose {
             rewardedComplimentManager.clearCallbacks()
             rewardedSwipeManager.clearCallbacks()
@@ -1289,9 +1302,17 @@ fun ProfileCollapsibleSectionsAll(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val activity = LocalContext.current as Activity
-    val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
+    val selectedCountry = remember(currentUserProfile?.country) {
+        canonicalCountry(currentUserProfile?.country).takeIf { it.isNotBlank() }
+    }
+    val rewardedSwipeAdUnit = remember(selectedCountry) {
+        AdUnitIds.rewardedSwipe(activity, selectedCountry)
+    }
+    val rewardedSwipeManager = remember(rewardedSwipeAdUnit) {
+        RewardedAdManager(activity, rewardedSwipeAdUnit)
+    }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(rewardedSwipeManager) {
         onDispose { rewardedSwipeManager.clearCallbacks() }
     }
 

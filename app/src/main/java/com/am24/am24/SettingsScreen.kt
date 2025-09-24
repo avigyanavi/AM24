@@ -134,10 +134,23 @@ fun SettingsScreen(navController: NavController) {
     var rewardDialogFor   by remember { mutableStateOf<PurchaseType?>(null) }
     val isIndian = remember(country) { canonicalCountry(country) == "India" }
     val activity = LocalContext.current as Activity
-    val rewardedComplimentManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedCompliment(activity)) }
-    val rewardedSwipeManager = remember { RewardedAdManager(activity, AdUnitIds.rewardedSwipe(activity)) }
+    val canonicalCountryName = remember(country) {
+        canonicalCountry(country).takeIf { it.isNotBlank() }
+    }
+    val rewardedComplimentAdUnit = remember(canonicalCountryName) {
+        AdUnitIds.rewardedCompliment(activity, canonicalCountryName)
+    }
+    val rewardedComplimentManager = remember(rewardedComplimentAdUnit) {
+        RewardedAdManager(activity, rewardedComplimentAdUnit)
+    }
+    val rewardedSwipeAdUnit = remember(canonicalCountryName) {
+        AdUnitIds.rewardedSwipe(activity, canonicalCountryName)
+    }
+    val rewardedSwipeManager = remember(rewardedSwipeAdUnit) {
+        RewardedAdManager(activity, rewardedSwipeAdUnit)
+    }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(rewardedComplimentManager, rewardedSwipeManager) {
         onDispose {
             rewardedComplimentManager.clearCallbacks()
             rewardedSwipeManager.clearCallbacks()
