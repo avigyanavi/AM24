@@ -185,8 +185,8 @@
     <string name="map_entry_fee_discount_upgrade">Mejorar ahora</string>
     <string name="daily_login_plus_expiry">Expira el %1$s</string>
     <string name="ok">Aceptar</string>
-    <string name="label_your_message_es">Tu mensaje</string>
-    <string name="action_send_compliment_es">Enviar un cumplido</string>
+    <string name="label_your_message">Tu mensaje</string>
+    <string name="action_send_compliment">Enviar un cumplido</string>
     <string name="chat_title_fallback">Chat</string>
     <string name="nav_back">Atrás</string>
 
@@ -248,23 +248,16 @@
     <!-- values-es/strings.xml (es-MX) -->
     <string name="account_delete_prompt">¿Seguro que quieres eliminar tu cuenta? Se borrarán todos los datos.</string>
     <string name="account_deleted">Cuenta eliminada.</string>
-    <string name="username_label">Nombre de usuario</string>
     <string name="username_heading">Usuario: %1$s</string>
     <string name="username_updated">Nombre de usuario actualizado</string>
     <string name="action_done">Listo</string>
 
-    <string name="verify_email">Verificar correo</string>
     <string name="verify_email_body">Verifica tu correo electrónico para usar la app.</string>
-    <string name="resend_link">Reenviar enlace</string>
-    <string name="ive_verified">Ya verifiqué</string>
     <string name="email_verification_sent">¡Correo de verificación enviado!</string>
     <string name="email_verified_enjoy">Correo verificado — disfruta la app.</string>
     <string name="email_not_verified_yet">Aún no está verificado — confirma el enlace primero.</string>
 
-    <string name="settings_change_password">Cambiar contraseña</string>
     <string name="current_password">Contraseña actual</string>
-    <string name="new_password">Nueva contraseña</string>
-    <string name="confirm_password">Confirmar contraseña</string>
     <string name="password_updated">Contraseña actualizada</string>
 
     <string name="generic_error_with_msg">Error: %1$s</string>
@@ -378,7 +371,6 @@
     <string name="delete">Eliminar</string>
     <string name="username_with_value">Nombre de usuario: %1$s</string>
     <string name="done">Hecho</string>
-    <string name="current_password">Contraseña actual</string>
     <string name="new_password">Nueva contraseña</string>
     <string name="confirm_password">Confirmar contraseña</string>
     <string name="global_preferences">Preferencias globales</string>
@@ -1877,7 +1869,6 @@
     <string name="your_profile_picture">Tu foto de perfil</string>
     <string name="matched_profile_picture">Foto de perfil de la coincidencia</string>
     <string name="chat_now">Chatear ahora</string>
-    <string name="close">Cerrar</string>
 
     <!-- Login Screen -->
     <string name="username_or_email">Usuario o correo</string>

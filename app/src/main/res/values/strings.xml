@@ -613,11 +613,9 @@
     <string name="places_none">No places found</string>
     <string name="suggestions_get">Get Suggestions</string>
     <string name="clear_all">Clear All</string>
-    <string name="close">Close</string>
     <string name="directions">Directions</string>
     <string name="tap_to_send">Tap to send</string>
 
-    <string name="edit">Edit</string>
     <string name="proceed">Proceed</string>
 
     <string name="perm_mic_required">Microphone permission is required.</string>
@@ -6478,23 +6476,16 @@
     <string name="boosted_users">Boosted Users Nearby</string>
     <string name="reset">reset</string>
     <string name="account_deleted">Account deleted.</string>
-    <string name="username_label">Username</string>
     <string name="username_heading">Username: %1$s</string>
     <string name="username_updated">Username updated</string>
     <string name="action_done">Done</string>
 
-    <string name="verify_email">Verify email</string>
     <string name="verify_email_body">Please verify your email address to use the app.</string>
-    <string name="resend_link">Resend link</string>
-    <string name="ive_verified">I've verified</string>
+
     <string name="email_verification_sent">Verification email sent!</string>
     <string name="email_verified_enjoy">Email verified – enjoy the app!</string>
     <string name="email_not_verified_yet">Still not verified — please confirm the link first.</string>
 
-    <string name="settings_change_password">Change Password</string>
-    <string name="current_password">Current Password</string>
-    <string name="new_password">New Password</string>
-    <string name="confirm_password">Confirm Password</string>
     <string name="password_updated">Password updated</string>
 
     <string name="generic_error_with_msg">Error: %1$s</string>
