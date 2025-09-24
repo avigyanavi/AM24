@@ -554,8 +554,8 @@
 
     <!-- Chips & filters -->
     <string name="label_radius">Radius</string>
-    <string name="gender_women">Women</string>
-    <string name="gender_men">Men</string>
+    <string name="gender_women">Woman</string>
+    <string name="gender_men">Man</string>
 
     <!-- Place popup & sending -->
     <string name="btn_directions">Directions</string>

@@ -30,6 +30,24 @@ object CountryUtil {
         return listOf(isoBySim, isoByNet, isoByLocale).any { it == "IN" }
     }
 
+    fun isIndia(ctx: Context, selectedCountry: String?): Boolean {
+        if (canonicalCountry(selectedCountry) == "India") return true
+        val telephony = ctx.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
+        val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
+        return listOf(isoBySim, isoByNet, isoByLocale).any { it == "IN" }
+    }
+
+    fun isUnitedStates(ctx: Context, selectedCountry: String?): Boolean {
+        if (canonicalCountry(selectedCountry) == "United States") return true
+        val telephony = ctx.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
+        val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
+        return listOf(isoBySim, isoByNet, isoByLocale).any { it == "US" }
+    }
+
     fun usesKilometers(ctx: Context): Boolean {
         val isoBySim   = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
                 as? TelephonyManager)?.simCountryIso?.uppercase(Locale.US)

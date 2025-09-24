@@ -55,10 +55,20 @@ import kotlin.random.Random
 import androidx.compose.ui.res.pluralStringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.tasks.await
+import java.text.Normalizer
 
 
-private fun canonicalLocationId(name: String): String =
-    name.replace("\\s".toRegex(), "").lowercase()
+private fun canonicalLocationId(name: String): String {
+    val normalized = Normalizer.normalize(name, Normalizer.Form.NFD)
+        .replace("\\p{Mn}+".toRegex(), "")              // strip accents/diacritics
+
+    val cleaned = normalized
+        .lowercase()
+        .replace("[^a-z0-9]+".toRegex(), "_")       // collapse to word characters
+        .trim('_')
+
+    return cleaned.ifBlank { "general" }
+}
 
 data class ComplimentWithProfile(
     val profile: Profile,

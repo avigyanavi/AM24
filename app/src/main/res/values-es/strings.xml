@@ -158,8 +158,8 @@
 
     <!-- Chips & filters -->
     <string name="label_radius">Radio</string>
-    <string name="gender_women">Mujeres</string>
-    <string name="gender_men">Hombres</string>
+    <string name="gender_women">Mujer</string>
+    <string name="gender_men">Hombre</string>
 
     <!-- Place popup & sending -->
     <string name="btn_directions">Cómo llegar</string>

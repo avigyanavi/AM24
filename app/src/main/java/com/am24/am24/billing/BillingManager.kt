@@ -9,6 +9,7 @@ import android.util.Log
 import com.android.billingclient.api.*
 import com.am24.am24.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -327,27 +328,52 @@ object BillingManager : PurchasesUpdatedListener {
             .flatMap { it.products }
             .toSet()
 
-        val isPlus = activeSubProductIds.any { it in plusIds }
+        val isPlusSub = activeSubProductIds.any { it in plusIds }
         val isPremium = activeSubProductIds.any { it in premiumIds }
-
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-        if (uid != null) {
-            val updates = mutableMapOf<String, Any>(
-                "isPlus" to isPlus,
-                "isPremium" to isPremium,
-            )
-
-            if (isPlus || isPremium) {
-                updates["swipesInfo/remainingSwipes"] =
-                    if (isPremium) Int.MAX_VALUE else 50
-                updates["availableCompliments"] = if (isPremium) 5 else 3
-                if (isPremium) updates["availableAiMessages"] = 2
-            }
-
-            FirebaseDatabase.getInstance().reference
-                .child("users/$uid")
-                .updateChildren(updates)
+        val hasEntryFeePurchase = all.any {
+            it.purchaseState == Purchase.PurchaseState.PURCHASED &&
+                    it.products.contains("entry_fee")
         }
+
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val userRef = FirebaseDatabase.getInstance().reference.child("users/$uid")
+
+        if (hasEntryFeePurchase) {
+            applyTierEntitlements(userRef, plus = true, premium = isPremium)
+            return
+        }
+        userRef.get()
+            .addOnSuccessListener { snapshot ->
+                val entryFeePaid =
+                    snapshot.child("isEntryFeePaid").getValue(Boolean::class.java) == true
+                val rewardExpiry =
+                    snapshot.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
+                val rewardActive = rewardExpiry > System.currentTimeMillis()
+                val finalPlus = isPlusSub || entryFeePaid || rewardActive
+                applyTierEntitlements(userRef, plus = finalPlus, premium = isPremium)
+            }
+            .addOnFailureListener {
+                applyTierEntitlements(userRef, plus = isPlusSub, premium = isPremium)
+            }
+    }
+
+    private fun applyTierEntitlements(
+        userRef: DatabaseReference,
+        plus: Boolean,
+        premium: Boolean
+    ) {
+        val updates = mutableMapOf<String, Any>(
+            "isPlus" to plus,
+            "isPremium" to premium,
+        )
+
+        if (plus || premium) {
+            updates["swipesInfo/remainingSwipes"] =
+                if (premium) Int.MAX_VALUE else 50
+            updates["availableCompliments"] = if (premium) 5 else 3
+            if (premium) updates["availableAiMessages"] = 2
+        }
+        userRef.updateChildren(updates)
     }
 
     private fun verifyPurchaseOnServer(purchase: Purchase) {

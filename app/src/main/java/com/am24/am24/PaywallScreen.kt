@@ -29,11 +29,23 @@ fun PaywallScreen(onPaid: () -> Unit) {
 
     var userCountry by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(uid) {
-        val snapshot = FirebaseDatabase.getInstance().getReference("users/$uid").get().await()
+        val userRef = FirebaseDatabase.getInstance().getReference("users/$uid")
+        val snapshot = userRef.get().await()
         userCountry = snapshot.child("country").getValue(String::class.java)
-        val alreadyPaid = snapshot.child("isEntryFeePaid").getValue(Boolean::class.java) == true ||
-                snapshot.child("isPlus").getValue(Boolean::class.java) == true
-        if (alreadyPaid) {
+        val entryFeePaid = snapshot.child("isEntryFeePaid").getValue(Boolean::class.java) == true
+        val plusActive = snapshot.child("isPlus").getValue(Boolean::class.java) == true
+        val loginPlusExpiry = snapshot.child("loginPlusExpiry").getValue(Long::class.java)
+
+        if (entryFeePaid) {
+            if (!plusActive) {
+                userRef.child("isPlus").setValue(true)
+            }
+            if ((loginPlusExpiry ?: 0L) != 0L) {
+                userRef.child("loginPlusExpiry").removeValue()
+            }
+        }
+
+        if (entryFeePaid || plusActive) {
             onPaid()
         }
     }
@@ -48,20 +60,24 @@ fun PaywallScreen(onPaid: () -> Unit) {
             val purchase = BillingManager.purchases.value.firstOrNull { it.products.contains("entry_fee") }
             if (purchase != null && purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
                 isProcessing = true
-                val expiry = System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000
+                val userRef = FirebaseDatabase.getInstance().reference.child("users/$uid")
                 val updates = mapOf<String, Any>(
                     "entryFeePaidAt" to ServerValue.TIMESTAMP,
                     "isEntryFeePaid" to true,
-                    "isPlus" to true,
-                    "loginPlusExpiry" to expiry
+                    "isPlus" to true
                 )
-                FirebaseDatabase.getInstance().reference.child("users/$uid").updateChildren(updates).addOnCompleteListener {
-                    val price = if (isMexico) BigDecimal("4.99") else BigDecimal("0.50")
-                    val currency = if (isMexico) Currency.getInstance("MXN") else Currency.getInstance("USD")
-                    AppEventsLogger.newLogger(ctx).logPurchase(price, currency)
-                    isProcessing = false
-                    onPaid()
-                }
+                userRef.updateChildren(updates)
+                    .addOnSuccessListener {
+                        userRef.child("loginPlusExpiry").removeValue()
+                        val price = if (isMexico) BigDecimal("4.99") else BigDecimal("0.50")
+                        val currency = if (isMexico) Currency.getInstance("MXN") else Currency.getInstance("USD")
+                        AppEventsLogger.newLogger(ctx).logPurchase(price, currency)
+                        isProcessing = false
+                        onPaid()
+                    }
+                    .addOnFailureListener {
+                        isProcessing = false
+                    }
             }
         }
     }

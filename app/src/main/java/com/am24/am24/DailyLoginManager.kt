@@ -23,13 +23,14 @@ suspend fun checkDailyLoginReward(context: Context): DailyLoginInfo? {
     val isPremium = snap.child("isPremium").getValue(Boolean::class.java) ?: false
     val isPlus = snap.child("isPlus").getValue(Boolean::class.java) ?: false
     val rewardExpiry = snap.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
+    val entryFeePaid = snap.child("isEntryFeePaid").getValue(Boolean::class.java) ?: false
 
-    if (rewardExpiry > 0 && rewardExpiry < now && !isPremium) {
+    if (rewardExpiry > 0 && rewardExpiry < now && !isPremium && !entryFeePaid) {
         ref.child("loginPlusExpiry").removeValue()
         ref.child("isPlus").setValue(false)
     }
 
-    if (isPlus || isPremium) return null
+    if (isPlus || isPremium || entryFeePaid) return null
 
     if (lastLoginDay == today) return null
 
