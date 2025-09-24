@@ -75,7 +75,7 @@
         <!-- Previous AdMob application ID: ca-app-pub-3206974923602803~7728780693 -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-5094389629300846~6971017275"/>
+            android:value="ca-app-pub-1814829133495225~8016138383"/>
 
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
