@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -39,8 +40,11 @@ import androidx.lifecycle.lifecycleScope
 import com.am24.am24.ui.purchase.PaymentResultListenerHost
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 
 
 
@@ -52,9 +56,12 @@ class KupidXAppActivity : AppCompatActivity(),
     /* ------------------------------------------------------------------ state */
     private lateinit var auth: FirebaseAuth
     private lateinit var locationManager: LocationManager
+    private lateinit var appOpenAdManager: AppOpenAdManager
     private val postViewModel: PostViewModel by viewModels()
 
     private var presenceRef: DatabaseReference? = null
+    private var tierRef: DatabaseReference? = null
+    private var tierListener: ValueEventListener? = null
 
     // callbacks wired from the Composable screen
     private var paymentSuccessCallback: ((String) -> Unit)? = null
@@ -100,7 +107,7 @@ class KupidXAppActivity : AppCompatActivity(),
         super.onCreate(savedInstanceState)
 
         auth = FirebaseAuth.getInstance()
-
+        appOpenAdManager = AppOpenAdManager()
 
         pendingOpenNotifications =
             intent?.getBooleanExtra("open_notifications", false) ?: false
@@ -109,6 +116,7 @@ class KupidXAppActivity : AppCompatActivity(),
 
         auth.currentUser?.uid?.let { uid ->
             locationManager = LocationManager(this)
+            observeUserTier(uid)
 
             Coil.setImageLoader(
                 ImageLoader.Builder(applicationContext)
@@ -187,9 +195,18 @@ class KupidXAppActivity : AppCompatActivity(),
         }
         if (changed) recreate()
     }
+    override fun onResume() {
+        super.onResume()
+        appOpenAdManager.showAdIfAvailable(this)
+    }
 
     override fun onDestroy() {
         presenceRef?.removeValue()
+        tierListener?.let { listener ->
+            tierRef?.removeEventListener(listener)
+        }
+        tierListener = null
+        tierRef = null
         super.onDestroy()
     }
 
@@ -208,6 +225,42 @@ class KupidXAppActivity : AppCompatActivity(),
                 )
             )
         }
+    }
+
+    private fun observeUserTier(uid: String) {
+        tierListener?.let { existing ->
+            tierRef?.removeEventListener(existing)
+        }
+
+        val ref = FirebaseDatabase.getInstance().getReference("users").child(uid)
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val isPlus = snapshot.child("isPlus").getValue(Boolean::class.java) == true
+                val isPremium = snapshot.child("isPremium").getValue(Boolean::class.java) == true
+                val selectedCountry = snapshot.child("country")
+                    .getValue(String::class.java)
+                    ?.takeIf { it.isNotBlank() }
+
+                val shouldShowAds = !isPlus && !isPremium
+                appOpenAdManager.updateEligibility(
+                    context = this@KupidXAppActivity,
+                    selectedCountry = selectedCountry,
+                    shouldShow = shouldShowAds
+                )
+
+                if (shouldShowAds) {
+                    appOpenAdManager.showAdIfAvailable(this@KupidXAppActivity)
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.w("KupidXAppActivity", "App open ad tier listener cancelled: ${error.message}")
+            }
+        }
+
+        ref.addValueEventListener(listener)
+        tierRef = ref
+        tierListener = listener
     }
 
     /* ---------------------------------------------------------------- Razorpay */

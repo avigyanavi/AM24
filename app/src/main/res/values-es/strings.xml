@@ -160,7 +160,22 @@
     <string name="label_radius">Radio</string>
     <string name="gender_women">Mujer</string>
     <string name="gender_men">Hombre</string>
-
+    <string name="paywall_title">Confirma que no eres un bot y obtén un año de KupidxPlus (oferta de lanzamiento): mira a quién le gustas y más.</string>
+    <string name="paywall_entry_fee_message_india">Entrada de Rs. 20 para mantener alejados a los bots</string>
+    <string name="paywall_entry_fee_message_mexico">Entrada de MX$ 4.99 para mantener alejados a los bots</string>
+    <string name="paywall_entry_fee_message_us">Entrada de US 0.50$ para mantener alejados a los bots</string>
+    <string name="paywall_entry_fee_message_generic">Entrada de %1$s para mantener alejados a los bots</string>
+    <string name="paywall_entry_fee_loading">Entrada: precio cargando…</string>
+    <string name="paywall_opening_offer_message">Oferta de lanzamiento: acceso por 1 año desde tu pago.</string>
+    <string name="paywall_button_processing">Procesando…</string>
+    <string name="paywall_button_loading">Cargando…</string>
+    <string name="paywall_button_pay_india">Pagar Rs. 20 y continuar</string>
+    <string name="paywall_button_pay_mexico">Pagar MX$ 4.99 y continuar</string>
+    <string name="paywall_button_pay_us">Pagar US 0.50$ y continuar</string>
+    <string name="paywall_button_pay_generic">Pagar %1$s y continuar</string>
+    <string name="paywall_button_pay_default">Pagar y continuar</string>
+    <string name="paywall_skip">Omitir</string>
+    <string name="paywall_skip_disclaimer">Ver 1 anuncio cada vez que abras la app</string>
     <!-- Place popup & sending -->
     <string name="btn_directions">Cómo llegar</string>
     <string name="btn_send_to_match">Enviar al match</string>

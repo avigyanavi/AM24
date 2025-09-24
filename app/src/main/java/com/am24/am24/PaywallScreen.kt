@@ -8,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -127,23 +128,28 @@ fun PaywallScreen(onPaid: () -> Unit) {
     }
 
     val entryFeeMessage = when {
-        isIndia -> "Rs. 20 entry fee - to keep the bots away"
-        isMexico -> "Entrada: MX$ 4.99 para mantener alejados a los robots."
-        isUnitedStates -> "US 0.50$ entry fee - to keep the bots away"
-        entryOffer != null -> "${entryOffer.formattedPrice} entry fee - to keep the bots away"
-        else -> "Entry fee - price loading..."
+        isIndia -> stringResource(R.string.paywall_entry_fee_message_india)
+        isMexico -> stringResource(R.string.paywall_entry_fee_message_mexico)
+        isUnitedStates -> stringResource(R.string.paywall_entry_fee_message_us)
+        entryOffer != null -> stringResource(
+            R.string.paywall_entry_fee_message_generic,
+            entryOffer.formattedPrice
+        )
+        else -> stringResource(R.string.paywall_entry_fee_loading)
     }
 
     val buttonLabel = when {
-        isProcessing -> "Processing..."
-        entryProduct == null -> "Loading..."
-        isIndia -> "Pay Rs. 20 and Continue"
-        isMexico -> "Pagar MX$ 4.99 y continuar"
-        isUnitedStates -> "Pay US 0.50$ and Continue"
-        entryOffer != null -> "Pay ${entryOffer.formattedPrice} and Continue"
-        else -> "Pay and Continue"
+        isProcessing -> stringResource(R.string.paywall_button_processing)
+        entryProduct == null -> stringResource(R.string.paywall_button_loading)
+        isIndia -> stringResource(R.string.paywall_button_pay_india)
+        isMexico -> stringResource(R.string.paywall_button_pay_mexico)
+        isUnitedStates -> stringResource(R.string.paywall_button_pay_us)
+        entryOffer != null -> stringResource(
+            R.string.paywall_button_pay_generic,
+            entryOffer.formattedPrice
+        )
+        else -> stringResource(R.string.paywall_button_pay_default)
     }
-
 
     Column(
         modifier = Modifier
@@ -153,7 +159,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            "Confirma que no eres un bot y obtén un año de KupidxPlus (oferta de lanzamiento): mira a quién le gustas y más.",
+            stringResource(R.string.paywall_title),
             color = Color.White,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
@@ -162,7 +168,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
         Text(text = entryFeeMessage, color = Color.White)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Oferta de lanzamiento: acceso por 1 año desde tu pago.",
+            stringResource(R.string.paywall_opening_offer_message),
             color = Color.White,
             fontSize = 14.sp
         )
@@ -188,13 +194,14 @@ fun PaywallScreen(onPaid: () -> Unit) {
                     }
                 }
             ) {
-                Text("Skip")
+                Text(stringResource(R.string.paywall_skip))
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                "Watch 1 ad on app open everytime",
+                stringResource(R.string.paywall_skip_disclaimer),
                 color = Color.White,
                 fontSize = 12.sp
-            )        }
+            )
+        }
     }
 }

@@ -557,6 +557,23 @@
     <string name="gender_women">Woman</string>
     <string name="gender_men">Man</string>
 
+    <string name="paywall_title">Confirm you\'re not a bot and get one year of KupidxPlus (opening offer): see who likes you and more.</string>
+    <string name="paywall_entry_fee_message_india">Rs. 20 entry fee - to keep the bots away</string>
+    <string name="paywall_entry_fee_message_mexico">MX$ 4.99 entry fee - to keep the bots away</string>
+    <string name="paywall_entry_fee_message_us">US 0.50$ entry fee - to keep the bots away</string>
+    <string name="paywall_entry_fee_message_generic">%1$s entry fee - to keep the bots away</string>
+    <string name="paywall_entry_fee_loading">Entry fee - price loading…</string>
+    <string name="paywall_opening_offer_message">Opening offer: access for 1 year from your payment.</string>
+    <string name="paywall_button_processing">Processing…</string>
+    <string name="paywall_button_loading">Loading...</string>
+    <string name="paywall_button_pay_india">Pay Rs. 20 and Continue</string>
+    <string name="paywall_button_pay_mexico">Pay MX$ 4.99 and Continue</string>
+    <string name="paywall_button_pay_us">Pay US 0.50$ and Continue</string>
+    <string name="paywall_button_pay_generic">Pay %1$s and Continue</string>
+    <string name="paywall_button_pay_default">Pay and Continue</string>
+    <string name="paywall_skip">Skip</string>
+    <string name="paywall_skip_disclaimer">Watch 1 ad on app open every time</string>
+
     <!-- Place popup & sending -->
     <string name="btn_directions">Directions</string>
     <string name="btn_send_to_match">Send to Match</string>
