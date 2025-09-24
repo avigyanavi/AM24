@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.concurrent.TimeUnit
 
 /**
  * Billing manager (BillingClient 8.0.0):
@@ -346,10 +347,20 @@ object BillingManager : PurchasesUpdatedListener {
             .addOnSuccessListener { snapshot ->
                 val entryFeePaid =
                     snapshot.child("isEntryFeePaid").getValue(Boolean::class.java) == true
+                val entryFeePaidAt =
+                    snapshot.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
                 val rewardExpiry =
                     snapshot.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
-                val rewardActive = rewardExpiry > System.currentTimeMillis()
-                val finalPlus = isPlusSub || entryFeePaid || rewardActive
+                val now = System.currentTimeMillis()
+                val rewardActive = rewardExpiry > now
+                val entryFeeExpiry = if (entryFeePaidAt > 0L) {
+                    entryFeePaidAt + TimeUnit.DAYS.toMillis(365)
+                } else 0L
+                val entryFeeActive = entryFeePaid && (rewardActive || entryFeeExpiry > now)
+                if (entryFeePaid && !entryFeeActive && entryFeeExpiry > 0L && entryFeeExpiry <= now) {
+                    userRef.child("isEntryFeePaid").setValue(false)
+                }
+                val finalPlus = isPlusSub || rewardActive || entryFeeActive
                 applyTierEntitlements(userRef, plus = finalPlus, premium = isPremium)
             }
             .addOnFailureListener {

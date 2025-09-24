@@ -177,6 +177,23 @@
     <string name="paywall_skip">Omitir</string>
     <string name="paywall_skip_disclaimer">Ver 1 anuncio cada vez que abras la app</string>
     <!-- Place popup & sending -->
+    <string name="map_entry_fee_plus_title">¡Plus desbloqueado!</string>
+    <string name="map_entry_fee_plus_message">Gracias por apoyar AM24 — tus beneficios Plus estarán activos durante los próximos 12 meses.</string>
+    <string name="map_entry_fee_plus_confirm">Genial</string>
+    <string name="map_entry_fee_discount_title">Oferta Plus por tiempo limitado</string>
+    <string name="map_entry_fee_discount_message">Desbloquea Plus por un año con un pago único. La oferta termina en %1$d hr.</string>
+    <string name="map_entry_fee_discount_upgrade">Mejorar ahora</string>
+    <string name="map_entry_fee_later">Quizás después</string>
+    <string name="entry_fee_plus_title">Desbloquea Plus por un año</string>
+    <string name="entry_fee_plus_header">Plus de una sola vez</string>
+    <string name="entry_fee_plus_description_price">Paga %1$s una vez y disfruta de los beneficios Plus por 12 meses.</string>
+    <string name="entry_fee_plus_description_generic">Paga una vez hoy y disfruta de los beneficios Plus por 12 meses.</string>
+    <string name="entry_fee_plus_offer_timer">Descuento por tiempo limitado · %1$d hr restantes</string>
+    <string name="entry_fee_plus_button">Desbloquear por %1$s</string>
+    <string name="entry_fee_plus_button_generic">Desbloquear Plus</string>
+    <string name="entry_fee_plus_success_toast">¡Plus está activo durante los próximos 12 meses!</string>
+    <string name="settings_limited_offer_badge">Oferta limitada</string>
+    <string name="settings_limited_offer_message">Desbloquea Plus por un año con un pago único. La oferta termina en %1$d hr.</string>
     <string name="btn_directions">Cómo llegar</string>
     <string name="btn_send_to_match">Enviar al match</string>
     <string name="dialog_select_match_title">Selecciona un match</string>

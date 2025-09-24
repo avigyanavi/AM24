@@ -228,6 +228,9 @@ fun MainNavGraph(
             val toast = backStackEntry.arguments?.getString("toast")
             SubscriptionScreen(navController, toastMessage = toast)
         }
+        composable("entryFeePlus") {
+            EntryFeePlusScreen(navController)
+        }
         composable(
             route = "billing?basePlanId={basePlanId}",
             arguments = listOf(

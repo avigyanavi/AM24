@@ -584,6 +584,24 @@
     <string name="match_age">Age: %1$d</string>
     <string name="match_from">From: %1$s</string>
 
+    <string name="map_entry_fee_plus_title">Plus unlocked!</string>
+    <string name="map_entry_fee_plus_message">Thanks for supporting AM24 — your Plus perks are active for the next 12 months.</string>
+    <string name="map_entry_fee_plus_confirm">Awesome</string>
+    <string name="map_entry_fee_discount_title">Limited-time Plus offer</string>
+    <string name="map_entry_fee_discount_message">Unlock Plus for a year at a one-time price. Offer ends in %1$d hr.</string>
+    <string name="map_entry_fee_discount_upgrade">Upgrade now</string>
+    <string name="map_entry_fee_later">Maybe later</string>
+    <string name="entry_fee_plus_title">Unlock Plus for a year</string>
+    <string name="entry_fee_plus_header">One-time Plus</string>
+    <string name="entry_fee_plus_description_price">Pay %1$s once and enjoy Plus perks for 12 months.</string>
+    <string name="entry_fee_plus_description_generic">Pay once today and enjoy Plus perks for 12 months.</string>
+    <string name="entry_fee_plus_offer_timer">Limited-time discount · %1$d hr left</string>
+    <string name="entry_fee_plus_button">Unlock for %1$s</string>
+    <string name="entry_fee_plus_button_generic">Unlock Plus</string>
+    <string name="entry_fee_plus_success_toast">Plus is active for the next 12 months!</string>
+    <string name="settings_limited_offer_badge">Limited offer</string>
+    <string name="settings_limited_offer_message">Unlock Plus for a year with a one-time payment. Offer ends in %1$d hr.</string>
+
     <!-- Leaderboard -->
     <string name="leaderboard_title">Top Places</string>
     <plurals name="post_count">

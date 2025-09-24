@@ -42,6 +42,10 @@ import kotlinx.coroutines.tasks.await
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
+import kotlin.math.ceil
+import kotlin.math.max
+
 
 /* ───────────────────────────────────────────────  small helpers ── */
 
@@ -113,6 +117,8 @@ fun SettingsScreen(navController: NavController) {
     var aiMessages    by remember { mutableStateOf(0) }       // ★ NEW ★
     var loginStreak   by remember { mutableStateOf(0) }
     var loginPlusExpiry by remember { mutableStateOf(0L) }
+    var entryFeeOfferExpiry by remember { mutableStateOf(0L) }
+    var entryFeePaid by remember { mutableStateOf(false) }
     var isPrivate by remember { mutableStateOf(false) }
     val defaultLang = if (Locale.getDefault().country.equals("MX", true)) "es" else "en"
     var preferredLang by remember { mutableStateOf(defaultLang) }
@@ -161,13 +167,41 @@ fun SettingsScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         val s = userRef.get().await()
 // pull the flat `isPremium` boolean and optional expiryDate
-            val plusFlag    = s.child("isPlus").getValue(Boolean::class.java) ?: false
-            val premiumFlag = s.child("isPremium").getValue(Boolean::class.java) ?: false
-            premiumTier = when {
-                  premiumFlag -> "Premium"
-                  plusFlag    -> "Plus"
-                  else         -> "Free"
-                }
+        val plusFlag = s.child("isPlus").getValue(Boolean::class.java) ?: false
+        val premiumFlag = s.child("isPremium").getValue(Boolean::class.java) ?: false
+        val loginPlusExpiryVal = s.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
+        val entryFeePaidFlag = s.child("isEntryFeePaid").getValue(Boolean::class.java) ?: false
+        val entryFeePaidAt = s.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
+        val entryFeeOfferExpiryVal = s.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
+        val now = System.currentTimeMillis()
+        val entryFeeExpiry = if (entryFeePaidAt > 0L) {
+            entryFeePaidAt + TimeUnit.DAYS.toMillis(365)
+        } else 0L
+        val entryFeeActive = entryFeePaidFlag && ((loginPlusExpiryVal > now) || (entryFeeExpiry > now && entryFeeExpiry > 0L))
+        val plusExpired = plusFlag && entryFeePaidFlag && !entryFeeActive && !premiumFlag
+
+        if (plusExpired) {
+            userRef.child("isPlus").setValue(false)
+            if (entryFeePaidFlag) {
+                userRef.child("isEntryFeePaid").setValue(false)
+            }
+        }
+
+        entryFeePaid = entryFeeActive
+        entryFeeOfferExpiry = entryFeeOfferExpiryVal
+        if (entryFeeOfferExpiryVal > 0L && entryFeeOfferExpiryVal < now) {
+            userRef.child("entryFeeOfferExpiry").removeValue()
+            entryFeeOfferExpiry = 0L
+        }
+
+        premiumTier = when {
+            premiumFlag -> "Premium"
+            plusFlag && !plusExpired -> "Plus"
+            entryFeeActive -> "Plus"
+            else -> "Free"
+        }
+
+        loginPlusExpiry = if (plusExpired) 0L else loginPlusExpiryVal
         expiry = if (!subscriptionId.isNullOrBlank()) "Never" else
             s.child("nextRenewal").getValue(Long::class.java)
                 ?.let { DateFormat.getDateInstance().format(Date(it)) }
@@ -238,22 +272,38 @@ fun SettingsScreen(navController: NavController) {
 
                     /**  FREE  → go to the NEW UpgradeLandingScreen  */
                     if (premiumTier == "Free") {
+                        val now = System.currentTimeMillis()
+                        val offerActive = entryFeeOfferExpiry > now && !entryFeePaid
+                        val offerHoursLeft = if (offerActive) {
+                            max(1, ceil((entryFeeOfferExpiry - now) / 3600000.0).toInt())
+                        } else 0
                         SettingsRow(
                             icon  = { Icon(Icons.Default.StarOutline, null) },
                             title = stringResource(R.string.settings_free_user),
-                            trailingText = stringResource(R.string.upgrade),
-                                onClick = {
-                                    if (premiumTier == "Plus") {
-                                        navController.navigate("manageSubscription")
+                            trailingText = if (offerActive)
+                                stringResource(R.string.settings_limited_offer_badge)
+                            else stringResource(R.string.upgrade),
+                            onClick = {
+                                if (offerActive) {
+                                    navController.navigate("entryFeePlus")
+                                } else {
+                                    if (CountryUtil.useRazorpay(ctx, country)) {
+                                        navController.navigate("upgradeLanding")
                                     } else {
-                                        if (CountryUtil.useRazorpay(ctx, country)) {
-                                            navController.navigate("upgradeLanding")
-                                        } else {
-                                            navController.navigate("subscription")
-                                        }
+                                        navController.navigate("subscription")
                                     }
                                 }
+                            }
                         )
+                        if (offerActive) {
+                            Text(
+                                stringResource(R.string.settings_limited_offer_message, offerHoursLeft),
+                                modifier = Modifier
+                                    .padding(start = 72.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
 
                         /**  PLUS / PREMIUM  → keep old manage page  */
                     } else {

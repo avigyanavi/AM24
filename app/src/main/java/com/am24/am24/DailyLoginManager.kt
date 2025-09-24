@@ -5,6 +5,7 @@ import com.google.firebase.database.DatabaseReference
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 import android.content.Context
+import java.util.concurrent.TimeUnit
 
 /**
  * Checks daily login streak and applies Plus rewards.
@@ -24,13 +25,26 @@ suspend fun checkDailyLoginReward(context: Context): DailyLoginInfo? {
     val isPlus = snap.child("isPlus").getValue(Boolean::class.java) ?: false
     val rewardExpiry = snap.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
     val entryFeePaid = snap.child("isEntryFeePaid").getValue(Boolean::class.java) ?: false
+    val entryFeePaidAt = snap.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
 
-    if (rewardExpiry > 0 && rewardExpiry < now && !isPremium && !entryFeePaid) {
+    val entryFeeExpiryFromPaidAt = if (entryFeePaidAt > 0L) {
+        entryFeePaidAt + TimeUnit.DAYS.toMillis(365)
+    } else 0L
+    val entryFeeActive = entryFeePaid && (
+            (rewardExpiry > now) || (entryFeeExpiryFromPaidAt > now)
+            )
+
+    if (rewardExpiry > 0 && rewardExpiry < now && !isPremium) {
         ref.child("loginPlusExpiry").removeValue()
         ref.child("isPlus").setValue(false)
+        if (entryFeePaid && entryFeeExpiryFromPaidAt <= now) {
+            ref.child("isEntryFeePaid").setValue(false)
+        }
+    } else if (entryFeePaid && entryFeeExpiryFromPaidAt > 0L && entryFeeExpiryFromPaidAt < now && !isPremium) {
+        ref.child("isEntryFeePaid").setValue(false)
     }
 
-    if (isPlus || isPremium || entryFeePaid) return null
+    if (isPlus || isPremium || entryFeeActive) return null
 
     if (lastLoginDay == today) return null
 

@@ -36,6 +36,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
     var plusActive by remember { mutableStateOf(false) }
     var loginPlusExpiry by remember { mutableStateOf<Long?>(null) }
     var entryFeePaidAt by remember { mutableStateOf<Long?>(null) }
+    var entryFeeOfferSeen by remember { mutableStateOf<Boolean?>(null) }
     var hasNavigatedAway by remember(uid) { mutableStateOf(false) }
     DisposableEffect(userRef) {
         val listener = object : ValueEventListener {
@@ -45,6 +46,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
                 plusActive = snapshot.child("isPlus").getValue(Boolean::class.java) == true
                 loginPlusExpiry = snapshot.child("loginPlusExpiry").getValue(Long::class.java)
                 entryFeePaidAt = snapshot.child("entryFeePaidAt").getValue(Long::class.java)
+                entryFeeOfferSeen = snapshot.child("entryFeeOfferSeen").getValue(Boolean::class.java)
             }
 
             override fun onCancelled(error: DatabaseError) {}
@@ -95,13 +97,16 @@ fun PaywallScreen(onPaid: () -> Unit) {
                 val updates = mutableMapOf<String, Any>(
                     "entryFeePaidAt" to ServerValue.TIMESTAMP,
                     "isEntryFeePaid" to true,
-                    "isPlus" to true
+                    "isPlus" to true,
+                    "entryFeePlusIntroSeen" to false,
+                    "entryFeeOfferSeen" to true
                 )
                 if (purchaseTime > 0L) {
                     updates["loginPlusExpiry"] = purchaseTime + yearInMillis
                 }
                 userRef.updateChildren(updates)
                     .addOnSuccessListener {
+                        userRef.child("entryFeeOfferExpiry").removeValue()
                         val offer = BillingManager.products.value
                             .firstOrNull { it.productId == "entry_fee" }
                             ?.oneTimePurchaseOfferDetails
@@ -189,6 +194,13 @@ fun PaywallScreen(onPaid: () -> Unit) {
             TextButton(
                 onClick = {
                     if (!hasNavigatedAway) {
+                        if (!entryFeePaid) {
+                            val expiry = System.currentTimeMillis() + TimeUnit.HOURS.toMillis(24)
+                            userRef.child("entryFeeOfferExpiry").setValue(expiry)
+                            userRef.child("entryFeeOfferSeen").setValue(false)
+                        } else if (entryFeeOfferSeen == null) {
+                            userRef.child("entryFeeOfferSeen").setValue(true)
+                        }
                         hasNavigatedAway = true
                         onPaidCallback()
                     }
