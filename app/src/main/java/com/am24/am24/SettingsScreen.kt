@@ -620,13 +620,13 @@ fun SettingsScreen(navController: NavController) {
                         },
                         enabled = feedbackText.isNotBlank() && !working
                     ) {
-                        Text("Send", color = kupidxOrange)        // ← orange text
+                        Text(stringResource(R.string.send), color = kupidxOrange)        // ← orange text
                     }
                 },
                 dismissButton = {
                     if (!working)
                         TextButton(onClick = { showFeedbackDialog = false }) {
-                            Text("Cancel", color = kupidxOrange)
+                            Text(stringResource(R.string.cancel), color = kupidxOrange)
                         }
                 }
             )
@@ -648,7 +648,7 @@ fun SettingsScreen(navController: NavController) {
                             }
                         }
                     }) {
-                        Text("Reset", color = kupidxOrange)
+                        Text(stringResource(R.string.reset), color = kupidxOrange)
                     }
                 },
                 dismissButton = {
@@ -663,7 +663,7 @@ fun SettingsScreen(navController: NavController) {
                 onDismissRequest = { if (!working) showDeleteDialog = false },
                 title = { Text(stringResource(R.string.settings_delete_account), color = kupidxOrange) },
                 text = {
-                    Text("Are you sure you want to delete your account? All data will be removed.")
+                    Text(stringResource(R.string.account_delete_prompt))
                 },
                 confirmButton = {
                     TextButton(
@@ -672,7 +672,7 @@ fun SettingsScreen(navController: NavController) {
                             scope.launch {
                                 try {
                                     AccountDeletion.deleteAccount()
-                                    Toast.makeText(ctx, "Account deleted", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(ctx, R.string.account_deleted, Toast.LENGTH_LONG).show()
                                     FirebaseAuth.getInstance().signOut()
                                     TokenStorageManager.clearToken(ctx)
                                     ctx.startActivity(Intent(ctx, LandingActivity::class.java))
@@ -687,14 +687,15 @@ fun SettingsScreen(navController: NavController) {
                         },
                         enabled = !working
                     ) {
-                        Text("Delete", color = kupidxOrange)
+                        Text(stringResource(R.string.delete), color = kupidxOrange)
                     }
                 },
                 dismissButton = {
-                    if (!working)
+                    if (!working) {
                         TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("Cancel", color = kupidxOrange)
+                            Text(stringResource(R.string.cancel), color = kupidxOrange)
                         }
+                    }
                 }
             )
         }
@@ -784,7 +785,7 @@ private fun AccountCard(uid: String) {
                         value = username,
                         onValueChange = { username = it },
                         singleLine = true,
-                        label = { Text("Username", color = Color(0xFFFF6F00)) },
+                        label = { Text(stringResource(R.string.username), color = Color(0xFFFF6F00)) },
                         colors = TextFieldDefaults.outlinedTextFieldColors(
                             focusedBorderColor = Color(0xFFFF6F00),
                             cursorColor = Color(0xFFFF6F00),
@@ -801,11 +802,11 @@ private fun AccountCard(uid: String) {
                             scope.launch {
                                 updateAccountSettingsNoEmail("", username, oldUsername)
                                 oldUsername = username
-                                Toast.makeText(ctx, "Username updated", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(ctx, R.string.username_updated, Toast.LENGTH_SHORT).show()
                             }
                         },
                         enabled = enabled
-                    ) { Text("Done") }
+                    ) { Text(stringResource(R.string.done)) }
                 }
             )
         } else {
@@ -823,7 +824,7 @@ private fun AccountCard(uid: String) {
             AlertDialog(
                 onDismissRequest = { showVerifyDialog = false },
                 title = { Text(stringResource(R.string.verify_email), color = Color(0xFFFF6F00)) },
-                text = { Text("Please verify your email address to use the app.") },
+                text = { Text(stringResource(R.string.verify_email)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -831,7 +832,7 @@ private fun AccountCard(uid: String) {
                             scope.launch {
                                 try {
                                     FirebaseAuth.getInstance().currentUser?.sendEmailVerification()?.await()
-                                    Toast.makeText(ctx, "Verification email sent!", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(ctx, R.string.email_verification_sent, Toast.LENGTH_LONG).show()
                                 } catch (e: Exception) {
                                     Toast.makeText(ctx, e.localizedMessage ?: "Error", Toast.LENGTH_LONG).show()
                                 } finally {
@@ -855,7 +856,7 @@ private fun AccountCard(uid: String) {
                                 FirebaseAuth.getInstance().currentUser?.reload()?.await()
                                 val refreshed = FirebaseAuth.getInstance().currentUser
                                 if (refreshed?.isEmailVerified == true) {
-                                    Toast.makeText(ctx, "Email verified – enjoy the app!", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(ctx, R.string.email_verified_enjoy, Toast.LENGTH_LONG).show()
                                     needsVerification = false
                                     showVerifyDialog = false
                                     try {
@@ -864,7 +865,7 @@ private fun AccountCard(uid: String) {
                                             .call()
                                     } catch (_: Exception) {}
                                 } else {
-                                    Toast.makeText(ctx, "Still not verified — please confirm the link first.", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(ctx, R.string.email_not_verified_yet, Toast.LENGTH_LONG).show()
                                 }
                             } catch (e: Exception) {
                                 Toast.makeText(ctx, e.localizedMessage ?: "Error", Toast.LENGTH_LONG).show()
@@ -891,7 +892,7 @@ private fun AccountCard(uid: String) {
                     OutlinedTextField(
                         value = oldPass,
                         onValueChange = { oldPass = it },
-                        label = { Text("Current Password") },
+                        label = { Text(stringResource(R.string.current_password)) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
@@ -901,7 +902,7 @@ private fun AccountCard(uid: String) {
                     OutlinedTextField(
                         value = newPass,
                         onValueChange = { newPass = it },
-                        label = { Text("New Password") },
+                        label = { Text(stringResource(R.string.new_password)) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
@@ -911,7 +912,7 @@ private fun AccountCard(uid: String) {
                     OutlinedTextField(
                         value = confirm,
                         onValueChange = { confirm = it },
-                        label = { Text("Confirm Password") },
+                        label = { Text(stringResource(R.string.confirm_password)) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
@@ -931,7 +932,7 @@ private fun AccountCard(uid: String) {
                                     .getCredential(FirebaseAuth.getInstance().currentUser!!.email!!, oldPass)
                                 FirebaseAuth.getInstance().currentUser!!.reauthenticate(cred).await()
                                 FirebaseAuth.getInstance().currentUser!!.updatePassword(newPass).await()
-                                Toast.makeText(ctx, "Password updated", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(ctx, R.string.password_updated, Toast.LENGTH_SHORT).show()
                                 showPassDialog = false
                             } catch (e: Exception) {
                                 Toast.makeText(ctx, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
@@ -942,11 +943,13 @@ private fun AccountCard(uid: String) {
                         }
                     },
                     enabled = enabled
-                ) { Text("Done") }
+                ) { Text(stringResource(R.string.done)) }
             },
             dismissButton = {
                 if (!working)
-                    TextButton(onClick = { showPassDialog = false }) { Text("Cancel") }
+                    TextButton(onClick = { showPassDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
             }
         )
     }
@@ -978,7 +981,7 @@ private fun GlobalPrefCard(
     SettingsSection {
         ListItem(
             leadingContent = { Icon(Icons.Default.Tune, null, tint = Color(0xFFFF6F00)) },
-            headlineContent = { Text("Global Preferences", fontWeight = FontWeight.Bold) }
+            headlineContent = { Text(stringResource(R.string.global_preferences), fontWeight = FontWeight.Bold) }
         )
         Divider(Modifier.padding(start = 56.dp))
 
@@ -991,7 +994,7 @@ private fun GlobalPrefCard(
         ) {
             Icon(Icons.Default.Lock, null)
             Spacer(Modifier.width(16.dp))
-            Text("Private Account", Modifier.weight(1f))
+            Text(stringResource(R.string.private_account), Modifier.weight(1f))
             Switch(
                 checked = isPrivate,
                 onCheckedChange = onPrivateChange,
@@ -1161,14 +1164,14 @@ private fun BlockedUsersCard(
                                         blocksRef.child(uid).removeValue().await()
                                         Toast.makeText(ctx, "Unblocked $uname", Toast.LENGTH_SHORT).show()
                                     }
-                                }) { Text("Unblock", color = Color(0xFFFF6F00)) }
+                                }) { Text(stringResource(R.string.unblock), color = Color(0xFFFF6F00)) }
                             }
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { overlay = false }) { Text("Done", color = Color(0xFFFF6F00)) }
+                TextButton(onClick = { overlay = false }) { Text(stringResource(R.string.done), color = Color(0xFFFF6F00)) }
             }
         )
     }

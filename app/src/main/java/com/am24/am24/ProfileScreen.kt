@@ -670,7 +670,11 @@ fun CollapsibleSection(
             IconButton(onClick = onEditToggle) {
                 Icon(
                     imageVector = if (editMode) Icons.Default.Close else Icons.Default.Edit,
-                    contentDescription = if (editMode) "Cancel Edit" else "Edit",
+                    contentDescription = if (editMode) {
+                        stringResource(R.string.cancel_edit)
+                    } else {
+                        stringResource(R.string.edit)
+                    },
                     tint = if (editMode) Color.Red else Color.White
                 )
             }
