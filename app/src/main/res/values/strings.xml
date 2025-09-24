@@ -575,15 +575,92 @@
     <string name="paywall_skip_disclaimer">Watch 1 ad on app open every time</string>
 
     <!-- Place popup & sending -->
+    <!-- values/strings.xml (en) — ChatScreen additions -->
+    <string name="chat_title_fallback">Chat</string>
+    <string name="nav_back">Back</string>
+
+    <string name="chat_menu_rate">Rate Chat</string>
+    <string name="chat_menu_clear">Clear Chat…</string>
+    <string name="chat_menu_delete_timer">Set Delete Timer…</string>
+    <string name="chat_menu_keep_forever">Keep chat forever</string>
+    <string name="chat_menu_unmatch">Unmatch…</string>
+    <string name="chat_menu_report">Report User…</string>
+
+    <string name="chat_clear_only">Clear Chat Only</string>
+    <string name="duration_1d">1 Day</string>
+    <string name="duration_1w">1 Week</string>
+    <string name="duration_1m">1 Month</string>
+
+    <string name="chat_delete_label">Messages delete %1$s</string>
+    <string name="chat_delete_after_1d">after 1 day</string>
+    <string name="chat_delete_after_1w">after 1 week</string>
+    <string name="chat_delete_after_1m">after 1 month</string>
+    <string name="chat_delete_soon">soon</string>
+    <string name="chat_delete_disabled">disabled</string>
+
+    <string name="chat_unmatch_title">Unmatch User</string>
+    <string name="chat_unmatch_text">Are you sure you want to unmatch? This will delete all messages and end the conversation.</string>
+    <string name="chat_unmatch_confirm">Unmatch</string>
+
+    <string name="chat_report_title">Report User</string>
+    <string name="chat_report_prompt">Please provide a reason for reporting this user:</string>
+    <string name="chat_report_placeholder">Enter reason</string>
+    <string name="chat_report_submit">Submit</string>
+    <string name="chat_report_reason_required">Please provide a reason for the report.</string>
+    <string name="chat_report_success">User reported, blocked, and unmatched.</string>
+    <string name="chat_report_failed">Failed to report. Please try again.</string>
+
+    <string name="places_none">No places found</string>
+    <string name="suggestions_get">Get Suggestions</string>
+    <string name="clear_all">Clear All</string>
+    <string name="close">Close</string>
+    <string name="directions">Directions</string>
+    <string name="tap_to_send">Tap to send</string>
+
+    <string name="edit">Edit</string>
+    <string name="proceed">Proceed</string>
+
+    <string name="perm_mic_required">Microphone permission is required.</string>
+    <string name="perm_camera_required">Camera permission required.</string>
+    <string name="video_duration_limit_30s">Please select a video of 30 seconds or less.</string>
+    <string name="editor_not_found">No suitable editor found.</string>
+    <string name="editor_no_app">No editor available for this file.</string>
+    <string name="photo_load_failed">Failed to load photo.</string>
+    <string name="playback_error_with_codes">Playback error: %1$d, %2$d</string>
+    <string name="voice_message">🎤 Voice Message</string>
+    <string name="message">Message</string>
+    <string name="chat_messages_delete">Messages delete %1$s</string>
+    <string name="rating_updated">Rating updated!</string>
+    <string name="rating_avg_update_failed">Failed to update average rating.</string>
+    <string name="rating_update_failed">Failed to update ratings.</string>
+    <string name="rating_fetch_failed">Failed to fetch current ratings.</string>
+
+    <string name="profile_load_self_failed">Failed to load your profile.</string>
+    <string name="profile_load_other_failed">Failed to load user.</string>
+
+    <string name="unmatch_success">You have unmatched with this user.</string>
+    <string name="unmatch_failed">Failed to unmatch. Please try again.</string>
+
+    <string name="post_shared_label">Shared Post</string>
+    <string name="superswipe_title">Super-Swipe!</string>
+    <string name="chat_your_rating">Your Rating: %1$s</string>
+
+    <!-- a11y / contentDescription (optional) -->
+    <string name="cd_stop_recording">Stop recording</string>
+    <string name="cd_play_pause">Play/Pause</string>
+    <string name="cd_close">Close</string>
     <string name="btn_directions">Directions</string>
+    <string name="label_your_message">Your message</string>
+    <string name="action_send_compliment">Send a Compliment</string>
     <string name="btn_send_to_match">Send to Match</string>
     <string name="dialog_select_match_title">Select a Match</string>
     <string name="btn_send">Send</string>
     <string name="loading_ellipsis">Loading...</string>
+    <string name="ok">OK</string>
     <string name="unknown_place">Unknown Place</string>
     <string name="match_age">Age: %1$d</string>
     <string name="match_from">From: %1$s</string>
-
+    <string name="daily_login_plus_expiry">Expires on %1$s</string>
     <string name="map_entry_fee_plus_title">Plus unlocked!</string>
     <string name="map_entry_fee_plus_message">Thanks for supporting AM24 — your Plus perks are active for the next 12 months.</string>
     <string name="map_entry_fee_plus_confirm">Awesome</string>

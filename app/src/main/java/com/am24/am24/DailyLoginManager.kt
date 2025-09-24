@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
  * Checks daily login streak and applies Plus rewards.
  * Returns info to show on first login of the day, else null.
  */
-data class DailyLoginInfo(val streak: Int, val rewardHours: Int)
+data class DailyLoginInfo(val streak: Int, val rewardHours: Int, val rewardExpiryMillis: Long?)
 
 suspend fun checkDailyLoginReward(context: Context): DailyLoginInfo? {
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return null
@@ -53,6 +53,7 @@ suspend fun checkDailyLoginReward(context: Context): DailyLoginInfo? {
     ref.child("loginStreak").setValue(streak)
 
     var rewardHours = 0
+    var rewardExpiryMillis: Long? = null
     when {
         streak == 3 -> rewardHours = 24
         streak >= 5 -> rewardHours = 24
@@ -60,6 +61,7 @@ suspend fun checkDailyLoginReward(context: Context): DailyLoginInfo? {
 
     if (rewardHours > 0) {
         val expiry = now + rewardHours * 60 * 60 * 1000
+        rewardExpiryMillis = expiry
         ref.child("loginPlusExpiry").setValue(expiry)
         ref.child("isPlus").setValue(true)
 
@@ -81,5 +83,5 @@ suspend fun checkDailyLoginReward(context: Context): DailyLoginInfo? {
         }
     }
 
-    return DailyLoginInfo(streak, rewardHours)
+    return DailyLoginInfo(streak, rewardHours, rewardExpiryMillis)
 }

@@ -1558,11 +1558,17 @@ fun MapScreen(
     if (!isPremium && !isPlus) {
         dailyLoginInfo?.let { info ->
             val kupidxOrange = Color(0xFFFF6F00)
+            val expiryText = remember(info.rewardExpiryMillis) {
+                info.rewardExpiryMillis?.let { expiryMillis ->
+                    val formatter = SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault())
+                    formatter.format(Date(expiryMillis))
+                }
+            }
             AlertDialog(
                 onDismissRequest = { dailyLoginInfo = null },
                 confirmButton = {
                     TextButton(onClick = { dailyLoginInfo = null }) {
-                        Text("OK", color = kupidxOrange)
+                        Text(stringResource(R.string.ok), color = kupidxOrange)
                     }
                 },
                 title = { Text(stringResource(R.string.daily_login_title)) },
@@ -1586,6 +1592,10 @@ fun MapScreen(
                         if (info.rewardHours > 0) {
                             Spacer(Modifier.height(4.dp))
                             Text(stringResource(R.string.daily_login_plus_award, info.rewardHours))
+                            expiryText?.let { formattedExpiry ->
+                                Spacer(Modifier.height(4.dp))
+                                Text(stringResource(R.string.daily_login_plus_expiry, formattedExpiry))
+                            }
                         }
                     }
                 }

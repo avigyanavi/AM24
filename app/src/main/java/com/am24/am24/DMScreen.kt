@@ -647,7 +647,9 @@ fun DMScreenContent(
                     }) {         Text(stringResource(R.string.action_smart_match), color = Color(0xFFFF4500)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showSmartMatchDialog = false }) { Text("Cancel", color = Color.Gray) }
+                    TextButton(onClick = { showSmartMatchDialog = false }) {
+                        Text(stringResource(R.string.cancel), color = Color.Gray)
+                    }
                 }
             )
         }

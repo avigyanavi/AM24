@@ -308,13 +308,13 @@ fun EditPicAndVoiceBioScreen(
                     onClick = { navController.navigateUp() },
                     colors = ButtonDefaults.buttonColors(Color.Gray)
                 ) {
-                    Text("Cancel", color = Color.White)
+                    Text("❌", color = Color.White)
                 }
                 Button(
                     onClick = { onSave() },
                     colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
                 ) {
-                    Text("Save", color = Color.White)
+                    Text("✅", color = Color.White)
                 }
             }
 

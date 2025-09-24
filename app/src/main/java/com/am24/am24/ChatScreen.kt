@@ -348,7 +348,7 @@ fun ChatScreenContent(
             }
         }
     }
-
+    val msg1 = stringResource(R.string.perm_mic_required)
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -365,9 +365,10 @@ fun ChatScreenContent(
             }
             recordingTimeLeft = maxDurationMs
         } else if (!granted) {
-            Toast.makeText(context, "Microphone permission is required.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, msg1, Toast.LENGTH_SHORT).show()
         }
     }
+    val msg2 = stringResource(R.string.perm_camera_required)
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -389,7 +390,7 @@ fun ChatScreenContent(
                 }
             }
         } else {
-            Toast.makeText(context, "Camera permission required", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, msg2, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -431,6 +432,8 @@ fun ChatScreenContent(
         }
     }
 
+    val msg3 = stringResource(R.string.video_duration_limit_30s)
+
     val pickVideoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
@@ -441,7 +444,7 @@ fun ChatScreenContent(
                 ?.toLongOrNull() ?: 0L
             retriever.release()
             if (dur > 30_000L) {
-                Toast.makeText(context, "Please select a video of 30 seconds or less.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, msg3, Toast.LENGTH_SHORT).show()
                 return@let
             }
             selectedMediaUri  = it
@@ -449,6 +452,8 @@ fun ChatScreenContent(
             Log.d("ChatScreen", "Video picked: $uri")
         }
     }
+    val mensaj = stringResource(R.string.message) + "]"
+    val vm = stringResource(R.string.voice_message)
 
     val sendHandler: () -> Unit = mySend@{
 
@@ -472,7 +477,7 @@ fun ChatScreenContent(
                         toUserId = otherUserId,
                         fromUserId = currentUserId,
                         fromUsername = currentUserProfile?.username ?: "",
-                        message = "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }} Message]",
+                        message = "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }}" +mensaj,
                     )
                 } finally {
                     selectedMediaUri  = null
@@ -497,7 +502,7 @@ fun ChatScreenContent(
                 toUserId = otherUserId,
                 fromUserId = currentUserId,
                 fromUsername = currentUserProfile?.username ?: "",
-                message = "[Voice Message]"
+                message = vm
             )
             recordedVoiceUri = null
             recordFile       = null
@@ -541,13 +546,16 @@ fun ChatScreenContent(
         isSendingMessage = false
     }
 
+    val plsf = stringResource(R.string.profile_load_self_failed)
+    val plof = stringResource(R.string.profile_load_other_failed)
+
     LaunchedEffect(Unit) {
         isLoadingProfiles = true
         usersRef.child(currentUserId).get().addOnSuccessListener { snapshot ->
             currentUserProfile = snapshot.getValue(Profile::class.java)
             isLoadingProfiles = false
         }.addOnFailureListener {
-            Toast.makeText(context, "Failed to load your profile", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, plsf, Toast.LENGTH_SHORT).show()
             isLoadingProfiles = false
         }
         usersRef.child(otherUserId).get().addOnSuccessListener { snapshot ->
@@ -558,7 +566,7 @@ fun ChatScreenContent(
             }
             isLoadingProfiles = false
         }.addOnFailureListener {
-            Toast.makeText(context, "Failed to load user", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, plof, Toast.LENGTH_SHORT).show()
             isLoadingProfiles = false
         }
         fetchUserRating(ratingsRef, otherUserId) { rating -> yourRating = rating }
@@ -676,6 +684,7 @@ fun ChatScreenContent(
         }
     }
 
+
     suspend fun fetchSuggestionsWithRetry(): ChatSuggestions? {
         var attempts = 0
         val maxAttempts = 3
@@ -695,6 +704,8 @@ fun ChatScreenContent(
         return null
     }
 
+    val unmatchmsg = stringResource(R.string.unmatch_success)
+    val unmatchfailed = stringResource(R.string.unmatch_failed)
     // Unmatch handler function
     fun unmatchUser() {
         scope.launch {
@@ -725,10 +736,10 @@ fun ChatScreenContent(
                 // ❹ Local UI tidy-up
                 messages.clear()
                 navController.popBackStack()
-                Toast.makeText(context, "You have unmatched with this user.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, unmatchmsg, Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Log.e("ChatScreen", "Unmatch failed: ${e.message}")
-                Toast.makeText(context, "Failed to unmatch. Please try again.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, unmatchfailed, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -737,10 +748,22 @@ fun ChatScreenContent(
     Scaffold(
         topBar = {
             var showPrivateMenu by remember { mutableStateOf(false) }
+            var chattitle = stringResource(R.string.chat_title_fallback)
+            var nav_back = stringResource(R.string.nav_back)
+            var chatrate = stringResource(R.string.chat_menu_rate)
+            var chatclear = stringResource(R.string.chat_menu_clear)
+            var chatdeletetimer = stringResource(R.string.chat_menu_delete_timer)
+            var chatunmatch = stringResource(R.string.chat_menu_unmatch)
+            var chatkeepforever = stringResource(R.string.chat_menu_keep_forever)
+            var chatreport = stringResource(R.string.chat_menu_report)
+            var chatclearonly = stringResource(R.string.chat_clear_only)
+            var duration1 = stringResource(R.string.duration_1d)
+            var duration2 = stringResource(R.string.duration_1w)
+            var duration3 = stringResource(R.string.duration_1m)
             TopAppBar(
                 title = {
                     val scrollState = rememberScrollState()
-                    LaunchedEffect(otherUserProfile?.name ?: "Chat") {
+                    LaunchedEffect(otherUserProfile?.name ?: chattitle) {
                         delay(500)
                         while (true) {
                             scrollState.animateScrollTo(scrollState.maxValue)
@@ -798,7 +821,7 @@ fun ChatScreenContent(
                                     )
                                 }
                             } else {
-                                otherUserProfile ?: Profile(userId = "", username = "", name = "Chat")
+                                otherUserProfile ?: Profile(userId = "", username = "", name = chattitle)
                                 AIOrProfileImage(
                                     profile = otherUserProfile ?: Profile(userId = "", username = "", name = ""),
                                     modifier = Modifier
@@ -827,7 +850,7 @@ fun ChatScreenContent(
                                 .horizontalScroll(scrollState, true)
                         ) {
                             Text(
-                                text = otherUserProfile?.name ?: "Chat",
+                                text = otherUserProfile?.name ?: chattitle,
                                 color = Color.White,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
@@ -839,7 +862,7 @@ fun ChatScreenContent(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             Icons.Default.ArrowBack,
-                            "Back",
+                            nav_back,
                             tint = Color.White
                         )
                     }
@@ -954,7 +977,7 @@ fun ChatScreenContent(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Default.Star, contentDescription = "Toggle Rating", tint = Color(0xFFFF4500))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Rate Chat")
+                                    Text(chatrate)
                                 }
                             },
                             onClick = {
@@ -965,9 +988,9 @@ fun ChatScreenContent(
                         DropdownMenuItem(
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Delete, "Clear Chat", tint = Color.Red)
+                                    Icon(Icons.Default.Delete, chatclear, tint = Color.Red)
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Clear Chat...")
+                                    Text(chatclear)
                                 }
                             },
                             onClick = { moreOptionsMenuExpanded = false; showClearChatMenu = true }
@@ -975,9 +998,9 @@ fun ChatScreenContent(
                         DropdownMenuItem(
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Timer, "Set Delete Timer", tint = Color.Yellow)
+                                    Icon(Icons.Default.Timer, chatdeletetimer, tint = Color.Yellow)
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Set Delete Timer...")
+                                    Text(chatdeletetimer)
                                 }
                             },
                             onClick = { moreOptionsMenuExpanded = false; showDeleteTimerMenu = true }
@@ -996,7 +1019,7 @@ fun ChatScreenContent(
                                     Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Keep chat forever")
+                                    Text(chatkeepforever)
                                     Spacer(Modifier.weight(1f))
                                     when {
                                         !isPremiumUser -> Icon(        // 🔒 for locked users
@@ -1025,9 +1048,9 @@ fun ChatScreenContent(
                         DropdownMenuItem(
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Close, "Unmatch", tint = Color.Red)
+                                    Icon(Icons.Default.Close, chatunmatch, tint = Color.Red)
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Unmatch...")
+                                    Text(chatunmatch)
                                 }
                             },
                             onClick = {
@@ -1039,9 +1062,9 @@ fun ChatScreenContent(
                         DropdownMenuItem(
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Warning, "Report", tint = Color.Red)
+                                    Icon(Icons.Default.Warning, chatreport, tint = Color.Red)
                                     Spacer(Modifier.width(4.dp))
-                                    Text("Report User...")
+                                    Text(chatreport)
                                 }
                             },
                             onClick = {
@@ -1051,7 +1074,7 @@ fun ChatScreenContent(
                         )
                     }
                     DropdownMenu(expanded = showClearChatMenu, onDismissRequest = { showClearChatMenu = false }) {
-                        DropdownMenuItem(text = { Text("Clear Chat Only") }, onClick = { showClearChatMenu = false; messagesRef.setValue(null); messages.clear() })
+                        DropdownMenuItem(text = { Text(chatclearonly) }, onClick = { showClearChatMenu = false; messagesRef.setValue(null); messages.clear() })
                     }
                     DropdownMenu(expanded = showDeleteTimerMenu, onDismissRequest = { showDeleteTimerMenu = false }) {
                         @Composable
@@ -1059,9 +1082,9 @@ fun ChatScreenContent(
                             text = { Text(label, color = if (deleteTimer == value) Color(0xFFFFA500) else Color.White) },
                             onClick = { deleteTimer = value; showDeleteTimerMenu = false }
                         )
-                        item("1 Day", 24L * 60 * 60 * 1000)
-                        item("1 Week", 7L * 24 * 60 * 60 * 1000)
-                        item("1 Month", 30L * 24 * 60 * 60 * 1000)
+                        item(duration1, 24L * 60 * 60 * 1000)
+                        item(duration2, 7L * 24 * 60 * 60 * 1000)
+                        item(duration3, 30L * 24 * 60 * 60 * 1000)
                     }
                 },
                 colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
@@ -1074,8 +1097,10 @@ fun ChatScreenContent(
                 if (otherUserProfile != null && showRating) {
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
                         CompatibilityMeter(percent = aiMatchResult?.totalMatchPercentage?.toDouble() ?: 0.0)
+                        var yourrating = stringResource(R.string.chat_your_rating)
+                        val text = yourrating + "${if (yourRating >= 0) String.format("%.1f", yourRating) else "N/A"}"
                         Text(
-                            "Your Rating: ${if (yourRating >= 0) String.format("%.1f", yourRating) else "N/A"}",
+                            text,
                             color = Color.Gray,
                             fontSize = 14.sp
                         )
@@ -1106,13 +1131,15 @@ fun ChatScreenContent(
                         label = {
                             val txt = deleteTimer?.let { millis ->
                                 when (millis) {
-                                    24L * 60 * 60 * 1000 -> "after 1 day"
-                                    7L  * 24 * 60 * 60 * 1000 -> "after 1 week"
-                                    30L * 24 * 60 * 60 * 1000 -> "after 1 month"
-                                    else -> "soon"
+                                    24L * 60 * 60 * 1000 -> R.string.chat_delete_after_1d
+                                    7L  * 24 * 60 * 60 * 1000 -> R.string.chat_delete_after_1w
+                                    30L * 24 * 60 * 60 * 1000 -> R.string.chat_delete_after_1m
+                                    else -> R.string.chat_delete_soon
                                 }
-                            } ?: "disabled"
-                            Text("Messages delete $txt")
+                            } ?: R.string.chat_delete_disabled
+                            Text(
+                                text = stringResource(id = R.string.chat_messages_delete, stringResource(id = txt))
+                            )
                         },
                         leadingIcon = { Icon(Icons.Default.Timer, null) },
                         colors = AssistChipDefaults.assistChipColors(
@@ -1207,7 +1234,7 @@ fun ChatScreenContent(
                                     receiverId = currentUserId,
                                     text = c.text,
                                     timestamp = c.timestamp,
-                                    mediaType = if (c.voiceUrl != null) "voice" else null,
+                                    mediaType = if (c.voiceUrl != null) "\uD83C\uDFA4" else null,
                                     mediaUrl = c.voiceUrl,
                                     read = true
                                 )
@@ -1274,6 +1301,9 @@ fun ChatScreenContent(
                     }
                 }
                 var fullScreenLocal by remember { mutableStateOf(false) }
+                var nosuitableeditor = stringResource(R.string.editor_not_found)
+                var editornoapp = stringResource(R.string.editor_no_app)
+
                 selectedMediaUri?.let { localUri ->
                     MediaPreviewBox(
                         uri = localUri,
@@ -1304,12 +1334,12 @@ fun ChatScreenContent(
                                     if (editIntent.resolveActivity(context.packageManager) != null) {
                                         editLauncher.launch(editIntent)
                                     } else {
-                                        Toast.makeText(context, "No suitable editor found.", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, nosuitableeditor, Toast.LENGTH_SHORT).show()
                                         pendingEditUri = null
                                     }
                                 } catch (e: Exception) {
                                     Log.e("ChatScreen", "Error preparing edit: ${e.message}")
-                                    Toast.makeText(context, "Failed to prepare edit.", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, editornoapp, Toast.LENGTH_SHORT).show()
                                     pendingEditUri = null
                                 }
                             }
@@ -1562,7 +1592,7 @@ fun ChatScreenContent(
                                         }
                                     } else {
                                         item {
-                                            Text("No places found", color = Color.Gray)
+                                            Text(stringResource(R.string.places_none), color = Color.Gray)
                                             Spacer(Modifier.height(8.dp))
                                             Button(
                                                 onClick = {
@@ -1574,11 +1604,11 @@ fun ChatScreenContent(
                                                     }
                                                 },
                                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-                                            ) { Text("Get Suggestions", color = Color.White) }
+                                            ) { Text(stringResource(R.string.get_suggestions), color = Color.White) }
                                         }
                                     }
                                 } ?: item {
-                                    Text("No places found", color = Color.Gray)
+                                    Text(stringResource(R.string.places_none), color = Color.Gray)
                                     Spacer(Modifier.height(8.dp))
                                     Button(
                                         onClick = {
@@ -1590,7 +1620,7 @@ fun ChatScreenContent(
                                             }
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-                                    ) { Text("Get Suggestions", color = Color.White) }
+                                    ) { Text(stringResource(R.string.get_suggestions), color = Color.White) }
                                 }
                             }
                             item {
@@ -1599,11 +1629,11 @@ fun ChatScreenContent(
                                     Button(
                                         onClick = { placeSuggestions = emptyList() },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                                    ) { Text("Clear All", color = Color.White) }
+                                    ) { Text(stringResource(R.string.clear_all), color = Color.White) }
                                     Button(
                                         onClick = { placeSuggestionsExpanded = false },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4500))
-                                    ) { Text("Close", color = Color.White) }
+                                    ) { Text(stringResource(R.string.close), color = Color.White) }
                                 }
                             }
                         }
@@ -1614,8 +1644,8 @@ fun ChatScreenContent(
             if (showUnmatchDialog) {
                 AlertDialog(
                     onDismissRequest = { showUnmatchDialog = false },
-                    title = { Text("Unmatch User") },
-                    text = { Text("Are you sure you want to unmatch? This will delete all messages and end the conversation.") },
+                    title = { Text(stringResource(R.string.chat_unmatch_title)) },
+                    text = { Text(stringResource(R.string.chat_unmatch_text)) },
                     confirmButton = {
                         Button(
                             onClick = {
@@ -1624,7 +1654,7 @@ fun ChatScreenContent(
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                         ) {
-                            Text("Unmatch", color = Color.White)
+                            Text(stringResource(R.string.chat_unmatch_confirm), color = Color.White)
                         }
                     },
                     dismissButton = {
@@ -1632,7 +1662,7 @@ fun ChatScreenContent(
                             onClick = { showUnmatchDialog = false },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
                         ) {
-                            Text("Cancel", color = Color.White)
+                            Text(stringResource(R.string.cancel), color = Color.White)
                         }
                     }
                 )
@@ -1643,15 +1673,15 @@ fun ChatScreenContent(
                 var reportReason by remember { mutableStateOf("") }
                 AlertDialog(
                     onDismissRequest = { showReportDialog = false },
-                    title = { Text("Report User") },
+                    title = { Text(stringResource(R.string.chat_report_title)) },
                     text = {
                         Column {
-                            Text("Please provide a reason for reporting this user:")
+                            Text(stringResource(R.string.chat_report_prompt))
                             Spacer(Modifier.height(8.dp))
                             TextField(
                                 value = reportReason,
                                 onValueChange = { reportReason = it },
-                                placeholder = { Text("Enter reason") },
+                                placeholder = { Text(stringResource(R.string.chat_report_placeholder)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(100.dp),
@@ -1666,11 +1696,14 @@ fun ChatScreenContent(
                         }
                     },
                     confirmButton = {
+                        val prompt = stringResource(R.string.chat_report_prompt)
+                        val userreported = stringResource(R.string.chat_report_success)
+                        val userreportfailed = stringResource(R.string.chat_report_failed)
                         Button(
                             // Replace your existing onClick in the Report dialog with this:
                             onClick = {
                                 if (reportReason.isBlank()) {
-                                    Toast.makeText(context, "Please provide a reason for the report.", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, prompt, Toast.LENGTH_SHORT).show()
                                     return@Button
                                 }
                                 scope.launch {
@@ -1704,19 +1737,19 @@ fun ChatScreenContent(
                                             showReportDialog = false
                                             messages.clear()
                                             navController.popBackStack()
-                                            Toast.makeText(context, "User reported, blocked, and unmatched.", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, userreported, Toast.LENGTH_SHORT).show()
                                         }
                                     } catch (e: Exception) {
                                         Log.e("ChatScreen", "Report/Unmatch failed: ${e.message}")
                                         withContext(Dispatchers.Main) {
-                                            Toast.makeText(context, "Failed to report. Please try again.", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, userreportfailed, Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                         ) {
-                            Text("Submit", color = Color.White)
+                            Text(stringResource(R.string.chat_report_submit), color = Color.White)
                         }
                     },
                     dismissButton = {
@@ -1724,7 +1757,7 @@ fun ChatScreenContent(
                             onClick = { showReportDialog = false },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
                         ) {
-                            Text("Cancel", color = Color.White)
+                            Text(stringResource(R.string.cancel), color = Color.White)
                         }
                     }
                 )
@@ -1771,7 +1804,7 @@ suspend fun askProceed(ctx: Context, msg: String): Boolean =
         androidx.appcompat.app.AlertDialog.Builder(ctx)
             .setMessage(msg)
             .setPositiveButton("Proceed") { _, _ -> cont.resume(true) }
-            .setNegativeButton("Cancel")  { _, _ -> cont.resume(false) }
+            .setNegativeButton(R.string.cancel)  { _, _ -> cont.resume(false) }
             .setOnCancelListener          {        cont.resume(false) }
             .show()
     }
@@ -2044,6 +2077,7 @@ fun FullscreenMediaViewer(
     messagesRef: DatabaseReference,
     reportsRef: DatabaseReference
 ) {
+    val failedtoloadphoto = stringResource(R.string.photo_load_failed)
     val context = LocalContext.current
     if (target == null) return
     Dialog(onDismissRequest = onDismiss) {
@@ -2065,7 +2099,7 @@ fun FullscreenMediaViewer(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit,
                     onError = {
-                        Toast.makeText(context, "Failed to load photo", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, failedtoloadphoto, Toast.LENGTH_SHORT).show()
                     }
                 )
             } else if (target.mediaType == "video") {
@@ -2347,8 +2381,8 @@ fun updateUserRating(ratingsRef: DatabaseReference, usersRef: DatabaseReference,
         val updates = mapOf("ratings" to ratingsMap, "averageRating" to averageRating)
         userRatingRef.updateChildren(updates).addOnSuccessListener {
             usersRef.child(userId).child("averageRating").setValue(averageRating).addOnSuccessListener {
-                Toast.makeText(context, "Rating updated!", Toast.LENGTH_SHORT).show()
-            }.addOnFailureListener { Toast.makeText(context, "Failed to update average rating.", Toast.LENGTH_SHORT).show() }
+                Toast.makeText(context, R.string.rating_updated, Toast.LENGTH_SHORT).show()
+            }.addOnFailureListener { Toast.makeText(context, R.string.rating_update_failed, Toast.LENGTH_SHORT).show() }
             if (isNewRating) {
                 usersRef.child(userId).child("numberOfRatings").runTransaction(object : Transaction.Handler {
                     override fun doTransaction(mutableData: MutableData): Transaction.Result {
@@ -2361,8 +2395,8 @@ fun updateUserRating(ratingsRef: DatabaseReference, usersRef: DatabaseReference,
                     }
                 })
             }
-        }.addOnFailureListener { Toast.makeText(context, "Failed to update ratings.", Toast.LENGTH_SHORT).show() }
-    }.addOnFailureListener { Toast.makeText(context, "Failed to fetch current ratings.", Toast.LENGTH_SHORT).show() }
+        }.addOnFailureListener { Toast.makeText(context,  R.string.rating_avg_update_failed, Toast.LENGTH_SHORT).show() }
+    }.addOnFailureListener { Toast.makeText(context,  R.string.rating_fetch_failed, Toast.LENGTH_SHORT).show() }
 }
 
 fun getChatId(userId1: String, userId2: String): String = if (userId1 < userId2) "${userId1}_$userId2" else "${userId2}_$userId1"
@@ -2451,8 +2485,8 @@ fun PlaceDetailsCard(place: PlaceDetails, onSend: () -> Unit, modifier: Modifier
                     val gmmIntentUri = Uri.parse("google.navigation:q=${place.latLng.latitude},${place.latLng.longitude}")
                     val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri).apply { setPackage("com.google.android.apps.maps") }
                     context.startActivity(mapIntent)
-                }) { Text("Directions", color = Color(0xFFFFA500)) }
-                Text("Tap to send", color = Color(0xFFFF4500), fontSize = 12.sp)
+                }) { Text(stringResource(R.string.directions), color = Color(0xFFFFA500)) }
+                Text(stringResource(R.string.tap_to_send), color = Color(0xFFFF4500), fontSize = 12.sp)
             }
         }
     }
@@ -2542,8 +2576,10 @@ fun MediaPreviewBox(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = onEdit) { Text("✏️ Edit", color = Color.White, fontSize = 12.sp) }
-            TextButton(onClick = onCancel) { Text("❌ Cancel", color = Color.Red, fontSize = 12.sp) }
+            TextButton(onClick = onEdit) { Text("✏️ " + stringResource(R.string.edit), color = Color.White, fontSize = 12.sp) }
+            TextButton(onClick = onCancel) {
+                Text("❌ " + stringResource(R.string.cancel), color = Color.Red, fontSize = 12.sp)
+            }
         }
     }
 }
@@ -2880,7 +2916,7 @@ fun launchMediaEditor(context: Context, uri: Uri, mediaType: String?) {
     if (target != null) {
         context.startActivity(target)
     } else {
-        Toast.makeText(context, "No editor available for this file", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context,  R.string.editor_not_found, Toast.LENGTH_SHORT).show()
     }
 }
 

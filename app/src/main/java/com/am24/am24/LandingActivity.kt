@@ -390,7 +390,7 @@ class LandingActivity : ComponentActivity() {
             .setTitle("Link accounts")
             .setMessage("Enter password for $email to link your account:")
             .setView(input)
-            .setPositiveButton("OK") { d, _ ->
+            .setPositiveButton(R.string.ok) { d, _ ->
                 onPassword(input.text.toString()); d.dismiss()
             }
             .setNegativeButton("Cancel") { d, _ -> d.cancel() }
