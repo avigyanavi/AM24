@@ -29,7 +29,13 @@ fun PaywallScreen(onPaid: () -> Unit) {
 
     var userCountry by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(uid) {
-        userCountry = FirebaseDatabase.getInstance().getReference("users/$uid/country").get().await().getValue(String::class.java)
+        val snapshot = FirebaseDatabase.getInstance().getReference("users/$uid").get().await()
+        userCountry = snapshot.child("country").getValue(String::class.java)
+        val alreadyPaid = snapshot.child("isEntryFeePaid").getValue(Boolean::class.java) == true ||
+                snapshot.child("isPlus").getValue(Boolean::class.java) == true
+        if (alreadyPaid) {
+            onPaid()
+        }
     }
     val isMexico = CountryUtil.isMexico(ctx, userCountry)
 

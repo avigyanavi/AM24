@@ -255,6 +255,7 @@
     <string name="unblock">Desbloquear</string>
     <string name="gender_other">Otros</string>
     <string name="gender_all">Todos</string>
+    <string name="toast_complete_entry_fee">Por favor completa la cuota de entrada para continuar.</string>
     <string name="notification_streak_plus_message">Tu racha desbloqueó Plus—¡mira quién te dio me gusta!</string>
     <!-- es -->
     <string name="cd_country_filter">Explorar por país</string>

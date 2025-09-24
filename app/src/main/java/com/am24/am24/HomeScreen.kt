@@ -58,7 +58,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
-import com.am24.am24.ComposeNativeAd
 import com.google.accompanist.placeholder.PlaceholderHighlight
 import com.google.accompanist.placeholder.material.placeholder
 import com.google.accompanist.placeholder.material.shimmer
@@ -252,7 +251,6 @@ fun HomeScreenContent(
     val profileViewModel: ProfileViewModel = viewModel()
     val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
     val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
-    val showAds = !isPremium && !isPlus
     val focusManager = LocalFocusManager.current
     val feedTabs = listOf("everyone", "matches")
     var selectedTab by remember {                   // keeps UI and VM in sync
@@ -339,8 +337,7 @@ fun HomeScreenContent(
                     onSearchQueryChanged(tag)
                 },
                 savedPostIds = savedIds,    // ← NEW
-                listState = listState, // Pass listState to FeedSection
-                showAds =  showAds
+                listState = listState // Pass listState to FeedSection
             )
         }
     }
@@ -359,14 +356,9 @@ fun FeedSection(
     userProfiles: Map<String, Profile>,
     onTagClick: (String) -> Unit,
     savedPostIds: Set<String>,           // ← NEW
-    listState: LazyListState, // Added listState parameter
-    showAds: Boolean
+    listState: LazyListState // Added listState parameter
 ) {
     val context = LocalContext.current
-    val visibleItemKeys by remember {
-        derivedStateOf { listState.layoutInfo.visibleItemsInfo.map { it.key } }
-    }
-    val adLoadStates = remember { mutableStateMapOf<Int, Boolean>() }
 
     // Swipe Refresh State
     var isRefreshing by remember { mutableStateOf(false) }
@@ -533,30 +525,6 @@ fun FeedSection(
                     postViewModel = postViewModel,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                // ─── Native ad every 5 items ───────────────────
-                // ─── debug log + native ad every 5 items ─────────────────
-                if (showAds && (index + 1) % 5 == 0) {
-                    Log.d("HomeScreen", ">>> inserting native ad at index: $index")
-                    val itemKey = post.postId.ifEmpty { "post_$index" }
-                    val isItemVisible = visibleItemKeys.contains(itemKey)
-                    val hasStartedLoading = adLoadStates[index] == true
-
-                    LaunchedEffect(isItemVisible, hasStartedLoading) {
-                        if (isItemVisible && !hasStartedLoading) {
-                            adLoadStates[index] = true
-                        }
-                    }
-
-                    val shouldLoadAd = adLoadStates[index] == true
-                    ComposeNativeAd(
-                        adUnitId  = AdUnitIds.native(context),
-                        shouldLoad = shouldLoadAd,
-                        modifier  = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight()
-                            .padding(vertical = 8.dp)
-                    )
-                }
             }
 
             // No more posts indicator

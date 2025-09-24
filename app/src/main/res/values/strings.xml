@@ -26,6 +26,7 @@
     <string name="shared_tribes_prefix">Shared tribes: %1$s</string>
     <string name="male_header">Male</string>
     <string name="female_header">Female</string>
+    <string name="toast_complete_entry_fee">Please complete the entry fee to continue.</string>
     <string name="other_header">Other</string>
     <string name="request_canceled">Request canceled</string>
     <string name="tab_people">People</string>

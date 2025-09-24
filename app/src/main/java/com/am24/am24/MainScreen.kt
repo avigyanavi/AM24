@@ -2,7 +2,6 @@
 
 package com.am24.am24
 
-import android.app.Activity
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -76,17 +75,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
     val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
     // ───────────────────────────────────────────────────
-
-    // 🔸 NEW – one manager for the whole screen
-    val context = LocalContext.current as Activity
-    val interstitial = remember(isPremium, isPlus) {
-        if (!isPremium && !isPlus) {
-            InterstitialAdManager(
-                context,
-                AdUnitIds.interstitial(context)
-            )
-        } else null
-    }
+    val context = LocalContext.current
 
     // Listen for incoming omegle invites
     var omegleInvite by remember { mutableStateOf<OmegleMatch?>(null) }
@@ -151,9 +140,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                         if (showOnlineUsers) {
                             navController.popBackStack()
                         } else {
-                            interstitial?.show {
-                                navController.navigate("omegleUsers")
-                            } ?: navController.navigate("omegleUsers")
+                            navController.navigate("omegleUsers")
                         }
                     }
                 )
@@ -163,10 +150,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
             if (showGlobalBars) {
                 BottomNavigationBar(
                     navController = navController,
-                    items         = items,
-                    interstitial  = interstitial,
-                    isPremium     = isPremium,
-                    isPlus        = isPlus
+                    items         = items
                 )
             }
         }
@@ -834,10 +818,7 @@ data class BottomNavItem(val label: String, val icon: ImageVector, val route: St
 @Composable
 fun BottomNavigationBar(
     navController: NavController,
-    items: List<BottomNavItem>,
-    interstitial: InterstitialAdManager?,  // now nullable
-    isPremium: Boolean,
-    isPlus: Boolean
+    items: List<BottomNavItem>
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -884,20 +865,9 @@ fun BottomNavigationBar(
             NavigationBarItem(
                 selected = selected,
                 onClick = {
-                    if (isPremium || isPlus) {
-                        // Plus or Premium → go straight
-                        navController.navigate(item.route) {
-                            launchSingleTop = true
-                            restoreState    = true
-                        }
-                    } else {
-                        // Regular → show ad then navigate
-                        interstitial?.show {
-                            navController.navigate(item.route) {
-                                launchSingleTop = true
-                                restoreState    = true
-                            }
-                        }
+                    navController.navigate(item.route) {
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 },
                 icon = {

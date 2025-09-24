@@ -278,7 +278,6 @@ fun MapScreen(
     var showSwipeLimitOverlay by remember { mutableStateOf(false) }
     var isIndian by remember { mutableStateOf(false) }
     val profileViewModel: ProfileViewModel = viewModel()
-    val showAds = !isPremium && !isPlus
 
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
@@ -839,7 +838,6 @@ fun MapScreen(
                                         nearbyViewModel.addExcluded(uid)
                                     }
                                 },
-                                showAds = showAds,
                                 onNextPage = {
                                     userLatLng?.let {
                                         nearbyViewModel.loadNextPage(25, userId, it, geoFireDatabaseRef)
@@ -855,7 +853,6 @@ fun MapScreen(
                     Box(Modifier.fillMaxSize()) {
                         CardsList(
                             users = sortedPeople,
-                            showAds = showAds,
                             useMiles = useMiles,          // <-- pass through
                             onLike = { user ->
                                 if (swipesLoaded && remainingSwipes <= 0) {
@@ -1595,7 +1592,6 @@ private fun FilmText(
 @Composable
 private fun CardsList(
     users: List<NearbyUser>,
-    showAds: Boolean,
     useMiles: Boolean,
     onLike: (NearbyUser) -> Unit,
     onDislike: (NearbyUser) -> Unit,
@@ -1610,28 +1606,13 @@ private fun CardsList(
         }
         return
     }
-    val context = LocalContext.current
-    val items = remember(users, showAds) {
-        val list = mutableListOf<Any>()
-        users.forEachIndexed { index, u ->
-            list += u
-            if (showAds && (index + 1) % 5 == 0) {
-                list += "ad_$index"
-            }
-        }
-        list
-    }
     val listState = rememberLazyListState()
-    LaunchedEffect(items) {
-        if (items.isNotEmpty()) {
+    LaunchedEffect(users) {
+        if (users.isNotEmpty()) {
             delay(300) // adjust ms to taste
             listState.scrollToItem(0)
         }
     }
-    val visibleItemIndices by remember {
-        derivedStateOf { listState.layoutInfo.visibleItemsInfo.map { it.index } }
-    }
-    val adLoadStates = remember { mutableStateMapOf<Int, Boolean>() }
     LazyColumn(
         state = listState,
         modifier = Modifier
@@ -1640,39 +1621,19 @@ private fun CardsList(
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        itemsIndexed(
-            items,
-            key = { idx, item -> if (item is NearbyUser) item.userId else "ad_$idx" }
-        ) { index, item ->
-            if (item is NearbyUser) {
-                ProfileCard(
-                    user = item,
-                    useMiles = useMiles,    // <---
-                    onLike = { onLike(item) },
-                    onDislike = { onDislike(item) },
-                    onClick = { onCardClick(item) },
-                    onRemove = { onRemove(item.userId) },
-                    onBlock = { onBlock(item.userId) }
-                )
-            } else {
-                val isItemVisible = visibleItemIndices.contains(index)
-                val hasStartedLoading = adLoadStates[index] == true
-
-                LaunchedEffect(isItemVisible, hasStartedLoading) {
-                    if (isItemVisible && !hasStartedLoading) {
-                        adLoadStates[index] = true
-                    }
-                }
-
-                val shouldLoadAd = adLoadStates[index] == true
-                ComposeNativeAd(
-                    adUnitId = AdUnitIds.native(context),
-                    shouldLoad = shouldLoadAd,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(3f / 4f)
-                )
-            }
+        items(
+            items = users,
+            key = { user -> user.userId }
+        ) { user ->
+            ProfileCard(
+                user = user,
+                useMiles = useMiles,    // <---
+                onLike = { onLike(user) },
+                onDislike = { onDislike(user) },
+                onClick = { onCardClick(user) },
+                onRemove = { onRemove(user.userId) },
+                onBlock = { onBlock(user.userId) }
+            )
         }
         item {
             Button(
@@ -1959,7 +1920,6 @@ private fun PeopleGrid(
     useMiles: Boolean,
     onRemove: (String) -> Unit,
     onBlock: (String) -> Unit,
-    showAds: Boolean,
     onNextPage: () -> Unit
 ) {
     if (users.isEmpty()) {
@@ -1968,22 +1928,7 @@ private fun PeopleGrid(
         }
         return
     }
-    val context = LocalContext.current
-    val gridItems = remember(users, showAds) {
-        val items = mutableListOf<Any>()
-        users.forEachIndexed { index, user ->
-            items.add(user)
-            if (showAds && (index + 1) % 15 == 0) {
-                items.add("ad_$index")
-            }
-        }
-        items
-    }
     val gridState = rememberLazyGridState()
-    val visibleItemIndices by remember {
-        derivedStateOf { gridState.layoutInfo.visibleItemsInfo.map { it.index } }
-    }
-    val adLoadStates = remember { mutableStateMapOf<Int, Boolean>() }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 120.dp),
         state = gridState,
@@ -1993,40 +1938,17 @@ private fun PeopleGrid(
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         itemsIndexed(
-            gridItems,
-            key = { index, item -> if (item is NearbyUser) item.userId else "ad_$index" },
-            span = { _, item ->
-                if (item is NearbyUser) GridItemSpan(1) else GridItemSpan(maxLineSpan)
-            }
-        ) { index, item ->
-            if (item is NearbyUser) {
-                NearbyCard(
-                    user = item,
-                    onClick = { onClick(item) },
-                    useMiles = useMiles,
-                    onRemove = { onRemove(item.userId) },
-                    onBlock = { onBlock(item.userId) }
-                )
-            } else {
-                val isItemVisible = visibleItemIndices.contains(index)
-                val hasStartedLoading = adLoadStates[index] == true
-
-                LaunchedEffect(isItemVisible, hasStartedLoading) {
-                    if (isItemVisible && !hasStartedLoading) {
-                        adLoadStates[index] = true
-                    }
-                }
-
-                val shouldLoadAd = adLoadStates[index] == true
-                ComposeNativeAd(
-                    adUnitId = AdUnitIds.native(context),
-                    shouldLoad = shouldLoadAd,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                        .padding(vertical = 8.dp)
-                )
-            }
+            users,
+            key = { _, item -> item.userId },
+            span = { _, _ -> GridItemSpan(1) }
+        ) { _, item ->
+            NearbyCard(
+                user = item,
+                onClick = { onClick(item) },
+                useMiles = useMiles,
+                onRemove = { onRemove(item.userId) },
+                onBlock = { onBlock(item.userId) }
+            )
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
             Button(
