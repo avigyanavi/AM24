@@ -10,7 +10,7 @@ const fetch = require("node-fetch");
 const {google} = require("googleapis");
 
 const openai = new OpenAI({
-  apiKey: "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"   // make sure this env var is set
+ apiKey: "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"   // make sure this env var is set
 });
 
 admin.initializeApp({
@@ -21,6 +21,11 @@ const USERS  = db.ref('users');
 const now    = () => Date.now();
 const BOOST_DURATION_MS = 1 * 60 * 60 * 1_000;   // 1 h
 const PAGE_SIZE = 50;
+const PHONE_REGISTRATION_LIMIT = 300;
+const PHONE_REG_COUNTER_ROOT   = "metrics/phoneRegistrations";
+const PHONE_AUTH_CONFIG_PATH   = "config/phoneAuth";
+
+const utcDateKey = (date = new Date()) => date.toISOString().slice(0, 10);
 // Accent/case-insensitive string normalizer for country fields.
 function normalizeCountry(name = '') {
   return String(name)
@@ -208,6 +213,56 @@ exports.deleteUsersWithoutUsername = functions
       functions.logger.error("deleteUsersWithoutUsername failed:", err);
       return res.status(500).json({ error: err?.message || String(err) });
     }
+  });
+
+exports.capPhoneRegistrations = functions
+  .region('asia-south1')
+  .auth.user()
+  .onCreate(async (user) => {
+    const isPhoneSignup = Boolean(user.phoneNumber) ||
+      (Array.isArray(user.providerData) &&
+        user.providerData.some((info) => info && info.providerId === 'phone'));
+
+    if (!isPhoneSignup) return null;
+
+    try {
+      const dayKey = utcDateKey();
+      const counterRef = db.ref(PHONE_REG_COUNTER_ROOT).child(dayKey);
+      const result = await counterRef.transaction((current) => (current || 0) + 1);
+
+      if (!result.committed) return null;
+
+      const total = result.snapshot.val() || 0;
+      if (total >= PHONE_REGISTRATION_LIMIT) {
+        await db.ref(PHONE_AUTH_CONFIG_PATH).update({
+          enabled: false,
+          disabledAt: admin.database.ServerValue.TIMESTAMP,
+          dayKey,
+        });
+      }
+    } catch (err) {
+      logger.error('Failed to enforce phone registration cap', err);
+    }
+
+    return null;
+  });
+
+exports.resetDailyPhoneRegistrationCap = functions
+  .region('asia-south1')
+  .pubsub.schedule('every day 00:05')
+  .timeZone('UTC')
+  .onRun(async () => {
+    const dayKey = utcDateKey();
+
+    await Promise.all([
+      db.ref(PHONE_REG_COUNTER_ROOT).child(dayKey).set(0),
+      db.ref(PHONE_AUTH_CONFIG_PATH).update({
+        enabled: true,
+        updatedAt: admin.database.ServerValue.TIMESTAMP,
+      }),
+    ]);
+
+    return null;
   });
 
 exports.verifyPayment = functions

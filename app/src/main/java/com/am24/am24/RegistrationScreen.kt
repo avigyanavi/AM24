@@ -114,7 +114,13 @@ class RegistrationActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val allowPhoneAuth = CountryUtil.isProbablyInIndia(this)
+        val deviceAllowsPhone = CountryUtil.isProbablyInIndia(this)
+        val allowPhoneAuthState = mutableStateOf(false)
+
+        lifecycleScope.launch {
+            val remoteEnabled = PhoneAuthGatekeeper.isPhoneAuthEnabled()
+            allowPhoneAuthState.value = deviceAllowsPhone && remoteEnabled
+        }
 
         auth = FirebaseAuth.getInstance()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -138,6 +144,7 @@ class RegistrationActivity : ComponentActivity() {
                             GclidStorageManager.getPendingGclid(this@RegistrationActivity)
                     }
                 }
+                val allowPhoneAuth = allowPhoneAuthState.value
 
                 RegistrationScreen(
                     onRegistrationComplete = {

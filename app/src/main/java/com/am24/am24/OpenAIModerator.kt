@@ -21,7 +21,7 @@ import java.io.IOException
 
 /* ---------- hard-coded project key (replace before shipping!) ---------- */
 private const val OPENAI_API_KEY =
-    "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"
+    "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"
 
 private const val TAG = "OpenAIModerator"
 
