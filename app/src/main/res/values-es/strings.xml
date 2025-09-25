@@ -189,7 +189,10 @@
     <string name="action_send_compliment">Enviar un cumplido</string>
     <string name="chat_title_fallback">Chat</string>
     <string name="nav_back">Atrás</string>
-
+    <string name="payment_success">🎉 ¡Pago exitoso!</string>
+    <string name="payment_failed">❌ El pago falló. Por favor, inténtalo de nuevo.</string>
+    <string name="continue1">Continuar</string>
+    <string name="try_again">Intentar de nuevo</string>
     <string name="chat_menu_rate">Calificar chat</string>
     <string name="chat_menu_clear">Borrar chat…</string>
     <string name="chat_menu_delete_timer">Configurar borrado…</string>
@@ -1923,7 +1926,6 @@
     <string name="subscription_cancelled">Cancelada</string>
     <string name="subscription_suspended">Suspendida</string>
     <string name="subscription_expired">Vencida</string>
-    <string name="payment_failed">Pago fallido</string>
 
     <string name="sort_farthest">Más lejos</string>
     <string name="next_page">Página siguiente</string>

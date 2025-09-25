@@ -2840,6 +2840,30 @@ suspend fun saveProfileToFirebase(
     try {
         val database = FirebaseRefs.db.reference
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val userRef = database.child("users").child(userId)
+        val preservedEntryFeeFields: Map<String, Any> = runCatching {
+            val snapshot = userRef.get().await()
+            val preserved = mutableMapOf<String, Any>()
+            snapshot.child("entryFeeOfferExpiry").getValue(Long::class.java)?.let {
+                preserved["entryFeeOfferExpiry"] = it
+            }
+            snapshot.child("entryFeeOfferSeen").getValue(Boolean::class.java)?.let {
+                preserved["entryFeeOfferSeen"] = it
+            }
+            snapshot.child("entryFeePlusIntroSeen").getValue(Boolean::class.java)?.let {
+                preserved["entryFeePlusIntroSeen"] = it
+            }
+            snapshot.child("entryFeePaidAt").getValue(Long::class.java)?.let {
+                preserved["entryFeePaidAt"] = it
+            }
+            snapshot.child("isEntryFeePaid").getValue(Boolean::class.java)?.let {
+                preserved["isEntryFeePaid"] = it
+            }
+            snapshot.child("loginPlusExpiry").getValue(Long::class.java)?.let {
+                preserved["loginPlusExpiry"] = it
+            }
+            preserved
+        }.getOrElse { emptyMap<String, Any>() }
         val pendingGclid = registrationViewModel.gclid
             ?: GclidStorageManager.getPendingGclid(context)
         registrationViewModel.gclid = pendingGclid
@@ -2938,7 +2962,40 @@ suspend fun saveProfileToFirebase(
             interestedIn = registrationViewModel.interestedIn.toList() // Include "interested in" data
         )
 
-        database.child("users").child(userId).setValue(profile).await()
+        val existingSnapshot = try {
+            userRef.get().await()
+        } catch (e: Exception) {
+            null
+        }
+        val preservedUpdates = mutableMapOf<String, Any>()
+
+        existingSnapshot?.let { snap ->
+            snap.child("isPlus").getValue(Boolean::class.java)?.let { profile.isPlus = it }
+            snap.child("isPremium").getValue(Boolean::class.java)?.let { profile.isPremium = it }
+            snap.child("premiumExpiryDate").getValue(Long::class.java)?.let { profile.premiumExpiryDate = it }
+            snap.child("razorpaySubscriptionId").getValue(String::class.java)?.let { profile.razorpaySubscriptionId = it }
+            snap.child("availableCompliments").getValue(Int::class.java)?.let { profile.availableCompliments = it }
+            snap.child("availableAiMessages").getValue(Int::class.java)?.let {
+                preservedUpdates["availableAiMessages"] = it
+            }
+            snap.child("isEntryFeePaid").getValue(Boolean::class.java)?.takeIf { it }?.let {
+                preservedUpdates["isEntryFeePaid"] = it
+            }
+            snap.child("entryFeePaidAt").getValue(Long::class.java)?.takeIf { it > 0L }?.let {
+                preservedUpdates["entryFeePaidAt"] = it
+            }
+            snap.child("loginPlusExpiry").getValue(Long::class.java)?.takeIf { it > 0L }?.let {
+                preservedUpdates["loginPlusExpiry"] = it
+            }
+            snap.child("swipesInfo").child("remainingSwipes").getValue(Int::class.java)?.let {
+                preservedUpdates["swipesInfo/remainingSwipes"] = it
+            }
+        }
+
+        userRef.setValue(profile).await()
+        if (preservedEntryFeeFields.isNotEmpty()) {
+            userRef.updateChildren(preservedEntryFeeFields).await()
+        }
 
         pendingGclid?.takeIf { it.isNotBlank() }?.let { gclid ->
             try {

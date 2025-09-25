@@ -63,6 +63,11 @@ class AppOpenAdManager {
             Log.d(TAG, "App open ad already showing; skipping")
             return
         }
+        if (hasShownAdThisLaunch) {
+            Log.d(TAG, "App open ad already shown for this launch; skipping")
+            showOnLoad = false
+            return
+        }
         if (adUnitId == null) {
             adUnitId = resolveAdUnitId(activity, selectedCountry)
         }
@@ -99,6 +104,7 @@ class AppOpenAdManager {
 
             override fun onAdShowedFullScreenContent() {
                 Log.d(TAG, "App open ad displayed")
+                hasShownAdThisLaunch = true
             }
         }
 
@@ -108,6 +114,11 @@ class AppOpenAdManager {
     private fun loadAd(context: Context) {
         if (!shouldShowAds) return
         if (isLoadingAd) return
+        if (hasShownAdThisLaunch) {
+            Log.d(TAG, "App open ad already shown for this launch; not loading new ad")
+            showOnLoad = false
+            return
+        }
 
         val unitId = adUnitId ?: resolveAdUnitId(context, selectedCountry) ?: return
         if (isAdAvailable()) return
@@ -175,5 +186,6 @@ class AppOpenAdManager {
         private const val AD_UNIT_INDIA = "ca-app-pub-1814829133495225/1128130556"
         private const val AD_UNIT_MEXICO = "ca-app-pub-1814829133495225/7901901393"
         private const val AD_UNIT_USA = "ca-app-pub-1814829133495225/9901378772"
+        private var hasShownAdThisLaunch = false
     }
 }

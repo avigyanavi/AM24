@@ -56,17 +56,21 @@ fun PaywallScreen(onPaid: () -> Unit) {
     }
 
     LaunchedEffect(entryFeePaid, plusActive, loginPlusExpiry, entryFeePaidAt) {
+        if (!entryFeePaid) return@LaunchedEffect
 
-        if (entryFeePaid) {
-            if (!plusActive) {
-                userRef.child("isPlus").setValue(true)
-            }
-            val paidAt = entryFeePaidAt ?: 0L
-            if (paidAt > 0L) {
-                val expectedExpiry = paidAt + TimeUnit.DAYS.toMillis(365)
-                if ((loginPlusExpiry ?: 0L) != expectedExpiry) {
-                    userRef.child("loginPlusExpiry").setValue(expectedExpiry)
-                }
+        val yearInMillis = TimeUnit.DAYS.toMillis(365)
+
+        if (!plusActive) {
+            userRef.child("isPlus").setValue(true)
+            plusActive = true
+        }
+
+        val paidAt = entryFeePaidAt ?: 0L
+        if (paidAt > 0L) {
+            val minimumExpiry = paidAt + yearInMillis
+            val currentExpiry = loginPlusExpiry ?: 0L
+            if (currentExpiry < minimumExpiry) {
+                userRef.child("loginPlusExpiry").setValue(minimumExpiry)
             }
         }
     }
@@ -93,7 +97,10 @@ fun PaywallScreen(onPaid: () -> Unit) {
             if (purchase != null && purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
                 isProcessing = true
                 val yearInMillis = TimeUnit.DAYS.toMillis(365)
-                val purchaseTime = purchase.purchaseTime
+                val purchaseTime = purchase.purchaseTime.takeIf { it > 0L } ?: System.currentTimeMillis()
+                val existingExpiry = loginPlusExpiry ?: 0L
+                val desiredExpiry = purchaseTime + yearInMillis
+                val finalExpiry = maxOf(existingExpiry, desiredExpiry)
                 val updates = mutableMapOf<String, Any>(
                     "entryFeePaidAt" to ServerValue.TIMESTAMP,
                     "isEntryFeePaid" to true,
@@ -101,9 +108,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
                     "entryFeePlusIntroSeen" to false,
                     "entryFeeOfferSeen" to true
                 )
-                if (purchaseTime > 0L) {
-                    updates["loginPlusExpiry"] = purchaseTime + yearInMillis
-                }
+                updates["loginPlusExpiry"] = finalExpiry
                 userRef.updateChildren(updates)
                     .addOnSuccessListener {
                         userRef.child("entryFeeOfferExpiry").removeValue()
@@ -119,6 +124,10 @@ fun PaywallScreen(onPaid: () -> Unit) {
                                 // Ignore analytics failures
                             }
                         }
+                        entryFeePaid = true
+                        plusActive = true
+                        entryFeePaidAt = purchaseTime
+                        loginPlusExpiry = finalExpiry
                         isProcessing = false
                         if (!hasNavigatedAway) {
                             hasNavigatedAway = true
@@ -206,7 +215,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
                     }
                 }
             ) {
-                Text(stringResource(R.string.paywall_skip))
+                Text(stringResource(R.string.paywall_skip), color = KupidxOrange)
             }
             Spacer(Modifier.width(8.dp))
             Text(

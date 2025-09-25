@@ -162,7 +162,7 @@ fun EntryFeePlusScreen(navController: NavController) {
                     Text(
                         text = stringResource(R.string.entry_fee_plus_offer_timer, hours),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = KupidxOrange,
                         fontWeight = FontWeight.SemiBold
                     )
                 }

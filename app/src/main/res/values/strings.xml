@@ -617,7 +617,10 @@
     <string name="tap_to_send">Tap to send</string>
 
     <string name="proceed">Proceed</string>
-
+    <string name="payment_success">🎉 Payment successful!</string>
+    <string name="payment_failed">❌ Payment failed. Please try again.</string>
+    <string name="continue1">Continue</string>
+    <string name="try_again">Try Again</string>
     <string name="perm_mic_required">Microphone permission is required.</string>
     <string name="perm_camera_required">Camera permission required.</string>
     <string name="video_duration_limit_30s">Please select a video of 30 seconds or less.</string>
@@ -1921,7 +1924,6 @@
     <string name="subscription_cancelled">Cancelled</string>
     <string name="subscription_suspended">Suspended</string>
     <string name="subscription_expired">Expired</string>
-    <string name="payment_failed">Payment failed</string>
     <string name="orientation_straight">⚤ Straight</string>
     <string name="orientation_gay">⚣ Gay</string>
     <string name="orientation_lesbian">⚢ Lesbian</string>
