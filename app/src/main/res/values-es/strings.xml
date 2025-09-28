@@ -321,7 +321,17 @@
     <string name="share_with">Compartir con…</string>
     <string name="send">Enviar</string>
     <string name="cancel">Cancelar</string>
-
+    <string name="google_sign_in_failed">Error al iniciar sesión con Google.</string>
+    <string name="google_sign_in_failed_with_reason">Error al iniciar sesión con Google: %1$s</string>
+    <string name="google_sign_in_launch_failed">No se pudo iniciar el acceso con Google. Inténtalo de nuevo.</string>
+    <string name="google_sign_in_launch_failed_with_reason">No se pudo iniciar el acceso con Google. Inténtalo de nuevo.\n%1$s</string>
+    <string name="link_accounts_title">Vincular cuentas</string>
+    <string name="link_accounts_message">Introduce la contraseña de %1$s para vincular tu cuenta:</string>
+    <string name="accounts_linked_success">¡Cuentas vinculadas! Bienvenido de nuevo.</string>
+    <string name="link_failed">Error al vincular.</string>
+    <string name="link_failed_with_reason">Error al vincular: %1$s</string>
+    <string name="password_incorrect">Contraseña incorrecta.</string>
+    <string name="password_incorrect_with_reason">Contraseña incorrecta: %1$s</string>
     <!-- Comments & reporting -->
     <string name="upvote">Voto positivo</string>
     <string name="downvote">Voto negativo</string>

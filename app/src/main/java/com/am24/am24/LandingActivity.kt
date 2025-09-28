@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AlertDialog
@@ -145,7 +146,13 @@ class LandingActivity : ComponentActivity() {
                         firebaseAuthWithGoogle(acct)
                     } catch (e: ApiException) {
                         Log.w("LandingActivity", "Google sign-in failed", e)
-                        toast("Google sign-in failed: ${e.localizedMessage}")
+                        toast(
+                            formatMessageWithReason(
+                                baseRes = R.string.google_sign_in_failed,
+                                withReasonRes = R.string.google_sign_in_failed_with_reason,
+                                reason = e.localizedMessage
+                            )
+                        )
                         isSigningIn = false
                     }
                 } else {
@@ -206,13 +213,13 @@ class LandingActivity : ComponentActivity() {
                     )
                     isSigningIn = false
                     if (!isFinishing && !isDestroyed) {
-                        val message = buildString {
-                            append("Couldn't start Google sign-in. Please try again.")
-                            task.exception?.localizedMessage?.takeIf { it.isNotBlank() }?.let { reason ->
-                                append('\n').append(reason)
-                            }
-                        }
-                        toast(message)
+                        toast(
+                            formatMessageWithReason(
+                                baseRes = R.string.google_sign_in_launch_failed,
+                                withReasonRes = R.string.google_sign_in_launch_failed_with_reason,
+                                reason = task.exception?.localizedMessage
+                            )
+                        )
                     }
                 }
             }
@@ -361,14 +368,26 @@ class LandingActivity : ComponentActivity() {
                             ?.linkWithCredential(pending)
                             ?.addOnCompleteListener(this) { linkTask ->
                                 if (linkTask.isSuccessful) {
-                                    toast("Accounts linked! Welcome back.")
+                                    toast(getString(R.string.accounts_linked_success))
                                     continueIntoApp()
                                 } else {
-                                    toast("Link failed: ${linkTask.exception?.localizedMessage}")
+                                    toast(
+                                        formatMessageWithReason(
+                                            baseRes = R.string.link_failed,
+                                            withReasonRes = R.string.link_failed_with_reason,
+                                            reason = linkTask.exception?.localizedMessage
+                                        )
+                                    )
                                 }
                             }
                     } else {
-                        toast("Password incorrect: ${signInTask.exception?.localizedMessage}")
+                        toast(
+                            formatMessageWithReason(
+                                baseRes = R.string.password_incorrect,
+                                withReasonRes = R.string.password_incorrect_with_reason,
+                                reason = signInTask.exception?.localizedMessage
+                            )
+                        )
                     }
                 }
         }
@@ -386,19 +405,27 @@ class LandingActivity : ComponentActivity() {
 
     private fun collectPasswordFromUser(email: String, onPassword: (String) -> Unit) {
         val input = android.widget.EditText(this).apply {
-            hint = "Password"
+            hint = getString(R.string.password)
             inputType = android.text.InputType.TYPE_CLASS_TEXT or
                     android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
         AlertDialog.Builder(this)
-            .setTitle("Link accounts")
-            .setMessage("Enter password for $email to link your account:")
+            .setTitle(R.string.link_accounts_title)
+            .setMessage(getString(R.string.link_accounts_message, email))
             .setView(input)
             .setPositiveButton(R.string.ok) { d, _ ->
                 onPassword(input.text.toString()); d.dismiss()
             }
-            .setNegativeButton("Cancel") { d, _ -> d.cancel() }
+            .setNegativeButton(R.string.cancel) { d, _ -> d.cancel() }
             .show()
+    }
+    private fun formatMessageWithReason(
+        @StringRes baseRes: Int,
+        @StringRes withReasonRes: Int,
+        reason: String?
+    ): String {
+        val trimmedReason = reason?.trim()?.takeIf { it.isNotEmpty() }
+        return trimmedReason?.let { getString(withReasonRes, it) } ?: getString(baseRes)
     }
 }
 

@@ -269,7 +269,17 @@
     <string name="report_reason_placeholder">Enter reason</string>
     <string name="reported_blocked_unmatched">Reported, blocked &amp; unmatched</string>
     <string name="search_tags_placeholder">Search usernames/posts/places or tags</string>
-
+    <string name="google_sign_in_failed">Google sign-in failed.</string>
+    <string name="google_sign_in_failed_with_reason">Google sign-in failed: %1$s</string>
+    <string name="google_sign_in_launch_failed">Couldnt start Google sign-in. Please try again.</string>
+    <string name="google_sign_in_launch_failed_with_reason">Couldnt start Google sign-in. Please try again.\n%1$s</string>
+    <string name="link_accounts_title">Link accounts</string>
+    <string name="link_accounts_message">Enter password for %1$s to link your account:</string>
+    <string name="accounts_linked_success">Accounts linked! Welcome back.</string>
+    <string name="link_failed">Link failed.</string>
+    <string name="link_failed_with_reason">Link failed: %1$s</string>
+    <string name="password_incorrect">Password incorrect.</string>
+    <string name="password_incorrect_with_reason">Password incorrect: %1$s</string>
     <!-- Iconic Landmarks (Major Cities Across India) -->
     <string name="tag_india_gate">India Gate</string>
     <string name="tag_taj_mahal">Taj Mahal</string>
