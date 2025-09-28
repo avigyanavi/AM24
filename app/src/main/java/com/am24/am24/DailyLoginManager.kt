@@ -28,7 +28,7 @@ suspend fun checkDailyLoginReward(context: Context): DailyLoginInfo? {
     val entryFeePaidAt = snap.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
 
     val entryFeeExpiryFromPaidAt = if (entryFeePaidAt > 0L) {
-        entryFeePaidAt + TimeUnit.DAYS.toMillis(365)
+        entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
     } else 0L
     val entryFeeActive = entryFeePaid && (
             (rewardExpiry > now) || (entryFeeExpiryFromPaidAt > now)

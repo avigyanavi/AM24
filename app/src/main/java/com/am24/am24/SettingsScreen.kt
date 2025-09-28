@@ -111,7 +111,7 @@ fun SettingsScreen(navController: NavController) {
     val blocksRef = FirebaseRefs.db.getReference("blocks").child(uid)
 
     var premiumTier by remember { mutableStateOf("Free") }           // "Free" / "Plus" / "Premium"
-    var expiry by remember { mutableStateOf("N/A") }
+    var expiry by remember { mutableStateOf(ctx.getString(R.string.na)) }
     var swipes by remember { mutableStateOf(0) }
     var compliments by remember { mutableStateOf(0) }
     var aiMessages    by remember { mutableStateOf(0) }       // ★ NEW ★
@@ -175,7 +175,7 @@ fun SettingsScreen(navController: NavController) {
         val entryFeeOfferExpiryVal = s.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
         val now = System.currentTimeMillis()
         val entryFeeExpiry = if (entryFeePaidAt > 0L) {
-            entryFeePaidAt + TimeUnit.DAYS.toMillis(365)
+            entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
         } else 0L
         val entryFeeActive = entryFeePaidFlag && ((loginPlusExpiryVal > now) || (entryFeeExpiry > now && entryFeeExpiry > 0L))
         val plusExpired = plusFlag && entryFeePaidFlag && !entryFeeActive && !premiumFlag
@@ -200,15 +200,22 @@ fun SettingsScreen(navController: NavController) {
             entryFeeActive -> "Plus"
             else -> "Free"
         }
+        val subscriptionIdValue = s.child("subscription").child("id")
+            .getValue(String::class.java)
+        val nextRenewalValue = s.child("nextRenewal").getValue(Long::class.java)
+        val activeEntryFeeExpiry = entryFeeExpiry.takeIf { entryFeeActive && it > now }
+        val activeLoginPlusExpiry = loginPlusExpiryVal.takeIf { it > now }
 
         loginPlusExpiry = if (plusExpired) 0L else loginPlusExpiryVal
-        expiry = if (!subscriptionId.isNullOrBlank()) "Never" else
-            s.child("nextRenewal").getValue(Long::class.java)
-                ?.let { DateFormat.getDateInstance().format(Date(it)) }
-                ?: "N/A"
+        expiry = when {
+            activeEntryFeeExpiry != null -> DateFormat.getDateInstance().format(Date(activeEntryFeeExpiry))
+            !subscriptionIdValue.isNullOrBlank() -> "Never"
+            nextRenewalValue != null -> DateFormat.getDateInstance().format(Date(nextRenewalValue))
+            activeLoginPlusExpiry != null -> DateFormat.getDateInstance().format(Date(activeLoginPlusExpiry))
+            else -> ctx.getString(R.string.na)
+        }
 
-        subscriptionId = s.child("subscription").child("id")
-            .getValue(String::class.java)
+        subscriptionId = subscriptionIdValue
         subscriptionStatus = s.child("subscriptionStatus").getValue(String::class.java)
 
         swipes      = s.child("swipesInfo/remainingSwipes").getValue(Int::class.java) ?: 0
@@ -320,7 +327,7 @@ fun SettingsScreen(navController: NavController) {
                         SettingsRow(
                             icon  = { Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700)) },
                             title = "$premiumTier Member",
-                            trailingText = "Expires: $expiry",
+                            trailingText = stringResource(R.string.expires_prefix, expiry),
                             onClick = {
                                 if (CountryUtil.useRazorpay(ctx, country)) {
                                     navController.navigate("manageSubscription")

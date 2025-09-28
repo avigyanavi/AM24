@@ -354,7 +354,7 @@ object BillingManager : PurchasesUpdatedListener {
                 val now = System.currentTimeMillis()
                 val rewardActive = rewardExpiry > now
                 val entryFeeExpiry = if (entryFeePaidAt > 0L) {
-                    entryFeePaidAt + TimeUnit.DAYS.toMillis(365)
+                    entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
                 } else 0L
                 val entryFeeActive = entryFeePaid && (rewardActive || entryFeeExpiry > now)
                 if (entryFeePaid && !entryFeeActive && entryFeeExpiry > 0L && entryFeeExpiry <= now) {

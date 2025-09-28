@@ -58,7 +58,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
     LaunchedEffect(entryFeePaid, plusActive, loginPlusExpiry, entryFeePaidAt) {
         if (!entryFeePaid) return@LaunchedEffect
 
-        val yearInMillis = TimeUnit.DAYS.toMillis(365)
+        val monthInMillis = TimeUnit.DAYS.toMillis(30)
 
         if (!plusActive) {
             userRef.child("isPlus").setValue(true)
@@ -67,7 +67,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
 
         val paidAt = entryFeePaidAt ?: 0L
         if (paidAt > 0L) {
-            val minimumExpiry = paidAt + yearInMillis
+            val minimumExpiry = paidAt + monthInMillis
             val currentExpiry = loginPlusExpiry ?: 0L
             if (currentExpiry < minimumExpiry) {
                 userRef.child("loginPlusExpiry").setValue(minimumExpiry)
@@ -96,10 +96,10 @@ fun PaywallScreen(onPaid: () -> Unit) {
             val purchase = BillingManager.purchases.value.firstOrNull { it.products.contains("entry_fee") }
             if (purchase != null && purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
                 isProcessing = true
-                val yearInMillis = TimeUnit.DAYS.toMillis(365)
+                val monthInMillis = TimeUnit.DAYS.toMillis(30)
                 val purchaseTime = purchase.purchaseTime.takeIf { it > 0L } ?: System.currentTimeMillis()
                 val existingExpiry = loginPlusExpiry ?: 0L
-                val desiredExpiry = purchaseTime + yearInMillis
+                val desiredExpiry = purchaseTime + monthInMillis
                 val finalExpiry = maxOf(existingExpiry, desiredExpiry)
                 val updates = mutableMapOf<String, Any>(
                     "entryFeePaidAt" to ServerValue.TIMESTAMP,
@@ -141,27 +141,23 @@ fun PaywallScreen(onPaid: () -> Unit) {
         }
     }
 
+    val formattedEntryPrice = entryOffer?.formattedPrice
+
     val entryFeeMessage = when {
-        isIndia -> stringResource(R.string.paywall_entry_fee_message_india)
-        isMexico -> stringResource(R.string.paywall_entry_fee_message_mexico)
-        isUnitedStates -> stringResource(R.string.paywall_entry_fee_message_us)
-        entryOffer != null -> stringResource(
-            R.string.paywall_entry_fee_message_generic,
-            entryOffer.formattedPrice
-        )
+        formattedEntryPrice != null && isIndia -> stringResource(R.string.paywall_entry_fee_message_india, formattedEntryPrice)
+        formattedEntryPrice != null && isMexico -> stringResource(R.string.paywall_entry_fee_message_mexico, formattedEntryPrice)
+        formattedEntryPrice != null && isUnitedStates -> stringResource(R.string.paywall_entry_fee_message_us, formattedEntryPrice)
+        formattedEntryPrice != null -> stringResource(R.string.paywall_entry_fee_message_generic, formattedEntryPrice)
         else -> stringResource(R.string.paywall_entry_fee_loading)
     }
 
     val buttonLabel = when {
         isProcessing -> stringResource(R.string.paywall_button_processing)
         entryProduct == null -> stringResource(R.string.paywall_button_loading)
-        isIndia -> stringResource(R.string.paywall_button_pay_india)
-        isMexico -> stringResource(R.string.paywall_button_pay_mexico)
-        isUnitedStates -> stringResource(R.string.paywall_button_pay_us)
-        entryOffer != null -> stringResource(
-            R.string.paywall_button_pay_generic,
-            entryOffer.formattedPrice
-        )
+        formattedEntryPrice != null && isIndia -> stringResource(R.string.paywall_button_pay_india, formattedEntryPrice)
+        formattedEntryPrice != null && isMexico -> stringResource(R.string.paywall_button_pay_mexico, formattedEntryPrice)
+        formattedEntryPrice != null && isUnitedStates -> stringResource(R.string.paywall_button_pay_us, formattedEntryPrice)
+        formattedEntryPrice != null -> stringResource(R.string.paywall_button_pay_generic, formattedEntryPrice)
         else -> stringResource(R.string.paywall_button_pay_default)
     }
 
