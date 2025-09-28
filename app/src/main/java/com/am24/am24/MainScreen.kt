@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import android.app.Activity
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -49,7 +50,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.RssFeed
 import androidx.compose.ui.draw.shadow
 import com.google.firebase.database.FirebaseDatabase
-import kotlinx.coroutines.launch
+import android.content.ContextWrapper
 
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
@@ -73,11 +74,24 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val showTopBar    = showGlobalBars
 
     val profileViewModel: ProfileViewModel = viewModel()
+    val currentProfile by profileViewModel.currentUserProfile.collectAsState()
     // ─── collect both flags ───────────────────────────
     val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
     val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
+    val selectedCountry = canonicalCountry(currentProfile?.country).takeIf { it.isNotBlank() }
+    val shouldShowBottomNavAds = !isPlus && !isPremium
     // ───────────────────────────────────────────────────
     val context = LocalContext.current
+    val interstitialManager = remember { BottomNavInterstitialManager() }
+    val activity by rememberUpdatedState(context.findActivity())
+
+    LaunchedEffect(currentUserId) {
+        profileViewModel.fetchCurrentUserProfile()
+    }
+
+    LaunchedEffect(context, selectedCountry, shouldShowBottomNavAds) {
+        interstitialManager.updateEligibility(context, selectedCountry, shouldShowBottomNavAds)
+    }
 
     // Listen for incoming omegle invites
     var omegleInvite by remember { mutableStateOf<OmegleMatch?>(null) }
@@ -152,7 +166,32 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
             if (showGlobalBars) {
                 BottomNavigationBar(
                     navController = navController,
-                    items         = items
+                    items = items,
+                    onItemSelected = { route, alreadySelected ->
+                        if (alreadySelected) return@BottomNavigationBar
+
+                        val navigate: () -> Unit = {
+                            navController.navigate(route) {
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+
+                        if (!shouldShowBottomNavAds) {
+                            navigate()
+                            return@BottomNavigationBar
+                        }
+
+                        val currentActivity = activity
+                        if (currentActivity == null) {
+                            navigate()
+                            return@BottomNavigationBar
+                        }
+
+                        interstitialManager.show(currentActivity) {
+                            navigate()
+                        }
+                    }
                 )
             }
         }
@@ -884,7 +923,8 @@ data class BottomNavItem(val label: String, val icon: ImageVector, val route: St
 @Composable
 fun BottomNavigationBar(
     navController: NavController,
-    items: List<BottomNavItem>
+    items: List<BottomNavItem>,
+    onItemSelected: (route: String, alreadySelected: Boolean) -> Unit
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -930,12 +970,7 @@ fun BottomNavigationBar(
 
             NavigationBarItem(
                 selected = selected,
-                onClick = {
-                    navController.navigate(item.route) {
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
+                onClick = { onItemSelected(item.route, selected) },
                 icon = {
                     Icon(
                         imageVector = item.icon,
@@ -961,4 +996,10 @@ fun BottomNavigationBar(
             )
         }
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
