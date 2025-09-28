@@ -16,10 +16,10 @@ class BottomNavInterstitialManager {
     private var isLoadingAd = false
     private var shouldShowAds = false
     private var adUnitId: String? = null
-    private var selectedCountry: String? = null
+    private var countryOverride: String? = null
 
-    fun updateEligibility(context: Context, selectedCountry: String?, shouldShow: Boolean) {
-        this.selectedCountry = selectedCountry
+    fun updateEligibility(context: Context, country: String?, shouldShow: Boolean) {
+        countryOverride = country
         shouldShowAds = shouldShow
 
         if (!shouldShow) {
@@ -30,7 +30,7 @@ class BottomNavInterstitialManager {
             return
         }
 
-        val resolvedId = AdUnitIds.bottomNavInterstitial(context, selectedCountry)
+        val resolvedId = AdUnitIds.bottomNavInterstitial(context, countryOverride)
         if (resolvedId == null) {
             Log.d(TAG, "No bottom-nav interstitial configured for this region")
             interstitialAd = null
@@ -62,7 +62,7 @@ class BottomNavInterstitialManager {
         }
 
         if (adUnitId == null) {
-            adUnitId = AdUnitIds.bottomNavInterstitial(activity, selectedCountry)
+            adUnitId = AdUnitIds.bottomNavInterstitial(activity, countryOverride)
             if (adUnitId == null) {
                 onFinished()
                 return
@@ -102,7 +102,7 @@ class BottomNavInterstitialManager {
         if (!shouldShowAds) return
         if (isLoadingAd) return
 
-        val unitId = adUnitId ?: AdUnitIds.bottomNavInterstitial(context, selectedCountry) ?: return
+        val unitId = adUnitId ?: AdUnitIds.bottomNavInterstitial(context, countryOverride) ?: return
 
         isLoadingAd = true
         val request = AdRequest.Builder().build()

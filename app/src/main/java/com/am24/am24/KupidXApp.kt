@@ -237,14 +237,14 @@ class KupidXAppActivity : AppCompatActivity(),
             override fun onDataChange(snapshot: DataSnapshot) {
                 val isPlus = snapshot.child("isPlus").getValue(Boolean::class.java) == true
                 val isPremium = snapshot.child("isPremium").getValue(Boolean::class.java) == true
-                val selectedCountry = snapshot.child("country")
-                    .getValue(String::class.java)
-                    ?.takeIf { it.isNotBlank() }
+                val latitude = snapshot.child("latitude").getValue(Double::class.java)
+                val longitude = snapshot.child("longitude").getValue(Double::class.java)
+                val locationCountry = CountryUtil.countryFromCoordinates(latitude, longitude)
 
                 val shouldShowAds = !isPlus && !isPremium
                 appOpenAdManager.updateEligibility(
                     context = this@KupidXAppActivity,
-                    selectedCountry = selectedCountry,
+                    country = locationCountry,
                     shouldShow = shouldShowAds
                 )
 

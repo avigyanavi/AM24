@@ -11,7 +11,8 @@ import androidx.core.app.ActivityCompat
 import com.firebase.geofire.GeoFire
 import com.firebase.geofire.GeoLocation
 import com.google.android.gms.location.*
-import com.google.android.gms.tasks.Tasks
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import java.util.concurrent.TimeUnit
@@ -27,11 +28,13 @@ public class LocationManager(private val context: Context) {
          *  to hand us a value; change the timeout if you wish.)
          */
         @SuppressLint("MissingPermission")
-        fun getLastKnownLocation(ctx: Context): Pair<Double, Double>? {
+        suspend fun getLastKnownLocation(ctx: Context): Pair<Double, Double>? {
             val fused = LocationServices.getFusedLocationProviderClient(ctx)
             return try {
-                // Wait (max 2 s) for the Task to finish, then read result
-                val loc = Tasks.await(fused.lastLocation, 2, TimeUnit.SECONDS)
+                // Wait (max 2 s) for the Task to finish without blocking a thread
+                val loc = withTimeoutOrNull(TimeUnit.SECONDS.toMillis(2)) {
+                    fused.lastLocation.await()
+                }
                 loc?.let { Pair(it.latitude, it.longitude) }
             } catch (_: Exception) {
                 null          // timeout, security-exception, etc.

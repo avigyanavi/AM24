@@ -19,12 +19,12 @@ class AppOpenAdManager {
     private var loadTime: Long = 0L
     private var shouldShowAds = false
     private var adUnitId: String? = null
-    private var selectedCountry: String? = null
+    private var countryOverride: String? = null
     private var currentActivityRef: WeakReference<Activity>? = null
     private var showOnLoad = false
 
-    fun updateEligibility(context: Context, selectedCountry: String?, shouldShow: Boolean) {
-        this.selectedCountry = selectedCountry
+    fun updateEligibility(context: Context, country: String?, shouldShow: Boolean) {
+        countryOverride = country
         shouldShowAds = shouldShow
         if (!shouldShow) {
             Log.d(TAG, "App open ads disabled for current user")
@@ -33,7 +33,7 @@ class AppOpenAdManager {
             return
         }
 
-        val resolvedId = resolveAdUnitId(context, selectedCountry)
+        val resolvedId = resolveAdUnitId(context, countryOverride)
         if (resolvedId == null) {
             Log.d(TAG, "No app open ad unit configured for this region")
             adUnitId = null
@@ -69,7 +69,7 @@ class AppOpenAdManager {
             return
         }
         if (adUnitId == null) {
-            adUnitId = resolveAdUnitId(activity, selectedCountry)
+            adUnitId = resolveAdUnitId(activity, countryOverride)
         }
         if (adUnitId == null) {
             Log.d(TAG, "App open ad unit is null; cannot show")
@@ -120,7 +120,7 @@ class AppOpenAdManager {
             return
         }
 
-        val unitId = adUnitId ?: resolveAdUnitId(context, selectedCountry) ?: return
+        val unitId = adUnitId ?: resolveAdUnitId(context, countryOverride) ?: return
         if (isAdAvailable()) return
 
         isLoadingAd = true
@@ -160,11 +160,11 @@ class AppOpenAdManager {
         return elapsed < AD_VALIDITY_MS
     }
 
-    private fun resolveAdUnitId(context: Context, selectedCountry: String?): String? {
+    private fun resolveAdUnitId(context: Context, country: String?): String? {
         return when {
-            CountryUtil.isIndia(context, selectedCountry) -> AD_UNIT_INDIA
-            CountryUtil.isMexico(context, selectedCountry) -> AD_UNIT_MEXICO
-            CountryUtil.isUnitedStates(context, selectedCountry) -> AD_UNIT_USA
+            CountryUtil.isIndia(context, country) -> AD_UNIT_INDIA
+            CountryUtil.isMexico(context, country) -> AD_UNIT_MEXICO
+            CountryUtil.isUnitedStates(context, country) -> AD_UNIT_USA
             else -> null
         }
     }

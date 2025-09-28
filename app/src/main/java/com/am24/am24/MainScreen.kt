@@ -79,6 +79,15 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
     val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
     val selectedCountry = canonicalCountry(currentProfile?.country).takeIf { it.isNotBlank() }
+    val interstitialCountry = remember(
+        currentProfile?.latitude,
+        currentProfile?.longitude
+    ) {
+        CountryUtil.countryFromCoordinates(
+            currentProfile?.latitude,
+            currentProfile?.longitude
+        )
+    }
     val shouldShowBottomNavAds = !isPlus && !isPremium
     // ───────────────────────────────────────────────────
     val context = LocalContext.current
@@ -89,8 +98,8 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         profileViewModel.fetchCurrentUserProfile()
     }
 
-    LaunchedEffect(context, selectedCountry, shouldShowBottomNavAds) {
-        interstitialManager.updateEligibility(context, selectedCountry, shouldShowBottomNavAds)
+    LaunchedEffect(context, interstitialCountry, shouldShowBottomNavAds) {
+        interstitialManager.updateEligibility(context, interstitialCountry, shouldShowBottomNavAds)
     }
 
     // Listen for incoming omegle invites

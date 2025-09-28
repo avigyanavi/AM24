@@ -288,7 +288,9 @@ fun TextPostComposable(
         }
         delay(400)                                       // debounce
         searching = true
-        val bias = AM24LocationManager.getLastKnownLocation(context)
+        val bias = withContext(Dispatchers.IO) {
+            AM24LocationManager.getLastKnownLocation(context)
+        }
             ?.let { LatLng(it.first, it.second) }
             ?: LatLng(22.5726, 88.3639)                  // Kolkata fallback
         placeResults = searchPlacesRich(placeQuery, bias)
@@ -696,7 +698,9 @@ fun ImagePostComposable(
             if (placeQuery.length < 3) { placeResults = emptyList(); return@LaunchedEffect }
             delay(400)                       // debounce
             searching = true
-            val bias = AM24LocationManager.getLastKnownLocation(ctx)
+            val bias = withContext(Dispatchers.IO) {
+                AM24LocationManager.getLastKnownLocation(ctx)
+            }
                 ?.let { LatLng(it.first, it.second) }
                 ?: LatLng(22.5726, 88.3639)  // Kolkata fallback
             placeResults = searchPlacesRich(placeQuery, bias)
@@ -950,7 +954,9 @@ fun VideoPostComposable(
         if (placeQuery.length < 3) { placeResults = emptyList(); return@LaunchedEffect }
         delay(400)                                  // debounce
         searching = true
-        val bias = AM24LocationManager.getLastKnownLocation(ctx)
+        val bias = withContext(Dispatchers.IO) {
+            AM24LocationManager.getLastKnownLocation(ctx)
+        }
             ?.let { LatLng(it.first, it.second) }
             ?: LatLng(22.5726, 88.3639)             // Kolkata fallback
         placeResults = searchPlacesRich(placeQuery, bias)
