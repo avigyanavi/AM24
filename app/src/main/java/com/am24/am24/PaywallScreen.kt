@@ -36,7 +36,6 @@ fun PaywallScreen(onPaid: () -> Unit) {
     var plusActive by remember { mutableStateOf(false) }
     var loginPlusExpiry by remember { mutableStateOf<Long?>(null) }
     var entryFeePaidAt by remember { mutableStateOf<Long?>(null) }
-    var entryFeeOfferSeen by remember { mutableStateOf<Boolean?>(null) }
     var hasNavigatedAway by remember(uid) { mutableStateOf(false) }
     DisposableEffect(userRef) {
         val listener = object : ValueEventListener {
@@ -46,7 +45,6 @@ fun PaywallScreen(onPaid: () -> Unit) {
                 plusActive = snapshot.child("isPlus").getValue(Boolean::class.java) == true
                 loginPlusExpiry = snapshot.child("loginPlusExpiry").getValue(Long::class.java)
                 entryFeePaidAt = snapshot.child("entryFeePaidAt").getValue(Long::class.java)
-                entryFeeOfferSeen = snapshot.child("entryFeeOfferSeen").getValue(Boolean::class.java)
             }
 
             override fun onCancelled(error: DatabaseError) {}
@@ -195,30 +193,5 @@ fun PaywallScreen(onPaid: () -> Unit) {
             Text(buttonLabel)
         }
         Spacer(Modifier.height(16.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(
-                onClick = {
-                    if (!hasNavigatedAway) {
-                        if (!entryFeePaid) {
-                            val expiry = System.currentTimeMillis() + TimeUnit.HOURS.toMillis(24)
-                            userRef.child("entryFeeOfferExpiry").setValue(expiry)
-                            userRef.child("entryFeeOfferSeen").setValue(false)
-                        } else if (entryFeeOfferSeen == null) {
-                            userRef.child("entryFeeOfferSeen").setValue(true)
-                        }
-                        hasNavigatedAway = true
-                        onPaidCallback()
-                    }
-                }
-            ) {
-                Text(stringResource(R.string.paywall_skip), color = KupidxOrange)
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                stringResource(R.string.paywall_skip_disclaimer),
-                color = Color.White,
-                fontSize = 12.sp
-            )
-        }
     }
 }
