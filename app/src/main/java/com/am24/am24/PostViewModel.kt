@@ -159,6 +159,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         _feedSearchSelectedTab.value = 0
         setSearchQuery(query)
 
+        // Enter search mode immediately so the UI can render the results scaffold
+        _isFeedSearchMode.value = true
+        _feedSearchResults.value = FeedSearchResults()
+
         viewModelScope.launch(Dispatchers.IO) {
             val users = searchUsersByQuery(query)
             val posts = computePostsForSearch(query)
@@ -170,7 +174,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     posts = posts,
                     tags = tags
                 )
-                _isFeedSearchMode.value = true
             }
         }
     }
