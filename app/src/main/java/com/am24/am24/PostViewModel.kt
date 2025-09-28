@@ -104,6 +104,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val _isFeedSearchMode = MutableStateFlow(false)
     val isFeedSearchMode: StateFlow<Boolean> = _isFeedSearchMode.asStateFlow()
 
+    private val _isFeedSearchLoading = MutableStateFlow(false)
+    val isFeedSearchLoading: StateFlow<Boolean> = _isFeedSearchLoading.asStateFlow()
+
     private val _feedSearchQuery = MutableStateFlow("")
     val feedSearchQuery: StateFlow<String> = _feedSearchQuery.asStateFlow()
 
@@ -139,6 +142,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         _feedSearchSelectedTab.value = 0
         _feedSearchQuery.value = ""
         _feedSearchResults.value = FeedSearchResults()
+        _isFeedSearchLoading.value = false
         setSearchQuery("")
     }
 
@@ -152,6 +156,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         if (query.isBlank()) {
             _feedSearchResults.value = FeedSearchResults()
             _isFeedSearchMode.value = false
+            _isFeedSearchLoading.value = false
             setSearchQuery("")
             return
         }
@@ -162,18 +167,28 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         // Enter search mode immediately so the UI can render the results scaffold
         _isFeedSearchMode.value = true
         _feedSearchResults.value = FeedSearchResults()
+        _isFeedSearchLoading.value = true
 
         viewModelScope.launch(Dispatchers.IO) {
-            val users = searchUsersByQuery(query)
-            val posts = computePostsForSearch(query)
-            val tags = computeTagsForQuery(query)
+            try {
+                val users = searchUsersByQuery(query)
+                val posts = computePostsForSearch(query)
+                val tags = computeTagsForQuery(query)
 
-            withContext(Dispatchers.Main) {
-                _feedSearchResults.value = FeedSearchResults(
-                    users = users,
-                    posts = posts,
-                    tags = tags
-                )
+                withContext(Dispatchers.Main) {
+                    _feedSearchResults.value = FeedSearchResults(
+                        users = users,
+                        posts = posts,
+                        tags = tags
+                    )
+                    _isFeedSearchLoading.value = false
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "performFeedSearch failed: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    _feedSearchResults.value = FeedSearchResults()
+                    _isFeedSearchLoading.value = false
+                }
             }
         }
     }

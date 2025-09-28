@@ -220,6 +220,7 @@ fun HomeScreen(
 
         val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()
         val isFeedSearchMode by postViewModel.isFeedSearchMode.collectAsState()
+        val isFeedSearchLoading by postViewModel.isFeedSearchLoading.collectAsState()
         val feedSearchQuery by postViewModel.feedSearchQuery.collectAsState()
         val feedSearchResults by postViewModel.feedSearchResults.collectAsState()
         val feedSearchTab by postViewModel.feedSearchSelectedTab.collectAsState()
@@ -239,6 +240,7 @@ fun HomeScreen(
             isSearchMode = isFeedSearchMode,
             searchResults = feedSearchResults,
             searchTabIndex = feedSearchTab,
+            isSearchLoading = isFeedSearchLoading,
             onSearchTabSelected = { postViewModel.setFeedSearchSelectedTab(it) },
             onFilterOptionChanged = { newOption -> postViewModel.setFilterOption(newOption) },
             onSearchQueryChanged = { newQuery -> postViewModel.updateFeedSearchQuery(newQuery) },
@@ -269,6 +271,7 @@ fun HomeScreenContent(
     isSearchMode: Boolean,
     searchResults: FeedSearchResults,
     searchTabIndex: Int,
+    isSearchLoading: Boolean,
     onSearchTabSelected: (Int) -> Unit,
     onFilterOptionChanged: (String) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
@@ -320,6 +323,7 @@ fun HomeScreenContent(
                     navController = navController,
                     results = searchResults,
                     selectedTab = searchTabIndex,
+                    isLoading = isSearchLoading,
                     onTabSelected = onSearchTabSelected,
                     matches = matches,
                     userProfiles = userProfiles,
@@ -2227,6 +2231,7 @@ fun FeedSearchResultsTabs(
     navController: NavController,
     results: FeedSearchResults,
     selectedTab: Int,
+    isLoading: Boolean,
     onTabSelected: (Int) -> Unit,
     matches: List<String>,
     userProfiles: Map<String, Profile>,
@@ -2275,39 +2280,50 @@ fun FeedSearchResultsTabs(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        when (selectedTab) {
-            0 -> FeedSearchUserResults(
-                profiles = results.users,
-                navController = navController,
-                matches = matches,
-                currentUserId = userId
-            )
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFFFF6F00))
+            }
+        } else {
+            when (selectedTab) {
+                0 -> FeedSearchUserResults(
+                    profiles = results.users,
+                    navController = navController,
+                    matches = matches,
+                    currentUserId = userId
+                )
 
-            1 -> FeedSection(
-                navController = navController,
-                posts = results.posts,
-                userId = userId,
-                matches = matches,
-                userProfile = userProfile,
-                isPosting = false,
-                postViewModel = postViewModel,
-                userProfiles = userProfiles,
-                onTagClick = { tag ->
-                    onSearchQueryChanged(tag)
-                    onSearchRequest()
-                },
-                savedPostIds = savedPostIds,
-                listState = rememberLazyListState()
-            )
+                1 -> FeedSection(
+                    navController = navController,
+                    posts = results.posts,
+                    userId = userId,
+                    matches = matches,
+                    userProfile = userProfile,
+                    isPosting = false,
+                    postViewModel = postViewModel,
+                    userProfiles = userProfiles,
+                    onTagClick = { tag ->
+                        onSearchQueryChanged(tag)
+                        onSearchRequest()
+                    },
+                    savedPostIds = savedPostIds,
+                    listState = rememberLazyListState()
+                )
 
-            else -> FeedSearchTagResults(
-                tags = results.tags,
-                onTagSelected = { tag ->
-                    onShowSearch()
-                    onSearchQueryChanged(tag)
-                    onSearchRequest()
-                }
-            )
+                else -> FeedSearchTagResults(
+                    tags = results.tags,
+                    onTagSelected = { tag ->
+                        onShowSearch()
+                        onSearchQueryChanged(tag)
+                        onSearchRequest()
+                    }
+                )
+            }
         }
     }
 }
