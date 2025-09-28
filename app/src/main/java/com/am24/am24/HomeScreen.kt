@@ -48,6 +48,8 @@ import com.google.firebase.database.*
 import kotlinx.coroutines.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -216,6 +218,12 @@ fun HomeScreen(
             }
         }
 
+        val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()
+        val isFeedSearchMode by postViewModel.isFeedSearchMode.collectAsState()
+        val feedSearchQuery by postViewModel.feedSearchQuery.collectAsState()
+        val feedSearchResults by postViewModel.feedSearchResults.collectAsState()
+        val feedSearchTab by postViewModel.feedSearchSelectedTab.collectAsState()
+
         // Show HomeScreenContent with the updated data.
         HomeScreenContent(
             navController = navController,
@@ -226,9 +234,16 @@ fun HomeScreen(
             matches      = myMatches,
             filterOption = filterSettings.filterOption,
             filterValue = "",  // if extra parameter needed
-            searchQuery = filterSettings.searchQuery,
+            searchQuery = feedSearchQuery,
+            isSearchBarVisible = isFeedSearchVisible,
+            isSearchMode = isFeedSearchMode,
+            searchResults = feedSearchResults,
+            searchTabIndex = feedSearchTab,
+            onSearchTabSelected = { postViewModel.setFeedSearchSelectedTab(it) },
             onFilterOptionChanged = { newOption -> postViewModel.setFilterOption(newOption) },
-            onSearchQueryChanged = { newQuery -> postViewModel.setSearchQuery(newQuery) },
+            onSearchQueryChanged = { newQuery -> postViewModel.updateFeedSearchQuery(newQuery) },
+            onSearchRequest = { postViewModel.performFeedSearch() },
+            onShowSearch = { postViewModel.showFeedSearchBar() },
             userId = userId,
             userProfile = userProfile,
             sortOption = filterSettings.sortOption,
@@ -250,8 +265,15 @@ fun HomeScreenContent(
     filterOption: String,
     filterValue: String,
     searchQuery: String,
+    isSearchBarVisible: Boolean,
+    isSearchMode: Boolean,
+    searchResults: FeedSearchResults,
+    searchTabIndex: Int,
+    onSearchTabSelected: (Int) -> Unit,
     onFilterOptionChanged: (String) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
+    onSearchRequest: () -> Unit,
+    onShowSearch: () -> Unit,
     userId: String?,
     userProfile: Profile?,
     sortOption: String,
@@ -284,71 +306,89 @@ fun HomeScreenContent(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Only show the search bar when a tag search is active.
-            if (searchQuery.isNotEmpty()) {
+            if (isSearchBarVisible) {
                 CustomSearchBar(
                     query = searchQuery,
                     onQueryChange = onSearchQueryChanged,
-                    onSearch = { /* No extra logic needed */ }
+                    onSearch = onSearchRequest
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = Color.Black,
-                contentColor = Color.White,          // label colour
-                indicator = {}                    // we’ll draw our own border
-            ) {
-                feedTabs.forEachIndexed { index, option ->
-                    val isSelected = selectedTab == index
-                    Tab(
-                        selected = isSelected,
-                        onClick = {
-                            selectedTab = index
-                            onFilterOptionChanged(option)   // update ViewModel
-                        },
-                        modifier = Modifier
-                            .padding(horizontal = 6.dp, vertical = 4.dp)
-                            .border(
-                                BorderStroke(1.dp, Color(0xFFFF6F00)),
-                                RoundedCornerShape(12.dp)
+            if (isSearchMode) {
+                FeedSearchResultsTabs(
+                    navController = navController,
+                    results = searchResults,
+                    selectedTab = searchTabIndex,
+                    onTabSelected = onSearchTabSelected,
+                    matches = matches,
+                    userProfiles = userProfiles,
+                    userId = userId,
+                    userProfile = userProfile,
+                    postViewModel = postViewModel,
+                    savedPostIds = savedIds,
+                    onSearchQueryChanged = onSearchQueryChanged,
+                    onSearchRequest = onSearchRequest,
+                    onShowSearch = onShowSearch
+                )
+            } else {
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = Color.Black,
+                    contentColor = Color.White,          // label colour
+                    indicator = {}                    // we’ll draw our own border
+                ) {
+                    feedTabs.forEachIndexed { index, option ->
+                        val isSelected = selectedTab == index
+                        Tab(
+                            selected = isSelected,
+                            onClick = {
+                                selectedTab = index
+                                onFilterOptionChanged(option)   // update ViewModel
+                            },
+                            modifier = Modifier
+                                .padding(horizontal = 6.dp, vertical = 4.dp)
+                                .border(
+                                    BorderStroke(1.dp, Color(0xFFFF6F00)),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .background(
+                                    if (isSelected) Color(0xFF2B2B2B) /* dark-grey */
+                                    else Color.Black,
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = option.replaceFirstChar { it.uppercaseChar() },
+                                fontSize = 12.sp,
+                                color = Color.White
                             )
-                            .background(
-                                if (isSelected) Color(0xFF2B2B2B) /* dark-grey */
-                                else Color.Black,
-                                RoundedCornerShape(12.dp)
-                            )
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = option.replaceFirstChar { it.uppercaseChar() },
-                            fontSize = 12.sp,
-                            color = Color.White
-                        )
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Feed Section.
+                FeedSection(
+                    navController = navController,
+                    posts = posts,
+                    userId = userId,
+                    matches = matches,
+                    userProfile = userProfile,
+                    isPosting = false,
+                    postViewModel = postViewModel,
+                    userProfiles = userProfiles,
+                    onTagClick = { tag ->
+                        onShowSearch()
+                        onSearchQueryChanged(tag)
+                        onSearchRequest()
+                    },
+                    savedPostIds = savedIds,    // ← NEW
+                    listState = listState // Pass listState to FeedSection
+                )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Feed Section.
-            FeedSection(
-                navController = navController,
-                posts = posts,
-                userId = userId,
-                matches = matches,
-                userProfile = userProfile,
-                isPosting = false,
-                postViewModel = postViewModel,
-                userProfiles = userProfiles,
-                onTagClick = { tag ->
-                    // When a tag is clicked, update the search query so that the search bar appears.
-                    onSearchQueryChanged(tag)
-                },
-                savedPostIds = savedIds,    // ← NEW
-                listState = listState // Pass listState to FeedSection
-            )
         }
     }
 }
@@ -2183,6 +2223,208 @@ fun formatTimestamp(timestamp: Long): String {
 }
 
 @Composable
+fun FeedSearchResultsTabs(
+    navController: NavController,
+    results: FeedSearchResults,
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    matches: List<String>,
+    userProfiles: Map<String, Profile>,
+    userId: String?,
+    userProfile: Profile?,
+    postViewModel: PostViewModel,
+    savedPostIds: Set<String>,
+    onSearchQueryChanged: (String) -> Unit,
+    onSearchRequest: () -> Unit,
+    onShowSearch: () -> Unit
+) {
+    val tabTitles = listOf(
+        stringResource(R.string.feed_search_tab_users),
+        stringResource(R.string.feed_search_tab_posts),
+        stringResource(R.string.feed_search_tab_tags)
+    )
+
+    Column {
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = Color.Black,
+            contentColor = Color.White,
+            indicator = {}
+        ) {
+            tabTitles.forEachIndexed { index, title ->
+                val isSelected = selectedTab == index
+                Tab(
+                    selected = isSelected,
+                    onClick = { onTabSelected(index) },
+                    modifier = Modifier
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                        .border(
+                            BorderStroke(1.dp, Color(0xFFFF6F00)),
+                            RoundedCornerShape(12.dp)
+                        )
+                        .background(
+                            if (isSelected) Color(0xFF2B2B2B) else Color.Black,
+                            RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(text = title, fontSize = 12.sp, color = Color.White)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        when (selectedTab) {
+            0 -> FeedSearchUserResults(
+                profiles = results.users,
+                navController = navController,
+                matches = matches,
+                currentUserId = userId
+            )
+
+            1 -> FeedSection(
+                navController = navController,
+                posts = results.posts,
+                userId = userId,
+                matches = matches,
+                userProfile = userProfile,
+                isPosting = false,
+                postViewModel = postViewModel,
+                userProfiles = userProfiles,
+                onTagClick = { tag ->
+                    onSearchQueryChanged(tag)
+                    onSearchRequest()
+                },
+                savedPostIds = savedPostIds,
+                listState = rememberLazyListState()
+            )
+
+            else -> FeedSearchTagResults(
+                tags = results.tags,
+                onTagSelected = { tag ->
+                    onShowSearch()
+                    onSearchQueryChanged(tag)
+                    onSearchRequest()
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeedSearchUserResults(
+    profiles: List<Profile>,
+    navController: NavController,
+    matches: List<String>,
+    currentUserId: String?
+) {
+    val context = LocalContext.current
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        if (profiles.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.feed_search_no_users),
+                    color = Color.LightGray,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+        } else {
+            items(profiles, key = { it.userId }) { profile ->
+                ListItem(
+                    headlineContent = {
+                        Text(profile.username, color = Color.White)
+                    },
+                    supportingContent = {
+                        val subtitle = when {
+                            profile.name.isNotBlank() -> profile.name
+                            profile.city.isNotBlank() -> profile.city
+                            else -> profile.country
+                        }
+                        if (subtitle.isNotBlank()) {
+                            Text(subtitle, color = Color(0xFFBBBBBB))
+                        }
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = Color(0xFFFF6F00)
+                        )
+                    },
+                    trailingContent = {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            when {
+                                profile.userId == currentUserId ->
+                                    navController.navigate("profile")
+
+                                matches.contains(profile.userId) ->
+                                    navController.navigate("matchedUserProfile/${profile.userId}")
+
+                                profile.isPrivate ->
+                                    Toast.makeText(context, "This account is private", Toast.LENGTH_SHORT).show()
+
+                                else ->
+                                    navController.navigate("previewUserProfile/${profile.userId}")
+                            }
+                        }
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeedSearchTagResults(
+    tags: List<FeedSearchTagResult>,
+    onTagSelected: (String) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        if (tags.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.feed_search_no_tags),
+                    color = Color.LightGray,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+        } else {
+            items(tags, key = { it.value.lowercase() }) { tag ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onTagSelected(tag.value) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val icon = if (tag.type == FeedSearchTagType.PLACE) Icons.Default.Place else Icons.Default.Label
+                    Icon(icon, contentDescription = null, tint = Color(0xFFFF6F00))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(tag.value, color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun CustomSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
@@ -2200,6 +2442,18 @@ fun CustomSearchBar(
             focusedBorderColor = Color(0xFFFFDB00),
             unfocusedBorderColor = Color.Gray,
             cursorColor = Color(0xFFFF6F00)
-        )
+        ),
+        trailingIcon = {
+            IconButton(onClick = onSearch) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = stringResource(R.string.cd_submit_search),
+                    tint = Color(0xFFFF6F00)
+                )
+            }
+        },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+        singleLine = true
     )
 }

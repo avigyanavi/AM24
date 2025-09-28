@@ -44,6 +44,8 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import android.content.Context
 import androidx.compose.material.icons.outlined.DynamicFeed
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.RssFeed
 import androidx.compose.ui.draw.shadow
 import com.google.firebase.database.FirebaseDatabase
@@ -316,6 +318,7 @@ fun TopNavBar(
     }
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    val hasLocationSpoofAccess = isPlus || isPremium
 
     LaunchedEffect(Unit) {
         val savedOrientation = prefs.getString("map_orientation_filter", "") ?: ""
@@ -337,6 +340,7 @@ fun TopNavBar(
         ?.hierarchy
         ?.any { it.route == "omegleUsers" } == true
     val isAdmin by profileViewModel.isAdmin.collectAsState()
+    val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()
 
     TopAppBar(
         modifier = Modifier.shadow(16.dp),
@@ -491,99 +495,123 @@ fun TopNavBar(
                 ) {
                     // 1) City selector icon (only meaningful if country = Mexico)
                     IconButton(
-                        onClick = { cityMenuExpanded = !cityMenuExpanded },
-                        enabled = CountryUtil.isMexico(context, selectedCountry)
+                        onClick = {
+                            if (hasLocationSpoofAccess) {
+                                cityMenuExpanded = !cityMenuExpanded
+                            } else {
+                                cityMenuExpanded = false
+                                navController.navigate("subscription")
+                            }
+                        },
+                        enabled = if (hasLocationSpoofAccess) {
+                            CountryUtil.isMexico(context, selectedCountry)
+                        } else {
+                            true
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Default.LocationCity,
                             contentDescription = stringResource(R.string.cd_city_filter),
-                            tint = if (selectedCity.isNotBlank()) Color(0xFFFF6F00)
-                            else if (CountryUtil.isMexico(context, selectedCountry)) Color.White
-                            else Color(0x66FFFFFF),
+                            tint = when {
+                                !hasLocationSpoofAccess -> Color(0x66FFFFFF)
+                                selectedCity.isNotBlank() -> Color(0xFFFF6F00)
+                                CountryUtil.isMexico(context, selectedCountry) -> Color.White
+                                else -> Color(0x66FFFFFF)
+                            },
                             modifier = Modifier.size(24.dp)
                         )
                     }
 
                     // City dropdown (Mexico only)
-                    DropdownMenu(
-                        expanded = cityMenuExpanded,
-                        onDismissRequest = { cityMenuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.clear_city_filter)) },
-                            onClick = {
-                                cityMenuExpanded = false
-                                val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
-                                if (selectedCountry.isBlank()) {
-                                    // No fixed country → back to GPS
-                                    profileRef.updateChildren(
-                                        mapOf(
-                                            "city" to "",
-                                            "country" to "Mexico",
-                                            "isLocationSpoofed" to false
+                    if (hasLocationSpoofAccess) {
+                        DropdownMenu(
+                            expanded = cityMenuExpanded,
+                            onDismissRequest = { cityMenuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.clear_city_filter)) },
+                                onClick = {
+                                    cityMenuExpanded = false
+                                    val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+                                    if (selectedCountry.isBlank()) {
+                                        // No fixed country → back to GPS
+                                        profileRef.updateChildren(
+                                            mapOf(
+                                                "city" to "",
+                                                "country" to "Mexico",
+                                                "isLocationSpoofed" to false
+                                            )
                                         )
-                                    )
-                                    locationManager.resumeUpdates()
-                                } else {
-                                    // Keep the country, clear city
-                                    profileRef.updateChildren(
-                                        mapOf(
-                                            "city" to "",
-                                            "country" to selectedCountry,
-                                            "isLocationSpoofed" to true
+                                        locationManager.resumeUpdates()
+                                    } else {
+                                        // Keep the country, clear city
+                                        profileRef.updateChildren(
+                                            mapOf(
+                                                "city" to "",
+                                                "country" to selectedCountry,
+                                                "isLocationSpoofed" to true
+                                            )
                                         )
-                                    )
-                                    val countryLatLng = CountryLatLngMap.getLatLng(selectedCountry)
-                                    if (countryLatLng != null) {
-                                        locationManager.pauseUpdates()
-                                        locationManager.setCustomLocation(
-                                            currentUserId,
-                                            countryLatLng.first,
-                                            countryLatLng.second
-                                        )
+                                        val countryLatLng = CountryLatLngMap.getLatLng(selectedCountry)
+                                        if (countryLatLng != null) {
+                                            locationManager.pauseUpdates()
+                                            locationManager.setCustomLocation(
+                                                currentUserId,
+                                                countryLatLng.first,
+                                                countryLatLng.second
+                                            )
+                                        }
                                     }
+                                    selectedCity = ""
+                                    savedStateHandle?.set("mapCountryChanged", true)
                                 }
-                                selectedCity = ""
-                                savedStateHandle?.set("mapCountryChanged", true)
-                            }
                         )
 
                         // Only show if we are on Mexico (your existing support)
-                        if (CountryUtil.isMexico(context, selectedCountry)) {
-                            val cityOptions = stringArrayResource(R.array.mexico_cities).toList()
-                            cityOptions.forEach { city ->
-                                DropdownMenuItem(
-                                    text = { Text(city) },
-                                    onClick = {
-                                        cityMenuExpanded = false
-                                        val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
-                                        val latLng = MexicoCityLatLngMap.getLatLng(city)
-                                        if (latLng != null) {
-                                            locationManager.pauseUpdates()
-                                            locationManager.setCustomLocation(currentUserId, latLng.first, latLng.second)
-                                            profileRef.updateChildren(
-                                                mapOf(
-                                                    "country" to "Mexico",
-                                                    "city" to city,
-                                                    "isLocationSpoofed" to true
+                            if (CountryUtil.isMexico(context, selectedCountry)) {
+                                val cityOptions = stringArrayResource(R.array.mexico_cities).toList()
+                                cityOptions.forEach { city ->
+                                    DropdownMenuItem(
+                                        text = { Text(city) },
+                                        onClick = {
+                                            cityMenuExpanded = false
+                                            val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+                                            val latLng = MexicoCityLatLngMap.getLatLng(city)
+                                            if (latLng != null) {
+                                                locationManager.pauseUpdates()
+                                                locationManager.setCustomLocation(
+                                                    currentUserId,
+                                                    latLng.first,
+                                                    latLng.second
                                                 )
-                                            )
-                                            selectedCity = city
-                                            savedStateHandle?.set("mapCountryChanged", true)
-                                        } else {
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.city_coords_unavailable, city),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                                profileRef.updateChildren(
+                                                    mapOf(
+                                                        "country" to "Mexico",
+                                                        "city" to city,
+                                                        "isLocationSpoofed" to true
+                                                    )
+                                                )
+                                                selectedCity = city
+                                                savedStateHandle?.set("mapCountryChanged", true)
+                                            } else {
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.city_coords_unavailable, city),
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
                     }
                     // Show selected city label (Mexico only), right after the city icon
-                    if (CountryUtil.isMexico(context, selectedCountry) && selectedCity.isNotBlank()) {
+                    if (
+                        hasLocationSpoofAccess &&
+                        CountryUtil.isMexico(context, selectedCountry) &&
+                        selectedCity.isNotBlank()
+                    ) {
                         Text(
                             selectedCity,
                             color = Color(0xFFFF6F00),
@@ -592,7 +620,7 @@ fun TopNavBar(
                         )
                     }
                     // 2) Selected COUNTRY text (chip-ish label)
-                    if (selectedCountry.isNotBlank()) {
+                    if (hasLocationSpoofAccess && selectedCountry.isNotBlank()) {
                         Text(
                             selectedCountry,
                             color = Color(0xFFFF6F00),
@@ -602,75 +630,93 @@ fun TopNavBar(
                     }
 
                     // 3) Country selector icon (always visible)
-                    IconButton(onClick = { countryMenuExpanded = !countryMenuExpanded }) {
+                    IconButton(
+                        onClick = {
+                            if (hasLocationSpoofAccess) {
+                                countryMenuExpanded = !countryMenuExpanded
+                            } else {
+                                countryMenuExpanded = false
+                                navController.navigate("subscription")
+                            }
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Public,
                             contentDescription = stringResource(R.string.cd_country_filter),
-                            tint = if (selectedCountry.isNotBlank()) Color(0xFFFF6F00) else Color.White,
+                            tint = when {
+                                !hasLocationSpoofAccess -> Color(0x66FFFFFF)
+                                selectedCountry.isNotBlank() -> Color(0xFFFF6F00)
+                                else -> Color.White
+                            },
                             modifier = Modifier.size(24.dp)
                         )
                     }
 
                     // Country dropdown
-                    DropdownMenu(
-                        expanded = countryMenuExpanded,
-                        onDismissRequest = { countryMenuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.clear_country_filter)) },
-                            onClick = {
-                                countryMenuExpanded = false
-                                val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
-                                profileRef.updateChildren(
-                                    mapOf(
-                                        "isLocationSpoofed" to false,
-                                        "country" to "",
-                                        "city" to ""
-                                    )
-                                )
-                                selectedCountry = ""
-                                selectedCity = ""
-                                locationManager.resumeUpdates()
-                            }
-                        )
-
-                        val countryOptions = stringArrayResource(R.array.country_names).toList()
-                        countryOptions.forEach { c ->
+                    if (hasLocationSpoofAccess) {
+                        DropdownMenu(
+                            expanded = countryMenuExpanded,
+                            onDismissRequest = { countryMenuExpanded = false }
+                        ) {
                             DropdownMenuItem(
-                                text = { Text(c) },
+                                text = { Text(stringResource(R.string.clear_country_filter)) },
                                 onClick = {
                                     countryMenuExpanded = false
                                     val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
-                                    val latLng = CountryLatLngMap.getLatLng(c)
-                                    if (latLng != null) {
-                                        locationManager.pauseUpdates()
-                                        locationManager.setCustomLocation(currentUserId, latLng.first, latLng.second)
-                                        profileRef.updateChildren(
-                                            mapOf(
-                                                "country" to c,
-                                                "city" to "",
-                                                "isLocationSpoofed" to true
-                                            )
+                                    profileRef.updateChildren(
+                                        mapOf(
+                                            "isLocationSpoofed" to false,
+                                            "country" to "",
+                                            "city" to ""
                                         )
-                                    } else {
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.country_coords_unavailable, c),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        profileRef.updateChildren(
-                                            mapOf(
-                                                "country" to c,
-                                                "city" to "",
-                                                "isLocationSpoofed" to false
-                                            )
-                                        )
-                                    }
-                                    selectedCountry = c
+                                    )
+                                    selectedCountry = ""
                                     selectedCity = ""
-                                    savedStateHandle?.set("mapCountryChanged", true)
+                                    locationManager.resumeUpdates()
                                 }
                             )
+                            val countryOptions = stringArrayResource(R.array.country_names).toList()
+                            countryOptions.forEach { c ->
+                                DropdownMenuItem(
+                                    text = { Text(c) },
+                                    onClick = {
+                                        countryMenuExpanded = false
+                                        val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+                                        val latLng = CountryLatLngMap.getLatLng(c)
+                                        if (latLng != null) {
+                                            locationManager.pauseUpdates()
+                                            locationManager.setCustomLocation(
+                                                currentUserId,
+                                                latLng.first,
+                                                latLng.second
+                                            )
+                                            profileRef.updateChildren(
+                                                mapOf(
+                                                    "country" to c,
+                                                    "city" to "",
+                                                    "isLocationSpoofed" to true
+                                                )
+                                            )
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.country_coords_unavailable, c),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            profileRef.updateChildren(
+                                                mapOf(
+                                                    "country" to c,
+                                                    "city" to "",
+                                                    "isLocationSpoofed" to false
+                                                )
+                                            )
+                                        }
+                                        selectedCountry = c
+                                        selectedCity = ""
+                                        savedStateHandle?.set("mapCountryChanged", true)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -688,32 +734,52 @@ fun TopNavBar(
                 }
             }
             if (isOnHome) {
-                // Create Post with a subtle pulsing animation
-                val infiniteTransition = rememberInfiniteTransition()
-                val scale by infiniteTransition.animateFloat(
-                    initialValue = 1f,
-                    targetValue = 1.2f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(durationMillis = 600, easing = LinearEasing),
-                        repeatMode = RepeatMode.Reverse
-                    )
-                )
-
-                IconButton(
-                    onClick = { navController.navigate("create_post") },
-                    modifier = Modifier
-                        .graphicsLayer(
-                            scaleX = scale,
-                            scaleY = scale,
-                            transformOrigin = TransformOrigin.Center
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = {
+                        if (isFeedSearchVisible) {
+                            postViewModel.hideFeedSearch()
+                        } else {
+                            postViewModel.showFeedSearchBar()
+                        }
+                    }) {
+                        Icon(
+                            imageVector = if (isFeedSearchVisible) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = if (isFeedSearchVisible) {
+                                stringResource(R.string.cd_close_search)
+                            } else {
+                                stringResource(R.string.cd_search_feed)
+                            },
+                            tint = if (isFeedSearchVisible) KupidxOrange else Color.White,
+                            modifier = Modifier.size(24.dp)
                         )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(R.string.cd_create_post),
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
+                    }
+
+                    // Create Post with a subtle pulsing animation
+                    val infiniteTransition = rememberInfiniteTransition()
+                    val scale by infiniteTransition.animateFloat(
+                        initialValue = 1f,
+                        targetValue = 1.2f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(durationMillis = 600, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        )
                     )
+                    IconButton(
+                                onClick = { navController.navigate("create_post") },
+                        modifier = Modifier
+                            .graphicsLayer(
+                                scaleX = scale,
+                                scaleY = scale,
+                                transformOrigin = TransformOrigin.Center
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = stringResource(R.string.cd_create_post),
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
             }
 

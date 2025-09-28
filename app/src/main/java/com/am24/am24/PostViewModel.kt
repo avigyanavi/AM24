@@ -28,6 +28,18 @@ import org.json.JSONObject
 import java.io.File
 import java.util.Calendar
 
+enum class FeedSearchTagType { TAG, PLACE }
+
+data class FeedSearchTagResult(
+    val value: String,
+    val type: FeedSearchTagType
+)
+
+data class FeedSearchResults(
+    val users: List<Profile> = emptyList(),
+    val posts: List<Post> = emptyList(),
+    val tags: List<FeedSearchTagResult> = emptyList()
+)
 
 class PostViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -86,6 +98,21 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val _postFlow = MutableStateFlow<Post?>(null)
     val    postFlow: StateFlow<Post?> = _postFlow.asStateFlow()
 
+    private val _isFeedSearchVisible = MutableStateFlow(false)
+    val isFeedSearchVisible: StateFlow<Boolean> = _isFeedSearchVisible.asStateFlow()
+
+    private val _isFeedSearchMode = MutableStateFlow(false)
+    val isFeedSearchMode: StateFlow<Boolean> = _isFeedSearchMode.asStateFlow()
+
+    private val _feedSearchQuery = MutableStateFlow("")
+    val feedSearchQuery: StateFlow<String> = _feedSearchQuery.asStateFlow()
+
+    private val _feedSearchResults = MutableStateFlow(FeedSearchResults())
+    val feedSearchResults: StateFlow<FeedSearchResults> = _feedSearchResults.asStateFlow()
+
+    private val _feedSearchSelectedTab = MutableStateFlow(0)
+    val feedSearchSelectedTab: StateFlow<Int> = _feedSearchSelectedTab.asStateFlow()
+
     fun setCurrentUserId(userId: String?) {
         _currentUserId.value = userId
 
@@ -100,6 +127,128 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
         // ─── NEW: start listening to your Profile node ────────────
         observeMyProfile(userId)
+    }
+
+    fun showFeedSearchBar() {
+        _isFeedSearchVisible.value = true
+    }
+
+    fun hideFeedSearch() {
+        _isFeedSearchVisible.value = false
+        _isFeedSearchMode.value = false
+        _feedSearchSelectedTab.value = 0
+        _feedSearchQuery.value = ""
+        _feedSearchResults.value = FeedSearchResults()
+        setSearchQuery("")
+    }
+
+    fun updateFeedSearchQuery(newQuery: String) {
+        _feedSearchQuery.value = newQuery
+        _isFeedSearchMode.value = false
+    }
+
+    fun performFeedSearch() {
+        val query = _feedSearchQuery.value.trim()
+        if (query.isBlank()) {
+            _feedSearchResults.value = FeedSearchResults()
+            _isFeedSearchMode.value = false
+            setSearchQuery("")
+            return
+        }
+
+        _feedSearchSelectedTab.value = 0
+        setSearchQuery(query)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val users = searchUsersByQuery(query)
+            val posts = computePostsForSearch(query)
+            val tags = computeTagsForQuery(query)
+
+            withContext(Dispatchers.Main) {
+                _feedSearchResults.value = FeedSearchResults(
+                    users = users,
+                    posts = posts,
+                    tags = tags
+                )
+                _isFeedSearchMode.value = true
+            }
+        }
+    }
+
+    fun setFeedSearchSelectedTab(index: Int) {
+        _feedSearchSelectedTab.value = index
+    }
+
+    private suspend fun searchUsersByQuery(query: String): List<Profile> {
+        return try {
+            val cachedMatches = _userProfiles.value.values.filter { profile ->
+                profile.username.contains(query, ignoreCase = true) ||
+                        profile.name.contains(query, ignoreCase = true)
+            }
+
+            val snapshot = FirebaseRefs.db.getReference("users").get().await()
+            val remoteMatches = snapshot.children.mapNotNull { it.getValue(Profile::class.java) }
+                .filter { profile ->
+                    profile.username.contains(query, ignoreCase = true) ||
+                            profile.name.contains(query, ignoreCase = true) ||
+                            profile.userTags.any { tag -> tag.contains(query, ignoreCase = true) }
+                }
+
+            (cachedMatches + remoteMatches)
+                .distinctBy { it.userId }
+                .sortedBy { it.username.lowercase() }
+                .take(40)
+        } catch (e: Exception) {
+            Log.e(TAG, "searchUsersByQuery failed: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    private fun computePostsForSearch(query: String): List<Post> {
+        val homeFilters = _filterSettings.value
+        val feedFilters = _feedFilters.value
+        val currentUserId = _currentUserId.value
+
+        val stageOne = applyFiltersAndSort(
+            postsList = _posts.value,
+            profiles = _userProfiles.value,
+            filterOption = homeFilters.filterOption,
+            searchQuery = query,
+            sortOption = homeFilters.sortOption,
+            currentUserId = currentUserId,
+            isVoiceOnly = homeFilters.isVoiceOnly
+        )
+
+        return applyFiltersAndSort(
+            postsList = stageOne,
+            profiles = _userProfiles.value,
+            filterOption = feedFilters.filterOption,
+            searchQuery = query,
+            sortOption = homeFilters.sortOption,
+            currentUserId = currentUserId,
+            feedFilters = feedFilters.feedFilters,
+            isVoiceOnly = homeFilters.isVoiceOnly
+        )
+    }
+
+    private fun computeTagsForQuery(query: String): List<FeedSearchTagResult> {
+        if (query.isBlank()) return emptyList()
+
+        val results = _posts.value.flatMap { post ->
+            val tagMatches = post.userTags
+                .filter { tag -> tag.contains(query, ignoreCase = true) }
+                .map { tagValue -> FeedSearchTagResult(tagValue, FeedSearchTagType.TAG) }
+
+            val placeMatch = post.checkIn?.name
+                ?.takeIf { it.contains(query, ignoreCase = true) }
+                ?.let { placeName -> FeedSearchTagResult(placeName, FeedSearchTagType.PLACE) }
+
+            if (placeMatch != null) tagMatches + placeMatch else tagMatches
+        }
+
+        return results
+            .distinctBy { it.value.lowercase() }
+            .sortedBy { it.value.lowercase() }
     }
 
     private var currentPostId: String? = null          // <— NEW

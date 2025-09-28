@@ -198,6 +198,14 @@
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">Languages</string>
+    <string name="cd_search_feed">Search feed</string>
+    <string name="cd_close_search">Close search</string>
+    <string name="cd_submit_search">Search</string>
+    <string name="feed_search_tab_users">Usernames</string>
+    <string name="feed_search_tab_posts">Posts</string>
+    <string name="feed_search_tab_tags">Tags</string>
+    <string name="feed_search_no_users">No matching users yet. Try a different keyword.</string>
+    <string name="feed_search_no_tags">No matching tags or places. Try a different search.</string>
     <string name="section_bio_and_voice">Bio</string>
     <!-- res/values/strings.xml (English) -->
     <string name="max_social_causes_error">
@@ -260,7 +268,7 @@
     <string name="free_tier_media_limit_msg">Free tier allows only 5 media views per day</string>
     <string name="report_reason_placeholder">Enter reason</string>
     <string name="reported_blocked_unmatched">Reported, blocked &amp; unmatched</string>
-    <string name="search_tags_placeholder">Search tags</string>
+    <string name="search_tags_placeholder">Search usernames/posts/places or tags</string>
 
     <!-- Iconic Landmarks (Major Cities Across India) -->
     <string name="tag_india_gate">India Gate</string>

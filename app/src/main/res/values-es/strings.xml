@@ -313,7 +313,7 @@
         <string name="free_tier_media_limit_msg">El nivel gratuito permite solo 5 visualizaciones de medios por día</string>
         <string name="report_reason_placeholder">Ingresa el motivo</string>
         <string name="reported_blocked_unmatched">Reportado, bloqueado y desemparejado</string>
-        <string name="search_tags_placeholder">Buscar etiquetas</string>
+    <string name="search_tags_placeholder">Busca usuarios/posts/lugares o tags</string>
 
     <!-- Share dialog -->
     <string name="share">Compartir</string>
@@ -1891,6 +1891,15 @@
     <string name="login">Iniciar sesión</string>
     <string name="continue_with_google">Google</string>
     <string name="continue_with_facebook">Facebook</string>
+    <string name="cd_search_feed">Buscar feed</string>
+    <string name="cd_close_search">Cerrar búsqueda</string>
+    <string name="cd_submit_search">Buscar</string>
+    <string name="feed_search_tab_users">Usuarios</string>
+    <string name="feed_search_tab_posts">Posts</string>
+    <string name="feed_search_tab_tags">Tags</string>
+    <string name="feed_search_no_users">Todavía no hay usuarios que coincidan. Intenta con otra palabra clave.</string>
+    <string name="feed_search_no_tags">No hay tags ni lugares que coincidan. Intenta con otra búsqueda.</string>
+
 
     <string name="leaderboard">Puesto</string>
     <!-- Language Selection -->
