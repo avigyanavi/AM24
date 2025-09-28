@@ -2051,7 +2051,7 @@ fun EnterEmailAndPasswordScreen(
     onBack: () -> Unit
 ) {
     /* ───────────────────────── TAB STATE ───────────────────────── */
-    var selectedTab by remember {
+    var selectedTab by remember(allowPhoneAuth) {
         mutableStateOf(
             if (allowPhoneAuth) AuthTab.PHONE else AuthTab.EMAIL
         )
@@ -2059,6 +2059,12 @@ fun EnterEmailAndPasswordScreen(
     /* When we build the TabRow we only include PHONE if allowed */
     val visibleTabs = if (allowPhoneAuth)
         listOf(AuthTab.PHONE, AuthTab.EMAIL) else listOf(AuthTab.EMAIL)
+
+    LaunchedEffect(visibleTabs) {
+        if (!visibleTabs.contains(selectedTab)) {
+            selectedTab = visibleTabs.first()
+        }
+    }
 
     /* ─────────────── EMAIL/PASSWORD local state ────────────────── */
     var email           by remember { mutableStateOf(TextFieldValue(registrationViewModel.email)) }
@@ -2200,16 +2206,18 @@ fun EnterEmailAndPasswordScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            val selectedIndex = visibleTabs.indexOf(selectedTab)
+            val safeSelectedIndex = visibleTabs.indexOf(selectedTab).takeIf { it >= 0 } ?: 0
 
             /* ─── TAB STRIP ─────────────────────────────────────── */
             TabRow(
-                selectedTabIndex = selectedIndex,
+                selectedTabIndex = safeSelectedIndex,
                 containerColor = Color(0xFF262626),
                 contentColor   = Color.White,
                 indicator = { tabPositions ->
                     TabRowDefaults.Indicator(
-                        Modifier.tabIndicatorOffset(tabPositions[selectedIndex]),
+                        Modifier.tabIndicatorOffset(
+                            tabPositions[safeSelectedIndex.coerceAtMost(tabPositions.lastIndex)]
+                        ),
                         color = Color(0xFFFF6000)
                     )
                 }
@@ -2681,7 +2689,8 @@ fun EnterUsernameScreen(
 ) {
     LaunchedEffect(Unit) { registrationViewModel.nextEnabled = false }
 
-    val invalidChars = remember { Regex("[.#$\\[\\]]") }
+    val invalidUsernameMessage = stringResource(R.string.username_invalid_chars)
+    val emptyUsernameMessage = stringResource(R.string.username_empty_error)
     val context = LocalContext.current
     val auth    = FirebaseAuth.getInstance()
     val db      = FirebaseDatabase
@@ -2714,11 +2723,11 @@ fun EnterUsernameScreen(
                     when {
                         raw.isEmpty() -> {
                             isValid  = false
-                            errorMsg = "Username cannot be empty."
+                            errorMsg = emptyUsernameMessage
                         }
-                        invalidChars.containsMatchIn(raw) -> {
+                        hasFirebaseKeyInvalidChars(raw) -> {
                             isValid  = false
-                            errorMsg = "Username can’t contain .  #  \$  [  ]"
+                            errorMsg = invalidUsernameMessage
                         }
                         else -> {
                             isValid  = true
@@ -2726,7 +2735,7 @@ fun EnterUsernameScreen(
                         }
                     }
                 },
-                label = { Text("Username", color = Color.White) },
+                label = { Text(stringResource(R.string.username), color = Color.White) },
                 singleLine = true,
                 isError = !isValid,
                 supportingText = {
@@ -2753,12 +2762,12 @@ fun EnterUsernameScreen(
                     // final guard – never reaches Firebase if invalid
                     if (raw.isEmpty()) {
                         isValid  = false
-                        errorMsg = "Username cannot be empty."
+                        errorMsg = emptyUsernameMessage
                         return@Button
                     }
-                    if (invalidChars.containsMatchIn(raw)) {
+                    if (hasFirebaseKeyInvalidChars(raw)) {
                         isValid  = false
-                        errorMsg = "Username can’t contain .  #  \$  [  ]"
+                        errorMsg = invalidUsernameMessage
                         return@Button
                     }
 

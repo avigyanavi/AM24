@@ -440,6 +440,8 @@ fun LoginScreen(
                 val username = dialogInput.trim()
                 if (username.isBlank()) {
                     Toast.makeText(context, context.getString(R.string.enter_username), Toast.LENGTH_LONG).show()
+                } else if (!isFirebaseKeyValid(username)) {
+                    Toast.makeText(context, context.getString(R.string.username_invalid_chars), Toast.LENGTH_LONG).show()
                 } else {
                     scope.launch {
                         val uidSnap = db.reference.child("usernames")

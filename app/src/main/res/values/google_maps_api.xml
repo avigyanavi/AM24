@@ -1,4 +1,4 @@
 <resources>
     <!-- Replace the value below with your actual API key -->
-    <string name="google_maps_key">AIzaSyBJej3hxm7i7Nvd638k4OSMBQLjrueE9aQ</string>
+    <string name="google_maps_key" translatable="false">AIzaSyBJej3hxm7i7Nvd638k4OSMBQLjrueE9aQ</string>
 </resources>

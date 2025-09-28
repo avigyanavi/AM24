@@ -1904,6 +1904,7 @@
     <string name="or_click_date_to_refresh">
   Or click refresh!
 </string>
+    <string name="username_invalid_chars">Username cant contain ., /, #, $, [, ]</string>
     <!-- Enter Name & Height -->
     <string name="full_name_label">Name (Optional)</string>
     <string name="height_label">Height</string>

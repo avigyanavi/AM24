@@ -717,7 +717,7 @@ private fun AccountCard(uid: String) {
     var editingUname by remember { mutableStateOf(false) }
     var username by remember { mutableStateOf("") }
     var oldUsername by remember { mutableStateOf("") }
-    var unameStatus by remember { mutableStateOf("idle") } // idle/checking/ok/not
+    var unameStatus by remember { mutableStateOf("idle") } // idle/checking/ok/not/invalid
 
     /* password dialog */
     var showPassDialog by remember { mutableStateOf(false) }
@@ -737,12 +737,24 @@ private fun AccountCard(uid: String) {
 
     /* validate username availability */
     LaunchedEffect(username, editingUname) {
-        if (editingUname && username.isNotBlank()) {
-            unameStatus = "checking"
-            delay(500)
-            val snap = FirebaseRefs.db.getReference("usernames").child(username).get().await()
-            unameStatus = if (snap.exists() && snap.value != uid) "not" else "ok"
+        if (!editingUname) {
+            unameStatus = "idle"
+            return@LaunchedEffect
         }
+        val trimmed = username.trim()
+        if (trimmed.isBlank()) {
+            unameStatus = "idle"
+            return@LaunchedEffect
+        }
+        if (!isFirebaseKeyValid(trimmed)) {
+            unameStatus = "invalid"
+            return@LaunchedEffect
+        }
+
+        unameStatus = "checking"
+        delay(500)
+        val snap = FirebaseRefs.db.getReference("usernames").child(trimmed).get().await()
+        unameStatus = if (snap.exists() && snap.value != uid) "not" else "ok"
     }
 
     SettingsSection {
@@ -781,27 +793,41 @@ private fun AccountCard(uid: String) {
             ListItem(
                 leadingContent = { Icon(Icons.Default.Person, null) },
                 headlineContent = {
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        singleLine = true,
-                        label = { Text(stringResource(R.string.username), color = Color(0xFFFF6F00)) },
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color(0xFFFF6F00),
-                            cursorColor = Color(0xFFFF6F00),
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    val invalidUsernameMessage = stringResource(R.string.username_invalid_chars)
+                    Column {
+                        OutlinedTextField(
+                            value = username,
+                            onValueChange = { username = it },
+                            singleLine = true,
+                            label = { Text(stringResource(R.string.username), color = Color(0xFFFF6F00)) },
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                focusedBorderColor = Color(0xFFFF6F00),
+                                cursorColor = Color(0xFFFF6F00),
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (unameStatus == "invalid") {
+                            Text(
+                                text = invalidUsernameMessage,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
                 },
                 trailingContent = {
-                    val enabled = username.isNotBlank() && unameStatus == "ok"
+                    val trimmedUsername = username.trim()
+                    val enabled = trimmedUsername.isNotBlank() && unameStatus == "ok"
                     TextButton(
                         onClick = {
                             editingUname = false
                             scope.launch {
-                                updateAccountSettingsNoEmail("", username, oldUsername)
-                                oldUsername = username
+                                val finalUsername = trimmedUsername
+                                username = finalUsername
+                                updateAccountSettingsNoEmail("", finalUsername, oldUsername)
+                                oldUsername = finalUsername
                                 Toast.makeText(ctx, R.string.username_updated, Toast.LENGTH_SHORT).show()
                             }
                         },
@@ -1190,13 +1216,27 @@ suspend fun updateAccountSettingsNoEmail(
 
     val db = FirebaseRefs.db.reference
     val usernames = db.child("usernames")
-    if (oldUsername.isNotBlank() && oldUsername != newUsername) {
-        val snap = usernames.child(oldUsername).get().await()
-        if (snap.exists() && snap.value == userId) usernames.child(oldUsername).removeValue().await()
+    val trimmedOld = oldUsername.trim()
+    val trimmedNew = newUsername.trim()
+
+    val validOld = if (trimmedOld.isNotEmpty() && isFirebaseKeyValid(trimmedOld)) trimmedOld else null
+    val validNew = if (trimmedNew.isNotEmpty()) {
+        if (!isFirebaseKeyValid(trimmedNew)) {
+            throw IllegalArgumentException("Username contains invalid characters")
+        }
+        trimmedNew
+    } else null
+
+    if (validOld != null && validOld != validNew) {
+        val snap = usernames.child(validOld).get().await()
+        if (snap.exists() && snap.value == userId) usernames.child(validOld).removeValue().await()
     }
-    val dup = usernames.child(newUsername).get().await()
-    if (dup.exists() && dup.value != userId) throw Exception("Username taken")
-    usernames.child(newUsername).setValue(userId).await()
-    db.child("users").child(userId).child("username").setValue(newUsername).await()
+    if (validNew != null) {
+        val dup = usernames.child(validNew).get().await()
+        if (dup.exists() && dup.value != userId) throw Exception("Username taken")
+        usernames.child(validNew).setValue(userId).await()
+    }
+
+    db.child("users").child(userId).child("username").setValue(trimmedNew).await()
 }
 
