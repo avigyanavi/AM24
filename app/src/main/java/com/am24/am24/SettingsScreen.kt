@@ -960,11 +960,22 @@ private fun AccountCard(uid: String) {
                     onClick = {
                         working = true
                         scope.launch {
+                            val auth = FirebaseAuth.getInstance()
+                            val user = auth.currentUser
+                            val email = user?.email
+                            if (user == null || email.isNullOrEmpty()) {
+                                Toast.makeText(
+                                    ctx,
+                                    "Password changes require an email/password account.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                working = false
+                                return@launch
+                            }
                             try {
-                                val cred = EmailAuthProvider
-                                    .getCredential(FirebaseAuth.getInstance().currentUser!!.email!!, oldPass)
-                                FirebaseAuth.getInstance().currentUser!!.reauthenticate(cred).await()
-                                FirebaseAuth.getInstance().currentUser!!.updatePassword(newPass).await()
+                                val cred = EmailAuthProvider.getCredential(email, oldPass)
+                                user.reauthenticate(cred).await()
+                                user.updatePassword(newPass).await()
                                 Toast.makeText(ctx, R.string.password_updated, Toast.LENGTH_SHORT).show()
                                 showPassDialog = false
                             } catch (e: Exception) {

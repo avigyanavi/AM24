@@ -1853,7 +1853,7 @@ fun BasicInfoEditSection(
                 selectedOption = city,
                 onOptionSelected = { sel -> city = sel },
                 customInput = customCity,
-                onCustomInputChange = { customCity = it!! }
+                onCustomInputChange = { customCity = it.orEmpty() }
             )
             Spacer(Modifier.height(6.dp))
             SearchableDropdownWithCustomOption(
@@ -1862,7 +1862,7 @@ fun BasicInfoEditSection(
                 selectedOption = locality,
                 onOptionSelected = { sel -> locality = sel },
                 customInput = customLocality,
-                onCustomInputChange = { customLocality = it!! }
+                onCustomInputChange = { customLocality = it.orEmpty() }
             )
         } else {
             OutlinedTextField(

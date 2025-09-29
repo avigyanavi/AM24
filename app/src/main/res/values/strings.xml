@@ -696,6 +696,7 @@
     <string name="settings_limited_offer_badge">Limited offer</string>
     <string name="settings_limited_offer_message">Unlock Plus for a month with a one-time payment. Offer ends in %1$d hr.</string>
     <!-- Leaderboard -->
+    <string name="password_error">Password changes require an email/password account</string>
     <string name="leaderboard_title">Top Places</string>
     <plurals name="post_count">
         <item quantity="one">%d post</item>

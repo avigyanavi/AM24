@@ -362,6 +362,11 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         val profile = _myProfile.value ?: return false
         val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
 
+        if (profile.mediaViewsToday == null || profile.lastMediaResetDayOfYear == null) {
+            resetMediaQuota(profile.userId, today)
+            return true
+        }
+
         // if a new day has rolled over, reset on the server:
         if (profile.lastMediaResetDayOfYear != today) {
             resetMediaQuota(profile.userId, today)
@@ -369,9 +374,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             return true
         }
 
-        return profile.isPlus
-                || profile.isPremium
-                || profile.mediaViewsToday!! < DAILY_FREE_QUOTA
+        if (profile.isPlus || profile.isPremium) {
+            return true
+        }
+
+        val mediaViewsToday = profile.mediaViewsToday ?: 0
+
+        return mediaViewsToday < DAILY_FREE_QUOTA
     }
 
     /** Call *after* a successful play to bump the counter in-DB (no-ops for premium). */
@@ -380,7 +389,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         if (profile.isPlus || profile.isPremium) return
 
         // increment only the count; leave the “last reset” untouched
-        val newCount = profile.mediaViewsToday?.plus(1)
+        val newCount = (profile.mediaViewsToday ?: 0) + 1
         db.getReference("users")
             .child(profile.userId)
             .child("mediaViewsToday")

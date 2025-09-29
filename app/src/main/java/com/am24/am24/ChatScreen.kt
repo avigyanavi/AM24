@@ -2119,30 +2119,54 @@ fun FullscreenMediaViewer(
 @Composable
 fun FullscreenVideoPlayer(uri: Uri, onDismiss: () -> Unit) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var videoLoading by remember { mutableStateOf(true) }
-    val simpleCache = VideoCacheProvider.getInstance(context)
-    val upstreamFactory = DefaultDataSource.Factory(context)
-    val cacheDataSourceFactory = CacheDataSource.Factory()
-        .setCache(simpleCache)
-        .setUpstreamDataSourceFactory(upstreamFactory)
-    val exoPlayer = remember(uri) {
+    val simpleCache = remember { VideoCacheProvider.getInstance(context) }
+    val cacheDataSourceFactory = remember {
+        val upstreamFactory = DefaultDataSource.Factory(context)
+        CacheDataSource.Factory()
+            .setCache(simpleCache)
+            .setUpstreamDataSourceFactory(upstreamFactory)
+    }
+    val exoPlayer = remember {
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
-            .build().apply {
-                setMediaItem(MediaItem.fromUri(uri))
-                prepare()
-                playWhenReady = true
-                addListener(object : Player.Listener {
-                    override fun onPlaybackStateChanged(state: Int) {
-                        if (state == Player.STATE_READY) {
-                            videoLoading = false
-                        }
-                    }
-                })
-            }
+            .build()
     }
-    DisposableEffect(uri) {
-        onDispose { exoPlayer.release() }
+    val playerView = remember {
+        PlayerView(context).apply {
+            useController = true
+        }
+    }
+    LaunchedEffect(uri) {
+        videoLoading = true
+        exoPlayer.setMediaItem(MediaItem.fromUri(uri))
+        exoPlayer.prepare()
+        exoPlayer.playWhenReady = true
+    }
+    DisposableEffect(lifecycleOwner, exoPlayer) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> exoPlayer.play()
+                Lifecycle.Event.ON_STOP -> exoPlayer.pause()
+                else -> Unit
+            }
+        }
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(state: Int) {
+                if (state == Player.STATE_READY) {
+                    videoLoading = false
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        exoPlayer.addListener(listener)
+        onDispose {
+            exoPlayer.removeListener(listener)
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            playerView.player = null
+            exoPlayer.release()
+        }
     }
     Dialog(onDismissRequest = onDismiss) {
         Box(
@@ -2151,12 +2175,8 @@ fun FullscreenVideoPlayer(uri: Uri, onDismiss: () -> Unit) {
                 .background(DarkGrayBackground)
         ) {
             androidx.compose.ui.viewinterop.AndroidView(
-                factory = { ctx ->
-                    PlayerView(ctx).apply {
-                        player = exoPlayer
-                        useController = true
-                    }
-                },
+                factory = { playerView },
+                update = { it.player = exoPlayer },
                 modifier = Modifier.fillMaxSize()
             )
             if (videoLoading) {

@@ -155,7 +155,7 @@
 
     <!-- People grid -->
     <string name="no_one_nearby_yet">Aún no hay nadie cerca</string>
-
+    <string name="password_error">Los cambios de contraseña requieren una cuenta de correo electrónico y contraseña</string>
     <!-- Chips & filters -->
     <string name="label_radius">Radio</string>
     <string name="gender_women">Mujer</string>

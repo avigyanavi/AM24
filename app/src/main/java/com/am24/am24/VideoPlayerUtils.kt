@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
@@ -40,38 +43,57 @@ fun CachedFullscreenVideoPlayer(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    // ① grab your singleton SimpleCache
-    val cache        = VideoCacheProvider.getInstance(context)
-    val upstream     = DefaultDataSource.Factory(context)
-    val cacheFactory = CacheDataSource.Factory()
-        .setCache(cache)
-        .setUpstreamDataSourceFactory(upstream)
-
-    // ② build & remember an ExoPlayer that uses our cache-aware source
-    var player = remember(uri) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val cache = remember { VideoCacheProvider.getInstance(context) }
+    val cacheFactory = remember {
+        val upstream = DefaultDataSource.Factory(context)
+        CacheDataSource.Factory()
+            .setCache(cache)
+            .setUpstreamDataSourceFactory(upstream)
+    }
+    val exoPlayer = remember {
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheFactory))
-            .build().apply {
-                setMediaItem(MediaItem.fromUri(uri))
-                prepare()
-                playWhenReady = true
-            }
+            .build()
     }
-    DisposableEffect(uri) {
-        onDispose { player.release() }
+    val playerView = remember {
+        PlayerView(context).apply {
+            useController = true
+            setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
+        }
+    }
+
+    LaunchedEffect(uri) {
+        exoPlayer.setMediaItem(MediaItem.fromUri(uri))
+        exoPlayer.prepare()
+        exoPlayer.playWhenReady = true
+    }
+
+    DisposableEffect(exoPlayer) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> exoPlayer.play()
+                Lifecycle.Event.ON_STOP -> exoPlayer.pause()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            playerView.player = null
+            exoPlayer.release()
+        }
     }
 
     // ③ wrap in a full-screen Dialog
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(Modifier.fillMaxSize()) {
-            AndroidView({ ctx ->
-                PlayerView(ctx).apply {
-                    player       = player
-                    useController = true
-                    setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING) // Optional: Show buffering indicator
-                }
-            }, Modifier.fillMaxSize())
+            AndroidView(
+                factory = { playerView },
+                update = { it.player = exoPlayer },
+                modifier = Modifier.fillMaxSize()
+            )
 
             IconButton(
                 onClick = onDismiss,
@@ -91,26 +113,46 @@ fun TextureFullscreenVideoPlayer(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    // ① your cache + data source
-    val cache        = VideoCacheProvider.getInstance(context)
-    val upstream     = DefaultDataSource.Factory(context)
-    val cacheFactory = CacheDataSource.Factory()
-        .setCache(cache)
-        .setUpstreamDataSourceFactory(upstream)
-
-    // ② build & remember ExoPlayer
-    val exoPlayer = remember(uri) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val cache = remember { VideoCacheProvider.getInstance(context) }
+    val cacheFactory = remember {
+        val upstream = DefaultDataSource.Factory(context)
+        CacheDataSource.Factory()
+            .setCache(cache)
+            .setUpstreamDataSourceFactory(upstream)
+    }
+    val exoPlayer = remember {
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheFactory))
             .build()
-            .apply {
-                setMediaItem(MediaItem.fromUri(uri))
-                prepare()
-                playWhenReady = true
-            }
     }
-    DisposableEffect(uri) {
-        onDispose { exoPlayer.release() }
+    val playerView = remember {
+        (LayoutInflater.from(context)
+            .inflate(R.layout.fullscreen_player, null) as PlayerView).apply {
+            useController = true
+        }
+    }
+
+    LaunchedEffect(uri) {
+        exoPlayer.setMediaItem(MediaItem.fromUri(uri))
+        exoPlayer.prepare()
+        exoPlayer.playWhenReady = true
+    }
+
+    DisposableEffect(exoPlayer) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> exoPlayer.play()
+                Lifecycle.Event.ON_STOP -> exoPlayer.pause()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            playerView.player = null
+            exoPlayer.release()
+        }
     }
 
     // ③ show in Dialog, inflate our XML
@@ -122,13 +164,8 @@ fun TextureFullscreenVideoPlayer(
             .fillMaxSize()
             .background(Color.Black)) {
             AndroidView(
-                factory = { ctx ->
-                    LayoutInflater.from(ctx)
-                        .inflate(R.layout.fullscreen_player, null)
-                        .also { view ->
-                            (view as PlayerView).player = exoPlayer
-                        }
-                },
+                factory = { playerView },
+                update = { it.player = exoPlayer },
                 modifier = Modifier.fillMaxSize()
             )
 
