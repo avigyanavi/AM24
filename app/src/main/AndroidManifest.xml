@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <!-- Camera & microphone -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
@@ -42,8 +43,13 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.AM24"
-        android:extractNativeLibs="false"
         tools:targetApi="31">
+
+        <!-- resolve conflict -->
+        <property
+            android:name="android.adservices.AD_SERVICES_CONFIG"
+            android:resource="@xml/gma_ad_services_config"
+            tools:replace="android:resource" />
 
         <!-- 🔸 FCM receiver service -->
         <service
@@ -74,7 +80,7 @@
 
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="pub-5266481866342618" />
+            android:value="ca-app-pub-5266481866342618~3563725191" />
 
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
