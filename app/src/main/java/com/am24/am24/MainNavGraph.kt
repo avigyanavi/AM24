@@ -203,9 +203,13 @@ fun MainNavGraph(
         composable("create_post/image") { ImagePostComposable(navController, postViewModel) }
         composable("create_post/video") { VideoPostComposable(navController, postViewModel) }
         composable(
-            route = "subscription?allowIfSubscribed={allowIfSubscribed}",
+            route = "subscription?allowIfSubscribed={allowIfSubscribed}&force={force}",
             arguments = listOf(
                 navArgument("allowIfSubscribed") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+                navArgument("force") {
                     type = NavType.BoolType
                     defaultValue = false
                 }
@@ -213,7 +217,8 @@ fun MainNavGraph(
         ) { backStackEntry ->
             val allowUpgrade =
                 backStackEntry.arguments?.getBoolean("allowIfSubscribed") ?: false
-            SubscriptionScreen(navController, allowUpgrade)
+            val force = backStackEntry.arguments?.getBoolean("force") ?: false
+            SubscriptionScreen(navController, allowUpgrade, forceSubscription = force)
         }
         composable(
             route = "paywall?toast={toast}",

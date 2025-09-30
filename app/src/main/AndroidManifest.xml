@@ -72,11 +72,6 @@
                     android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled"
                     android:value="true" />
 
-        <!-- Previous AdMob application ID: ca-app-pub-3206974923602803~7728780693 -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-1814829133495225~8016138383"/>
-
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:exported="false"

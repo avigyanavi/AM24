@@ -27,6 +27,10 @@ data class Profile(
     var showKinksOnProfile: Boolean = false,
     var isLocationSpoofed: Boolean = false,
     val privateAlbumUrls: List<String> = emptyList(),   // URLs of private album media
+    var hasUsedFreeTrial: Boolean = false,
+    var freeTrialStartedAt: Long? = null,
+    var freeTrialExpiry: Long? = null,
+    var freeTrialCompleted: Boolean = false,
 
     // Keep this: what the user is interested in (Men, Women, etc.)
     val interestedIn: List<String> = emptyList(),

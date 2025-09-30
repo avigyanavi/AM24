@@ -247,20 +247,8 @@ fun MapScreen(
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val useMiles = remember { !CountryUtil.usesKilometers(ctx) } // decide unit once
-    val activity = LocalContext.current as Activity
     val userRef = remember(userId) { FirebaseRefs.db.getReference("users").child(userId) }
     var userCountry by remember { mutableStateOf<String?>(null) }
-    val rewardedSwipeAdUnit = remember(userCountry) {
-        AdUnitIds.rewardedSwipe(activity, userCountry)
-    }
-    val rewardedSwipeManager = remember(rewardedSwipeAdUnit) {
-        RewardedAdManager(activity, rewardedSwipeAdUnit)
-    }
-
-    DisposableEffect(rewardedSwipeManager) {
-        onDispose { rewardedSwipeManager.clearCallbacks() }
-    }
-
     val isLocationGranted =
         ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -1444,20 +1432,13 @@ fun MapScreen(
                 isPlus = isPlus,
                 isPremium = isPremium,
                 isIndian = isIndian,
-                onWatchAd = {
+                onUpgrade = {
                     if (isIndian) {
                         navController.navigate("buySwipes")
-                        showSwipeLimitOverlay = false
                     } else {
-                        rewardedSwipeManager.showWithDailyLimit(
-                            userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@SwipeLimitOverlay,
-                            onReward = {
-                                remainingSwipes += 5
-                                updateSwipesInFirebase(remainingSwipes)
-                            },
-                            afterAd = { showSwipeLimitOverlay = false }
-                        )
+                        navController.navigate("subscription?allowIfSubscribed=true&force=false")
                     }
+                    showSwipeLimitOverlay = false
                 }
             )
         }

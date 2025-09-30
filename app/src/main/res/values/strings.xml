@@ -590,7 +590,13 @@
     <string name="paywall_button_pay_generic">Pay %1$s and Continue</string>
     <string name="paywall_button_pay_default">Pay and Continue</string>
     <string name="paywall_skip">Skip</string>
-    <string name="paywall_skip_disclaimer">Watch 1 ad on app open every time</string>
+    <string name="paywall_skip_disclaimer">Start your 1-month free trial now</string>
+    <string name="paywall_start_trial_button">Start 1-month free trial</string>
+    <string name="paywall_continue_button">Continue</string>
+    <string name="paywall_trial_active_message">Your free trial is active until %1$s.</string>
+    <string name="paywall_trial_ended_message">Your free trial has ended. Subscribe to keep your access.</string>
+    <string name="paywall_trial_error">Could not start your free trial. Please try again.</string>
+
 
     <!-- Place popup & sending -->
     <!-- values/strings.xml (en) — ChatScreen additions -->
@@ -705,6 +711,8 @@
     <string name="btn_close">Close</string>
     <string name="cd_leaderboard">Leaderboard</string>
     <string name="cd_go_to_feed">Go to feed</string>
+    <string name="swipe_overlay_buy_swipes_button">Buy Swipes</string>
+    <string name="swipe_overlay_upgrade_button">Upgrade for more swipes</string>
 
     <!-- Profile popup -->
     <string name="btn_view_full_profile">View Full Profile</string>

@@ -2,7 +2,6 @@
 
 package com.am24.am24
 
-import android.app.Activity
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -50,7 +49,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.RssFeed
 import androidx.compose.ui.draw.shadow
 import com.google.firebase.database.FirebaseDatabase
-import android.content.ContextWrapper
 
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
@@ -69,38 +67,41 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val currentRoute = navBackStackEntry?.destination?.route
 
     // ➋ only show the global Top/Bottom bars if NOT on leaderboard
-    val showGlobalBars = currentRoute?.startsWith("chat/") == false &&
-            currentRoute != "leaderboard"
-    val showTopBar    = showGlobalBars
 
     val profileViewModel: ProfileViewModel = viewModel()
     val currentProfile by profileViewModel.currentUserProfile.collectAsState()
     // ─── collect both flags ───────────────────────────
     val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
     val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
-    val selectedCountry = canonicalCountry(currentProfile?.country).takeIf { it.isNotBlank() }
-    val interstitialCountry = remember(
-        currentProfile?.latitude,
-        currentProfile?.longitude
-    ) {
-        CountryUtil.countryFromCoordinates(
-            currentProfile?.latitude,
-            currentProfile?.longitude
-        )
-    }
-    val interstitialRegion = interstitialCountry ?: selectedCountry
-    val shouldShowBottomNavAds = !isPlus && !isPremium
+    val now = System.currentTimeMillis()
+    val freeTrialExpiry = currentProfile?.freeTrialExpiry ?: 0L
+    val hasUsedTrial = currentProfile?.hasUsedFreeTrial == true
+    val trialExpired = hasUsedTrial && (freeTrialExpiry == 0L || freeTrialExpiry <= now)
+    val shouldForceSubscription = trialExpired && !isPlus && !isPremium
+    val showGlobalBars = !shouldForceSubscription && currentRoute?.startsWith("chat/") == false &&
+            currentRoute != "leaderboard"
+    val showTopBar    = showGlobalBars
     // ───────────────────────────────────────────────────
     val context = LocalContext.current
-    val interstitialManager = remember { BottomNavInterstitialManager() }
-    val activity by rememberUpdatedState(context.findActivity())
 
     LaunchedEffect(currentUserId) {
         profileViewModel.fetchCurrentUserProfile()
     }
 
-    LaunchedEffect(context, interstitialCountry, selectedCountry, shouldShowBottomNavAds) {
-        interstitialManager.updateEligibility(context, interstitialRegion, shouldShowBottomNavAds)
+    LaunchedEffect(trialExpired) {
+        if (trialExpired) {
+            FirebaseDatabase.getInstance()
+                .getReference("users/$currentUserId/freeTrialCompleted")
+                .setValue(true)
+        }
+    }
+
+    LaunchedEffect(shouldForceSubscription, currentRoute) {
+        if (shouldForceSubscription && currentRoute?.startsWith("subscription") != true) {
+            navController.navigate("subscription?allowIfSubscribed=false&force=true") {
+                launchSingleTop = true
+            }
+        }
     }
 
     // Listen for incoming omegle invites
@@ -178,28 +179,11 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                     navController = navController,
                     items = items,
                     onItemSelected = { route, alreadySelected ->
-                        if (alreadySelected) return@BottomNavigationBar
+                        if (alreadySelected || shouldForceSubscription) return@BottomNavigationBar
 
-                        val navigate: () -> Unit = {
-                            navController.navigate(route) {
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-
-                        if (!shouldShowBottomNavAds) {
-                            navigate()
-                            return@BottomNavigationBar
-                        }
-
-                        val currentActivity = activity
-                        if (currentActivity == null) {
-                            navigate()
-                            return@BottomNavigationBar
-                        }
-
-                        interstitialManager.show(currentActivity) {
-                            navigate()
+                        navController.navigate(route) {
+                            launchSingleTop = true
+                            restoreState = true
                         }
                     }
                 )
@@ -1006,10 +990,4 @@ fun BottomNavigationBar(
             )
         }
     }
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

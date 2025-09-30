@@ -4,8 +4,7 @@ package com.am24.am24
 
 /* Android & Compose */
 import android.app.Activity
-import android.content.Intent
-import android.net.Uri
+import androidx.activity.compose.BackHandler
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
-import com.am24.am24.CountryUtil.isMexico
 import com.am24.am24.billing.BillingManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
@@ -112,11 +110,14 @@ fun SubscriptionScreen(
     navController: NavController,
     allowIfSubscribed: Boolean = false,
     toastMessage: String? = null,
+    forceSubscription: Boolean = false,
 ) {
     val scrollState = rememberScrollState()          // ← add
 
     /* geo-gate exactly like before */
     val ctx = LocalContext.current
+
+    BackHandler(enabled = forceSubscription) {}
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
             val msgRes = when (it) {
@@ -396,9 +397,11 @@ fun SubscriptionScreen(
             }
 
         Spacer(Modifier.height(24.dp))
-        TextButton(onClick = { navController.popBackStack() }) {
-            Text("Not now", color =             Color(0xFFFF6F00)          // ← Kupidx orange
-            )
+        if (!forceSubscription) {
+            TextButton(onClick = { navController.popBackStack() }) {
+                Text("Not now", color =             Color(0xFFFF6F00)          // ← Kupidx orange
+                )
+            }
         }
     }
 }

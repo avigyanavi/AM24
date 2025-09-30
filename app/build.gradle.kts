@@ -80,7 +80,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     implementation("com.google.firebase:firebase-messaging")
     implementation("androidx.compose.material3:material3:1.2.1")
-    implementation("com.google.android.gms:play-services-ads:24.3.0")
     implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation("com.google.firebase:firebase-auth-ktx:23.2.1")
     implementation(libs.firebase.storage)

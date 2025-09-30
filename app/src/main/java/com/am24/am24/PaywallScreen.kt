@@ -1,6 +1,7 @@
 package com.am24.am24
 
 import android.app.Activity
+import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -20,6 +21,8 @@ import com.facebook.appevents.AppEventsLogger
 import java.math.BigDecimal
 import java.util.Currency
 import com.android.billingclient.api.Purchase
+import java.text.DateFormat
+import java.util.Date
 import java.util.concurrent.TimeUnit
 
 
@@ -38,6 +41,9 @@ fun PaywallScreen(onPaid: () -> Unit) {
     var entryFeePaidAt by remember { mutableStateOf<Long?>(null) }
     var entryFeeOfferSeen by remember { mutableStateOf<Boolean?>(null) }
     var hasNavigatedAway by remember(uid) { mutableStateOf(false) }
+    var hasUsedFreeTrial by remember { mutableStateOf(false) }
+    var freeTrialExpiry by remember { mutableStateOf<Long?>(null) }
+    var skipProcessing by remember { mutableStateOf(false) }
     DisposableEffect(userRef) {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -47,6 +53,8 @@ fun PaywallScreen(onPaid: () -> Unit) {
                 loginPlusExpiry = snapshot.child("loginPlusExpiry").getValue(Long::class.java)
                 entryFeePaidAt = snapshot.child("entryFeePaidAt").getValue(Long::class.java)
                 entryFeeOfferSeen = snapshot.child("entryFeeOfferSeen").getValue(Boolean::class.java)
+                hasUsedFreeTrial = snapshot.child("hasUsedFreeTrial").getValue(Boolean::class.java) == true
+                freeTrialExpiry = snapshot.child("freeTrialExpiry").getValue(Long::class.java)
             }
 
             override fun onCancelled(error: DatabaseError) {}
@@ -85,6 +93,8 @@ fun PaywallScreen(onPaid: () -> Unit) {
     val isMexico = CountryUtil.isMexico(ctx, userCountry)
     val isIndia = CountryUtil.isIndia(ctx, userCountry)
     val isUnitedStates = CountryUtil.isUnitedStates(ctx, userCountry)
+    val trialActive = hasUsedFreeTrial && (freeTrialExpiry ?: 0L) > System.currentTimeMillis()
+    val trialExpiryLabel = freeTrialExpiry?.takeIf { it > 0L }?.let { DateFormat.getDateInstance().format(Date(it)) }
 
     val products by BillingManager.products.collectAsState()
     val entryProduct = products.firstOrNull { it.productId == "entry_fee" }
@@ -160,6 +170,17 @@ fun PaywallScreen(onPaid: () -> Unit) {
         formattedEntryPrice != null -> stringResource(R.string.paywall_button_pay_generic, formattedEntryPrice)
         else -> stringResource(R.string.paywall_button_pay_default)
     }
+    val skipLabel = if (!hasUsedFreeTrial) {
+        stringResource(R.string.paywall_start_trial_button)
+    } else {
+        stringResource(R.string.paywall_continue_button)
+    }
+    val trialStatusText = when {
+        hasUsedFreeTrial && trialActive && trialExpiryLabel != null ->
+            stringResource(R.string.paywall_trial_active_message, trialExpiryLabel)
+        hasUsedFreeTrial -> stringResource(R.string.paywall_trial_ended_message)
+        else -> null
+    }
 
     Column(
         modifier = Modifier
@@ -182,6 +203,10 @@ fun PaywallScreen(onPaid: () -> Unit) {
             color = Color.White,
             fontSize = 14.sp
         )
+        trialStatusText?.let {
+            Spacer(Modifier.height(12.dp))
+            Text(it, color = Color.White, fontSize = 12.sp)
+        }
         Spacer(Modifier.height(24.dp))
         Button(
             onClick = {
@@ -198,20 +223,44 @@ fun PaywallScreen(onPaid: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(
                 onClick = {
-                    if (!hasNavigatedAway) {
-                        if (!entryFeePaid) {
-                            val expiry = System.currentTimeMillis() + TimeUnit.HOURS.toMillis(24)
-                            userRef.child("entryFeeOfferExpiry").setValue(expiry)
-                            userRef.child("entryFeeOfferSeen").setValue(false)
-                        } else if (entryFeeOfferSeen == null) {
-                            userRef.child("entryFeeOfferSeen").setValue(true)
-                        }
+                    if (hasNavigatedAway || skipProcessing) return@TextButton
+
+                    if (!hasUsedFreeTrial) {
+                        skipProcessing = true
+                        val now = System.currentTimeMillis()
+                        val expiry = now + TimeUnit.DAYS.toMillis(30)
+                        val updates = mutableMapOf<String, Any>(
+                            "hasUsedFreeTrial" to true,
+                            "freeTrialExpiry" to expiry,
+                            "freeTrialStartedAt" to ServerValue.TIMESTAMP,
+                            "freeTrialCompleted" to false,
+                            "loginPlusExpiry" to expiry,
+                            "isPlus" to true
+                        )
+                        userRef.updateChildren(updates)
+                            .addOnSuccessListener {
+                                hasUsedFreeTrial = true
+                                freeTrialExpiry = expiry
+                                loginPlusExpiry = expiry
+                                plusActive = true
+                                skipProcessing = false
+                                if (!hasNavigatedAway) {
+                                    hasNavigatedAway = true
+                                    onPaidCallback()
+                                }
+                            }
+                            .addOnFailureListener {
+                                skipProcessing = false
+                                Toast.makeText(ctx, R.string.paywall_trial_error, Toast.LENGTH_LONG).show()
+                            }
+                    } else {
                         hasNavigatedAway = true
                         onPaidCallback()
                     }
-                }
+                },
+                enabled = !skipProcessing
             ) {
-                Text(stringResource(R.string.paywall_skip), color = KupidxOrange)
+                Text(skipLabel, color = KupidxOrange)
             }
             Spacer(Modifier.width(8.dp))
             Text(

@@ -4,7 +4,6 @@
 
 package com.am24.am24
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
@@ -32,7 +31,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.am24.am24.ui.purchase.PurchaseType
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
@@ -137,31 +135,7 @@ fun SettingsScreen(navController: NavController) {
     var feedbackText      by remember { mutableStateOf("") }
     var working           by remember { mutableStateOf(false) }
 
-    var rewardDialogFor   by remember { mutableStateOf<PurchaseType?>(null) }
     val isIndian = remember(country) { canonicalCountry(country) == "India" }
-    val activity = LocalContext.current as Activity
-    val canonicalCountryName = remember(country) {
-        canonicalCountry(country).takeIf { it.isNotBlank() }
-    }
-    val rewardedComplimentAdUnit = remember(canonicalCountryName) {
-        AdUnitIds.rewardedCompliment(activity, canonicalCountryName)
-    }
-    val rewardedComplimentManager = remember(rewardedComplimentAdUnit) {
-        RewardedAdManager(activity, rewardedComplimentAdUnit)
-    }
-    val rewardedSwipeAdUnit = remember(canonicalCountryName) {
-        AdUnitIds.rewardedSwipe(activity, canonicalCountryName)
-    }
-    val rewardedSwipeManager = remember(rewardedSwipeAdUnit) {
-        RewardedAdManager(activity, rewardedSwipeAdUnit)
-    }
-
-    DisposableEffect(rewardedComplimentManager, rewardedSwipeManager) {
-        onDispose {
-            rewardedComplimentManager.clearCallbacks()
-            rewardedSwipeManager.clearCallbacks()
-        }
-    }
 
     /* load once */
     LaunchedEffect(Unit) {
@@ -379,8 +353,11 @@ fun SettingsScreen(navController: NavController) {
                         title        = stringResource(R.string.settings_get_more_swipes),
                         trailingText = "$swipes",
                         onClick = {
-                            if (isIndian) navController.navigate("buySwipes")
-                            else rewardDialogFor = PurchaseType.Swipes
+                            if (isIndian) {
+                                navController.navigate("buySwipes")
+                            } else {
+                                navController.navigate("subscription?allowIfSubscribed=true&force=false")
+                            }
                         }
                     )
                     Divider(Modifier.padding(start = 56.dp))
@@ -391,8 +368,11 @@ fun SettingsScreen(navController: NavController) {
                         title        = stringResource(R.string.settings_get_more_compliments),
                         trailingText = "$compliments",
                         onClick = {
-                            if (isIndian) navController.navigate("buyCompliments")
-                            else rewardDialogFor = PurchaseType.Compliments
+                            if (isIndian) {
+                                navController.navigate("buyCompliments")
+                            } else {
+                                navController.navigate("subscription?allowIfSubscribed=true&force=false")
+                            }
                         }
                     )
 
@@ -534,57 +514,6 @@ fun SettingsScreen(navController: NavController) {
             }
         }
         val kupidxOrange = Color(0xFFFF6F00)
-
-        if (!isIndian) rewardDialogFor?.let { type ->
-            val msg = when (type) {
-                PurchaseType.Compliments -> stringResource(R.string.watch_ad_compliment)
-                PurchaseType.Swipes -> stringResource(R.string.watch_ad_swipes)
-                else -> ""
-            }
-            AlertDialog(
-                onDismissRequest = { rewardDialogFor = null },
-                title = { Text(msg, color = kupidxOrange) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        rewardDialogFor = null
-                        val manager = when (type) {
-                            PurchaseType.Compliments -> rewardedComplimentManager
-                            PurchaseType.Swipes -> rewardedSwipeManager
-                            else -> null
-                        }
-                        manager?.showWithDailyLimit(
-                            userId = uid,
-                            onReward = {
-                            when (type) {
-                                PurchaseType.Compliments -> {
-                                    compliments += 1
-                                    scope.launch { userRef.child("availableCompliments").setValue(compliments) }
-                                }
-                                PurchaseType.Swipes -> {
-                                    swipes += 5
-                                    scope.launch { userRef.child("swipesInfo/remainingSwipes").setValue(swipes) }
-                                }
-                                else -> {}
-                            }
-                            }
-                        )
-                    }) { Text(stringResource(R.string.watch), color = kupidxOrange) }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        rewardDialogFor?.let {
-                            val route = when (it) {
-                                PurchaseType.Compliments -> "buyCompliments"
-                                PurchaseType.Swipes -> "buySwipes"
-                                else -> null
-                            }
-                            rewardDialogFor = null
-                            route?.let { r -> navController.navigate(r) }
-                        }
-                    }) { Text(stringResource(R.string.pay_instead), color = kupidxOrange) }
-                }
-            )
-        }
 
         if (showFeedbackDialog) {
             AlertDialog(

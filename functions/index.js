@@ -788,11 +788,7 @@ exports.getNearbyProfiles = functions
 
     const profiles = profileSnaps
       .map(s => (s.val() ? { ...s.val(), userId: s.key } : null))
-      .filter(p =>
-              p &&
-              p.lastActive >= cutoff &&
-              normalizeCountry(p.country) === normalizeCountry(myCountry)
-            );
+      .filter(p => p && p.lastActive >= cutoff);
 
     return { profiles };
   });

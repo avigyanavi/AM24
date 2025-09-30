@@ -33,10 +33,6 @@ class MyApp : Application() {
         AppEventsLogger.activateApp(this) // safe even if called multiple times
 
         Log.d("MyApp", "Facebook SDK initialized synchronously")
-        // ───────── AdMob ─────────
-        com.google.android.gms.ads.MobileAds.initialize(this) { status ->
-            Log.d("MyApp", "AdMob initialized: $status")
-        }
 
         // ───────── Firebase App Check ─────────
         val appCheck = FirebaseAppCheck.getInstance()

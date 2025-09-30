@@ -175,7 +175,12 @@
     <string name="paywall_button_pay_generic">Pagar %1$s y continuar</string>
     <string name="paywall_button_pay_default">Pagar y continuar</string>
     <string name="paywall_skip">Omitir</string>
-    <string name="paywall_skip_disclaimer">Ver 1 anuncio cada vez que abras la app</string>
+    <string name="paywall_skip_disclaimer">Inicia tu prueba gratuita de 1 mes ahora</string>
+    <string name="paywall_start_trial_button">Iniciar prueba gratuita de 1 mes</string>
+    <string name="paywall_continue_button">Continuar</string>
+    <string name="paywall_trial_active_message">Tu prueba gratuita está activa hasta %1$s.</string>
+    <string name="paywall_trial_ended_message">Tu prueba gratuita ha finalizado. Suscríbete para mantener tu acceso.</string>
+    <string name="paywall_trial_error">No se pudo iniciar tu prueba gratuita. Inténtalo de nuevo.</string>
     <!-- Place popup & sending -->
     <string name="map_entry_fee_plus_title">¡Plus desbloqueado!</string>
     <string name="map_entry_fee_plus_message">Gracias por apoyar Kupidx — tus beneficios Plus estarán activos durante el próximo mes.</string>    <string name="map_entry_fee_plus_confirm">Genial</string>
@@ -564,6 +569,8 @@
     <string name="ba_fab_recenter_text">BAY</string>
     <string name="settings_get_more_boosts">Obtener más impulsos</string>
     <string name="settings_get_more_swipes">Obtener más deslizamientos</string>
+    <string name="swipe_overlay_buy_swipes_button">Comprar swipes</string>
+    <string name="swipe_overlay_upgrade_button">Mejorar para más swipes</string>
     <string name="settings_get_more_compliments">Obtener más cumplidos</string>
     <string name="settings_ai_messages_remaining">Mensajes de IA restantes</string>
 

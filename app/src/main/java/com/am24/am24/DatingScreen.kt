@@ -5,7 +5,6 @@
 package com.am24.am24
 
 import DatingViewModel
-import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
@@ -210,28 +209,8 @@ fun DatingScreen(
     val aiResults = remember { mutableStateMapOf<String, AiMatchCheckResult>() }
 
     val context = LocalContext.current
-    val activity = LocalContext.current as Activity
     val selectedCountry = remember(myProfile?.country) {
         canonicalCountry(myProfile?.country).takeIf { it.isNotBlank() }
-    }
-    val rewardedComplimentAdUnit = remember(selectedCountry) {
-        AdUnitIds.rewardedCompliment(activity, selectedCountry)
-    }
-    val rewardedComplimentManager = remember(rewardedComplimentAdUnit) {
-        RewardedAdManager(activity, rewardedComplimentAdUnit)
-    }
-    val rewardedSwipeAdUnit = remember(selectedCountry) {
-        AdUnitIds.rewardedSwipe(activity, selectedCountry)
-    }
-    val rewardedSwipeManager = remember(rewardedSwipeAdUnit) {
-        RewardedAdManager(activity, rewardedSwipeAdUnit)
-    }
-
-    DisposableEffect(rewardedComplimentManager, rewardedSwipeManager) {
-        onDispose {
-            rewardedComplimentManager.clearCallbacks()
-            rewardedSwipeManager.clearCallbacks()
-        }
     }
 
     LaunchedEffect(Unit) {
@@ -432,22 +411,7 @@ fun DatingScreen(
                             if (isIndian) {
                                 navController.navigate("buyCompliments")
                             } else {
-                                val uidLocal = FirebaseAuth.getInstance().uid
-                                if (uidLocal != null) {
-                                    rewardedComplimentManager.showWithDailyLimit(
-                                        userId = uidLocal,
-                                        onReward = {
-                                            datingViewModel.incrementComplimentsLocal()
-                                            val newVal = complimentsLeft + 1
-                                            coroutineScope.launch {
-                                                FirebaseRefs.db
-                                                    .getReference("users/$uidLocal/availableCompliments")
-                                                    .setValue(newVal)
-                                            }
-                                            profileViewModel.incrementComplimentsLocal()
-                                        }
-                                    )
-                                }
+                                navController.navigate("subscription?allowIfSubscribed=true&force=false")
                             }
                         }
                     },
@@ -477,20 +441,13 @@ fun DatingScreen(
                     isPlus = myProfile!!.isPlus,
                     isPremium = myProfile!!.isPremium,
                     isIndian = isIndian,
-                    onWatchAd = {
+                    onUpgrade = {
                         if (isIndian) {
                             navController.navigate("buySwipes")
-                            showSwipeLimitOverlay = false
                         } else {
-                            rewardedSwipeManager.showWithDailyLimit(
-                                userId = FirebaseAuth.getInstance().uid ?: return@SwipeLimitOverlay,
-                                onReward = {
-                                    remainingSwipes += 5
-                                    updateSwipesInFirebase(remainingSwipes)
-                                },
-                                afterAd = { showSwipeLimitOverlay = false }
-                            )
+                            navController.navigate("subscription?allowIfSubscribed=true&force=false")
                         }
+                        showSwipeLimitOverlay = false
                     }
                 )
             }
@@ -1301,19 +1258,8 @@ fun ProfileCollapsibleSectionsAll(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    val activity = LocalContext.current as Activity
     val selectedCountry = remember(currentUserProfile?.country) {
         canonicalCountry(currentUserProfile?.country).takeIf { it.isNotBlank() }
-    }
-    val rewardedSwipeAdUnit = remember(selectedCountry) {
-        AdUnitIds.rewardedSwipe(activity, selectedCountry)
-    }
-    val rewardedSwipeManager = remember(rewardedSwipeAdUnit) {
-        RewardedAdManager(activity, rewardedSwipeAdUnit)
-    }
-
-    DisposableEffect(rewardedSwipeManager) {
-        onDispose { rewardedSwipeManager.clearCallbacks() }
     }
 
     Column(
@@ -2395,7 +2341,7 @@ fun SwipeLimitOverlay(
     isPlus: Boolean,
     isPremium: Boolean,
     isIndian: Boolean,
-    onWatchAd: () -> Unit
+    onUpgrade: () -> Unit
 ) {
     val quota = when {
         isPremium  -> Int.MAX_VALUE
@@ -2449,11 +2395,15 @@ fun SwipeLimitOverlay(
                 Spacer(Modifier.height(24.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Button(
-                        onClick = onWatchAd,
+                        onClick = onUpgrade,
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFFF6F00))
                     ) {
-                        val label = if (isIndian) "Buy Swipes" else "Watch ad for 5 Swipes"
-                        Text(label, color = Color.Black)
+                        val labelRes = if (isIndian) {
+                            R.string.swipe_overlay_buy_swipes_button
+                        } else {
+                            R.string.swipe_overlay_upgrade_button
+                        }
+                        Text(stringResource(labelRes), color = Color.Black)
                     }
                 }
             }
