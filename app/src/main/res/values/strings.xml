@@ -33,9 +33,6 @@
     <string name="tab_nearby">Nearby</string>
     <string name="tab_cards">Cards</string>
     <string name="tab_map">Map</string>
-    <string name="daily_login_title">Daily login</string>
-    <string name="daily_login_message">Logged in %1$d days in a row</string>
-    <string name="daily_login_plus_award">Plus unlocked for %1$d hours</string>
     <string name="settings_streak_line">Login streak: %1$d days • %2$s</string>
     <string name="cd_city_filter">Browse by city</string>
     <string name="clear_city_filter">Clear city filter</string>
@@ -156,11 +153,11 @@
         <item>👑 Power dynamics</item>
         <item>☕ Aftercare</item>
     </string-array>
-    <string name="notification_streak_plus_message">Your streak unlocked Plus—see who liked you!</string>
     <string name="watch_ad_boost">Watch ad for 1 Boost</string>
     <string name="watch_ad_compliment">Watch ad for 1 Compliment</string>
     <string name="watch_ad_swipes">Watch ad for 5 Swipes</string>
     <string name="watch">Watch</string>
+    <string name="paywall_or_separator">OR</string>
     <string name="pay_instead">Pay Instead</string>
     <string name="confirm_delete_account">Are you sure you want to delete your account? All data will be removed.</string>
     <string name="username_with_value">Username: %1$s</string>
@@ -685,7 +682,6 @@
     <string name="unknown_place">Unknown Place</string>
     <string name="match_age">Age: %1$d</string>
     <string name="match_from">From: %1$s</string>
-    <string name="daily_login_plus_expiry">Expires on %1$s</string>
     <string name="map_entry_fee_plus_title">Plus unlocked!</string>
     <string name="map_entry_fee_plus_message">Thanks for supporting Kupidx — your Plus perks are active for the next month.</string>    <string name="map_entry_fee_plus_confirm">Awesome</string>
     <string name="map_entry_fee_discount_title">Limited-time Plus offer</string>

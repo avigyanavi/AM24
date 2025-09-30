@@ -86,7 +86,6 @@ fun HomeScreen(
 ) {
     // Get the current user ID from FirebaseAuth.
     val userId = FirebaseAuth.getInstance().currentUser?.uid
-    var dailyLoginInfo by remember { mutableStateOf<DailyLoginInfo?>(null) }
     val context = LocalContext.current
 
     // Immediately update the PostViewModel with the current user ID.
@@ -158,66 +157,6 @@ fun HomeScreen(
                     })
             }
         }
-
-        val isPremium = userProfile?.isPremium == true
-        val isPlus = userProfile?.isPlus == true
-
-        LaunchedEffect(isPremium, isPlus) {
-            if (!isPremium && !isPlus) {
-                dailyLoginInfo = checkDailyLoginReward(context)
-            } else {
-                dailyLoginInfo = null
-            }
-        }
-
-        if (!isPremium && !isPlus) {
-            dailyLoginInfo?.let { info ->
-                val kupidxOrange = Color(0xFFFF6F00)
-                val expiryText = remember(info.rewardExpiryMillis) {
-                    info.rewardExpiryMillis?.let { expiryMillis ->
-                        val formatter = SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault())
-                        formatter.format(Date(expiryMillis))
-                    }
-                }
-                AlertDialog(
-                    onDismissRequest = { dailyLoginInfo = null },
-                    confirmButton = {
-                        TextButton(onClick = { dailyLoginInfo = null }) {
-                            Text(stringResource(R.string.ok), color = kupidxOrange)
-                        }
-                    },
-                    title = { Text(stringResource(R.string.daily_login_title)) },
-                    text = {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                for (i in 1..5) {
-                                    val checked = i <= info.streak
-                                    Icon(
-                                        imageVector = if (checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                                        contentDescription = null,
-                                        tint = if (checked) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(12.dp))
-                            Text(stringResource(R.string.daily_login_message, info.streak))
-                            if (info.rewardHours > 0) {
-                                Spacer(Modifier.height(4.dp))
-                                Text(stringResource(R.string.daily_login_plus_award, info.rewardHours))
-                                expiryText?.let { formattedExpiry ->
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(stringResource(R.string.daily_login_plus_expiry, formattedExpiry))
-                                }
-                            }
-                        }
-                    }
-                )
-            }
-        }
-
         val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()
         val isFeedSearchMode by postViewModel.isFeedSearchMode.collectAsState()
         val isFeedSearchLoading by postViewModel.isFeedSearchLoading.collectAsState()

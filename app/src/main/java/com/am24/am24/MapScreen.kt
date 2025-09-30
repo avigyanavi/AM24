@@ -266,7 +266,6 @@ fun MapScreen(
     var showFiltersDialog by remember { mutableStateOf(false) }
     var isPlus by remember { mutableStateOf(false) }
     var isPremium by remember { mutableStateOf(false) }
-    var dailyLoginInfo by remember { mutableStateOf<DailyLoginInfo?>(null) }
     var omegleInvite by remember { mutableStateOf<OmegleMatch?>(null) }
     var remainingSwipes by remember { mutableStateOf(0) }
     var swipesLoaded by remember { mutableStateOf(false) }
@@ -352,14 +351,6 @@ fun MapScreen(
         val now = System.currentTimeMillis()
         showEntryFeeWelcomeDialog = entryFeePaidAt > 0L && loginPlusExpiry > now && !entryFeePlusIntroSeen
         showEntryFeeDiscountDialog = entryFeeOfferExpiry > now && !entryFeeOfferSeen
-    }
-
-    LaunchedEffect(isPremium, isPlus) {
-        if (!isPremium && !isPlus) {
-            dailyLoginInfo = checkDailyLoginReward(ctx)
-        } else {
-            dailyLoginInfo = null
-        }
     }
 
     DisposableEffect(userId) {
@@ -1534,54 +1525,6 @@ fun MapScreen(
                 Text(stringResource(R.string.map_entry_fee_discount_message, hoursLeft))
             }
         )
-    }
-
-    if (!isPremium && !isPlus) {
-        dailyLoginInfo?.let { info ->
-            val kupidxOrange = Color(0xFFFF6F00)
-            val expiryText = remember(info.rewardExpiryMillis) {
-                info.rewardExpiryMillis?.let { expiryMillis ->
-                    val formatter = SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault())
-                    formatter.format(Date(expiryMillis))
-                }
-            }
-            AlertDialog(
-                onDismissRequest = { dailyLoginInfo = null },
-                confirmButton = {
-                    TextButton(onClick = { dailyLoginInfo = null }) {
-                        Text(stringResource(R.string.ok), color = kupidxOrange)
-                    }
-                },
-                title = { Text(stringResource(R.string.daily_login_title)) },
-                text = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            for (i in 1..5) {
-                                val checked = i <= info.streak
-                                Icon(
-                                    imageVector = if (checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                                    contentDescription = null,
-                                    tint = if (checked) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Text(stringResource(R.string.daily_login_message, info.streak))
-                        if (info.rewardHours > 0) {
-                            Spacer(Modifier.height(4.dp))
-                            Text(stringResource(R.string.daily_login_plus_award, info.rewardHours))
-                            expiryText?.let { formattedExpiry ->
-                                Spacer(Modifier.height(4.dp))
-                                Text(stringResource(R.string.daily_login_plus_expiry, formattedExpiry))
-                            }
-                        }
-                    }
-                }
-            )
-        }
     }
 
     if (omegleInvite != null) {

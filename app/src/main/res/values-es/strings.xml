@@ -144,11 +144,9 @@
     </string>
     <string name="tab_map">Mapa</string>
 
-    <string name="daily_login_title">Inicio de sesión diario</string>
-    <string name="daily_login_message">Has iniciado sesión %1$d días consecutivos</string>
-    <string name="daily_login_plus_award">Plus desbloqueado durante %1$d horas</string>
     <string name="settings_streak_line">Racha de inicio de sesión: %1$d días • %2$s</string>
     <string name="kinks_label">Fetiches (separados por comas)</string>
+    <string name="paywall_or_separator">O</string>
 
     <string name="sort_nearby">Cerca</string>
     <string name="sort_last_active">Última actividad</string>
@@ -187,7 +185,6 @@
     <string name="map_entry_fee_discount_title">Oferta Plus por tiempo limitado</string>
     <string name="map_entry_fee_discount_message">Desbloquea Plus por un mes con un pago único. La oferta termina en %1$d hr.</string>
     <string name="map_entry_fee_discount_upgrade">Mejorar ahora</string>
-    <string name="daily_login_plus_expiry">Expira el %1$s</string>
     <string name="ok">Aceptar</string>
     <string name="label_your_message">Tu mensaje</string>
     <string name="action_send_compliment">Enviar un cumplido</string>
@@ -396,7 +393,6 @@
     <string name="gender_other">Otros</string>
     <string name="gender_all">Todos</string>
     <string name="toast_complete_entry_fee">Por favor completa la cuota de entrada para continuar.</string>
-    <string name="notification_streak_plus_message">Tu racha desbloqueó Plus—¡mira quién te dio me gusta!</string>
     <!-- es -->
     <string name="cd_country_filter">Explorar por país</string>
     <string name="clear_country_filter">Borrar filtro de país</string>
