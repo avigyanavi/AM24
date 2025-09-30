@@ -136,7 +136,8 @@ fun SubscriptionScreen(
     LaunchedEffect(uid) {
         userCountry = userRoot.child("country").get().await().getValue(String::class.java)
     }
-    val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
+    val useRazorpay = CountryUtil.useRazorpay(ctx, userCountry)
+    val isIndiaUser = CountryUtil.isIndia(ctx, userCountry)
     val isMexico = CountryUtil.isMexico(ctx, userCountry)
 
     /* -------------------------------------------------- */
@@ -212,9 +213,9 @@ fun SubscriptionScreen(
     }
     fun handlePlan(plan: Plan) {
         val slug = planToSlug(plan)
-        val selectedId = if (isIndia) plan.razorpayId else slug
+        val selectedId = if (useRazorpay) plan.razorpayId else slug
         ui = UiState(isProcessing = true, selectedPlanId = selectedId)
-        if (isIndia) {
+        if (useRazorpay) {
             launchCheckout(plan)
             return
         }
@@ -282,16 +283,17 @@ fun SubscriptionScreen(
 
     /* ---------- UI ---------- */
 
-    val availablePeriods = if (isIndia)
-        Period.values().toList()                  // WEEK, MONTH, YEAR
+    val availablePeriods = if (useRazorpay)
+    Period.values().toList()                  // WEEK, MONTH, YEAR
     else
         listOf(Period.MONTH, Period.YEAR)
 
     var currentPeriod by remember { mutableStateOf(availablePeriods.first()) }
 
     /* Reset the selected period if isIndia toggles and the period is no longer available */
-    LaunchedEffect(isIndia) {
-        if (currentPeriod !in availablePeriods) {
+    /* Reset the selected period if the India flag toggles and the period is no longer available */
+    LaunchedEffect(useRazorpay) {
+    if (currentPeriod !in availablePeriods) {
             currentPeriod = availablePeriods.first()
         }
     }
@@ -331,7 +333,7 @@ fun SubscriptionScreen(
         /* plan cards for the selected period */
         PLANS
             .filter { it.period == currentPeriod }
-            .filter { isIndia || it.period != Period.WEEK }   // drop weekly for PayPal
+            .filter { useRazorpay || it.period != Period.WEEK }   // drop weekly for PayPal
             .forEach { plan ->
                 Card(
                     modifier = Modifier
@@ -360,7 +362,7 @@ fun SubscriptionScreen(
                                 color = Color.White
                             )
                             val priceLabel = when {
-                                isIndia -> "₹${plan.price} / ${plan.period.label.lowercase()}"
+                                isIndiaUser -> "₹${plan.price} / ${plan.period.label.lowercase()}"
                                 isMexico -> "MXN${mxnPrice(plan)} / ${plan.period.label.lowercase()}"
                                 else -> "$${usdPrice(plan)} / ${plan.period.label.lowercase()}"
                             }
@@ -378,7 +380,7 @@ fun SubscriptionScreen(
                             }
                         }
                         val processing = ui.isProcessing &&
-                                ui.selectedPlanId == if (isIndia) plan.razorpayId else planToSlug(plan)
+                                ui.selectedPlanId == if (useRazorpay) plan.razorpayId else planToSlug(plan)
                         Button(
                             onClick = { if (!ui.isProcessing) handlePlan(plan) },
                             enabled = !ui.isProcessing
