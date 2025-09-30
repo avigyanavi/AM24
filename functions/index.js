@@ -523,6 +523,54 @@ exports.backfillOrientationAndKinks = functions
     }
   });
 
+exports.backfillFreeTrialFields = functions
+  .region('asia-south1')
+  .runWith({ timeoutSeconds: 540, memory: '1GB' })
+  .https.onRequest(async (_req, res) => {
+    try {
+      const snap = await USERS.once('value');
+      const updates = {};
+      let affected = 0;
+
+      snap.forEach((userSnap) => {
+        const uid = userSnap.key;
+        const data = userSnap.val() || {};
+        let touched = false;
+
+        if (typeof data.hasUsedFreeTrial !== 'boolean') {
+          updates[`${uid}/hasUsedFreeTrial`] = false;
+          touched = true;
+        }
+        if (typeof data.freeTrialCompleted !== 'boolean') {
+          updates[`${uid}/freeTrialCompleted`] = false;
+          touched = true;
+        }
+        if (typeof data.freeTrialStartedAt !== 'number') {
+          updates[`${uid}/freeTrialStartedAt`] = 0;
+          touched = true;
+        }
+        if (typeof data.freeTrialExpiry !== 'number') {
+          updates[`${uid}/freeTrialExpiry`] = 0;
+          touched = true;
+        }
+
+        if (touched) affected += 1;
+      });
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(200).send('All users already have free trial fields.');
+      }
+
+      await USERS.update(updates);
+      return res
+        .status(200)
+        .send(`Backfilled free trial fields for ${affected} user(s).`);
+    } catch (err) {
+      console.error('backfillFreeTrialFields error:', err);
+      return res.status(500).send(err.message || 'Internal error');
+    }
+  });
+
 // New: create one-time order
 exports.createOneTimeOrder = functions
   .region("asia-south1")

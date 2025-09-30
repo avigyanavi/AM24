@@ -3043,20 +3043,20 @@ suspend fun compressImage(
     quality: Int = 75          // JPEG quality 0‒100
 ): ByteArray? = withContext(Dispatchers.IO) {
     try {
-        val input = context.contentResolver.openInputStream(uri) ?: return@withContext null
-        val original = BitmapFactory.decodeStream(input) ?: return@withContext null
-        input.close()
+        val original = context.contentResolver.openInputStream(uri)?.use { input ->
+            BitmapFactory.decodeStream(input)
+        } ?: return@withContext null
 
-    // scale if needed
-    val ratio = maxWidth.toFloat() / original.width.toFloat()
-    val scaled = if (ratio < 1f) {
-        Bitmap.createScaledBitmap(
-            original,
-            (original.width * ratio).toInt(),
-            (original.height * ratio).toInt(),
-            true
-        )
-    } else original
+        // scale if needed
+        val ratio = maxWidth.toFloat() / original.width.toFloat()
+        val scaled = if (ratio < 1f) {
+            Bitmap.createScaledBitmap(
+                original,
+                (original.width * ratio).toInt(),
+                (original.height * ratio).toInt(),
+                true
+            )
+        } else original
 
         val out = ByteArrayOutputStream()
         scaled.compress(Bitmap.CompressFormat.JPEG, quality, out)

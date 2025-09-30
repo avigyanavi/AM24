@@ -71,6 +71,7 @@ import androidx.wear.compose.material.rememberSwipeableState
 import androidx.wear.compose.material.swipeable
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import com.am24.am24.ui.theme.ThemeManager
 import com.firebase.geofire.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.*
@@ -242,6 +243,7 @@ fun MapScreen(
     radiusKmDefault: Double = 100.0
 ) {
     val ctx = LocalContext.current
+    val isDarkTheme by ThemeManager.isDarkTheme.collectAsState()
     val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val gson = remember { Gson() }
     val scope = rememberCoroutineScope()
@@ -991,7 +993,7 @@ fun MapScreen(
                                             Icon(
                                                 Icons.Default.Search,
                                                 contentDescription = null,
-                                                tint = Color.White
+                                                tint = if (isDarkTheme) Color.White else KupidxOrange
                                             )
                                         }
                                     }
@@ -2135,6 +2137,11 @@ private fun RadiusChip(
                     onChange(newKm.coerceIn(minKm, maxKm))
                 },
                 valueRange = 0f..1f,
+                colors = SliderDefaults.colors(
+                    thumbColor = KupidxOrange,
+                    activeTrackColor = KupidxOrange,
+                    inactiveTrackColor = KupidxOrange.copy(alpha = 0.3f) // optional
+                ),
                 modifier = Modifier.weight(1f)
             )
         }

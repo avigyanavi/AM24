@@ -279,7 +279,8 @@ fun HomeScreenContent(
                     selectedTabIndex = selectedTab,
                     containerColor = Color.Black,
                     contentColor = Color.White,          // label colour
-                    indicator = {}                    // we’ll draw our own border
+                    indicator = {},                   // we’ll draw our own border
+                    divider = {}               // we’ll draw our own border
                 ) {
                     feedTabs.forEachIndexed { index, option ->
                         val isSelected = selectedTab == index
