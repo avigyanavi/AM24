@@ -28,7 +28,11 @@ class MyApp : Application() {
 
         ThemeManager.initialize(this)
 
-        AppOpenAdManager(this, "ca-app-pub-5266481866342618~3563725191")
+        appOpenAdManager = AppOpenAdManager(
+            this,
+            "ca-app-pub-5266481866342618/4937350764",
+        )
+        appOpenAdManager.loadAd()
 
 // ───────── Facebook: Explicit init ─────────
         FacebookSdk.setApplicationId("606416195185970")

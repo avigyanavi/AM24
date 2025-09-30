@@ -173,8 +173,8 @@
     <string name="paywall_button_pay_generic">Pagar %1$s y continuar</string>
     <string name="paywall_button_pay_default">Pagar y continuar</string>
     <string name="paywall_skip">Omitir</string>
-    <string name="paywall_skip_disclaimer">Inicia tu prueba gratuita de 1 mes ahora</string>
-    <string name="paywall_start_trial_button">Iniciar prueba gratuita de 1 mes</string>
+    <string name="paywall_skip_disclaimer">Inicia tu prueba gratuita de 7 días ahora</string>
+    <string name="paywall_start_trial_button">Iniciar prueba gratuita de 7 días</string>
     <string name="paywall_continue_button">Continuar</string>
     <string name="paywall_trial_active_message">Tu prueba gratuita está activa hasta %1$s.</string>
     <string name="paywall_trial_ended_message">Tu prueba gratuita ha finalizado. Suscríbete para mantener tu acceso.</string>
