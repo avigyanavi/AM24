@@ -290,7 +290,6 @@
     <string name="entry_fee_plus_button_generic">Desbloquear Plus</string>
     <string name="entry_fee_plus_success_toast">¡Plus está activo durante el próximo mes!</string>
     <string name="settings_limited_offer_badge">Oferta limitada</string>
-    <string name="settings_limited_offer_message">Desbloquea Plus por un mes con un pago único. La oferta termina en %1$d hr.</string>    <string name="btn_directions">Cómo llegar</string>
     <string name="btn_send_to_match">Enviar al match</string>
     <string name="dialog_select_match_title">Selecciona un match</string>
     <string name="btn_send">Enviar</string>
@@ -298,6 +297,7 @@
     <string name="unknown_place">Lugar desconocido</string>
     <string name="match_age">Edad: %1$d</string>
     <string name="match_from">De: %1$s</string>
+    <string name="offer_tab_label">Oferta</string>
 
     <!-- Feed tabs -->
     <string name="feed_tab_everyone">Todos</string>
@@ -395,6 +395,18 @@
     <string name="toast_complete_entry_fee">Por favor completa la cuota de entrada para continuar.</string>
     <!-- es -->
     <string name="settings_day_theme">Tema diurno</string>
+    <string name="settings_limited_offer_message">Desbloquea Plus por un mes con un pago único. La oferta termina en %1$d hr.</string>
+    <string name="settings_view_offer_cta">Ver oferta por tiempo limitado</string>
+    <string name="settings_trial_not_started">Free trial available – activate to unlock Plus.</string>
+    <string name="settings_trial_active">Free trial ends on %1$s • %2$s</string>
+    <plurals name="settings_trial_days_left">
+        <item quantity="one">%d day left</item>
+        <item quantity="other">%d days left</item>
+    </plurals>
+    <string name="settings_trial_expired">Free trial ended on %1$s</string>
+    <string name="settings_trial_expired_generic">Free trial has ended.</string>
+    <string name="settings_trial_message_with_plus">%1$s • %2$s</string>
+    <string name="btn_directions">Cómo llegar</string>
     <string name="cd_country_filter">Explorar por país</string>
     <string name="clear_country_filter">Borrar filtro de país</string>
     <string name="country_coords_unavailable">Coordenadas no disponibles para %1$s</string>

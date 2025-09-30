@@ -78,9 +78,14 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val hasUsedTrial = currentProfile?.hasUsedFreeTrial == true
     val trialExpired = hasUsedTrial && (freeTrialExpiry == 0L || freeTrialExpiry <= now)
     val shouldForceSubscription = trialExpired && !isPlus && !isPremium
-    val showGlobalBars = !shouldForceSubscription && currentRoute?.startsWith("chat/") == false &&
+    val baseAllowsGlobalBars = currentRoute?.startsWith("chat/") == false &&
             currentRoute != "leaderboard"
-    val showTopBar    = showGlobalBars
+    val showTopBar = !shouldForceSubscription && baseAllowsGlobalBars
+    val showBottomBar = if (shouldForceSubscription) {
+        currentRoute == "settings" || currentRoute?.startsWith("subscription") == true
+    } else {
+        baseAllowsGlobalBars
+    }
     // ───────────────────────────────────────────────────
     val context = LocalContext.current
 
@@ -174,12 +179,15 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
             }
         },
         bottomBar = {
-            if (showGlobalBars) {
+            if (showBottomBar) {
                 BottomNavigationBar(
                     navController = navController,
                     items = items,
                     onItemSelected = { route, alreadySelected ->
-                        if (alreadySelected || shouldForceSubscription) return@BottomNavigationBar
+                        if (alreadySelected) return@BottomNavigationBar
+
+                        val isBlockedByTrial = shouldForceSubscription && route != "settings"
+                        if (isBlockedByTrial) return@BottomNavigationBar
 
                         navController.navigate(route) {
                             launchSingleTop = true
@@ -190,7 +198,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
             }
         }
     ) { innerPadding ->
-        val paddingValues = if (showGlobalBars) innerPadding else PaddingValues(0.dp)
+        val paddingValues = if (showBottomBar) innerPadding else PaddingValues(0.dp)
         MainNavGraph(
             navController = navController,
             modifier = Modifier.padding(paddingValues),

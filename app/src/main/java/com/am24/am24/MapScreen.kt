@@ -277,7 +277,7 @@ fun MapScreen(
     var entryFeePaidAt by remember { mutableStateOf(0L) }
     var entryFeePlusIntroSeen by remember { mutableStateOf(true) }
     var entryFeeOfferExpiry by remember { mutableStateOf(0L) }
-    var entryFeeOfferSeen by remember { mutableStateOf(true) }
+    var entryFeeOfferSeen by remember { mutableStateOf(false) }
     var showEntryFeeWelcomeDialog by remember { mutableStateOf(false) }
     var showEntryFeeDiscountDialog by remember { mutableStateOf(false) }
     val profileViewModel: ProfileViewModel = viewModel()
@@ -349,7 +349,7 @@ fun MapScreen(
         entryFeePaidAt = snap.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
         entryFeePlusIntroSeen = snap.child("entryFeePlusIntroSeen").getValue(Boolean::class.java) ?: true
         entryFeeOfferExpiry = snap.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
-        entryFeeOfferSeen = snap.child("entryFeeOfferSeen").getValue(Boolean::class.java) ?: true
+        entryFeeOfferSeen = snap.child("entryFeeOfferSeen").getValue(Boolean::class.java) ?: false
         val now = System.currentTimeMillis()
         showEntryFeeWelcomeDialog = entryFeePaidAt > 0L && loginPlusExpiry > now && !entryFeePlusIntroSeen
         showEntryFeeDiscountDialog = entryFeeOfferExpiry > now && !entryFeeOfferSeen

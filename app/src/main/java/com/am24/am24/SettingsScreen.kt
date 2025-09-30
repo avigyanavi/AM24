@@ -22,7 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -116,7 +116,9 @@ fun SettingsScreen(navController: NavController) {
     var swipes by remember { mutableStateOf(0) }
     var compliments by remember { mutableStateOf(0) }
     var aiMessages    by remember { mutableStateOf(0) }       // ★ NEW ★
-    var loginStreak   by remember { mutableStateOf(0) }
+    var freeTrialExpiry by remember { mutableStateOf<Long?>(null) }
+    var hasUsedFreeTrial by remember { mutableStateOf(false) }
+    var freeTrialCompleted by remember { mutableStateOf(false) }
     var loginPlusExpiry by remember { mutableStateOf(0L) }
     var entryFeeOfferExpiry by remember { mutableStateOf(0L) }
     var entryFeePaid by remember { mutableStateOf(false) }
@@ -171,6 +173,10 @@ fun SettingsScreen(navController: NavController) {
             entryFeeOfferExpiry = 0L
         }
 
+        hasUsedFreeTrial = s.child("hasUsedFreeTrial").getValue(Boolean::class.java) ?: false
+        freeTrialCompleted = s.child("freeTrialCompleted").getValue(Boolean::class.java) ?: false
+        freeTrialExpiry = s.child("freeTrialExpiry").getValue(Long::class.java)
+
         premiumTier = when {
             premiumFlag -> "Premium"
             plusFlag && !plusExpired -> "Plus"
@@ -208,7 +214,6 @@ fun SettingsScreen(navController: NavController) {
         // ── load the new fields too ──
         country  = s.child("country").getValue(String::class.java) ?: ""
 
-        loginStreak = s.child("loginStreak").getValue(Int::class.java) ?: 0
         loginPlusExpiry = s.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
 
         blocksRef.get().addOnSuccessListener { snap ->
@@ -230,12 +235,39 @@ fun SettingsScreen(navController: NavController) {
             if (premiumTier == "Free") {
                 item {
                     val now = System.currentTimeMillis()
-                    val plusText = if (loginPlusExpiry > now)
+                    val expiryValue = freeTrialExpiry
+                    val trialMessage = when {
+                        !hasUsedFreeTrial && !freeTrialCompleted ->
+                            stringResource(R.string.settings_trial_not_started)
+                        expiryValue != null && expiryValue > now -> {
+                            val daysLeft = max(
+                                1,
+                                ceil((expiryValue - now).toDouble() / TimeUnit.DAYS.toMillis(1)).toInt()
+                            )
+                            val dateLabel = DateFormat.getDateInstance().format(Date(expiryValue))
+                            val daysText = pluralStringResource(
+                                R.plurals.settings_trial_days_left,
+                                daysLeft,
+                                daysLeft
+                            )
+                            stringResource(R.string.settings_trial_active, dateLabel, daysText)
+                        }
+                        expiryValue != null && expiryValue > 0L -> {
+                            val dateLabel = DateFormat.getDateInstance().format(Date(expiryValue))
+                            stringResource(R.string.settings_trial_expired, dateLabel)
+                        }
+                        freeTrialCompleted -> stringResource(R.string.settings_trial_expired_generic)
+                        else -> stringResource(R.string.settings_trial_not_started)
+                    }
+                    val plusSuffix = if (loginPlusExpiry > now)
                         stringResource(R.string.plus_time_left, ((loginPlusExpiry - now) / 3600000).toInt())
-                    else stringResource(R.string.no_plus)
+                    else null
+                    val message = plusSuffix?.let {
+                        stringResource(R.string.settings_trial_message_with_plus, trialMessage, it)
+                    } ?: trialMessage
 
                     Text(
-                        stringResource(R.string.settings_streak_line, loginStreak, plusText),
+                        message,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp),
@@ -264,19 +296,9 @@ fun SettingsScreen(navController: NavController) {
                         SettingsRow(
                             icon  = { Icon(Icons.Default.StarOutline, null) },
                             title = stringResource(R.string.settings_free_user),
-                            trailingText = if (offerActive)
-                                stringResource(R.string.settings_limited_offer_badge)
-                            else stringResource(R.string.upgrade),
+                            trailingText = stringResource(R.string.upgrade),
                             onClick = {
-                                if (offerActive) {
-                                    navController.navigate("entryFeePlus")
-                                } else {
-                                    if (CountryUtil.useRazorpay(ctx, country)) {
-                                        navController.navigate("upgradeLanding")
-                                    } else {
-                                        navController.navigate("subscription")
-                                    }
-                                }
+                                navController.navigate("subscription")
                             }
                         )
                         if (offerActive) {
@@ -287,6 +309,12 @@ fun SettingsScreen(navController: NavController) {
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            TextButton(
+                                onClick = { navController.navigate("entryFeePlus") },
+                                modifier = Modifier.padding(start = 60.dp, bottom = 8.dp)
+                            ) {
+                                Text(stringResource(R.string.settings_view_offer_cta))
+                            }
                         }
 
                         /**  PLUS / PREMIUM  → keep old manage page  */

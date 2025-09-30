@@ -679,6 +679,17 @@
     <string name="btn_send">Send</string>
     <string name="loading_ellipsis">Loading...</string>
     <string name="ok">OK</string>
+    <string name="offer_tab_label">Offer</string>
+    <string name="settings_trial_not_started">Free trial available – activate to unlock Plus.</string>
+    <string name="settings_trial_active">Free trial ends on %1$s • %2$s</string>
+    <plurals name="settings_trial_days_left">
+        <item quantity="one">%d day left</item>
+        <item quantity="other">%d days left</item>
+    </plurals>
+    <string name="settings_trial_expired">Free trial ended on %1$s</string>
+    <string name="settings_trial_expired_generic">Free trial has ended.</string>
+    <string name="settings_trial_message_with_plus">%1$s • %2$s</string>
+    <string name="settings_view_offer_cta">View limited-time offer</string>
     <string name="settings_day_theme">Day theme</string>
     <string name="unknown_place">Unknown Place</string>
     <string name="match_age">Age: %1$d</string>
