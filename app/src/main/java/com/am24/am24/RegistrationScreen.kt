@@ -9,6 +9,7 @@ import android.content.Context
 import android.media.MediaRecorder
 import android.net.Uri
 import android.util.Log
+import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
 import android.content.Intent
@@ -2068,6 +2069,7 @@ fun EnterEmailAndPasswordScreen(
 
     /* ─────────────── EMAIL/PASSWORD local state ────────────────── */
     var email           by remember { mutableStateOf(TextFieldValue(registrationViewModel.email)) }
+    var emailError      by remember { mutableStateOf<String?>(null) }
     var password        by remember { mutableStateOf(TextFieldValue(registrationViewModel.password)) }
     var confirmPassword by remember { mutableStateOf(TextFieldValue("")) }
     var passwordError   by remember { mutableStateOf(false) }
@@ -2302,14 +2304,22 @@ fun EnterEmailAndPasswordScreen(
                 /* ─────────────────── EMAIL TAB ──────────────────── */
                 AuthTab.EMAIL -> {
                     OutlinedTextField(
-                        value = email, onValueChange = {
-                            email = it; registrationViewModel.email = it.text
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            emailError = null
+                            registrationViewModel.email = it.text
                         },
                         label = { Text("Email", color = Color.White) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
+                        isError = emailError != null,
                         colors = fieldColors()
                     )
+                    if (emailError != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(emailError!!, color = Color.Red, fontSize = 12.sp)
+                    }
                     Spacer(Modifier.height(16.dp))
                     /* -------- Password field -------- */
                     OutlinedTextField(
@@ -2374,6 +2384,12 @@ fun EnterEmailAndPasswordScreen(
                             val pwd2 = confirmPassword.text.trim()
 
                             if (mail.isEmpty() || pwd.isEmpty()) return@Button
+                            if (!Patterns.EMAIL_ADDRESS.matcher(mail).matches()) {
+                                val error = ctx.getString(R.string.toast_invalid_email)
+                                emailError = error
+                                Toast.makeText(ctx, error, Toast.LENGTH_LONG).show()
+                                return@Button
+                            }
                             if (pwd != pwd2) { passwordError = true; return@Button }
                             passwordError = false
                             if (botField.text.isNotBlank()) {
@@ -2857,8 +2873,8 @@ suspend fun saveProfileToFirebase(
         val database = FirebaseRefs.db.reference
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val userRef = database.child("users").child(userId)
-        val preservedEntryFeeFields: Map<String, Any> = runCatching {
-            val snapshot = userRef.get().await()
+        val preservedMonetizationFields: Map<String, Any> = runCatching {
+        val snapshot = userRef.get().await()
             val preserved = mutableMapOf<String, Any>()
             snapshot.child("entryFeeOfferExpiry").getValue(Long::class.java)?.let {
                 preserved["entryFeeOfferExpiry"] = it
@@ -2877,6 +2893,18 @@ suspend fun saveProfileToFirebase(
             }
             snapshot.child("loginPlusExpiry").getValue(Long::class.java)?.let {
                 preserved["loginPlusExpiry"] = it
+            }
+            snapshot.child("hasUsedFreeTrial").getValue(Boolean::class.java)?.let {
+                preserved["hasUsedFreeTrial"] = it
+            }
+            snapshot.child("freeTrialStartedAt").getValue(Long::class.java)?.let {
+                preserved["freeTrialStartedAt"] = it
+            }
+            snapshot.child("freeTrialExpiry").getValue(Long::class.java)?.let {
+                preserved["freeTrialExpiry"] = it
+            }
+            snapshot.child("freeTrialCompleted").getValue(Boolean::class.java)?.let {
+                preserved["freeTrialCompleted"] = it
             }
             preserved
         }.getOrElse { emptyMap<String, Any>() }
@@ -3009,8 +3037,8 @@ suspend fun saveProfileToFirebase(
         }
 
         userRef.setValue(profile).await()
-        if (preservedEntryFeeFields.isNotEmpty()) {
-            userRef.updateChildren(preservedEntryFeeFields).await()
+        if (preservedMonetizationFields.isNotEmpty()) {
+            userRef.updateChildren(preservedMonetizationFields).await()
         }
 
         pendingGclid?.takeIf { it.isNotBlank() }?.let { gclid ->

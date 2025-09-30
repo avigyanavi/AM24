@@ -680,6 +680,7 @@
     <string name="loading_ellipsis">Loading...</string>
     <string name="ok">OK</string>
     <string name="offer_tab_label">Offer</string>
+    <string name="toast_invalid_email">Enter a valid email address</string>
     <string name="settings_trial_not_started">Free trial available – activate to unlock Plus.</string>
     <string name="settings_trial_active">Free trial ends on %1$s • %2$s</string>
     <plurals name="settings_trial_days_left">

@@ -394,6 +394,7 @@
     <string name="gender_all">Todos</string>
     <string name="toast_complete_entry_fee">Por favor completa la cuota de entrada para continuar.</string>
     <!-- es -->
+    <string name="toast_invalid_email">Introduce un correo electrónico válido</string>
     <string name="settings_day_theme">Tema diurno</string>
     <string name="settings_limited_offer_message">Desbloquea Plus por un mes con un pago único. La oferta termina en %1$d hr.</string>
     <string name="settings_view_offer_cta">Ver oferta por tiempo limitado</string>

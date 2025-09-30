@@ -22,7 +22,22 @@ object AccountDeletion {
             val postsRef = db.getReference("posts")
             val postsSnap = postsRef.orderByChild("userId").equalTo(uid).get().await()
             for (child in postsSnap.children) {
-                try { child.ref.removeValue().await() } catch (e: Exception) { Log.e(TAG, "Failed to delete post", e) }
+                val mediaUrl = child.child("mediaUrl").getValue(String::class.java)
+                val mediaThumb = child.child("mediaThumb").getValue(String::class.java)
+
+                listOfNotNull(mediaUrl, mediaThumb).forEach { url ->
+                    try {
+                        storage.getReferenceFromUrl(url).delete().await()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to delete storage object: $url", e)
+                    }
+                }
+
+                try {
+                    child.ref.removeValue().await()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to delete post", e)
+                }
             }
 
             // Remove matches and chats

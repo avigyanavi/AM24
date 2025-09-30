@@ -39,7 +39,6 @@ import java.text.DateFormat
 import java.util.Date
 
 private val PLUS_FEATURES = listOf(
-    R.string.feature_no_ads,
     R.string.feature_people_liked_me,
     R.string.feature_picture_voice_posts,
     R.string.feature_50_swipes,

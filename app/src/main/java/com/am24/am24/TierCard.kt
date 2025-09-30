@@ -31,8 +31,6 @@ import com.am24.am24.R
 import com.am24.am24.Tier
 
 private val PLUS_FEATURES = listOf(
-    R.string.feature_no_ads,
-    R.string.feature_priority_profile,
     R.string.feature_people_liked_me,
     R.string.feature_picture_voice_posts,
     R.string.feature_50_swipes,
