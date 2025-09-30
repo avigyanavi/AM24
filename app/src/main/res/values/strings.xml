@@ -679,6 +679,7 @@
     <string name="btn_send">Send</string>
     <string name="loading_ellipsis">Loading...</string>
     <string name="ok">OK</string>
+    <string name="settings_day_theme">Day theme</string>
     <string name="unknown_place">Unknown Place</string>
     <string name="match_age">Age: %1$d</string>
     <string name="match_from">From: %1$s</string>

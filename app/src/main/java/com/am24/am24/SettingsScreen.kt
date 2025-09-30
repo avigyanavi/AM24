@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.am24.am24.ui.theme.ThemeManager
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
@@ -103,6 +104,8 @@ fun SettingsScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
     val user = FirebaseAuth.getInstance().currentUser ?: return
     val uid = user.uid
+
+    val isDarkTheme by ThemeManager.isDarkTheme.collectAsState()
 
     /* Firebase refs */
     val userRef = FirebaseRefs.db.getReference("users").child(uid)
@@ -406,6 +409,8 @@ fun SettingsScreen(navController: NavController) {
                             (ctx as? ComponentActivity)?.recreate()
                         }
                     },
+                    isDarkTheme = isDarkTheme,
+                    onThemeChange = { dark -> ThemeManager.setDarkTheme(ctx, dark) },
                     isPrivate = isPrivate,
                     onPrivateChange = {
                         isPrivate = it
@@ -935,6 +940,8 @@ private fun GlobalPrefCard(
     userRef: com.google.firebase.database.DatabaseReference,
     lang: String,
     onLangChange: (String) -> Unit,
+    isDarkTheme: Boolean,
+    onThemeChange: (Boolean) -> Unit,
     isPrivate: Boolean,
     onPrivateChange: (Boolean) -> Unit,
     allowLoc: Boolean,
@@ -979,6 +986,25 @@ private fun GlobalPrefCard(
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(start = 72.dp, bottom = 12.dp)
         )
+
+        Divider(Modifier.padding(start = 56.dp))
+
+        /* theme */
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.LightMode, null)
+            Spacer(Modifier.width(16.dp))
+            Text(stringResource(R.string.settings_day_theme), Modifier.weight(1f))
+            Switch(
+                checked = !isDarkTheme,
+                onCheckedChange = { enableDay -> onThemeChange(!enableDay) },
+                colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFF6F00))
+            )
+        }
 
         Divider(Modifier.padding(start = 56.dp))
 

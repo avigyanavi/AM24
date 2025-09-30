@@ -3,6 +3,7 @@ package com.am24.am24
 import android.app.Application
 import android.os.Build
 import android.util.Log
+import com.am24.am24.ui.theme.ThemeManager
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
@@ -20,6 +21,8 @@ class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+
+        ThemeManager.initialize(this)
 
 // ───────── Facebook: Explicit init ─────────
         FacebookSdk.setApplicationId("606416195185970")

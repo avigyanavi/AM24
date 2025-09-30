@@ -394,6 +394,7 @@
     <string name="gender_all">Todos</string>
     <string name="toast_complete_entry_fee">Por favor completa la cuota de entrada para continuar.</string>
     <!-- es -->
+    <string name="settings_day_theme">Tema diurno</string>
     <string name="cd_country_filter">Explorar por país</string>
     <string name="clear_country_filter">Borrar filtro de país</string>
     <string name="country_coords_unavailable">Coordenadas no disponibles para %1$s</string>

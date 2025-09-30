@@ -408,11 +408,7 @@ fun DatingScreen(
                         if (complimentsLeft > 0) {
                             showComplimentDlg = true
                         } else {
-                            if (isIndian) {
-                                navController.navigate("buyCompliments")
-                            } else {
-                                navController.navigate("subscription?allowIfSubscribed=true&force=false")
-                            }
+                            navController.navigate("buyCompliments")
                         }
                     },
                     onSwipeRight     = {
@@ -442,11 +438,7 @@ fun DatingScreen(
                     isPremium = myProfile!!.isPremium,
                     isIndian = isIndian,
                     onUpgrade = {
-                        if (isIndian) {
-                            navController.navigate("buySwipes")
-                        } else {
-                            navController.navigate("subscription?allowIfSubscribed=true&force=false")
-                        }
+                        navController.navigate("buySwipes")
                         showSwipeLimitOverlay = false
                     }
                 )
