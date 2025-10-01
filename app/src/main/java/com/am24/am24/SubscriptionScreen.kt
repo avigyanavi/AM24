@@ -4,6 +4,7 @@ package com.am24.am24
 
 /* Android & Compose */
 import android.app.Activity
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -126,12 +127,33 @@ private val ONE_TIME_OFFERS = listOf(
     ),
 )
 
-private fun OneTimeOffer.displayPrice(isIndia: Boolean, isMexico: Boolean): String {
-    return when {
-        isIndia -> "₹${inrPrice} one-time"
-        isMexico -> "MXN${formatPrice(mxnPrice)} one-time"
-        else -> "$${formatPrice(usdPrice)} one-time"
-    }
+private fun OneTimeOffer.displayPrice(context: Context, isIndia: Boolean, isMexico: Boolean): String = when {
+    isIndia -> context.getString(R.string.subscription_one_time_price_inr, inrPrice)
+    isMexico -> context.getString(
+        R.string.subscription_one_time_price_mxn,
+        formatPrice(mxnPrice)
+    )
+    else -> context.getString(
+        R.string.subscription_one_time_price_usd,
+        formatPrice(usdPrice)
+    )
+}
+
+private fun periodLabelRes(period: Period): Int = when (period) {
+    Period.WEEK -> R.string.subscription_period_weekly
+    Period.MONTH -> R.string.subscription_period_monthly
+    Period.YEAR -> R.string.subscription_period_yearly
+}
+
+private fun periodDurationRes(period: Period): Int = when (period) {
+    Period.WEEK -> R.string.subscription_duration_week
+    Period.MONTH -> R.string.subscription_duration_month
+    Period.YEAR -> R.string.subscription_duration_year
+}
+
+private fun tierLabelRes(tier: Tier): Int = when (tier) {
+    Tier.PLUS -> R.string.subscription_tier_plus
+    Tier.PREMIUM -> R.string.subscription_tier_premium
 }
 
 private fun formatPrice(value: Double): String = String.format(Locale.US, "%.2f", value)
@@ -170,6 +192,7 @@ fun SubscriptionScreen(
 
     /* geo-gate exactly like before */
     val ctx = LocalContext.current
+    val locale = Locale.getDefault()
 
     BackHandler(enabled = forceSubscription) {}
     LaunchedEffect(toastMessage) {
@@ -255,7 +278,7 @@ fun SubscriptionScreen(
             /* ② open native checkout for first charge */
             val opts = JSONObject().apply {
                 put("subscription_id", subId)
-                put("name", "AM24")
+                put("name", "Kupidx")
                 put("description", "${plan.price} ₹ / ${plan.period.label.lowercase()}")
                 put("prefill", JSONObject().apply {        // nice to have
                     put("email", FirebaseAuth.getInstance().currentUser?.email)
@@ -263,7 +286,11 @@ fun SubscriptionScreen(
             }
             co.open(ctx as Activity, opts)
         } catch (e: Exception) {
-            Toast.makeText(ctx, e.message ?: "Something went wrong", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                ctx,
+                e.message ?: ctx.getString(R.string.toast_unknown_error),
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
     fun handlePlan(plan: Plan) {
@@ -289,7 +316,11 @@ fun SubscriptionScreen(
             ui = UiState(isProcessing = true, selectedPlanId = offer.sku)
             BillingManager.launchBillingFlow(act, pd, obfuscatedAccountId = uid)
         } else {
-            Toast.makeText(ctx, "Product unavailable. Try again later.", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                ctx,
+                ctx.getString(R.string.subscription_product_unavailable),
+                Toast.LENGTH_LONG
+            ).show()
             ui = UiState()
         }
     }
@@ -300,7 +331,11 @@ fun SubscriptionScreen(
             onSuccess = { _ ->
                 val sid = pendingSubId
                 if (sid == null) {
-                    Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        ctx,
+                        ctx.getString(R.string.subscription_activated),
+                        Toast.LENGTH_LONG
+                    ).show()
                     pendingSubId = null
                     ui = UiState()
                     navController.navigate("settings") {
@@ -313,9 +348,17 @@ fun SubscriptionScreen(
                         fx.getHttpsCallable("verifyKupidxSubscription")
                             .call(mapOf("subscriptionId" to sid))
                             .await()
-                        Toast.makeText(ctx, "Subscription activated!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            ctx,
+                            ctx.getString(R.string.subscription_activated),
+                            Toast.LENGTH_LONG
+                        ).show()
                     } catch (e: Exception) {
-                        Toast.makeText(ctx, "Verification failed", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            ctx,
+                            ctx.getString(R.string.subscription_verification_failed),
+                            Toast.LENGTH_LONG
+                        ).show()
                     } finally {
                         pendingSubId = null
                         ui = UiState()
@@ -371,8 +414,12 @@ fun SubscriptionScreen(
             .background(Color(0xFF121212))
             .padding(16.dp)
     ) {
-        Text("Upgrade your experience",
-            fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Bold)
+        Text(
+            stringResource(R.string.subscription_upgrade_title),
+            fontSize = 24.sp,
+            color = Color.White,
+            fontWeight = FontWeight.Bold
+        )
 
         Spacer(Modifier.height(24.dp))
 
@@ -385,10 +432,11 @@ fun SubscriptionScreen(
         ) {
             availablePeriods.forEach { p ->
                 val selected = p == currentPeriod
+                val periodLabel = stringResource(periodLabelRes(p))
                 Tab(
                     selected = selected,
                     onClick  = { currentPeriod = p },
-                    text     = { Text(p.label,
+                    text     = { Text(periodLabel,
                         color = if (selected) Color.White else Color.LightGray) }
                 )
             }
@@ -422,15 +470,28 @@ fun SubscriptionScreen(
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text(
-                                plan.tier.name.lowercase().replaceFirstChar(Char::uppercase),
+                                stringResource(tierLabelRes(plan.tier)),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White
                             )
+                            val periodLabelLower = stringResource(periodLabelRes(plan.period)).lowercase(locale)
                             val priceLabel = when {
-                                isIndiaUser -> "₹${plan.price} / ${plan.period.label.lowercase()}"
-                                isMexico -> "MXN${mxnPrice(plan)} / ${plan.period.label.lowercase()}"
-                                else -> "$${usdPrice(plan)} / ${plan.period.label.lowercase()}"
+                                isIndiaUser -> stringResource(
+                                    R.string.subscription_price_label_inr,
+                                    plan.price,
+                                    periodLabelLower
+                                )
+                                isMexico -> stringResource(
+                                    R.string.subscription_price_label_mxn,
+                                    formatPrice(mxnPrice(plan)),
+                                    periodLabelLower
+                                )
+                                else -> stringResource(
+                                    R.string.subscription_price_label_usd,
+                                    formatPrice(usdPrice(plan)),
+                                    periodLabelLower
+                                )
                             }
                             Text(priceLabel, color = Color.LightGray, fontSize = 14.sp)
                             Spacer(Modifier.height(8.dp))
@@ -458,7 +519,7 @@ fun SubscriptionScreen(
                                     modifier = Modifier.size(18.dp)
                                 )
                             else
-                                Text("Choose", color = Color.White)
+                                Text(stringResource(R.string.subscription_choose_button), color = Color.White)
                         }
                     }
                 }
@@ -495,23 +556,19 @@ fun SubscriptionScreen(
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    offer.tier.name.lowercase().replaceFirstChar(Char::uppercase),
+                                    stringResource(tierLabelRes(offer.tier)),
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color.White
                                 )
                                 Text(
-                                    offer.displayPrice(isIndiaUser, isMexico),
+                                    offer.displayPrice(ctx, isIndiaUser, isMexico),
                                     color = Color.LightGray,
                                     fontSize = 14.sp
                                 )
-                                val durationLabel = when (offer.period) {
-                                    Period.WEEK -> "1 week"
-                                    Period.MONTH -> "1 month"
-                                    Period.YEAR -> "1 year"
-                                }
+                                val durationLabel = stringResource(periodDurationRes(offer.period))
                                 Text(
-                                    "One-time • $durationLabel",
+                                    stringResource(R.string.subscription_one_time_label, durationLabel),
                                     color = Color.LightGray,
                                     fontSize = 12.sp,
                                     modifier = Modifier.padding(vertical = 4.dp)
@@ -541,8 +598,8 @@ fun SubscriptionScreen(
                                         strokeWidth = 2.dp,
                                         modifier = Modifier.size(18.dp)
                                     )
-                                    !productAvailable -> Text("Loading...", color = Color.White)
-                                    else -> Text("Buy", color = Color.White)
+                                    !productAvailable -> Text(stringResource(R.string.subscription_loading), color = Color.White)
+                                    else -> Text(stringResource(R.string.subscription_buy_button), color = Color.White)
                                 }
                             }
                         }
@@ -553,7 +610,9 @@ fun SubscriptionScreen(
         Spacer(Modifier.height(24.dp))
         if (!forceSubscription) {
             TextButton(onClick = { navController.popBackStack() }) {
-                Text("Not now", color =             Color(0xFFFF6F00)          // ← Kupidx orange
+                Text(
+                    stringResource(R.string.subscription_not_now),
+                    color =             Color(0xFFFF6F00)
                 )
             }
         }

@@ -1122,7 +1122,9 @@ fun LifestyleSlider(
         )
         // Display the corresponding noun or "Not Selected"
         Text(
-            text = if (adjustedValue == -1) stringResource(R.string.not_selected) else nouns.getOrElse(adjustedValue) { "Unknown" },
+            text = if (adjustedValue == -1) stringResource(R.string.not_selected) else nouns.getOrElse(adjustedValue) {
+                stringResource(R.string.unknown_value)
+            },
             color = Color.Gray,
             fontSize = 14.sp,
             modifier = Modifier.padding(bottom = 8.dp)
@@ -2036,7 +2038,7 @@ fun EnterEmailAndPasswordScreen(
                     emailError = null
                     registrationViewModel.email = it.text
                 },
-                label = { Text("Email", color = Color.White) },
+                label = { Text(stringResource(R.string.email_label), color = Color.White) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 isError = emailError != null,
@@ -2055,7 +2057,7 @@ fun EnterEmailAndPasswordScreen(
                     password = it
                     registrationViewModel.password = it.text
                 },
-                label = { Text("Password", color = Color.White) },
+                label = { Text(stringResource(R.string.password_label), color = Color.White) },
                 singleLine = true,
                 visualTransformation =
                     if (pwdVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -2072,7 +2074,7 @@ fun EnterEmailAndPasswordScreen(
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
-                label = { Text("Confirm password", color = Color.White) },
+                label = { Text(stringResource(R.string.confirm_password_label), color = Color.White) },
                 singleLine = true,
                 visualTransformation =
                     if (confirmPwdVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -2087,7 +2089,7 @@ fun EnterEmailAndPasswordScreen(
                 colors  = fieldColors()
             )
             if (passwordError) {
-                Text("Passwords don’t match", color = Color.Red)
+                Text(stringResource(R.string.password_mismatch_error), color = Color.Red)
             }
             OutlinedTextField(
                 value = botField,
@@ -2145,7 +2147,7 @@ fun EnterEmailAndPasswordScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
                 shape  = CircleShape
             ) {
-                Text("Next", color = Color.White)
+                Text(stringResource(R.string.next_button), color = Color.White)
             }
         }
     }

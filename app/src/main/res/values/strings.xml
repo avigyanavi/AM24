@@ -593,7 +593,33 @@
     <string name="paywall_trial_active_message">Your free trial is active until %1$s.</string>
     <string name="paywall_trial_ended_message">Your free trial has ended. Subscribe to keep your access.</string>
     <string name="paywall_trial_error">Could not start your free trial. Please try again.</string>
-
+    <string name="cd_delete_voice">Delete voice</string>
+    <string name="unknown_value">Unknown</string>
+    <string name="registration_progress_completed">%1$d%% completed</string>
+    <string name="subscription_upgrade_title">Upgrade your experience</string>
+    <string name="subscription_product_unavailable">Product unavailable. Try again later.</string>
+    <string name="subscription_activated">Subscription activated!</string>
+    <string name="subscription_verification_failed">Verification failed</string>
+    <string name="subscription_choose_button">Choose</string>
+    <string name="subscription_buy_button">Buy</string>
+    <string name="subscription_loading">Loading...</string>
+    <string name="subscription_not_now">Not now</string>
+    <string name="subscription_period_weekly">Weekly</string>
+    <string name="subscription_period_monthly">Monthly</string>
+    <string name="subscription_period_yearly">Yearly</string>
+    <string name="subscription_duration_week">1 week</string>
+    <string name="subscription_duration_month">1 month</string>
+    <string name="subscription_duration_year">1 year</string>
+    <string name="subscription_one_time_label">One-time • %1$s</string>
+    <string name="subscription_price_label_inr">₹%1$d / %2$s</string>
+    <string name="subscription_price_label_mxn">MXN%1$s / %2$s</string>
+    <string name="subscription_price_label_usd">$%1$s / %2$s</string>
+    <string name="subscription_tier_plus">Plus</string>
+    <string name="subscription_tier_premium">Premium</string>
+    <string name="subscription_one_time_price_inr">₹%1$d one-time</string>
+    <string name="subscription_one_time_price_mxn">MXN%1$s one-time</string>
+    <string name="subscription_one_time_price_usd">$%1$s one-time</string>
+    <string name="subscription_checkout_description">%1$d ₹ / %2$s</string>
 
     <!-- Place popup & sending -->
     <!-- values/strings.xml (en) — ChatScreen additions -->
