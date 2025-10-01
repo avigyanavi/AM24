@@ -505,8 +505,13 @@ fun SubscriptionScreen(
                                     color = Color.LightGray,
                                     fontSize = 14.sp
                                 )
+                                val durationLabel = when (offer.period) {
+                                    Period.WEEK -> "1 week"
+                                    Period.MONTH -> "1 month"
+                                    Period.YEAR -> "1 year"
+                                }
                                 Text(
-                                    "One-time • ${offer.period.label.lowercase(Locale.ROOT)}",
+                                    "One-time • $durationLabel",
                                     color = Color.LightGray,
                                     fontSize = 12.sp,
                                     modifier = Modifier.padding(vertical = 4.dp)
