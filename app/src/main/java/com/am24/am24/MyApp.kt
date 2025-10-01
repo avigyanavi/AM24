@@ -64,9 +64,17 @@ class MyApp : Application() {
 
         // ───────── Play Billing: INAPP packs + SUBS ─────────
         val packQuantities = listOf(5, 10, 20)
+        val oneTimePlusPremium = listOf(
+            "kupidx_plus_one_month",
+            "kupidx_plus_one_year",
+            "kupidx_premium_one_month",
+            "kupidx_premium_one_year",
+        )
+
         val inappIds = PurchaseType.values()
             .flatMap { t -> packQuantities.map { q -> t.skuFor(q) } }
             .plus("entry_fee")
+            .plus(oneTimePlusPremium)
         val subsIds = listOf("plus", "premium")
 
         if (!BuildConfig.DEBUG && !isEmulator()) {

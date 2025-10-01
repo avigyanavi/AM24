@@ -38,6 +38,18 @@ object BillingManager : PurchasesUpdatedListener {
     private val plusIds    = setOf("plus", "plus-monthly", "plus-annual")
     private val premiumIds = setOf("premium", "premium-monthly", "premium-annual")
 
+    private val plusSubIds = setOf("plus", "plus-monthly", "plus-annual")
+    private val premiumSubIds = setOf("premium", "premium-monthly", "premium-annual")
+
+    private val plusOneTimeIds = setOf("kupidx_plus_one_month", "kupidx_plus_one_year")
+    private val premiumOneTimeIds = setOf("kupidx_premium_one_month", "kupidx_premium_one_year")
+    private val oneTimeDurations = mapOf(
+        "kupidx_plus_one_month" to TimeUnit.DAYS.toMillis(30),
+        "kupidx_plus_one_year" to TimeUnit.DAYS.toMillis(365),
+        "kupidx_premium_one_month" to TimeUnit.DAYS.toMillis(30),
+        "kupidx_premium_one_year" to TimeUnit.DAYS.toMillis(365),
+    )
+
     private val functions = FirebaseFunctions.getInstance("asia-south1")
 
     // INAPP product details
@@ -324,23 +336,53 @@ object BillingManager : PurchasesUpdatedListener {
 
 
     private fun applyEntitlementsFrom(all: List<Purchase>) {
-        val activeSubProductIds = all
-            .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+        val purchased = all.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+
+        val activeSubProductIds = purchased
             .flatMap { it.products }
             .toSet()
 
-        val isPlusSub = activeSubProductIds.any { it in plusIds }
-        val isPremium = activeSubProductIds.any { it in premiumIds }
-        val hasEntryFeePurchase = all.any {
-            it.purchaseState == Purchase.PurchaseState.PURCHASED &&
-                    it.products.contains("entry_fee")
+        val isPlusSub = activeSubProductIds.any { it in plusSubIds }
+        val isPremiumSub = activeSubProductIds.any { it in premiumSubIds }
+
+        val oneTimeExpiries = purchased.mapNotNull { purchase ->
+            val productId = purchase.products.firstOrNull { oneTimeDurations.containsKey(it) }
+            val duration = productId?.let { oneTimeDurations[it] }
+            if (productId == null || duration == null) return@mapNotNull null
+            productId to (purchase.purchaseTime + duration)
         }
+
+        val plusOneTimeExpiry = oneTimeExpiries
+            .filter { plusOneTimeIds.contains(it.first) }
+            .maxOfOrNull { it.second }
+
+        val premiumOneTimeExpiry = oneTimeExpiries
+            .filter { premiumOneTimeIds.contains(it.first) }
+            .maxOfOrNull { it.second }
+
+        val now = System.currentTimeMillis()
+        val hasPlusOneTime = plusOneTimeExpiry != null && plusOneTimeExpiry > now
+        val hasPremiumOneTime = premiumOneTimeExpiry != null && premiumOneTimeExpiry > now
+
+        val hasEntryFeePurchase = purchased.any { it.products.contains("entry_fee") }
+
+        val nextRenewal = listOfNotNull(
+            plusOneTimeExpiry?.takeIf { it > now },
+            premiumOneTimeExpiry?.takeIf { it > now },
+        ).maxOrNull()
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val userRef = FirebaseDatabase.getInstance().reference.child("users/$uid")
 
+        val premiumActiveFromPurchases = isPremiumSub || hasPremiumOneTime
+
         if (hasEntryFeePurchase) {
-            applyTierEntitlements(userRef, plus = true, premium = isPremium)
+            applyTierEntitlements(
+                userRef,
+                plus = true,
+                premium = premiumActiveFromPurchases,
+                nextRenewal = nextRenewal,
+            )
             return
         }
         userRef.get()
@@ -351,7 +393,6 @@ object BillingManager : PurchasesUpdatedListener {
                     snapshot.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
                 val rewardExpiry =
                     snapshot.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
-                val now = System.currentTimeMillis()
                 val rewardActive = rewardExpiry > now
                 val entryFeeExpiry = if (entryFeePaidAt > 0L) {
                     entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
@@ -360,18 +401,33 @@ object BillingManager : PurchasesUpdatedListener {
                 if (entryFeePaid && !entryFeeActive && entryFeeExpiry > 0L && entryFeeExpiry <= now) {
                     userRef.child("isEntryFeePaid").setValue(false)
                 }
-                val finalPlus = isPlusSub || rewardActive || entryFeeActive
-                applyTierEntitlements(userRef, plus = finalPlus, premium = isPremium)
+                val finalPlus =
+                    isPlusSub || rewardActive || entryFeeActive || hasPlusOneTime || hasPremiumOneTime
+                val finalPremium = premiumActiveFromPurchases
+                applyTierEntitlements(
+                    userRef,
+                    plus = finalPlus,
+                    premium = finalPremium,
+                    nextRenewal = nextRenewal,
+                )
             }
             .addOnFailureListener {
-                applyTierEntitlements(userRef, plus = isPlusSub, premium = isPremium)
+                val finalPlus = isPlusSub || hasPlusOneTime || hasPremiumOneTime
+                val finalPremium = premiumActiveFromPurchases
+                applyTierEntitlements(
+                    userRef,
+                    plus = finalPlus,
+                    premium = finalPremium,
+                    nextRenewal = nextRenewal,
+                )
             }
     }
 
     private fun applyTierEntitlements(
         userRef: DatabaseReference,
         plus: Boolean,
-        premium: Boolean
+        premium: Boolean,
+        nextRenewal: Long? = null,
     ) {
         val updates = mutableMapOf<String, Any>(
             "isPlus" to plus,
@@ -384,6 +440,7 @@ object BillingManager : PurchasesUpdatedListener {
             updates["availableCompliments"] = if (premium) 5 else 3
             if (premium) updates["availableAiMessages"] = 2
         }
+        updates["nextRenewal"] = nextRenewal ?: 0L
         userRef.updateChildren(updates)
     }
 

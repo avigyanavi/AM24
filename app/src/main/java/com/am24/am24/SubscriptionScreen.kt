@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
 import com.am24.am24.ui.purchase.PaymentResultListenerHost
+import java.util.Locale
 
 private val PLUS_FEATURES = listOf(
     R.string.feature_no_ads,
@@ -71,6 +72,14 @@ private data class Plan(
     val price: Int,          // in rupees
     val razorpayId: String
 )
+private data class OneTimeOffer(
+    val sku: String,
+    val period: Period,
+    val tier: Tier,
+    val usdPrice: Double,
+    val mxnPrice: Double,
+    val inrPrice: Int,
+)
 
 /* all 6 plans */
 private val PLANS = listOf(
@@ -81,6 +90,51 @@ private val PLANS = listOf(
     Plan(Period.YEAR,  Tier.PLUS,    299, PLAN_ID_YEAR_PLUS),
     Plan(Period.YEAR,  Tier.PREMIUM, 999, PLAN_ID_YEAR_PREMIUM),
 )
+
+private val ONE_TIME_OFFERS = listOf(
+    OneTimeOffer(
+        sku = "kupidx_plus_one_month",
+        period = Period.MONTH,
+        tier = Tier.PLUS,
+        usdPrice = 0.49,
+        mxnPrice = 6.99,
+        inrPrice = 29,
+    ),
+    OneTimeOffer(
+        sku = "kupidx_plus_one_year",
+        period = Period.YEAR,
+        tier = Tier.PLUS,
+        usdPrice = 3.49,
+        mxnPrice = 69.00,
+        inrPrice = 299,
+    ),
+    OneTimeOffer(
+        sku = "kupidx_premium_one_month",
+        period = Period.MONTH,
+        tier = Tier.PREMIUM,
+        usdPrice = 0.99,
+        mxnPrice = 24.00,
+        inrPrice = 99,
+    ),
+    OneTimeOffer(
+        sku = "kupidx_premium_one_year",
+        period = Period.YEAR,
+        tier = Tier.PREMIUM,
+        usdPrice = 10.99,
+        mxnPrice = 239.00,
+        inrPrice = 999,
+    ),
+)
+
+private fun OneTimeOffer.displayPrice(isIndia: Boolean, isMexico: Boolean): String {
+    return when {
+        isIndia -> "₹${inrPrice} one-time"
+        isMexico -> "MXN${formatPrice(mxnPrice)} one-time"
+        else -> "$${formatPrice(usdPrice)} one-time"
+    }
+}
+
+private fun formatPrice(value: Double): String = String.format(Locale.US, "%.2f", value)
 
 private fun planToSlug(plan: Plan): String = when {
     plan.tier == Tier.PLUS    && plan.period == Period.MONTH -> "plus-monthly"
@@ -150,7 +204,8 @@ fun SubscriptionScreen(
     var ui by remember { mutableStateOf(UiState()) }
     var pendingSubId by remember { mutableStateOf<String?>(null) }
     val subs by BillingManager.subsProducts.collectAsState()
-
+    val products by BillingManager.products.collectAsState()
+    val productDetailsById = remember(products) { products.associateBy { it.productId } }
 
     /* real-time flags to hide the screen if user already subscribed */
     var plus    by remember { mutableStateOf<Boolean?>(null) }
@@ -224,6 +279,17 @@ fun SubscriptionScreen(
         if (pd != null) {
             BillingManager.launchSubsFlow(act, pd, basePlanId = slug, obfuscatedAccountId = uid)
         } else {
+            ui = UiState()
+        }
+    }
+
+    fun handleOneTime(offer: OneTimeOffer) {
+        val pd = productDetailsById[offer.sku]
+        if (pd != null) {
+            ui = UiState(isProcessing = true, selectedPlanId = offer.sku)
+            BillingManager.launchBillingFlow(act, pd, obfuscatedAccountId = uid)
+        } else {
+            Toast.makeText(ctx, "Product unavailable. Try again later.", Toast.LENGTH_LONG).show()
             ui = UiState()
         }
     }
@@ -397,6 +463,87 @@ fun SubscriptionScreen(
                     }
                 }
             }
+
+        if (!useRazorpay) {
+            ONE_TIME_OFFERS
+                .filter { it.period == currentPeriod }
+                .forEach { offer ->
+                    val productAvailable = productDetailsById[offer.sku] != null
+                    val processing = ui.isProcessing && ui.selectedPlanId == offer.sku
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clickable(
+                                enabled = !ui.isProcessing && productAvailable
+                            ) {
+                                if (!ui.isProcessing && productAvailable) {
+                                    handleOneTime(offer)
+                                }
+                            },
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (offer.tier == Tier.PREMIUM)
+                                Color(0xFFFF6F00)
+                            else Color(0xFF1E1E1E)
+                        )
+                    ) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    offer.tier.name.lowercase().replaceFirstChar(Char::uppercase),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    offer.displayPrice(isIndiaUser, isMexico),
+                                    color = Color.LightGray,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    "One-time • ${offer.period.label.lowercase(Locale.ROOT)}",
+                                    color = Color.LightGray,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                                val features =
+                                    if (offer.tier == Tier.PREMIUM) PREMIUM_FEATURES else PLUS_FEATURES
+                                features.forEach { bulletResId ->
+                                    Text(
+                                        text = "• ${stringResource(bulletResId)}",
+                                        color = Color.LightGray,
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.padding(vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Button(
+                                onClick = {
+                                    if (!ui.isProcessing && productAvailable) {
+                                        handleOneTime(offer)
+                                    }
+                                },
+                                enabled = !ui.isProcessing && productAvailable
+                            ) {
+                                when {
+                                    processing -> CircularProgressIndicator(
+                                        color = Color.White,
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    !productAvailable -> Text("Loading...", color = Color.White)
+                                    else -> Text("Buy", color = Color.White)
+                                }
+                            }
+                        }
+                    }
+                }
+        }
 
         Spacer(Modifier.height(24.dp))
         if (!forceSubscription) {
