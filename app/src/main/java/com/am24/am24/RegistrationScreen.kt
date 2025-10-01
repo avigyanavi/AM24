@@ -56,7 +56,6 @@ import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -87,7 +86,6 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
-import com.google.firebase.FirebaseException
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
@@ -102,12 +100,8 @@ import java.io.File
 import java.io.IOException
 import java.util.Calendar
 import java.util.Locale
-import com.google.firebase.auth.PhoneAuthProvider
-import com.google.firebase.auth.PhoneAuthOptions
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
-import com.google.firebase.auth.PhoneAuthCredential
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 class RegistrationActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
@@ -115,13 +109,6 @@ class RegistrationActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val deviceAllowsPhone = CountryUtil.isProbablyInIndia(this)
-        val allowPhoneAuthState = mutableStateOf(false)
-
-        lifecycleScope.launch {
-            val remoteEnabled = PhoneAuthGatekeeper.isPhoneAuthEnabled()
-            allowPhoneAuthState.value = deviceAllowsPhone && remoteEnabled
-        }
 
         auth = FirebaseAuth.getInstance()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -145,7 +132,6 @@ class RegistrationActivity : ComponentActivity() {
                             GclidStorageManager.getPendingGclid(this@RegistrationActivity)
                     }
                 }
-                val allowPhoneAuth = allowPhoneAuthState.value
 
                 RegistrationScreen(
                     onRegistrationComplete = {
@@ -154,8 +140,7 @@ class RegistrationActivity : ComponentActivity() {
                             saveProfileToFirebase(
                                 this@RegistrationActivity,
                                 registrationViewModel,
-                                getString(R.string.college_other),
-                                allowPhoneAuth
+                                getString(R.string.college_other)
                                 ) {
                                 // ② only once that’s done, mirror under /publicUsers/{username}
                                 val auth = FirebaseAuth.getInstance()
@@ -187,7 +172,6 @@ class RegistrationActivity : ComponentActivity() {
                             }
                         }
                     },
-                    allowPhoneAuth   = allowPhoneAuth,
                     fusedLocationClient = fusedLocationClient,
                     initialStep = initialStep
                 )
@@ -205,31 +189,6 @@ class RegistrationActivity : ComponentActivity() {
     }
 }
 
-suspend fun claimPhoneNumber(
-    db: DatabaseReference,
-    e164: String,      // “+919876543210”
-    uid: String
-): Boolean = suspendCancellableCoroutine { cont ->
-    db.child("phoneNumbers").child(e164)
-        .runTransaction(object : Transaction.Handler {
-            override fun doTransaction(current: MutableData): Transaction.Result {
-                return if (current.value == null) {
-                    current.value = uid                 // reserve it
-                    Transaction.success(current)
-                } else {
-                    Transaction.abort()                 // someone else has it
-                }
-            }
-            override fun onComplete(
-                error: DatabaseError?,
-                committed: Boolean,
-                snapshot: DataSnapshot?
-            ) {
-                cont.resume(committed) {}               // true = success
-            }
-        })
-}
-
 private fun saveStep(step: Int) {
     FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
         FirebaseRefs.db.reference.child("users/$uid/registrationStep")
@@ -243,7 +202,6 @@ class RegistrationViewModel : ViewModel() {
     var selectedLanguage by mutableStateOf("en") // Options: "en", "bn", "hi"
     var city by mutableStateOf("")
     var customCity by mutableStateOf("")
-    var phoneNumber by mutableStateOf("")   // <── add this line
     var gclid by mutableStateOf<String?>(null)
     // RegistrationViewModel
     var country       by mutableStateOf("")
@@ -380,7 +338,6 @@ class RegistrationViewModel : ViewModel() {
 @Composable
 fun RegistrationScreen(
     onRegistrationComplete: () -> Unit,
-    allowPhoneAuth: Boolean,
     fusedLocationClient: FusedLocationProviderClient,
     initialStep: Int
 ) {
@@ -525,7 +482,7 @@ fun RegistrationScreen(
                  )
                 Spacer(modifier = Modifier.height(16.dp))
                 when (currentStep) {
-                    1 -> EnterEmailAndPasswordScreen(registrationViewModel, allowPhoneAuth, onNext, onBack)
+                    1 -> EnterEmailAndPasswordScreen(registrationViewModel, onNext)
                     2 -> EnterGenderCommunityReligionScreen(registrationViewModel, onNext)   // now includes DOB
                     3 -> UploadMediaComposable(registrationViewModel, onNext, onBack)
                     4 -> EnterBirthdateCityHometownScreen(registrationViewModel, onNext, fusedLocationClient)
@@ -2039,166 +1996,28 @@ fun SearchableDropdownWithCustomOption(
     }
 }
 
-
-// ─── replace your old EnterEmailAndPasswordScreen with this ───
-enum class AuthTab { PHONE, EMAIL }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnterEmailAndPasswordScreen(
     registrationViewModel: RegistrationViewModel,
-    allowPhoneAuth: Boolean,          // ← NEW
     onNext: () -> Unit,
-    onBack: () -> Unit
 ) {
-    /* ───────────────────────── TAB STATE ───────────────────────── */
-    var selectedTab by remember(allowPhoneAuth) {
-        mutableStateOf(
-            if (allowPhoneAuth) AuthTab.PHONE else AuthTab.EMAIL
-        )
-    }
-    /* When we build the TabRow we only include PHONE if allowed */
-    val visibleTabs = if (allowPhoneAuth)
-        listOf(AuthTab.PHONE, AuthTab.EMAIL) else listOf(AuthTab.EMAIL)
+    LaunchedEffect(Unit) { registrationViewModel.nextEnabled = false }
 
-    LaunchedEffect(visibleTabs) {
-        if (!visibleTabs.contains(selectedTab)) {
-            selectedTab = visibleTabs.first()
-        }
-    }
-
-    /* ─────────────── EMAIL/PASSWORD local state ────────────────── */
     var email           by remember { mutableStateOf(TextFieldValue(registrationViewModel.email)) }
     var emailError      by remember { mutableStateOf<String?>(null) }
     var password        by remember { mutableStateOf(TextFieldValue(registrationViewModel.password)) }
     var confirmPassword by remember { mutableStateOf(TextFieldValue("")) }
     var passwordError   by remember { mutableStateOf(false) }
     var botField        by remember { mutableStateOf(TextFieldValue(registrationViewModel.honeypot)) }
-    /* ───── visibility toggles ───── */
     var pwdVisible        by remember { mutableStateOf(false) }
     var confirmPwdVisible by remember { mutableStateOf(false) }
+    var isSubmitting      by remember { mutableStateOf(false) }
 
-
-    /* ─────────────── PHONE/OTP local state ─────────────────────── */
-    var phoneNumber        by remember { mutableStateOf(TextFieldValue("")) }
-    var resendToken        by remember { mutableStateOf<PhoneAuthProvider.ForceResendingToken?>(null) } // NEW
-    var otpCode            by remember { mutableStateOf(TextFieldValue("")) }
-    var verificationId     by remember { mutableStateOf<String?>(null) }
-    var otpSent            by remember { mutableStateOf(false) }
-    var cooldownSeconds    by remember { mutableStateOf(0) }           // NEW
-    var isSubmitting       by remember { mutableStateOf(false) }
-
-    val ctx   = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val auth  = FirebaseAuth.getInstance()
-
-    /* ───────────────── Firebase helpers ────────────────────────── */
-    fun startPhoneVerification(number: String) {
-        Log.d("OTP", "Starting verification for: $number")
-        val options = PhoneAuthOptions.newBuilder(auth)
-            .setPhoneNumber(number)
-            .setTimeout(60L, TimeUnit.SECONDS)
-            .setActivity(ctx as ComponentActivity)
-            .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                override fun onVerificationCompleted(cred: PhoneAuthCredential) {
-                    Log.d("OTP", "Verification completed automatically")
-                    auth.signInWithCredential(cred).addOnSuccessListener { onNext() }
-                }
-                override fun onVerificationFailed(e: FirebaseException) {
-                    Log.e("OTP", "Verification failed", e)
-                    val reason = e.message ?: ctx.getString(R.string.toast_unknown_error)
-                    Toast.makeText(
-                        ctx,
-                        ctx.getString(R.string.toast_otp_failed, reason),
-                        Toast.LENGTH_LONG
-                    ).show()
-                    isSubmitting = false
-                }
-                override fun onCodeSent(id: String, token: PhoneAuthProvider.ForceResendingToken) {
-                    Log.d("OTP", "Code sent successfully, verificationId: $id")
-                    verificationId = id
-                    resendToken = token
-                    otpSent = true
-                    cooldownSeconds = 60
-                    isSubmitting = false
-                }
-            })
-            .build()
-        try {
-            PhoneAuthProvider.verifyPhoneNumber(options)
-            Log.d("OTP", "verifyPhoneNumber called successfully")
-        } catch (e: Exception) {
-            Log.e("OTP", "Error calling verifyPhoneNumber", e)
-            val reason = e.message ?: ctx.getString(R.string.toast_unknown_error)
-            Toast.makeText(
-                ctx,
-                ctx.getString(R.string.toast_error_with_reason, reason),
-                Toast.LENGTH_LONG
-            ).show()
-            isSubmitting = false
-        }
-    }
-    /* Count-down after every (re)send */
-    LaunchedEffect(cooldownSeconds) {
-        if (cooldownSeconds > 0) {
-            kotlinx.coroutines.delay(1_000)
-            cooldownSeconds--
-        }
-    }
-
-    fun verifyOtpAndContinue(code: String) {
-        val id = verificationId ?: return
-        val cred = PhoneAuthProvider.getCredential(id, code)  // returns PhoneAuthCredential
-        auth.signInWithCredential(cred)
-            .addOnSuccessListener {    registrationViewModel.phoneNumber =
-                FirebaseAuth.getInstance().currentUser?.phoneNumber ?: registrationViewModel.phoneNumber
-                onNext() }
-            .addOnFailureListener { e ->
-                val reason = e.message ?: ctx.getString(R.string.toast_unknown_error)
-                Toast.makeText(
-                    ctx,
-                    ctx.getString(R.string.toast_otp_error, reason),
-                    Toast.LENGTH_LONG
-                ).show()
-                isSubmitting = false
-            }
-    }
-    fun resendOtp(number: String) {
-        val token = resendToken ?: return                                 // no token yet
-        val options = PhoneAuthOptions.newBuilder(auth)
-            .setPhoneNumber(number)
-            .setTimeout(60L, TimeUnit.SECONDS)
-            .setActivity(ctx as ComponentActivity)
-            .setForceResendingToken(token)                                // ★ key line
-            .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                override fun onVerificationCompleted(cred: PhoneAuthCredential) {   // ← fixed type
-                    auth.signInWithCredential(cred).addOnSuccessListener { onNext() }
-                }
-                override fun onVerificationFailed(e: FirebaseException) {
-                    val reason = e.message ?: ctx.getString(R.string.toast_unknown_error)
-                    Toast.makeText(
-                        ctx,
-                        ctx.getString(R.string.toast_otp_failed, reason),
-                        Toast.LENGTH_LONG
-                    ).show()
-                    isSubmitting = false
-                }
-                override fun onCodeSent(id: String, token: PhoneAuthProvider.ForceResendingToken) {
-                    verificationId = id
-                    resendToken    = token                            // ← keep it
-                    otpSent = true
-                    cooldownSeconds = 60                              // ← 60-s timer
-                    isSubmitting = false
-                }
-            })
-            .build()
-        PhoneAuthProvider.verifyPhoneNumber(options)
-        cooldownSeconds = 60                                              // restart timer
-    }
+    val ctx = LocalContext.current
 
     /* ───────────────────────  UI  ──────────────────────────────── */
-    Scaffold(
-    ) { pad ->
+    Scaffold { pad ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -2208,226 +2027,128 @@ fun EnterEmailAndPasswordScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            val safeSelectedIndex = visibleTabs.indexOf(selectedTab).takeIf { it >= 0 } ?: 0
+            Spacer(Modifier.height(24.dp))
 
-            /* ─── TAB STRIP ─────────────────────────────────────── */
-            TabRow(
-                selectedTabIndex = safeSelectedIndex,
-                containerColor = Color(0xFF262626),
-                contentColor   = Color.White,
-                indicator = { tabPositions ->
-                    TabRowDefaults.Indicator(
-                        Modifier.tabIndicatorOffset(
-                            tabPositions[safeSelectedIndex.coerceAtMost(tabPositions.lastIndex)]
-                        ),
-                        color = Color(0xFFFF6000)
-                    )
-                }
-            ) {
-                visibleTabs.forEach { tab ->
-                    Tab(
-                        selected = tab == selectedTab,
-                        onClick  = { selectedTab = tab },
-                        text     = { Text(if (tab == AuthTab.PHONE) "Phone" else "Email") }
-                    )
-                }
+            OutlinedTextField(
+                value = email,
+                onValueChange = {
+                    email = it
+                    emailError = null
+                    registrationViewModel.email = it.text
+                },
+                label = { Text("Email", color = Color.White) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                isError = emailError != null,
+                colors = fieldColors()
+            )
+            if (emailError != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(emailError!!, color = Color.Red, fontSize = 12.sp)
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = {
+                    password = it
+                    registrationViewModel.password = it.text
+                },
+                label = { Text("Password", color = Color.White) },
+                singleLine = true,
+                visualTransformation =
+                    if (pwdVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    val icon = if (pwdVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
+                    IconButton(onClick = { pwdVisible = !pwdVisible }) {
+                        Icon(icon, contentDescription = null, tint = Color.White)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors  = fieldColors()
+            )
+
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Confirm password", color = Color.White) },
+                singleLine = true,
+                visualTransformation =
+                    if (confirmPwdVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    val icon = if (confirmPwdVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
+                    IconButton(onClick = { confirmPwdVisible = !confirmPwdVisible }) {
+                        Icon(icon, contentDescription = null, tint = Color.White)
+                    }
+                },
+                isError = passwordError,
+                modifier = Modifier.fillMaxWidth(),
+                colors  = fieldColors()
+            )
+            if (passwordError) {
+                Text("Passwords don’t match", color = Color.Red)
+            }
+            OutlinedTextField(
+                value = botField,
+                onValueChange = {
+                    botField = it
+                    registrationViewModel.honeypot = it.text
+                },
+                modifier = Modifier
+                    .size(1.dp)
+                    .alpha(0f),
+                singleLine = true,
+                colors = fieldColors()
+            )
 
             Spacer(Modifier.height(24.dp))
 
-            when (selectedTab) {
-                /* ──────────────────── PHONE TAB ─────────────────── */
-                AuthTab.PHONE -> {
-                    OutlinedTextField(
-                        value = phoneNumber,
-                        onValueChange = { tfValue ->
-                            phoneNumber = tfValue
-                            registrationViewModel.phoneNumber = tfValue.text
-                        },
-                        label = { Text("Mobile (+91…)", color = Color.White) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = fieldColors()
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    if (otpSent) {
-                        OutlinedTextField(
-                            value = otpCode,
-                            onValueChange = { otpCode = it },
-                            label = { Text("OTP", color = Color.White) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = fieldColors()
-                        )
-                        Spacer(Modifier.height(16.dp))
+            Button(
+                enabled = !isSubmitting,
+                onClick = {
+                    val mail = email.text.trim()
+                    val pwd  = password.text.trim()
+                    val pwd2 = confirmPassword.text.trim()
+
+                    if (mail.isEmpty() || pwd.isEmpty()) return@Button
+                    if (!Patterns.EMAIL_ADDRESS.matcher(mail).matches()) {
+                        val error = ctx.getString(R.string.toast_invalid_email)
+                        emailError = error
+                        Toast.makeText(ctx, error, Toast.LENGTH_LONG).show()
+                        return@Button
                     }
-                    Button(
-                        enabled = !isSubmitting && (if (otpSent) otpCode.text.length >= 6 else phoneNumber.text.length >= 10),
-                        onClick = {
-                            isSubmitting = true
-                            if (!otpSent) {
-                                val number = formatPhoneNumber(phoneNumber.text)
-                                Log.d("OTP", "Formatted number: $number")
-                                startPhoneVerification(number)
-                            } else {
-                                verifyOtpAndContinue(otpCode.text.trim())
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
-                        shape = CircleShape
-                    ) {
-                        Text(if (otpSent) "Verify OTP" else "Send OTP", color = Color.White)
+                    if (pwd != pwd2) { passwordError = true; return@Button }
+                    passwordError = false
+                    if (botField.text.isNotBlank()) {
+                        Toast.makeText(
+                            ctx,
+                            ctx.getString(R.string.toast_invalid_form),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return@Button
                     }
-                    Spacer(Modifier.height(8.dp))
-                    if (otpSent) {
-                        OutlinedButton(
-                            onClick = {
-                                val number = formatPhoneNumber(phoneNumber.text)
-                                resendOtp(number)
-                            },
-                            enabled = cooldownSeconds == 0 && !isSubmitting,
-                            modifier = Modifier.fillMaxWidth(),
-                            border = BorderStroke(1.dp, Color(0xFFFF6000)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = if (cooldownSeconds == 0) Color(0xFFFF6000) else Color.Gray
-                            )
-                        ) {
-                            Text(
-                                text = if (cooldownSeconds == 0) "Resend OTP" else "Resend in ${cooldownSeconds}s"
-                            )
+                    isSubmitting  = true
+
+                    tryRegister(
+                        mail, pwd,
+                        onSuccess = { isSubmitting = false; onNext() },
+                        onError   = { msg ->
+                            isSubmitting = false
+                            Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
                         }
-                    }
-                }
-                /* ─────────────────── EMAIL TAB ──────────────────── */
-                AuthTab.EMAIL -> {
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = {
-                            email = it
-                            emailError = null
-                            registrationViewModel.email = it.text
-                        },
-                        label = { Text("Email", color = Color.White) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        isError = emailError != null,
-                        colors = fieldColors()
                     )
-                    if (emailError != null) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(emailError!!, color = Color.Red, fontSize = 12.sp)
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    /* -------- Password field -------- */
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = {
-                            password = it
-                            registrationViewModel.password = it.text
-                        },
-                        label = { Text("Password", color = Color.White) },
-                        singleLine = true,
-                        visualTransformation =
-                            if (pwdVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            val icon = if (pwdVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
-                            IconButton(onClick = { pwdVisible = !pwdVisible }) {
-                                Icon(icon, contentDescription = null, tint = Color.White)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors  = fieldColors()
-                    )
-
-                    /* ---- Confirm-password field ---- */
-                    OutlinedTextField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        label = { Text("Confirm password", color = Color.White) },
-                        singleLine = true,
-                        visualTransformation =
-                            if (confirmPwdVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            val icon = if (confirmPwdVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
-                            IconButton(onClick = { confirmPwdVisible = !confirmPwdVisible }) {
-                                Icon(icon, contentDescription = null, tint = Color.White)
-                            }
-                        },
-                        isError = passwordError,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors  = fieldColors()
-                    )
-                    if (passwordError) {
-                        Text("Passwords don’t match", color = Color.Red)
-                    }
-                    OutlinedTextField(
-                        value = botField,
-                        onValueChange = {
-                            botField = it
-                            registrationViewModel.honeypot = it.text
-                        },
-                        modifier = Modifier
-                            .size(1.dp)
-                            .alpha(0f),
-                        singleLine = true,
-                        colors = fieldColors()
-                    )
-                    Spacer(Modifier.height(24.dp))
-                    Button(
-                        enabled = !isSubmitting,
-                        onClick = {
-                            val mail = email.text.trim()
-                            val pwd  = password.text.trim()
-                            val pwd2 = confirmPassword.text.trim()
-
-                            if (mail.isEmpty() || pwd.isEmpty()) return@Button
-                            if (!Patterns.EMAIL_ADDRESS.matcher(mail).matches()) {
-                                val error = ctx.getString(R.string.toast_invalid_email)
-                                emailError = error
-                                Toast.makeText(ctx, error, Toast.LENGTH_LONG).show()
-                                return@Button
-                            }
-                            if (pwd != pwd2) { passwordError = true; return@Button }
-                            passwordError = false
-                            if (botField.text.isNotBlank()) {
-                                Toast.makeText(
-                                    ctx,
-                                    ctx.getString(R.string.toast_invalid_form),
-                                    Toast.LENGTH_LONG
-                                ).show()
-                                return@Button
-                            }
-                            isSubmitting  = true
-
-                            tryRegister(
-                                mail, pwd,
-                                onSuccess = { isSubmitting = false; onNext() },
-                                onError   = { msg ->
-                                    isSubmitting = false
-                                    Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
-                                }
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
-                        shape  = CircleShape
-                    ) {
-                        Text("Next", color = Color.White)
-                    }
-                }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
+                shape  = CircleShape
+            ) {
+                Text("Next", color = Color.White)
             }
         }
     }
-}
-
-fun formatPhoneNumber(input: String): String {
-    val trimmed = input.trim()
-    return if (trimmed.startsWith("+")) trimmed else "+91$trimmed"
 }
 /* ---------- tiny helper for terse field-colors ---------- */
 @Composable
@@ -2866,7 +2587,6 @@ suspend fun saveProfileToFirebase(
     context: Context,                          // ★ new
     registrationViewModel: RegistrationViewModel,
     other: String,
-    allowPhoneAuth: Boolean,                    // ← add
     onRegistrationComplete: () -> Unit
 ) {
     try {
@@ -2911,21 +2631,6 @@ suspend fun saveProfileToFirebase(
         val pendingGclid = registrationViewModel.gclid
             ?: GclidStorageManager.getPendingGclid(context)
         registrationViewModel.gclid = pendingGclid
-        val raw = registrationViewModel.phoneNumber
-            .ifBlank { FirebaseAuth.getInstance().currentUser?.phoneNumber }
-        val e164 = raw?.let { formatPhoneNumber(it) } ?: ""
-
-        if (allowPhoneAuth && e164.isNotBlank()) {          // ← gate by country
-            val ok = claimPhoneNumber(database, e164, userId)
-            if (!ok) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context,
-                        "That mobile number is already linked to another account.",
-                        Toast.LENGTH_LONG).show()
-                }
-                return                                       // abort save
-            }
-        }
 
         val finalHeightCm = if (registrationViewModel.isHeightInFeet) {
             registrationViewModel.feetInchesToCm(
@@ -2939,7 +2644,6 @@ suspend fun saveProfileToFirebase(
             ?: registrationViewModel.gender
 
         val profile = Profile(
-            phoneNumber = if (allowPhoneAuth) raw else null, // ← not stored abroad
             userId = userId,
             gclid = pendingGclid,
             country       = canonicalCountry(
@@ -3011,6 +2715,17 @@ suspend fun saveProfileToFirebase(
         } catch (e: Exception) {
             null
         }
+        val existingEntryFeePaid = existingSnapshot
+            ?.child("isEntryFeePaid")
+            ?.getValue(Boolean::class.java) == true
+        val hasEntryFeeOfferExpiry = existingSnapshot
+            ?.child("entryFeeOfferExpiry")
+            ?.getValue(Long::class.java) != null
+        val entryFeeOfferExpiryDeadline = if (!existingEntryFeePaid && !hasEntryFeeOfferExpiry) {
+            System.currentTimeMillis() + TimeUnit.HOURS.toMillis(24)
+        } else {
+            null
+        }
         val preservedUpdates = mutableMapOf<String, Any>()
 
         existingSnapshot?.let { snap ->
@@ -3039,6 +2754,9 @@ suspend fun saveProfileToFirebase(
         userRef.setValue(profile).await()
         if (preservedMonetizationFields.isNotEmpty()) {
             userRef.updateChildren(preservedMonetizationFields).await()
+        }
+        entryFeeOfferExpiryDeadline?.let { expiry ->
+            userRef.child("entryFeeOfferExpiry").setValue(expiry).await()
         }
 
         pendingGclid?.takeIf { it.isNotBlank() }?.let { gclid ->

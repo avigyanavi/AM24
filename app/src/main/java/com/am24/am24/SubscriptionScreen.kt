@@ -76,9 +76,9 @@ private data class Plan(
 private val PLANS = listOf(
     Plan(Period.WEEK,  Tier.PLUS,    9,   PLAN_ID_WEEK_PLUS),
     Plan(Period.WEEK,  Tier.PREMIUM, 29,  PLAN_ID_WEEK_PREMIUM),
-    Plan(Period.MONTH, Tier.PLUS,    39,  PLAN_ID_MONTH_PLUS),
+    Plan(Period.MONTH, Tier.PLUS,    29,  PLAN_ID_MONTH_PLUS),
     Plan(Period.MONTH, Tier.PREMIUM, 99,  PLAN_ID_MONTH_PREMIUM),
-    Plan(Period.YEAR,  Tier.PLUS,    399, PLAN_ID_YEAR_PLUS),
+    Plan(Period.YEAR,  Tier.PLUS,    299, PLAN_ID_YEAR_PLUS),
     Plan(Period.YEAR,  Tier.PREMIUM, 999, PLAN_ID_YEAR_PREMIUM),
 )
 

@@ -72,6 +72,30 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _isPlus = MutableStateFlow(false)
     val isPlus: StateFlow<Boolean> = _isPlus
 
+    private val _loginPlusExpiry = MutableStateFlow(0L)
+    val loginPlusExpiry: StateFlow<Long> = _loginPlusExpiry
+
+    private val _entryFeePaidAt = MutableStateFlow(0L)
+    val entryFeePaidAt: StateFlow<Long> = _entryFeePaidAt
+
+    private val _isEntryFeePaid = MutableStateFlow(false)
+    val isEntryFeePaid: StateFlow<Boolean> = _isEntryFeePaid
+
+    private val _premiumExpiryDate = MutableStateFlow<Long?>(null)
+    val premiumExpiryDate: StateFlow<Long?> = _premiumExpiryDate
+
+    private val _subscriptionStatus = MutableStateFlow<String?>(null)
+    val subscriptionStatus: StateFlow<String?> = _subscriptionStatus
+
+    private val _nextRenewal = MutableStateFlow<Long?>(null)
+    val nextRenewal: StateFlow<Long?> = _nextRenewal
+
+    private val _subscriptionId = MutableStateFlow<String?>(null)
+    val subscriptionId: StateFlow<String?> = _subscriptionId
+
+    private var monetizationRef: DatabaseReference? = null
+    private var monetizationListener: ValueEventListener? = null
+
     // Add this function to fetch and store the current user's profile
     fun fetchCurrentUserProfile() {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
@@ -141,6 +165,41 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         watchAdminFlag()    // ← start listening immediately
         watchPremiumFlag()    // NEW
         watchPlusFlag()       // NEW
+        watchMonetizationMetadata()
+    }
+
+    private fun watchMonetizationMetadata() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val ref = usersRef.child(uid)
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val loginPlus = snapshot.child("loginPlusExpiry").asLongOrZero()
+                val entryFeePaid =
+                    snapshot.child("isEntryFeePaid").getValue(Boolean::class.java) == true
+                val entryFeePaidAtValue = snapshot.child("entryFeePaidAt").asLongOrZero()
+                val premiumExpiry = snapshot.child("premiumExpiryDate").asNullableLong()
+                val subscriptionStatusValue =
+                    snapshot.child("subscriptionStatus").getValue(String::class.java)
+                val nextRenewalValue = snapshot.child("nextRenewal").asNullableLong()
+                val subscriptionIdValue =
+                    snapshot.child("subscription").child("id").getValue(String::class.java)
+
+                _loginPlusExpiry.value = loginPlus
+                _isEntryFeePaid.value = entryFeePaid
+                _entryFeePaidAt.value = entryFeePaidAtValue
+                _premiumExpiryDate.value = premiumExpiry
+                _subscriptionStatus.value = subscriptionStatusValue
+                _nextRenewal.value = nextRenewalValue
+                _subscriptionId.value = subscriptionIdValue
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.w(TAG, "watchMonetizationMetadata cancelled: ${error.message}")
+            }
+        }
+        monetizationRef = ref
+        monetizationListener = listener
+        ref.addValueEventListener(listener)
     }
 
     private fun startComplimentsWatcher(uid: String) {
@@ -708,7 +767,30 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         verificationListener?.let { l -> verificationRef?.removeEventListener(l) }
         verificationListener = null
         verificationRef = null
+
+        monetizationListener?.let { l -> monetizationRef?.removeEventListener(l) }
+        monetizationListener = null
+        monetizationRef = null
     }
+}
+private fun DataSnapshot.asLongOrZero(): Long = when (val raw = value) {
+    is Long -> raw
+    is Int -> raw.toLong()
+    is Double -> raw.toLong()
+    is Float -> raw.toLong()
+    is Number -> raw.toLong()
+    is String -> raw.toLongOrNull() ?: 0L
+    else -> 0L
+}
+
+private fun DataSnapshot.asNullableLong(): Long? = when (val raw = value) {
+    is Long -> raw
+    is Int -> raw.toLong()
+    is Double -> raw.toLong()
+    is Float -> raw.toLong()
+    is Number -> raw.toLong()
+    is String -> raw.toLongOrNull()
+    else -> null
 }
 /** ------------------------------------------------------------------
  *  Composite‑score formula for *this* profile only
