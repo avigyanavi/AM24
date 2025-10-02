@@ -1989,6 +1989,25 @@
     <string name="subscription_checkout_description">%1$d ₹ / %2$s</string>
     <string name="premium_badge_label">Premium</string>
     <string name="premium_badge_content_description">Miembro Premium</string>
+    <string name="post_action">Publicar</string>
+
+    <string name="time_now_short">ahora</string>
+    <plurals name="time_minutes_short">
+        <item quantity="one">%d min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
+    <plurals name="time_hours_short">
+        <item quantity="one">%d h</item>
+        <item quantity="other">%d h</item>
+    </plurals>
+    <plurals name="time_days_short">
+        <item quantity="one">%d d</item>
+        <item quantity="other">%d d</item>
+    </plurals>
+    <plurals name="time_weeks_short">
+        <item quantity="one">%d sem</item>
+        <item quantity="other">%d sem</item>
+    </plurals>
 
     <string name="sort_farthest">Más lejos</string>
     <string name="next_page">Página siguiente</string>

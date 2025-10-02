@@ -35,6 +35,7 @@
     <string name="tab_map">Map</string>
     <string name="premium_badge_label">Premium</string>
     <string name="premium_badge_content_description">Premium member</string>
+    <string name="post_action">Post</string>
     <string name="settings_streak_line">Login streak: %1$d days • %2$s</string>
     <string name="cd_city_filter">Browse by city</string>
     <string name="clear_city_filter">Clear city filter</string>
@@ -70,6 +71,23 @@
     <string name="notification_upgrade_prompt">Upgrade for no Ads!</string>
     <string name="notification_omegle_invite">Online user sends chat invite</string>
     <string name="notification_channel_name">Kupidx notifications</string>
+    <string name="time_now_short">now</string>
+    <plurals name="time_minutes_short">
+        <item quantity="one">%d min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
+    <plurals name="time_hours_short">
+        <item quantity="one">%d hr</item>
+        <item quantity="other">%d hr</item>
+    </plurals>
+    <plurals name="time_days_short">
+        <item quantity="one">%d d</item>
+        <item quantity="other">%d d</item>
+    </plurals>
+    <plurals name="time_weeks_short">
+        <item quantity="one">%d wk</item>
+        <item quantity="other">%d wk</item>
+    </plurals>
 
     <string name="toast_not_logged_in">Not logged in</string>
     <string name="toast_camera_permission_required">Camera permission is required to take a photo</string>

@@ -397,11 +397,8 @@ fun TextPostComposable(
                                     }
                                 )
                             }
-                        }, enabled = !(isPosting || localPosting)) {
-                            Text(
-                                "Post",
-                                color = Color(0xFFFF4500)
-                            ) // Dark orange for the "Post" button
+                        }, enabled = !isPosting) {
+                            Text(stringResource(R.string.post_action), color = Color(0xFFFF4500))
                         }
                     }
                 },
@@ -684,7 +681,9 @@ fun ImagePostComposable(
                                         }
                                     })
                             }
-                        }, enabled = !isPosting) { Text("Post", color = Color(0xFFFF4500)) }
+                        }, enabled = !isPosting) {
+                            Text(stringResource(R.string.post_action), color = Color(0xFFFF4500))
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
@@ -1049,7 +1048,7 @@ fun VideoPostComposable(
                                         }
                                     })
                             }
-                        }, enabled = !isPosting) { Text("Post", color = Color(0xFFFF4500)) }
+                        }, enabled = !isPosting) { Text( stringResource(R.string.post_action), color = Color(0xFFFF4500)) }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)

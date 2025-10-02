@@ -102,6 +102,7 @@ import kotlinx.coroutines.flow.drop
 import java.text.Normalizer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import android.content.res.Resources
 
 /* ======================================================================================= */
 /*  Theme bits                                                                             */
@@ -2010,6 +2011,7 @@ private fun NearbyCard(
     onBlock: () -> Unit
 ) {
     val placeholder = painterResource(R.drawable.local_placeholder)
+    val resources = LocalContext.current.resources
     var menuExpanded by remember { mutableStateOf(false) }
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
@@ -2098,7 +2100,7 @@ private fun NearbyCard(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = buildString {
-                        append(timeAgoShort(user.lastActiveAt))
+                        append(timeAgoShort(resources, user.lastActiveAt))
                         if (user.distanceMeters.isFinite()) {
                             append(" · "); append(prettyDistance(user.distanceMeters, useMiles))
                         }
@@ -2475,18 +2477,30 @@ private fun getBearing(from: LatLng, to: LatLng): Float {
     return ((Math.toDegrees(atan2(y, x)) + 360) % 360).toFloat()
 }
 
-private fun timeAgoShort(ts: Long): String {
+private fun timeAgoShort(resources: Resources, ts: Long): String {
     if (ts <= 0) return "—"
     val diff = System.currentTimeMillis() - ts
     val m = TimeUnit.MILLISECONDS.toMinutes(diff)
     val h = TimeUnit.MILLISECONDS.toHours(diff)
     val d = TimeUnit.MILLISECONDS.toDays(diff)
     return when {
-        diff < TimeUnit.MINUTES.toMillis(1) -> "now"
-        m < 60 -> "$m min"
-        h < 24 -> "$h hr"
-        d < 7 -> "$d d"
-        else -> "${d / 7} wk"
+        diff < TimeUnit.MINUTES.toMillis(1) -> resources.getString(R.string.time_now_short)
+        m < 60 -> {
+            val minutes = m.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            resources.getQuantityString(R.plurals.time_minutes_short, minutes, minutes)
+        }
+        h < 24 -> {
+            val hours = h.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            resources.getQuantityString(R.plurals.time_hours_short, hours, hours)
+        }
+        d < 7 -> {
+            val days = d.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            resources.getQuantityString(R.plurals.time_days_short, days, days)
+        }
+        else -> {
+            val weeks = (d / 7).coerceAtLeast(1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            resources.getQuantityString(R.plurals.time_weeks_short, weeks, weeks)
+        }
     }
 }
 

@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -238,7 +239,7 @@ fun VoicePostComposable(
                             contentColor = if (recordedAudioUri != null) Color(0xFFFFA500) else Color.Gray
                         )
                         ) {
-                        Text("Post", color = Color(0xFFFF4500))
+                        Text(stringResource(R.string.post_action), color = Color(0xFFFF4500))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
