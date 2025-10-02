@@ -80,7 +80,8 @@ private data class OneTimeOffer(
     val usdPrice: Double,
     val mxnPrice: Double,
     val inrPrice: Int,
-)
+    val thbPrice: Int,
+    )
 
 /* all 6 plans */
 private val PLANS = listOf(
@@ -100,6 +101,7 @@ private val ONE_TIME_OFFERS = listOf(
         usdPrice = 0.49,
         mxnPrice = 6.99,
         inrPrice = 29,
+        thbPrice = 9,
     ),
     OneTimeOffer(
         sku = "kupidx_plus_one_year",
@@ -108,6 +110,7 @@ private val ONE_TIME_OFFERS = listOf(
         usdPrice = 3.49,
         mxnPrice = 69.00,
         inrPrice = 299,
+        thbPrice = 99,
     ),
     OneTimeOffer(
         sku = "kupidx_premium_one_month",
@@ -116,6 +119,7 @@ private val ONE_TIME_OFFERS = listOf(
         usdPrice = 0.99,
         mxnPrice = 24.00,
         inrPrice = 99,
+        thbPrice = 39,
     ),
     OneTimeOffer(
         sku = "kupidx_premium_one_year",
@@ -124,14 +128,24 @@ private val ONE_TIME_OFFERS = listOf(
         usdPrice = 10.99,
         mxnPrice = 239.00,
         inrPrice = 999,
+        thbPrice = 449,
     ),
 )
 
-private fun OneTimeOffer.displayPrice(context: Context, isIndia: Boolean, isMexico: Boolean): String = when {
+private fun OneTimeOffer.displayPrice(
+    context: Context,
+    isIndia: Boolean,
+    isMexico: Boolean,
+    isThailand: Boolean
+): String = when {
     isIndia -> context.getString(R.string.subscription_one_time_price_inr, inrPrice)
     isMexico -> context.getString(
         R.string.subscription_one_time_price_mxn,
         formatPrice(mxnPrice)
+    )
+    isThailand -> context.getString(
+        R.string.subscription_one_time_price_thb,
+        thbPrice
     )
     else -> context.getString(
         R.string.subscription_one_time_price_usd,
@@ -179,6 +193,14 @@ private fun mxnPrice(plan: Plan): Double = when {
     else                                                       -> 199.00
 }
 
+private fun thbPrice(plan: Plan): Int = when {
+    plan.tier == Tier.PLUS    && plan.period == Period.MONTH -> 9
+    plan.tier == Tier.PLUS    && plan.period == Period.YEAR  -> 99
+    plan.tier == Tier.PREMIUM && plan.period == Period.MONTH -> 39
+    plan.tier == Tier.PREMIUM && plan.period == Period.YEAR  -> 449
+    else                                                       -> 0
+}
+
 
 /* ───────── Subscription screen – new version ───────── */
 @Composable
@@ -216,6 +238,7 @@ fun SubscriptionScreen(
     val useRazorpay = CountryUtil.useRazorpay(ctx, userCountry)
     val isIndiaUser = CountryUtil.isIndia(ctx, userCountry)
     val isMexico = CountryUtil.isMexico(ctx, userCountry)
+    val isThailand = CountryUtil.isThailand(ctx, userCountry)
 
     /* -------------------------------------------------- */
     val db     = FirebaseDatabase.getInstance().reference
@@ -487,6 +510,11 @@ fun SubscriptionScreen(
                                     formatPrice(mxnPrice(plan)),
                                     periodLabelLower
                                 )
+                                isThailand -> stringResource(
+                                    R.string.subscription_price_label_thb,
+                                    thbPrice(plan),
+                                    periodLabelLower
+                                )
                                 else -> stringResource(
                                     R.string.subscription_price_label_usd,
                                     formatPrice(usdPrice(plan)),
@@ -562,7 +590,7 @@ fun SubscriptionScreen(
                                     color = Color.White
                                 )
                                 Text(
-                                    offer.displayPrice(ctx, isIndiaUser, isMexico),
+                                    offer.displayPrice(ctx, isIndiaUser, isMexico, isThailand),
                                     color = Color.LightGray,
                                     fontSize = 14.sp
                                 )

@@ -17,7 +17,8 @@ object CountryUtil {
         "HK", // Hong Kong
         "CN", // China
         "IE",  // Ireland
-        "MX"  // Mexico
+        "MX",  // Mexico
+        "TH"  // Thailand
     )
     private data class BoundingBox(
         val minLat: Double,
@@ -110,6 +111,15 @@ object CountryUtil {
         return listOf(isoBySim, isoByNet, isoByLocale).any { it == "MX" }
     }
 
+    fun isThailand(ctx: Context, selectedCountry: String?): Boolean {
+        if (canonicalCountry(selectedCountry) == "Thailand") return true
+        val isoBySim = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
+                as? TelephonyManager)?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
+                as? TelephonyManager)?.networkCountryIso?.uppercase(Locale.US)
+        val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
+        return listOf(isoBySim, isoByNet, isoByLocale).any { it == "TH" }
+    }
     /**
      * Decide whether Razorpay should be used for payments.
      * If the device locale suggests India but the user has selected a

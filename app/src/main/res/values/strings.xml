@@ -634,11 +634,13 @@
     <string name="subscription_price_label_inr">₹%1$d / %2$s</string>
     <string name="subscription_price_label_mxn">MXN%1$s / %2$s</string>
     <string name="subscription_price_label_usd">$%1$s / %2$s</string>
+    <string name="subscription_price_label_thb">THB%1$d / %2$s</string>
     <string name="subscription_tier_plus">Plus</string>
     <string name="subscription_tier_premium">Premium</string>
     <string name="subscription_one_time_price_inr">₹%1$d one-time</string>
     <string name="subscription_one_time_price_mxn">MXN%1$s one-time</string>
     <string name="subscription_one_time_price_usd">$%1$s one-time</string>
+    <string name="subscription_one_time_price_thb">THB%1$d one-time</string>
     <string name="subscription_checkout_description">%1$d ₹ / %2$s</string>
 
     <!-- Place popup & sending -->
