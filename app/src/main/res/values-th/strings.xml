@@ -28,7 +28,6 @@
         <item quantity="one">คุณมีการแจ้งเตือนที่ยังไม่อ่าน %d รายการ</item>
         <item quantity="other">คุณมีการแจ้งเตือนที่ยังไม่อ่าน %d รายการ</item>
     </plurals>
-
     <string name="notification_upgrade_prompt">อัปเกรดเพื่อไม่เห็นโฆษณา!</string>
     <string name="notification_omegle_invite">ผู้ใช้ออนไลน์ส่งคำเชิญแชท</string>
     <string name="notification_channel_name">การแจ้งเตือน Kupidx</string>
@@ -453,6 +452,9 @@
     <string name="searching">กำลังค้นหา...</string>
     <string name="saved_posts_title">โพสต์ที่บันทึกไว้</string>
     <string name="saved_posts_empty">ยังไม่มีโพสต์ที่บันทึก</string>
+    <string name="language_name_english">อังกฤษ</string>
+    <string name="language_name_spanish">สเปน</string>
+    <string name="language_name_thai">ไทย</string>
         <!-- LA Quick Tags (labels) -->
         <string name="la_tag_dtla_rooftops_label">ดาดฟ้าใน DTLA</string>
         <string name="la_tag_ktown_bbq_label">บาร์บีคิวเกาหลี (K-Town)</string>

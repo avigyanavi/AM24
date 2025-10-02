@@ -182,7 +182,7 @@ class RegistrationActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) {
         // Retrieve the language code from SharedPreferences (default "en")
         val prefs = newBase.getSharedPreferences("settings", MODE_PRIVATE)
-        val defaultLang = if (Locale.getDefault().country.equals("MX", true)) "es" else "en"
+        val defaultLang = defaultLanguageCode()
         val languageCode = prefs.getString("language", defaultLang) ?: defaultLang
         val updatedContext = updateLocale(newBase, languageCode)
         super.attachBaseContext(updatedContext)
@@ -199,7 +199,7 @@ private fun saveStep(step: Int) {
 class RegistrationViewModel : ViewModel() {
 
     var nextEnabled by mutableStateOf(false)
-    var selectedLanguage by mutableStateOf("en") // Options: "en", "bn", "hi"
+    var selectedLanguage by mutableStateOf(defaultLanguageCode())
     var city by mutableStateOf("")
     var customCity by mutableStateOf("")
     var gclid by mutableStateOf<String?>(null)

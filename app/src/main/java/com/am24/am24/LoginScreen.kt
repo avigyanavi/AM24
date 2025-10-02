@@ -92,7 +92,7 @@ class LoginActivity : ComponentActivity() {
 
     override fun attachBaseContext(newBase: Context) {
         val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
-        val defaultLang = if (Locale.getDefault().country.equals("MX", true)) "es" else "en"
+        val defaultLang = defaultLanguageCode()
         val languageCode = prefs.getString("language", defaultLang) ?: defaultLang
         super.attachBaseContext(updateLocale(newBase, languageCode))
     }

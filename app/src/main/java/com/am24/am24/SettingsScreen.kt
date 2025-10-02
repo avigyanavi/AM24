@@ -123,7 +123,7 @@ fun SettingsScreen(navController: NavController) {
     var entryFeeOfferExpiry by remember { mutableStateOf(0L) }
     var entryFeePaid by remember { mutableStateOf(false) }
     var isPrivate by remember { mutableStateOf(false) }
-    val defaultLang = if (Locale.getDefault().country.equals("MX", true)) "es" else "en"
+    val defaultLang = defaultLanguageCode()
     var preferredLang by remember { mutableStateOf(defaultLang) }
     var allowLoc by remember { mutableStateOf(false) }
     var allowPublic by remember { mutableStateOf(false) }
@@ -981,8 +981,9 @@ private fun GlobalPrefCard(
 ) {
     val ctx = LocalContext.current
     val langs = listOf(
-        "English" to "en",
-        "Español" to "es",
+        stringResource(R.string.language_name_english) to "en",
+        stringResource(R.string.language_name_spanish) to "es",
+        stringResource(R.string.language_name_thai) to "th",
     )
     var exp by remember { mutableStateOf(false) }
 
@@ -1047,8 +1048,9 @@ private fun GlobalPrefCard(
                 ) {
                     Icon(Icons.Default.Language, null)
                     Spacer(Modifier.width(16.dp))
+                    val currentLanguageLabel = langs.firstOrNull { it.second == lang }?.first ?: lang
                     Text(stringResource(R.string.settings_preferred_language), Modifier.weight(1f))
-                    Text(langs.first { it.second == lang }.first)
+                    Text(currentLanguageLabel)
                     Icon(Icons.Default.KeyboardArrowRight, null)
                 }
                 DropdownMenu(

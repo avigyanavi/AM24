@@ -73,7 +73,7 @@ class LandingActivity : ComponentActivity() {
     /* Preserve chosen language */
     override fun attachBaseContext(newBase: Context) {
         val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
-        val defaultLang = if (Locale.getDefault().country.equals("MX", true)) "es" else "en"
+        val defaultLang = defaultLanguageCode()
         val languageCode = prefs.getString("language", defaultLang) ?: defaultLang
         super.attachBaseContext(updateLocale(newBase, languageCode))
     }
@@ -454,7 +454,8 @@ fun LandingScreen(
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    var selectedLanguage by remember { mutableStateOf(prefs.getString("language", "en")!!) }
+    val defaultLang = defaultLanguageCode()
+    var selectedLanguage by remember { mutableStateOf(prefs.getString("language", defaultLang) ?: defaultLang) }
     var shouldRestart by remember { mutableStateOf(false) }
 
     if (shouldRestart) {
@@ -647,8 +648,12 @@ fun LanguageSelectionBar(
     modifier: Modifier = Modifier,
     onLanguageSelected: (String) -> Unit
 ) {
-    val languages = listOf("English" to "en", "Español" to "es")
-    val unlockedCodes = setOf("en", "es")
+    val languages = listOf(
+        stringResource(R.string.language_name_english) to "en",
+        stringResource(R.string.language_name_spanish) to "es",
+        stringResource(R.string.language_name_thai) to "th",
+    )
+    val unlockedCodes = setOf("en", "es", "th")
     val scroll = rememberScrollState()
 
     Row(
