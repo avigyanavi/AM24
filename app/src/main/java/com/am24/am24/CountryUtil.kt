@@ -100,6 +100,13 @@ object CountryUtil {
 
         return listOf(isoBySim, isoByNet, isoByLocale).any { it in KM_COUNTRIES }
     }
+    fun isProbablyInThailand(ctx: Context): Boolean {
+        val telephony = ctx.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
+        val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
+        return listOf(isoBySim, isoByNet, isoByLocale).any { it == "TH" }
+    }
 
     fun isMexico(ctx: Context, selectedCountry: String?): Boolean {
         if (canonicalCountry(selectedCountry) == "Mexico") return true
