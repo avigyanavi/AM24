@@ -1,0 +1,1723 @@
+<resources>
+    <string name="upgrade_to_plus_to_unlock">อัปเกรดเป็น Plus เพื่อปลดล็อก</string>
+    <string name="upgrade_to_premium_to_unlock">อัปเกรดเป็น Premium เพื่อปลดล็อก</string>
+    <string name="create_post_title">สร้างโพสต์ใหม่</string>
+    <string name="text_post_label">โพสต์ตัวอักษร</string>
+    <string name="voice_post_label">โพสต์เสียง</string>
+    <string name="image_post_label">โพสต์รูปภาพ</string>
+    <string name="video_post_label">โพสต์วิดีโอ</string>
+    <string name="roles_compatible">บทบาทที่เข้ากันได้</string>
+    <string name="shared_tribes_prefix">เผ่าที่เหมือนกัน: %1$s</string>
+    <string name="upgrade_plus_image_warning">อัปเกรดเป็น Plus เพื่อสร้างโพสต์รูปภาพ</string>
+    <string name="upgrade_premium_video_warning">อัปเกรดเป็น Premium เพื่อสร้างโพสต์วิดีโอ</string>
+    <string name="whats_on_your_mind">คุณกำลังคิดอะไรอยู่?</string>
+    <string name="add_tags_comma_separated">เพิ่มแท็ก (คั่นด้วยจุลภาค)</string>
+    <string name="add_location_optional">เพิ่มตำแหน่งที่ตั้ง (ไม่บังคับ)</string>
+    <string name="show_on_profile">แสดงในโปรไฟล์</string>
+    <string name="dont_show_location">ไม่แสดงตำแหน่งที่ตั้ง</string>
+    <string name="roles_label">บทบาท</string>
+    <string name="private_album">อัลบั้มส่วนตัว</string>
+    <string name="private_album_title">อัลบั้มส่วนตัว</string>
+    <string name="private_album_settings">การตั้งค่าอัลบั้มส่วนตัว</string>
+    <string name="share_private_album">แชร์อัลบั้มส่วนตัว</string>
+    <string name="user_shared_private_album">%1$s แชร์อัลบั้มส่วนตัวของตนแล้ว</string>
+    <string name="user_hidden_private_album">%1$s ซ่อนอัลบั้มส่วนตัวของตนแล้ว</string>
+    <string name="view_users_private_album">ดูอัลบั้มส่วนตัวของ %1$s</string>
+    <string name="your_match">คู่แมตช์ของคุณ</string>
+    <plurals name="notification_unread_messages">
+        <item quantity="one">คุณมีการแจ้งเตือนที่ยังไม่อ่าน %d รายการ</item>
+        <item quantity="other">คุณมีการแจ้งเตือนที่ยังไม่อ่าน %d รายการ</item>
+    </plurals>
+
+    <string name="notification_upgrade_prompt">อัปเกรดเพื่อไม่เห็นโฆษณา!</string>
+    <string name="notification_omegle_invite">ผู้ใช้ออนไลน์ส่งคำเชิญแชท</string>
+    <string name="notification_channel_name">การแจ้งเตือน Kupidx</string>
+
+    <string name="toast_not_logged_in">คุณยังไม่ได้เข้าสู่ระบบ</string>
+    <string name="toast_camera_permission_required">ต้องการสิทธิ์กล้องเพื่อถ่ายรูป</string>
+    <string name="toast_id_capture_failed">จับภาพบัตรไม่สำเร็จ</string>
+    <string name="toast_selfie_capture_failed">ถ่ายเซลฟี่ไม่สำเร็จ</string>
+    <string name="retake_id">ถ่ายบัตรใหม่</string>
+    <string name="retake_selfie">ถ่ายเซลฟี่ใหม่</string>
+    <string name="submitting">กำลังส่ง&#8230;</string>
+    <string name="submit_for_review">ส่งเพื่อตรวจสอบ</string>
+    <string name="verification_pending">กำลังรอตรวจสอบ</string>
+    <string name="already_verified">ยืนยันแล้ว</string>
+    <string name="photo_rejected_try_again">รูปถูกปฏิเสธ ลองใหม่</string>
+    <string name="capture_new_id">ถ่ายบัตรใหม่</string>
+    <string name="verify_id_title">ยืนยันบัตรและเซลฟี่ของคุณ</string>
+    <string name="capture_id_with_camera">ถ่ายบัตรของคุณด้วยกล้อง</string>
+    <string name="prompt_selfie_with_id">เยี่ยม! ตอนนี้ถ่ายเซลฟี่คู่กับบัตรของคุณ</string>
+    <string name="capture_selfie_with_id">ถ่ายเซลฟี่พร้อมบัตร</string>
+
+    <string-array name="roles_options">
+        <item>⚡️ ผู้คุม (Dominant)</item>
+        <item>🛡️ ผู้ตาม (Submissive)</item>
+        <item>🔄 สลับบท (Switch)</item>
+        <item>⬆️ รุก (Top/Active)</item>
+        <item>⬇️ รับ (Bottom/Passive)</item>
+        <item>⬆️ รุกได้ยืดหยุ่น</item>
+        <item>⬇️ รับได้ยืดหยุ่น</item>
+        <item>↔️ Side (ไม่สอดใส่)</item>
+        <item>❓ เปิดกว้าง / ถามฉัน</item>
+    </string-array>
+
+    <string-array name="tribes_options">
+        <item>🐻 หมี (Bear)</item>
+        <item>🧸 หมีน้อย (Cub)</item>
+        <item>🦦 นาก (Otter)</item>
+        <item>💜 ทวิงก์ (Twink)</item>
+        <item>🏈 สายกีฬา</item>
+        <item>👨‍🦳 แดดดี้</item>
+        <item>👦 หนุ่ม</item>
+        <item>🐽 จ้ำม่ำ</item>
+        <item>🧥 หนัง (Leather)</item>
+        <item>🤫 ลับ ๆ</item>
+    </string-array>
+
+    <string-array name="body_type_options">
+        <item>💪 กล้ามแน่น</item>
+        <item>🧘‍♂️ ผอมเพรียว</item>
+        <item>👨‍ หุ่นมาตรฐาน</item>
+        <item>🐽 จ้ำม่ำ</item>
+        <item>🏋️ แอธเลติก</item>
+        <item>🍑 มีส่วนโค้งเว้า</item>
+        <item>💪 ชัดเป็นลอน</item>
+        <item>🧱 แข็งแรงบึกบึน</item>
+        <item>🐘 ตัวใหญ่</item>
+    </string-array>
+
+    <string-array name="kink_options">
+        <item>⛓️ BDSM</item>
+        <item>🪢 เชือก / มัด (Bondage)</item>
+        <item>🔒 สายคุมความใคร่ (Chastity)</item>
+
+        <item>🎠 สวมบทบาท</item>
+        <item>🎭 แต่งคอสตูม</item>
+        <item>🫣 ผ้าปิดตา / ผ้าพัน</item>
+        <item>🪶 เล่นประสาทสัมผัส</item>
+
+        <item>🍑 ตี/แรงกระแทก</item>
+        <item>⏳ คุมจุดสุดยอด (Edging)</item>
+        <item>❄️🔥 เล่นอุณหภูมิ</item>
+        <item>🕯️ เล่นไขเทียน</item>
+
+        <item>👀 แอบมอง (Voyeur)</item>
+        <item>📷 โชว์ร่าง (Exhibition)</item>
+        <item>🌳 กลางแจ้ง</item>
+
+        <item>🐾 Pet play</item>
+        <item>🧥 หนัง (Leather)</item>
+        <item>🧪 ยาง/ลาเท็กซ์</item>
+        <item>🧤 ถุงมือ</item>
+        <item>🥾 บูต</item>
+
+        <item>🦶 เท้า</item>
+        <item>🪄 ของเล่น</item>
+        <item>👥 กลุ่ม</item>
+
+        <item>🗣️ พูดลามก</item>
+        <item>🚿 เล่นในห้องน้ำ</item>
+        <item>👑 อำนาจเหนือใต้</item>
+        <item>☕ ดูแลหลังเสร็จกิจ (aftercare)</item>
+    </string-array>
+
+    <string name="tribes_label">เผ่า</string>
+    <string name="body_type_label">รูปร่าง</string>
+    <string name="online_users">ผู้ใช้ออนไลน์</string>
+    <string name="male_header">ผู้ชาย</string>
+    <string name="female_header">ผู้หญิง</string>
+    <string name="apply">ใช้</string>
+    <string name="label_age">อายุ</string>
+    <string name="feature_unlock_maps">ปลดล็อกแผนที่</string>
+    <string name="other_header">อื่น ๆ</string>
+    <string name="request_canceled">ยกเลิกคำขอแล้ว</string>
+    <string name="app_name">Kupidx</string>
+    <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
+    <string name="languages">ภาษา</string>
+    <string name="section_bio_and_voice">ประวัติ</string>
+    <string name="accept_chat">ยอมรับ</string>
+    <string name="reject_chat">ปฏิเสธ</string>
+    <string name="request_sent_waiting">ส่งคำขอแล้ว — รอให้ผู้ใช้เข้าร่วม</string>
+    <string name="request_rejected">คำขอถูกปฏิเสธ</string>
+    <string name="user_left_chat">ผู้ใช้ออกจากแชท</string>
+
+    <string name="max_social_causes_error">เลือกสาเหตุสังคมได้สูงสุด %1$d รายการเท่านั้น</string>
+    <string name="tab_map">แผนที่</string>
+
+    <string name="settings_streak_line">สตรีคเข้าสู่ระบบ: %1$d วัน • %2$s</string>
+    <string name="kinks_label">รสนิยม (คั่นด้วยจุลภาค)</string>
+    <string name="paywall_or_separator">หรือ</string>
+
+    <string name="sort_nearby">ใกล้</string>
+    <string name="sort_last_active">ล่าสุดออนไลน์</string>
+
+    <string name="no_one_nearby_yet">ยังไม่มีใครอยู่ใกล้คุณ</string>
+    <string name="password_error">การเปลี่ยนรหัสผ่านต้องใช้บัญชีอีเมลและรหัสผ่าน</string>
+
+    <string name="label_radius">รัศมี</string>
+    <string name="gender_women">ผู้หญิง</string>
+    <string name="gender_men">ผู้ชาย</string>
+
+    <string name="paywall_title">ยืนยันว่าไม่ใช่บอทและรับ KupidxPlus 1 เดือน (โปรเปิดตัว): ดูว่าใครถูกใจคุณและอีกมาก</string>
+    <string name="paywall_entry_fee_message_india">ค่าเข้า %1$s เพื่อกันบอท</string>
+    <string name="paywall_entry_fee_message_mexico">ค่าเข้า %1$s เพื่อกันบอท</string>
+    <string name="paywall_entry_fee_message_us">ค่าเข้า %1$s เพื่อกันบอท</string>
+    <string name="paywall_entry_fee_message_generic">ค่าเข้า %1$s เพื่อกันบอท</string>
+    <string name="paywall_entry_fee_loading">ค่าเข้า: กำลังกำหนดราคา…</string>
+    <string name="paywall_opening_offer_message">โปรเปิดตัว: ใช้งานได้ 1 เดือนจากการชำระของคุณ</string>
+    <string name="paywall_button_processing">กำลังดำเนินการ…</string>
+    <string name="paywall_button_loading">กำลังโหลด…</string>
+    <string name="paywall_button_pay_india">จ่าย %1$s แล้วต่อ</string>
+    <string name="paywall_button_pay_mexico">จ่าย %1$s แล้วต่อ</string>
+    <string name="paywall_button_pay_us">จ่าย %1$s แล้วต่อ</string>
+    <string name="paywall_button_pay_generic">จ่าย %1$s แล้วต่อ</string>
+    <string name="paywall_button_pay_default">ชำระเงินและต่อ</string>
+    <string name="paywall_skip">ข้าม</string>
+    <string name="paywall_skip_disclaimer">เริ่มทดลองใช้งานฟรี 7 วันตอนนี้</string>
+    <string name="paywall_start_trial_button">เริ่มทดลองฟรี 7 วัน</string>
+    <string name="paywall_continue_button">ดำเนินการต่อ</string>
+    <string name="paywall_trial_active_message">ทดลองฟรีของคุณใช้งานได้จนถึง %1$s</string>
+    <string name="paywall_trial_ended_message">ช่วงทดลองฟรีสิ้นสุดแล้ว สมัครสมาชิกเพื่อใช้งานต่อ</string>
+    <string name="paywall_trial_error">เริ่มช่วงทดลองฟรีไม่สำเร็จ ลองอีกครั้ง</string>
+
+    <string name="map_entry_fee_plus_title">ปลดล็อก Plus แล้ว!</string>
+    <string name="map_entry_fee_plus_message">ขอบคุณที่สนับสนุน Kupidx — สิทธิ์ Plus ของคุณจะใช้งานในเดือนถัดไป</string>
+    <string name="map_entry_fee_plus_confirm">ตกลง</string>
+    <string name="map_entry_fee_discount_title">ข้อเสนอ Plus ชั่วคราว</string>
+    <string name="map_entry_fee_discount_message">ปลดล็อก Plus 1 เดือนด้วยการจ่ายครั้งเดียว ข้อเสนอหมดใน %1$d ชม.</string>
+    <string name="map_entry_fee_discount_upgrade">อัปเกรดตอนนี้</string>
+    <string name="ok">ตกลง</string>
+    <string name="unknown_value">ไม่ทราบ</string>
+    <string name="cd_delete_voice">ลบเสียง</string>
+    <string name="registration_progress_completed">เสร็จ %1$d%%</string>
+    <string name="label_your_message">ข้อความของคุณ</string>
+    <string name="action_send_compliment">ส่งคำชม</string>
+    <string name="chat_title_fallback">แชท</string>
+    <string name="nav_back">ย้อนกลับ</string>
+    <string name="payment_success">🎉 ชำระเงินสำเร็จ!</string>
+    <string name="payment_failed">❌ ชำระเงินล้มเหลว โปรดลองอีกครั้ง</string>
+    <string name="continue1">ดำเนินการต่อ</string>
+    <string name="try_again">ลองอีกครั้ง</string>
+    <string name="chat_menu_rate">ให้คะแนนแชท</string>
+    <string name="chat_menu_clear">ล้างแชท…</string>
+    <string name="chat_menu_delete_timer">ตั้งเวลาลบ…</string>
+    <string name="chat_menu_keep_forever">เก็บแชทตลอดไป</string>
+    <string name="chat_menu_unmatch">ยกเลิกแมตช์…</string>
+    <string name="chat_menu_report">รายงานผู้ใช้…</string>
+
+    <string name="chat_clear_only">ล้างแชทเท่านั้น</string>
+    <string name="duration_1d">1 วัน</string>
+    <string name="duration_1w">1 สัปดาห์</string>
+    <string name="duration_1m">1 เดือน</string>
+
+    <string name="chat_delete_label">ลบข้อความ %1$s</string>
+    <string name="chat_delete_after_1d">หลัง 1 วัน</string>
+    <string name="chat_delete_after_1w">หลัง 1 สัปดาห์</string>
+    <string name="chat_delete_after_1m">หลัง 1 เดือน</string>
+    <string name="chat_delete_soon">เร็ว ๆ นี้</string>
+    <string name="chat_delete_disabled">ปิดใช้งาน</string>
+
+    <string name="chat_unmatch_title">ยกเลิกแมตช์</string>
+    <string name="chat_unmatch_text">แน่ใจหรือไม่ว่าจะยกเลิกแมตช์? ข้อความทั้งหมดจะถูกลบและจบบทสนทนา</string>
+    <string name="chat_unmatch_confirm">ยกเลิกแมตช์</string>
+
+    <string name="chat_report_title">รายงานผู้ใช้</string>
+    <string name="chat_report_prompt">อธิบายเหตุผลในการรายงาน:</string>
+    <string name="chat_report_placeholder">พิมพ์เหตุผล</string>
+    <string name="chat_report_submit">ส่ง</string>
+    <string name="chat_report_reason_required">กรุณาระบุเหตุผลในการรายงาน</string>
+    <string name="chat_report_success">รายงาน บล็อก และยกเลิกแมตช์แล้ว</string>
+    <string name="chat_report_failed">ส่งรายงานไม่สำเร็จ ลองใหม่</string>
+
+    <string name="places_none">ไม่พบสถานที่</string>
+    <string name="suggestions_get">ขอคำแนะนำ</string>
+    <string name="clear_all">ล้างทั้งหมด</string>
+    <string name="close">ปิด</string>
+    <string name="directions">เส้นทาง</string>
+    <string name="tap_to_send">แตะเพื่อส่ง</string>
+
+    <string name="proceed">ดำเนินการ</string>
+
+    <string name="perm_mic_required">ต้องการสิทธิ์ไมโครโฟน</string>
+    <string name="perm_camera_required">ต้องการสิทธิ์กล้อง</string>
+    <string name="video_duration_limit_30s">เลือกวิดีโอไม่เกิน 30 วินาที</string>
+    <string name="editor_not_found">ไม่พบบแอปแก้ไขที่รองรับ</string>
+    <string name="editor_no_app">ไม่มีแอปแก้ไขสำหรับไฟล์นี้</string>
+    <string name="photo_load_failed">โหลดรูปไม่สำเร็จ</string>
+    <string name="playback_error_with_codes">ข้อผิดพลาดการเล่น: %1$d, %2$d</string>
+    <string name="voice_message">🎤 ข้อความเสียง</string>
+    <string name="message">ข้อความ</string>
+    <string name="reset">รีเซ็ต</string>
+    <string name="chat_messages_delete">ลบข้อความ %1$s</string>
+    <string name="rating_updated">อัปเดตคะแนนแล้ว!</string>
+    <string name="rating_avg_update_failed">อัปเดตคะแนนเฉลี่ยไม่สำเร็จ</string>
+    <string name="rating_update_failed">อัปเดตคะแนนไม่สำเร็จ</string>
+    <string name="rating_fetch_failed">ดึงคะแนนปัจจุบันไม่สำเร็จ</string>
+
+    <string name="account_delete_prompt">แน่ใจหรือไม่ว่าลบบัญชี? ข้อมูลทั้งหมดจะถูกลบ</string>
+    <string name="account_deleted">ลบบัญชีแล้ว</string>
+    <string name="username_heading">ผู้ใช้: %1$s</string>
+    <string name="username_updated">อัปเดตชื่อผู้ใช้แล้ว</string>
+    <string name="action_done">เสร็จ</string>
+
+    <string name="verify_email_body">ยืนยันอีเมลเพื่อใช้งานแอป</string>
+    <string name="email_verification_sent">ส่งอีเมลยืนยันแล้ว!</string>
+    <string name="email_verified_enjoy">ยืนยันอีเมลแล้ว — สนุกกับแอปได้เลย</string>
+    <string name="email_not_verified_yet">ยังไม่ยืนยัน — กดลิงก์ก่อน</string>
+
+    <string name="current_password">รหัสผ่านปัจจุบัน</string>
+    <string name="password_updated">อัปเดตรหัสผ่านแล้ว</string>
+
+    <string name="generic_error_with_msg">ข้อผิดพลาด: %1$s</string>
+    <string name="generic_error">ข้อผิดพลาด</string>
+    <string name="profile_load_self_failed">โหลดโปรไฟล์ของคุณไม่สำเร็จ</string>
+    <string name="profile_load_other_failed">โหลดผู้ใช้ไม่สำเร็จ</string>
+
+    <string name="unmatch_success">คุณได้ยกเลิกแมตช์กับบุคคลนี้แล้ว</string>
+    <string name="unmatch_failed">ยกเลิกแมตช์ไม่สำเร็จ ลองใหม่</string>
+
+    <string name="post_shared_label">โพสต์ที่แชร์</string>
+    <string name="superswipe_title">ซูเปอร์สไวป์</string>
+    <string name="chat_your_rating">คะแนนของคุณ: %1$s</string>
+
+    <string name="cd_stop_recording">หยุดอัด</string>
+    <string name="cd_play_pause">เล่น/พัก</string>
+    <string name="cd_close">ปิด</string>
+    <string name="map_entry_fee_later">ไว้ก่อน</string>
+    <string name="entry_fee_plus_title">ปลดล็อก Plus 1 เดือน</string>
+    <string name="entry_fee_plus_header">Plus จ่ายครั้งเดียว</string>
+    <string name="entry_fee_plus_description_price">จ่าย %1$s ครั้งเดียว แล้วใช้สิทธิ์ Plus 1 เดือน</string>
+    <string name="entry_fee_plus_description_generic">จ่ายครั้งเดียววันนี้ แล้วใช้สิทธิ์ Plus 1 เดือน</string>
+    <string name="entry_fee_plus_offer_timer">ส่วนลดชั่วคราว · เหลือ %1$d ชม.</string>
+    <string name="entry_fee_plus_button">ปลดล็อกในราคา %1$s</string>
+    <string name="entry_fee_plus_button_generic">ปลดล็อก Plus</string>
+    <string name="entry_fee_plus_success_toast">Plus จะใช้งานในเดือนถัดไป!</string>
+    <string name="settings_limited_offer_badge">ข้อเสนอจำกัด</string>
+    <string name="btn_send_to_match">ส่งให้คู่แมตช์</string>
+    <string name="dialog_select_match_title">เลือกคู่แมตช์</string>
+    <string name="btn_send">ส่ง</string>
+    <string name="loading_ellipsis">กำลังโหลด…</string>
+    <string name="unknown_place">สถานที่ไม่ทราบ</string>
+    <string name="match_age">อายุ: %1$d</string>
+    <string name="match_from">จาก: %1$s</string>
+    <string name="offer_tab_label">ข้อเสนอ</string>
+
+    <string name="feed_tab_everyone">ทุกคน</string>
+    <string name="feed_tab_matches">คู่ที่แมตช์</string>
+    <string name="no_more_older_posts">ไม่มีโพสต์เก่าเพิ่มเติม</string>
+
+    <string name="see_more">ดูเพิ่มเติม</string>
+    <string name="post_edit">แก้ไขโพสต์</string>
+    <string name="post_delete">ลบโพสต์</string>
+    <string name="post_report">รายงานโพสต์</string>
+    <string name="free_tier_media_limit_msg">ชั้นฟรีดูมีเดียได้เพียง 5 ครั้งต่อวัน</string>
+    <string name="report_reason_placeholder">ใส่เหตุผล</string>
+    <string name="reported_blocked_unmatched">รายงาน บล็อก และยกเลิกแมตช์แล้ว</string>
+    <string name="search_tags_placeholder">ค้นหาผู้ใช้/โพสต์/สถานที่ หรือแท็ก</string>
+
+    <string name="share">แชร์</string>
+    <string name="save_post">บันทึกโพสต์</string>
+    <string name="share_with">แชร์กับ…</string>
+    <string name="send">ส่ง</string>
+    <string name="cancel">ยกเลิก</string>
+    <string name="google_sign_in_failed">เข้าสู่ระบบด้วย Google ไม่สำเร็จ</string>
+    <string name="google_sign_in_failed_with_reason">เข้าสู่ระบบด้วย Google ไม่สำเร็จ: %1$s</string>
+    <string name="google_sign_in_launch_failed">เริ่มการเข้าสู่ระบบ Google ไม่ได้ ลองอีกครั้ง</string>
+    <string name="google_sign_in_launch_failed_with_reason">เริ่มการเข้าสู่ระบบ Google ไม่ได้ ลองอีกครั้ง\n%1$s</string>
+    <string name="link_accounts_title">เชื่อมโยงบัญชี</string>
+    <string name="link_accounts_message">กรอกรหัสผ่านของ %1$s เพื่อเชื่อมบัญชี:</string>
+    <string name="accounts_linked_success">เชื่อมบัญชีแล้ว! ยินดีต้อนรับกลับ</string>
+    <string name="link_failed">เชื่อมบัญชีล้มเหลว</string>
+    <string name="link_failed_with_reason">เชื่อมบัญชีล้มเหลว: %1$s</string>
+    <string name="password_incorrect">รหัสผ่านไม่ถูกต้อง</string>
+    <string name="password_incorrect_with_reason">รหัสผ่านไม่ถูกต้อง: %1$s</string>
+
+    <string name="upvote">โหวตขึ้น</string>
+    <string name="downvote">โหวตลง</string>
+    <string name="show_comments">แสดงความเห็น</string>
+    <string name="view_comments_count">ดูความเห็น (%1$d)</string>
+    <string name="report_reason_prompt">ระบุเหตุผลในการรายงานโพสต์นี้:</string>
+    <string name="reason_required">ต้องระบุเหตุผล</string>
+    <string name="no_significant_rated_users_yet">ยังไม่มีผู้ใช้ที่มีคะแนนเพียงพอ</string>
+
+    <string name="no_comments_yet">ยังไม่มีความเห็น</string>
+    <string name="recording_time_left">กำลังอัด… เหลือเวลา: %1$ds</string>
+    <string name="submit_voice_comment">ส่งความเห็นเสียง</string>
+    <string name="record">อัดเสียง</string>
+    <string name="add_a_comment">เพิ่มความเห็น…</string>
+    <string name="play_pause">เล่น/พัก</string>
+
+    <string name="plus_time_left">Plus เหลือ %1$dh</string>
+    <string name="no_plus">ไม่มี Plus</string>
+    <string name="na">ไม่มีข้อมูล</string>
+    <string name="expires_prefix">หมดอายุ: %1$s</string>
+    <string name="status_prefix">สถานะ: %1$s</string>
+
+    <string name="leaderboard_title">สถานที่เด่น</string>
+    <plurals name="post_count">
+        <item quantity="one">%d โพสต์</item>
+        <item quantity="other">%d โพสต์</item>
+    </plurals>
+    <string name="btn_close">ปิด</string>
+    <string name="cd_go_to_feed">ไปที่ฟีด</string>
+
+    <string name="btn_view_full_profile">ดูโปรไฟล์เต็ม</string>
+
+    <string name="advanced_compatibility">ความเข้ากันได้ขั้นสูง</string>
+
+    <string name="tab_people">ผู้คน</string>
+    <string name="tab_nearby">ใกล้ฉัน</string>
+    <string name="watch_ad_boost">ดูโฆษณาเพื่อรับบูสต์ 1 ครั้ง</string>
+    <string name="watch_ad_compliment">ดูโฆษณาเพื่อรับคำชม 1 ครั้ง</string>
+    <string name="watch_ad_swipes">ดูโฆษณาเพื่อรับสไวป์ 5 ครั้ง</string>
+    <string name="watch">ดู</string>
+    <string name="pay_instead">ชำระแทน</string>
+    <string name="send_feedback">ส่งคำติชม</string>
+    <string name="your_feedback">คำติชมของคุณ</string>
+    <string name="confirm_delete_account">แน่ใจหรือไม่ว่าจะลบบัญชี? ข้อมูลทั้งหมดจะถูกลบ</string>
+    <string name="delete">ลบ</string>
+    <string name="username_with_value">ชื่อผู้ใช้: %1$s</string>
+    <string name="done">เสร็จแล้ว</string>
+    <string name="new_password">รหัสผ่านใหม่</string>
+    <string name="confirm_password">ยืนยันรหัสผ่าน</string>
+    <string name="global_preferences">การตั้งค่าทั่วไป</string>
+    <string name="private_account">บัญชีส่วนตัว</string>
+    <string name="private_account_desc">ไม่ปรากฏในกองการ์ดยกเว้นคุณสไวป์ขวา</string>
+    <string name="unblock">ปลดบล็อก</string>
+    <string name="gender_other">อื่น ๆ</string>
+    <string name="gender_all">ทั้งหมด</string>
+    <string name="toast_complete_entry_fee">กรุณาชำระค่าเข้าให้เสร็จก่อนดำเนินการต่อ</string>
+
+    <string name="toast_invalid_email">กรอกอีเมลที่ถูกต้อง</string>
+    <string name="settings_day_theme">ธีมกลางวัน</string>
+    <string name="settings_limited_offer_message">ปลดล็อก Plus 1 เดือนด้วยการจ่ายครั้งเดียว ข้อเสนอหมดใน %1$d ชม.</string>
+    <string name="settings_view_offer_cta">ดูข้อเสนอจำกัดเวลา</string>
+    <string name="settings_trial_not_started">มีช่วงทดลองฟรี — เปิดใช้เพื่อปลดล็อก Plus</string>
+    <string name="settings_trial_active">ช่วงทดลองฟรีสิ้นสุด %1$s • %2$s</string>
+    <plurals name="settings_trial_days_left">
+        <item quantity="one">เหลือ %d วัน</item>
+        <item quantity="other">เหลือ %d วัน</item>
+    </plurals>
+    <string name="settings_trial_expired">ช่วงทดลองฟรีสิ้นสุดเมื่อ %1$s</string>
+    <string name="settings_trial_expired_generic">ช่วงทดลองฟรีสิ้นสุดแล้ว</string>
+    <string name="settings_trial_message_with_plus">%1$s • %2$s</string>
+    <string name="btn_directions">เส้นทาง</string>
+    <string name="cd_country_filter">สำรวจตามประเทศ</string>
+    <string name="clear_country_filter">ล้างตัวกรองประเทศ</string>
+    <string name="country_coords_unavailable">ไม่มีพิกัดสำหรับ %1$s</string>
+    <string name="cd_city_filter">สำรวจตามเมือง</string>
+    <string name="clear_city_filter">ล้างตัวกรองเมือง</string>
+    <string name="city_coords_unavailable">ไม่มีพิกัดสำหรับ %1$s</string>
+    <string name="remove_from_stack">เอาออกจากกอง</string>
+    <string name="that_username_is_taken">ชื่อนี้ถูกใช้อยู่แล้ว</string>
+    <string name="block">บล็อก</string>
+    <string name="please_select_gender">เลือกเพศของคุณ</string>
+    <string name="toast_select_birth_date">เลือกวันเกิดของคุณ</string>
+    <string name="toast_minimum_age">คุณต้องมีอายุอย่างน้อย 14 ปี</string>
+    <string name="toast_pick_valid_username">เลือกชื่อผู้ใช้ที่ถูกต้องแล้วแตะ เสร็จสิ้น</string>
+    <string name="toast_complete_required_fields">กรอกช่องที่จำเป็นให้ครบ</string>
+    <string name="toast_unknown_error">ข้อผิดพลาดที่ไม่ทราบ</string>
+    <string name="toast_otp_failed">ยืนยัน OTP ล้มเหลว: %1$s</string>
+    <string name="toast_error_with_reason">ข้อผิดพลาด: %1$s</string>
+    <string name="toast_otp_error">ข้อผิดพลาด OTP: %1$s</string>
+    <string name="toast_invalid_form">แบบฟอร์มไม่ถูกต้อง</string>
+    <string name="toast_phone_already_linked">เบอร์นี้เชื่อมกับบัญชีอื่นแล้ว</string>
+    <string name="toast_no_signed_in_user">ไม่มีผู้ใช้ที่เข้าสู่ระบบ</string>
+    <string name="toast_location_permission_denied">ปฏิเสธสิทธิ์ตำแหน่งที่ตั้ง</string>
+    <string name="toast_explicit_photo">รูปนี้ดูไม่เหมาะสม โปรดเลือกรูปอื่น</string>
+    <string name="toast_private_album_limit">สูงสุด 10 รายการ</string>
+    <string name="toast_mic_permission_denied">ปฏิเสธสิทธิ์ไมโครโฟน</string>
+    <string name="more_options">ตัวเลือกเพิ่มเติม</string>
+    <string name="cd_omegle">แชทสุ่ม</string>
+    <string name="join_random_chat">เข้าร่วมแชทสุ่มไหม?</string>
+    <string name="join_chat">เข้าร่วม</string>
+    <string name="ignore_chat">เพิกเฉย</string>
+    <string name="no_users_online">ยังไม่มีผู้ใช้ออนไลน์</string>
+    <string name="end_chat">จบแชท</string>
+    <string name="feature_no_ads">ไม่มีโฆษณา</string>
+    <string name="feature_priority_profile">โปรไฟล์ลำดับแรกในรายการนัดพบ</string>
+    <string name="feature_people_liked_me">ปลดล็อกคนที่ถูกใจฉัน</string>
+    <string name="feature_picture_voice_posts">ปลดล็อกโพสต์รูปและเสียง</string>
+    <string name="feature_50_swipes">สไวป์ได้ 50 ครั้งต่อวัน</string>
+    <string name="feature_3_compliments">คำชม 3 ครั้งต่อสัปดาห์</string>
+    <string name="feature_3_boosts">บูสต์ 3 ครั้งต่อสัปดาห์</string>
+    <string name="feature_video_rank_section">ปลดล็อกโพสต์วิดีโอและส่วนจัดอันดับ</string>
+    <string name="feature_unlimited_swipes">สไวป์ไม่จำกัด</string>
+    <string name="feature_5_compliments">คำชม 5 ครั้งต่อสัปดาห์</string>
+    <string name="feature_5_boosts">บูสต์ 5 ครั้งต่อสัปดาห์</string>
+    <string name="feature_performance_metrics_rank">ปลดล็อกเมตริกผลงานและอันดับโปรไฟล์</string>
+    <string name="feature_everything_plus">ทุกอย่างใน Plus</string>
+    <string name="paid_user_stack">กองผู้ใช้แบบชำระเงิน</string>
+    <string name="back">กลับ</string>
+    <string name="searching">กำลังค้นหา...</string>
+    <string name="saved_posts_title">โพสต์ที่บันทึกไว้</string>
+    <string name="saved_posts_empty">ยังไม่มีโพสต์ที่บันทึก</string>
+        <!-- LA Quick Tags (labels) -->
+        <string name="la_tag_dtla_rooftops_label">ดาดฟ้าใน DTLA</string>
+        <string name="la_tag_ktown_bbq_label">บาร์บีคิวเกาหลี (K-Town)</string>
+        <string name="la_tag_beach_sunset_label">พระอาทิตย์ตกริมทะเล</string>
+        <string name="la_tag_runyon_hikes_label">เดินป่า Runyon</string>
+        <string name="la_tag_live_music_label">ดนตรีสด</string>
+        <string name="la_tag_brunch_westside_label">บรันช์ฝั่ง Westside</string>
+        <string name="la_tag_arts_district_label">คาเฟ่ย่าน Arts District</string>
+        <string name="la_tag_museums_label">พิพิธภัณฑ์ (LACMA/Getty/MOCA)</string>
+
+        <!-- LA Quick Tags (queries) -->
+        <string name="la_tag_dtla_rooftops_query">บาร์ดาดฟ้า ใกล้ตัวเมืองลอสแอนเจลิส</string>
+        <string name="la_tag_ktown_bbq_query">บาร์บีคิวเกาหลี ใกล้ Koreatown ลอสแอนเจลิส</string>
+        <string name="la_tag_beach_sunset_query">จุดชมพระอาทิตย์ตก ใกล้ซานตา โมนิกา</string>
+        <string name="la_tag_runyon_hikes_query">เส้นทางเดินป่า ใกล้ Runyon Canyon</string>
+        <string name="la_tag_live_music_query">สถานที่ดนตรีสด ใกล้ Silver Lake</string>
+        <string name="la_tag_brunch_westside_query">บรันช์ ใกล้ซานตา โมนิกา</string>
+        <string name="la_tag_arts_district_query">คาเฟ่ ใกล้ Arts District ลอสแอนเจลิส</string>
+        <string name="la_tag_museums_query">พิพิธภัณฑ์ ใกล้ลอสแอนเจลิส (LACMA Getty MOCA)</string>
+
+        <!-- LA Collections (labels) -->
+        <string name="la_col_date_westside_label">เดตไนต์ (Westside)</string>
+        <string name="la_col_beach_day_label">วันทะเล (SM/เวนิส)</string>
+        <string name="la_col_studio_city_night_label">ค่ำคืนที่สตูดิโอซิตี</string>
+        <string name="la_col_views_griffith_hollywood_label">จุดชมวิว (Griffith/Hollywood)</string>
+        <string name="la_col_weho_label">เวสต์ฮอลลีวูด</string>
+        <string name="la_col_little_tokyo_label">ลิตเติลโตเกียว</string>
+
+        <!-- LA Collections (queries) -->
+        <string name="la_col_date_westside_query">ร้านอาหารโรแมนติก ใกล้ซานตา โมนิกา</string>
+        <string name="la_col_beach_day_query">บาร์ริมทะเล ใกล้ Venice Beach</string>
+        <string name="la_col_studio_city_night_query">บาร์ค็อกเทล ใกล้ Universal CityWalk</string>
+        <string name="la_col_views_griffith_hollywood_query">จุดชมวิว ใกล้หอดูดาวกริฟฟิธ</string>
+        <string name="la_col_weho_query">บาร์ค็อกเทล ใกล้ West Hollywood</string>
+        <string name="la_col_little_tokyo_query">ซูชิ ใกล้ลิตเติลโตเกียว ลอสแอนเจลิส</string>
+
+        <!-- LA recenter FAB -->
+        <string name="la_fab_recenter_text">LA</string>
+
+        <!-- LA new quick tags -->
+        <string name="la_tag_malibu_beaches_label">หาดมาลิบู</string>
+        <string name="la_tag_malibu_beaches_query">ชายหาด ใกล้มาลิบู</string>
+        <string name="la_tag_dockweiler_bonfire_label">กองไฟริมทะเล (Dockweiler)</string>
+        <string name="la_tag_dockweiler_bonfire_query">จุดก่อกองไฟ ใกล้ Dockweiler Beach</string>
+        <string name="la_tag_surf_rental_label">เช่าเซิร์ฟ (เวนิส)</string>
+        <string name="la_tag_surf_rental_query">เช่าเซิร์ฟ ใกล้ Venice Beach</string>
+        <string name="la_tag_manhattan_volleyball_label">วอลเลย์ที่ Manhattan Beach</string>
+        <string name="la_tag_manhattan_volleyball_query">สนามวอลเลย์ ใกล้ Manhattan Beach</string>
+        <string name="la_tag_speakeasy_label">สปีคอีซี</string>
+        <string name="la_tag_speakeasy_query">บาร์สปีคอีซี ใกล้ลอสแอนเจลิส</string>
+        <string name="la_tag_karaoke_ktown_label">คาราโอเกะ (K-Town)</string>
+        <string name="la_tag_karaoke_ktown_query">คาราโอเกะ ใกล้ Koreatown ลอสแอนเจลิส</string>
+        <string name="la_tag_comedy_label">คลับคอเมดี้</string>
+        <string name="la_tag_comedy_query">คลับคอเมดี้ ใกล้ลอสแอนเจลิส</string>
+        <string name="la_tag_food_trucks_label">ฟู้ดทรัก</string>
+        <string name="la_tag_food_trucks_query">ฟู้ดทรัก ใกล้ลอสแอนเจลิส</string>
+
+        <!-- SF Bay quick tags -->
+        <string name="ba_tag_ocean_beach_sunset_label">พระอาทิตย์ตกที่ Ocean Beach</string>
+        <string name="ba_tag_ocean_beach_sunset_query">จุดชมพระอาทิตย์ตก ใกล้ Ocean Beach ซานฟรานซิสโก</string>
+        <string name="ba_tag_gg_viewpoints_label">วิวสะพานโกลเดนเกต</string>
+        <string name="ba_tag_gg_viewpoints_query">จุดชมวิว ใกล้สะพานโกลเดนเกต</string>
+        <string name="ba_tag_mission_tacos_label">ทาโก้ย่านมิชชั่น</string>
+        <string name="ba_tag_mission_tacos_query">ทาโก้ ใกล้ Mission District ซานฟรานซิสโก</string>
+        <string name="ba_tag_north_beach_pizza_label">พิซซ่าย่านนอร์ทบีช</string>
+        <string name="ba_tag_north_beach_pizza_query">พิซซ่า ใกล้ North Beach ซานฟรานซิสโก</string>
+        <string name="ba_tag_soma_coffee_label">กาแฟคราฟต์ที่ SoMa</string>
+        <string name="ba_tag_soma_coffee_query">กาแฟคราฟต์ ใกล้ SoMa ซานฟรานซิสโก</string>
+        <string name="ba_tag_marin_hikes_label">เดินป่าที่มาริน</string>
+        <string name="ba_tag_marin_hikes_query">เส้นทางเดินป่า ใกล้ Marin Headlands</string>
+        <string name="ba_tag_napa_wineries_label">โรงไวน์ที่นาปา</string>
+        <string name="ba_tag_napa_wineries_query">โรงไวน์ ใกล้นาปา</string>
+        <string name="ba_tag_berkeley_bookstores_label">ร้านหนังสือเบิร์กลีย์</string>
+        <string name="ba_tag_berkeley_bookstores_query">ร้านหนังสือ ใกล้ Berkeley</string>
+        <string name="ba_tag_paloalto_coffee_label">คาเฟ่ที่พาโลอัลโต</string>
+        <string name="ba_tag_paloalto_coffee_query">คาเฟ่ ใกล้ Palo Alto</string>
+        <string name="ba_tag_oakland_music_label">ดนตรีสดที่โอ๊คแลนด์</string>
+        <string name="ba_tag_oakland_music_query">สถานที่ดนตรีสด ใกล้ Oakland</string>
+        <string name="ba_tag_ferry_market_label">ตลาด Ferry Building</string>
+        <string name="ba_tag_ferry_market_query">ตลาดเกษตรกร ใกล้ Ferry Building</string>
+
+        <!-- SF Bay collections -->
+        <string name="ba_col_date_sf_label">เดตไนต์ (ซานฟรานซิสโก)</string>
+        <string name="ba_col_date_sf_query">ร้านอาหารโรแมนติก ใกล้ซานฟรานซิสโก</string>
+        <string name="ba_col_ocean_beach_evening_label">เย็นย่ำที่ Ocean Beach</string>
+        <string name="ba_col_ocean_beach_evening_query">บาร์ริมทะเล ใกล้ Outer Sunset ซานฟรานซิสโก</string>
+        <string name="ba_col_south_bay_night_label">ค่ำคืนที่ South Bay</string>
+        <string name="ba_col_south_bay_night_query">บาร์ค็อกเทล ใกล้ Santana Row ซานโฮเซ</string>
+        <string name="ba_col_wine_day_napa_label">วันไวน์ (นาปา)</string>
+        <string name="ba_col_wine_day_napa_query">โรงไวน์ ใกล้นาปา</string>
+        <string name="ba_col_berkeley_vintage_label">เส้นทางวินเทจที่เบิร์กลีย์</string>
+        <string name="ba_col_berkeley_vintage_query">ร้านวินเทจ ใกล้ Telegraph Avenue เบิร์กลีย์</string>
+        <string name="ba_col_marin_headlands_label">เส้นทางที่ Marin Headlands</string>
+        <string name="ba_col_marin_headlands_query">เส้นทางเดินป่า ใกล้ Marin Headlands</string>
+
+        <string name="ba_fab_recenter_text">BAY</string>
+        <string name="settings_get_more_boosts">รับบูสต์เพิ่ม</string>
+        <string name="settings_get_more_swipes">รับสไวป์เพิ่ม</string>
+        <string name="swipe_overlay_buy_swipes_button">ซื้อสไวป์</string>
+        <string name="swipe_overlay_upgrade_button">อัปเกรดเพื่อสไวป์เพิ่ม</string>
+        <string name="settings_get_more_compliments">รับคำชมเพิ่ม</string>
+        <string name="settings_ai_messages_remaining">ข้อความ AI ที่เหลือ</string>
+
+        <string name="ba_tag_sf_museums_label">พิพิธภัณฑ์ SF</string>
+        <string name="ba_tag_sf_museums_query">พิพิธภัณฑ์ ใกล้ซานฟรานซิสโก (SFMOMA de Young Exploratorium)</string>
+
+        <string name="no_education_label">ไม่มีการศึกษา</string>
+        <string name="upgrade">อัปเกรด</string>
+        <string name="total_match_label">ความเข้ากันโดยรวม: %1$d%%</string>
+        <string name="running_analysis">กำลังวิเคราะห์…</string>
+        <string name="strengths">จุดแข็ง</string>
+        <string name="concerns">ข้อกังวล</string>
+        <string name="notes">บันทึก</string>
+        <string name="upgrade_to_plus">อัปเกรดเป็น Plus</string>
+
+        <string name="worldwide">ทั่วโลก 🌍</string>
+
+        <string name="rating_label">คะแนน</string>
+        <string name="min_rating">อย่างน้อย ⭐ %.1f</string>
+
+        <string name="ranking_label">การจัดอันดับ</string>
+        <string name="top_n_ranking">ท็อป %s โปรไฟล์</string>
+
+        <string name="cd_price_filter">กรองตามราคา</string>
+        <string name="price_all">ทั้งหมด</string>
+        <string name="price_1">$</string>
+        <string name="price_2">$$</string>
+        <string name="price_3">$$$</string>
+        <string name="price_4">$$$$</string>
+
+        <!-- Generic Location Types (Applicable Across India) -->
+        <string name="tag_budget_hotels">โรงแรมประหยัด</string>
+        <string name="tag_hotels">โรงแรม</string>
+        <string name="tag_cafes">คาเฟ่</string>
+        <string name="tag_bars">บาร์</string>
+        <string name="tag_malls">ห้างสรรพสินค้า</string>
+        <string name="tag_parks">สวนสาธารณะ</string>
+        <string name="tag_cinemas">โรงภาพยนตร์</string>
+        <string name="tag_restaurants">ร้านอาหาร</string>
+        <string name="tag_street_food">สตรีทฟู้ด</string>
+        <string name="tag_clubs">คลับ</string>
+        <string name="tag_bookstores">ร้านหนังสือ</string>
+        <string name="tag_gaming_centers">ศูนย์เกม</string>
+        <string name="tag_amusement_parks">สวนสนุก</string>
+        <string name="tag_beaches">ชายหาด</string>
+        <string name="tag_museums">พิพิธภัณฑ์</string>
+        <string name="tag_national_parks">อุทยานแห่งชาติ</string>
+        <string name="tag_zoos">สวนสัตว์</string>
+        <string name="tag_libraries">ห้องสมุด</string>
+        <string name="tag_markets">ตลาด</string>
+        <string name="tag_art_galleries">แกลเลอรีศิลปะ</string>
+        <string name="tag_lakes">ทะเลสาบ</string>
+        <string name="tag_sports_centers">ศูนย์กีฬา</string>
+        <string name="tag_night_markets">ตลาดกลางคืน</string>
+        <string name="tag_food_courts">ศูนย์อาหาร</string>
+
+        <!-- Iconic Landmarks (Major Cities Across India) -->
+        <string name="tag_india_gate">India Gate</string>
+        <string name="tag_taj_mahal">Taj Mahal</string>
+        <string name="tag_gateway_of_india">Gateway of India</string>
+        <string name="tag_qutub_minar">Qutub Minar</string>
+        <string name="tag_charminar">Charminar</string>
+        <string name="tag_lotus_temple">Lotus Temple</string>
+        <string name="tag_hawa_mahal">Hawa Mahal</string>
+        <string name="tag_golden_temple">Golden Temple</string>
+        <string name="tag_mysore_palace">Mysore Palace</string>
+        <string name="tag_marine_drive">Marine Drive</string>
+        <string name="tag_akshardham_temple">Akshardham Temple</string>
+        <string name="tag_red_fort">Red Fort</string>
+        <string name="tag_jantar_mantar">Jantar Mantar</string>
+
+        <string name="tag_other">อื่น ๆ</string>
+
+        <string name="age_format">อายุ: %s</string>
+        <string name="age_only_format">อายุ: %s</string>
+        <string name="search_matches">ค้นหาคู่ที่เข้ากัน</string>
+        <string name="no_matches_found">ไม่พบท่ีเข้ากัน</string>
+        <string name="rate">ให้คะแนน</string>
+        <string name="no_messages_yet">ยังไม่มีข้อความ</string>
+        <string name="sent_message">ส่งแล้ว: %s</string>
+        <string name="seen_status">✔✔ เห็นแล้ว</string>
+        <string name="delivered_status">✔ จัดส่งแล้ว</string>
+        <string name="your_rating">คะแนนของคุณ: %s</string>
+        <string name="scroll_to_top">กลับขึ้นบน</string>
+
+        <string name="logo_kupidx_desc">โลโก้ KupidX</string>
+        <string name="date">สไวป์</string>
+        <string name="map">แผนที่</string>
+        <string name="chat">แชท</string>
+        <string name="feed">หน้าแรก</string>
+        <string name="profile">โปรไฟล์</string>
+        <string name="error_location_not_available">ไม่มีตำแหน่งผู้ใช้</string>
+
+        <!-- Bottom-navigation -->
+        <string name="nav_date">สไวป์</string>
+        <string name="nav_map">แผนที่</string>
+        <string name="nav_chat">แชท</string>
+        <string name="nav_feed">หน้าแรก</string>
+        <string name="nav_profile">โปรไฟล์</string>
+
+        <!-- Top-bar / actions -->
+        <string name="cd_leaderboard">ตารางจัดอันดับ</string>
+        <string name="cd_location_settings">การตั้งค่าตำแหน่ง</string>
+        <string name="cd_for_you">สำหรับคุณ</string>
+        <string name="cd_create_post">สร้างโพสต์</string>
+        <string name="cd_user_settings">การตั้งค่าผู้ใช้</string>
+        <string name="cd_logout">ออกจากระบบ</string>
+        <string name="cd_notifications">การแจ้งเตือน</string>
+
+        <!-- Location-visibility dialog -->
+        <string name="dialog_location_title">ตั้งค่าการมองเห็นตำแหน่ง</string>
+        <string name="lbl_visible_to_matches">มองเห็นได้โดยคู่แมตช์ของคุณ</string>
+        <string name="btn_save">บันทึก</string>
+
+        <string name="hint_type_message">พิมพ์ข้อความ…</string>
+        <string name="btn_language">ภาษา</string>
+        <string name="btn_suggestions">คำแนะนำ</string>
+        <string name="btn_places">สถานที่</string>
+        <string name="btn_record_voice">อัดเสียง</string>
+        <string name="btn_stop_recording">หยุดอัด</string>
+        <string name="btn_pick_photo">เลือกภาพ</string>
+        <string name="btn_pick_video">เลือกวิดีโอ</string>
+        <string name="btn_capture_photo">ถ่ายภาพ</string>
+        <string name="btn_capture_video">ถ่ายวิดีโอ</string>
+        <string name="lbl_topics">หัวข้อ</string>
+        <string name="lbl_activities">กิจกรรม</string>
+        <string name="lbl_tips">ทิปส์</string>
+        <string name="no_suggestions">ยังไม่มีคำแนะนำ</string>
+        <string name="get_suggestions">ขอคำแนะนำ</string>
+        <string name="typing">กำลังพิมพ์</string>
+        <string name="recording_left">กำลังอัด… เหลือเวลา: %1$ds</string>
+
+        <!-- Interests (global + others) -->
+        <string name="interest_food">อาหาร</string>
+        <string name="interest_nature">ธรรมชาติ</string>
+        <string name="interest_music">เพลง</string>
+        <string name="interest_movies">ภาพยนตร์</string>
+        <string name="interest_sports">กีฬา</string>
+        <string name="interest_books">หนังสือ</string>
+        <string name="interest_travel">ท่องเที่ยว</string>
+        <string name="interest_fitness">ฟิตเนส</string>
+        <string name="interest_art">ศิลปะ</string>
+        <string name="interest_gaming">เกม</string>
+        <string name="interest_photography">การถ่ายภาพ</string>
+        <string name="interest_cooking">ทำอาหาร</string>
+        <string name="interest_dancing">เต้น</string>
+        <string name="interest_gardening">ทำสวน</string>
+        <string name="interest_technology">เทคโนโลยี</string>
+        <string name="interest_fashion">แฟชั่น</string>
+        <string name="interest_volunteering">อาสาสมัคร</string>
+        <string name="interest_pets">สัตว์เลี้ยงและสัตว์</string>
+        <string name="interest_charity">งานการกุศล</string>
+        <string name="interest_community">การจัดการชุมชน</string>
+        <string name="interest_networking">สร้างเครือข่าย</string>
+        <string name="interest_public_speaking">การพูดต่อหน้าสาธารณะ</string>
+        <string name="interest_writing">การเขียน</string>
+        <string name="interest_blogging">บล็อก</string>
+        <string name="interest_podcasting">ทำพอดแคสต์</string>
+        <string name="interest_social_media">โซเชียลมีเดีย</string>
+        <string name="interest_online_communities">ชุมชนออนไลน์</string>
+        <string name="interest_skydiving">โดดร่ม</string>
+        <string name="interest_scuba_diving">ดำน้ำลึก</string>
+        <string name="interest_rock_climbing">ปีนผา</string>
+        <string name="interest_surfing">เซิร์ฟ</string>
+        <string name="interest_skiing">สกี</string>
+        <string name="interest_snowboarding">สโนว์บอร์ด</string>
+        <string name="interest_mountain_biking">ปั่นเสือภูเขา</string>
+        <string name="interest_motorcycling">ขี่มอเตอร์ไซค์</string>
+        <string name="interest_car_racing">แข่งรถ</string>
+        <string name="interest_extreme_sports">กีฬาเอ็กซ์ตรีม</string>
+        <string name="interest_puzzles">ปริศนา</string>
+        <string name="interest_board_games">บอร์ดเกม</string>
+        <string name="interest_video_games">วิดีโอเกม</string>
+        <string name="interest_watching_tv">ดูทีวี</string>
+        <string name="interest_napping">งีบ</string>
+        <string name="interest_spa_days">สปาเดย์</string>
+        <string name="interest_beach_days">วันชายหาด</string>
+        <string name="interest_picnics">ปิกนิก</string>
+        <string name="interest_coding">เขียนโค้ด</string>
+        <string name="interest_robotics">หุ่นยนต์</string>
+        <string name="interest_space">สำรวจอวกาศ</string>
+        <string name="interest_environmentalism">สิ่งแวดล้อมนิยม</string>
+        <string name="interest_baking">ทำขนมอบ</string>
+        <string name="interest_wine_tasting">ชิมไวน์</string>
+        <string name="interest_craft_beer">คราฟต์เบียร์</string>
+        <string name="interest_coffee">กาแฟ</string>
+        <string name="interest_yoga">โยคะ</string>
+        <string name="interest_meditation">ทำสมาธิ</string>
+        <string name="interest_astrology">โหราศาสตร์</string>
+        <string name="interest_romance">โรแมนซ์</string>
+        <string name="interest_crystals">คริสตัล</string>
+        <string name="interest_vintage_clothing">เสื้อผ้าวินเทจ</string>
+        <string name="interest_thrift_shopping">ช้อปของมือสอง</string>
+        <string name="interest_diy">งาน DIY</string>
+        <string name="interest_home_improvement">ปรับปรุงบ้าน</string>
+        <string name="interest_interior_design">ออกแบบภายใน</string>
+        <string name="interest_history">ประวัติศาสตร์</string>
+        <string name="interest_science">วิทยาศาสตร์</string>
+        <string name="interest_philosophy">ปรัชญา</string>
+        <string name="interest_politics">การเมือง</string>
+        <string name="interest_economics">เศรษฐศาสตร์</string>
+        <string name="interest_hiking">เดินเขา</string>
+        <string name="interest_camping">ตั้งแคมป์</string>
+        <string name="interest_fishing">ตกปลา</string>
+        <string name="interest_hunting">ล่าสัตว์</string>
+        <string name="interest_traveling">ท่องเที่ยว</string>
+
+        <string name="match_summary_format">ความเข้ากันโดยรวม: %1$d%%\nรายละเอียด:\n%2$s</string>
+
+        <string name="enter_your_personal_details">กรอกข้อมูลส่วนตัวของคุณ</string>
+
+        <string name="jan">ม.ค.</string>
+        <string name="feb">ก.พ.</string>
+        <string name="mar">มี.ค.</string>
+        <string name="apr">เม.ย.</string>
+        <string name="may">พ.ค.</string>
+        <string name="jun">มิ.ย.</string>
+        <string name="jul">ก.ค.</string>
+        <string name="aug">ส.ค.</string>
+        <string name="sep">ก.ย.</string>
+        <string name="oct">ต.ค.</string>
+        <string name="nov">พ.ย.</string>
+        <string name="dec">ธ.ค.</string>
+
+        <!-- ProfileScreen -->
+        <string name="edit">แก้ไข</string>
+        <string name="cancel_edit">ยกเลิกการแก้ไข</string>
+        <string name="not_set">ยังไม่ตั้งค่า</string>
+        <string name="profile_loading">กำลังโหลดโปรไฟล์ของคุณ…</string>
+        <string name="looking_for_label">สิ่งที่มองหา</string>
+        <string name="verified_profile_cd">โปรไฟล์ยืนยันแล้ว</string>
+        <string name="verify_profile_cd">ยืนยันโปรไฟล์</string>
+
+        <!-- Lifestyle etc. -->
+        <string name="family_information">ข้อมูลครอบครัว</string>
+        <string name="add">เพิ่ม</string>
+        <string name="select_looking_for">เลือกสิ่งที่มองหา</string>
+        <string name="looking_for_marriage">แต่งงาน</string>
+        <string name="looking_for_partner">คู่ชีวิต</string>
+        <string name="looking_for_connection">เชื่อมสัมพันธ์</string>
+        <string name="looking_for_romance">โรแมนติก</string>
+        <string name="looking_for_not_selected">ยังไม่เลือก</string>
+
+        <string name="very_high">สูงมาก</string>
+        <string name="high">สูง</string>
+        <string name="moderate">ปานกลาง</string>
+        <string name="low">ต่ำ</string>
+        <string name="inactive">ไม่ค่อยทำ</string>
+
+        <string name="extremely_introverted">เก็บตัวมากที่สุด</string>
+        <string name="very_introverted">เก็บตัวมาก</string>
+        <string name="moderately_introverted">เก็บตัวปานกลาง</string>
+        <string name="slightly_introverted">เก็บตัวเล็กน้อย</string>
+        <string name="not_introverted">ไม่เก็บตัว</string>
+
+        <string name="sports_fanatic">คลั่งกีฬา</string>
+        <string name="sports_enthusiast">ชอบกีฬา</string>
+        <string name="occasional_player">เล่นเป็นครั้งคราว</string>
+        <string name="casual_viewer">ดูสบาย ๆ</string>
+        <string name="non_sports">ไม่เล่นกีฬา</string>
+
+        <string name="community_leader">ผู้นำชุมชน</string>
+        <string name="community_oriented">เน้นชุมชน</string>
+        <string name="occasionally_involved">มีส่วนร่วมบางครั้ง</string>
+        <string name="individualistic">ปัจเจก</string>
+
+        <string name="politically_engaged">สนใจการเมืองมาก</string>
+        <string name="aware">ตื่นตัว</string>
+        <string name="occasionally_aware">ตื่นตัวบางครั้ง</string>
+        <string name="unaware">ไม่ค่อยสนใจ</string>
+
+        <string name="tell_us_more_about_yourself">บอกเราเพิ่มเติมเกี่ยวกับคุณ</string>
+        <string name="enter_custom_value">กรอกค่ากำหนดเอง</string>
+
+        <string name="gourmet">กูร์เมต์</string>
+        <string name="passionate_foodie">สายกินตัวยง</string>
+        <string name="foodie">สายกิน</string>
+        <string name="occasional_foodie">สายกินเป็นครั้งคราว</string>
+        <string name="not_a_foodie">ไม่ใช่สายกิน</string>
+
+        <string name="eco_champion">แชมป์สิ่งแวดล้อม</string>
+        <string name="eco_friendly">เป็นมิตรต่อสิ่งแวดล้อม</string>
+        <string name="occasionally_conscious">ใส่ใจเป็นครั้งคราว</string>
+        <string name="not_conscious">ไม่ค่อยใส่ใจ</string>
+
+        <string name="high_ambitious">ทะเยอทะยานมาก</string>
+        <string name="ambitious">ทะเยอทะยาน</string>
+        <string name="occasionally_driven">มีแรงผลักบางครั้ง</string>
+        <string name="relaxed">สบาย ๆ</string>
+
+        <string name="life_of_the_party">ดาวงานปาร์ตี้</string>
+        <string name="humorous">อารมณ์ขัน</string>
+        <string name="somewhat_easygoing">สบาย ๆ พอควร</string>
+        <string name="serious">จริงจัง</string>
+
+        <string name="lifestyle_humor">ออกเที่ยว</string>
+
+        <string name="deeply_mindful">ตระหนักรู้อย่างลึกซึ้ง</string>
+        <string name="spiritual">จิตวิญญาณ</string>
+        <string name="occasionally_mindful">ตระหนักรู้เป็นครั้งคราว</string>
+        <string name="not_spiritual">ไม่เน้นจิตวิญญาณ</string>
+
+        <string name="peak_fitness">ฟิตสุดขีด</string>
+        <string name="athletic">แอธเลติก</string>
+        <string name="fit">ฟิต</string>
+        <string name="somewhat_fit">พอฟิต</string>
+        <string name="sedentary">นั่งนิ่ง</string>
+
+        <string name="artistic_genius">อัจฉริยะศิลป์</string>
+        <string name="very_creative">ครีเอทีฟมาก</string>
+        <string name="creative">ครีเอทีฟ</string>
+        <string name="somewhat_creative">ครีเอทีฟพอควร</string>
+        <string name="not_creative">ไม่ค่อยครีเอทีฟ</string>
+
+        <string name="philosopher">นักปรัชญา</string>
+        <string name="intellectual">ปัญญาชน</string>
+        <string name="knowledge_seeker">ผู้แสวงหาความรู้</string>
+        <string name="inquisitive">ช่างสงสัย</string>
+        <string name="casual_thinker">คิดสบาย ๆ</string>
+
+        <string name="thrill_seeker">ชอบความตื่นเต้น</string>
+        <string name="adventurous">ชอบผจญภัย</string>
+        <string name="moderately_adventurous">ผจญภัยปานกลาง</string>
+        <string name="slightly_adventurous">ผจญภัยเล็กน้อย</string>
+        <string name="cautious">ระมัดระวัง</string>
+
+        <string name="late_night_enthusiast">สายดึก</string>
+        <string name="night_owl">นกฮูกกลางคืน</string>
+        <string name="morning_person">คนตื่นเช้า</string>
+        <string name="early_riser">ตื่นแต่เช้า</string>
+
+        <string name="very_family_oriented">ครอบครัวสุด ๆ</string>
+        <string name="more_family_oriented">เอนเอียงครอบครัว</string>
+        <string name="slightly_family_oriented">เอียงครอบครัวเล็กน้อย</string>
+        <string name="independent">อิสระ</string>
+
+        <string name="very_active">แอคทีฟมาก</string>
+        <string name="active">แอคทีฟ</string>
+        <string name="moderately_active">แอคทีฟปานกลาง</string>
+        <string name="rarely_active">แทบไม่แอคทีฟ</string>
+        <string name="non_drinker">ไม่ดื่ม</string>
+
+        <string name="more_life_oriented">เอนเอียงชีวิต</string>
+        <string name="more_work_oriented">เอนเอียงงาน</string>
+        <string name="workaholic">บ้างาน</string>
+
+        <string name="influencer">อินฟลูเอนเซอร์</string>
+        <string name="engager">มีส่วนร่วม</string>
+        <string name="casual_participant">ร่วมแบบสบาย ๆ</string>
+        <string name="watcher">ผู้สังเกต</string>
+        <string name="invisible">ไม่ปรากฏตัว</string>
+
+        <string name="very_outdoorsy">ชอบกิจกรรมกลางแจ้งมาก</string>
+        <string name="mostly_outdoorsy">ออกนอกบ้านมากกว่า</string>
+        <string name="mostly_indoorsy">อยู่ในบ้านมากกว่า</string>
+        <string name="very_indoorsy">ในบ้านมาก</string>
+
+        <string name="heavy_drinker">ดื่มหนัก</string>
+        <string name="frequent_drinker">ดื่มบ่อย</string>
+        <string name="social_drinker">ดื่มสังคม</string>
+        <string name="rare_drinker">ดื่มนาน ๆ ครั้ง</string>
+
+        <string name="heavy_smoker">สูบบุหรี่จัด</string>
+        <string name="frequent_smoker">สูบบ่อย</string>
+        <string name="social_smoker">สูบสังคม</string>
+        <string name="rare_smoker">สูบนาน ๆ ครั้ง</string>
+        <string name="non_smoker">ไม่สูบ</string>
+
+        <string name="record_voice_bio">อัดไบโอเสียง</string>
+        <string name="edit_voice_bio">แก้ไขไบโอเสียง</string>
+
+        <!-- MATRIMONY -->
+        <string name="matrimony_mode">ดรอปดาวน์สมรส</string>
+        <string name="matrimony_marriage_timeline">ไทม์ไลน์แต่งงาน</string>
+        <string name="matrimony_relocation_preference">ความพร้อมย้ายที่อยู่</string>
+        <string name="matrimony_post_marriage_career_plan">แผนอาชีพหลังแต่งงาน</string>
+        <string name="matrimony_traditional_vs_liberal">ดั้งเดิม vs เสรี</string>
+        <string name="matrimony_father_occupation">อาชีพบิดา</string>
+        <string name="matrimony_mother_occupation">อาชีพมารดา</string>
+        <string name="edit_matrimony_info_cd">แก้ไขข้อมูลสมรส</string>
+
+        <!-- PHOTO CAROUSEL OVERLAY -->
+        <string name="from_hometown">จาก %1$s</string>
+        <string name="posts_button">โพสต์</string>
+        <string name="edit_profile_cd">แก้ไขโปรไฟล์</string>
+
+        <!-- PROFILE COMPLETION -->
+        <string name="profile_percent">โปรไฟล์ %1$d%%</string>
+
+        <!-- COLLAPSIBLE SECTION TITLES -->
+        <string name="section_matrimony_info">ข้อมูลสมรส</string>
+        <string name="section_bio">ไบโอ</string>
+        <string name="section_voice_bio">ไบโอเสียง</string>
+        <string name="section_basic_information">ข้อมูลพื้นฐาน</string>
+        <string name="section_preferences">การตั้งค่า</string>
+        <string name="section_social_causes">สาเหตุสังคม</string>
+        <string name="section_lifestyle_attributes">คุณลักษณะไลฟ์สไตล์</string>
+        <string name="section_interests">ความสนใจ</string>
+
+        <string name="settings_change_location">เปลี่ยนตำแหน่ง</string>
+        <string name="settings_select_location">เลือกตำแหน่งของคุณ</string>
+        <string name="settings_membership">สมาชิกภาพ</string>
+        <string name="settings_free_user">ผู้ใช้ฟรี</string>
+        <string name="settings_give_feedback">ส่งคำติชม</string>
+        <string name="settings_policies_support">นโยบายและซัพพอร์ต</string>
+        <string name="settings_delete_account">ลบบัญชี</string>
+        <string name="settings_account_settings">การตั้งค่าบัญชี</string>
+        <string name="settings_change_password">เปลี่ยนรหัสผ่าน</string>
+        <string name="settings_global_preferences">การตั้งค่าทั่วโลก</string>
+        <string name="settings_private_account">บัญชีส่วนตัว</string>
+        <string name="settings_preferred_language">ภาษาที่ต้องการ</string>
+        <string name="settings_allow_matches_maps">ให้คู่แมตช์เห็นคุณบนแผนที่</string>
+        <string name="settings_matrimony_mode">โหมดสมรส</string>
+        <string name="settings_blocked_users">ผู้ใช้ที่บล็อก</string>
+        <string name="settings_view_all_blocked_users">ดูผู้ใช้ที่บล็อกทั้งหมด</string>
+        <string name="settings_no_users_blocked">ไม่มีผู้ใช้ที่ถูกบล็อก</string>
+        <string name="settings_no_users_currently_blocked">ขณะนี้ไม่มีผู้ใช้ที่ถูกบล็อก</string>
+        <string name="policies_support">นโยบายและซัพพอร์ต</string>
+        <string name="policy_contact_us">ติดต่อเรา</string>
+        <string name="policy_privacy_policy">นโยบายความเป็นส่วนตัว</string>
+        <string name="policy_terms_conditions">ข้อกำหนดและเงื่อนไข</string>
+        <string name="policy_refund_policy">นโยบายการคืนเงิน</string>
+        <string name="policy_shipping_delivery">การจัดส่งและส่งมอบ</string>
+        <string name="policy_delete_account">ลบบัญชี</string>
+        <string name="sexual_orientation_label">รสนิยมทางเพศ</string>
+
+        <!-- PROFILE DETAIL LABELS -->
+        <string name="label_name">ชื่อ</string>
+        <string name="label_gender">เพศ</string>
+        <string name="label_locality">ย่าน</string>
+        <string name="label_love_language">ภาษาความรัก</string>
+        <string name="label_politics">การเมือง</string>
+        <string name="label_username">ชื่อผู้ใช้</string>
+        <string name="label_job_role">ตำแหน่งงาน</string>
+        <string name="label_work">ที่ทำงาน</string>
+        <string name="label_high_school">มัธยมปลาย</string>
+        <string name="label_college">มหาวิทยาลัย</string>
+        <string name="label_college_degree">วุฒิ มหาวิทยาลัย</string>
+        <string name="label_post_graduation">หลังจบปริญญา</string>
+        <string name="label_post_graduation_degree">วุฒิหลังปริญญา</string>
+        <string name="label_community">ชุมชน</string>
+        <string name="label_religion">ศาสนา</string>
+        <string name="label_height">ส่วนสูง</string>
+        <string name="label_date_joined">วันที่สมัคร</string>
+
+        <!-- METRICS & RANKINGS -->
+        <string name="swipe_right_probability">โอกาสสไวป์ขวา</string>
+
+        <!-- BIO & VOICE BIO -->
+        <string name="bio_no_bio">ยังไม่มีไบโอ</string>
+        <string name="voice_no_voice_bio">ยังไม่มีไบโอเสียง</string>
+
+        <!-- BUTTON TEXTS -->
+        <string name="add_interest">เพิ่มความสนใจ</string>
+        <string name="add_cause">เพิ่มสาเหตุ</string>
+        <string name="remove">เอาออก</string>
+
+        <!-- DROPDOWN DEFAULTS -->
+        <string name="not_selected">ยังไม่เลือก</string>
+        <string name="not_specified">ไม่ได้ระบุ</string>
+
+        <string name="pause_audio">หยุดชั่วคราว</string>
+        <string name="tap_to_play">เล่นข้อความเสียง</string>
+        <string name="playing_seconds">กำลังเล่น %1$d วินาที</string>
+
+        <string name="select_love_language">เลือกภาษาความรัก</string>
+        <string name="love_language_option_not_selected">ยังไม่เลือก</string>
+        <string name="love_language_option_words_of_affirmation">คำยืนยัน</string>
+        <string name="love_language_option_acts_of_service">การช่วยเหลือ</string>
+        <string name="love_language_option_receiving_gifts">การได้รับของขวัญ</string>
+        <string name="love_language_option_quality_time">เวลาคุณภาพ</string>
+        <string name="love_language_option_physical_touch">การสัมผัส</string>
+        <string name="love_language_option_other">อื่น ๆ</string>
+
+        <!-- Politics dropdown -->
+        <string name="select_politics">เลือกการเมือง</string>
+        <string name="politics_option_not_selected">ยังไม่เลือก</string>
+        <string name="politics_option_far_left">ซ้ายจัด</string>
+        <string name="politics_option_left">ซ้าย</string>
+        <string name="politics_option_centre_left">กลางซ้าย</string>
+        <string name="politics_option_centre">กลาง</string>
+        <string name="politics_option_centre_right">กลางขวา</string>
+        <string name="politics_option_right">ขวา</string>
+        <string name="politics_option_far_right">ขวาจัด</string>
+        <string name="politics_option_liberal">เสรีนิยม</string>
+        <string name="politics_option_conservative">อนุรักษ์นิยม</string>
+        <string name="politics_option_moderate">สายกลาง</string>
+        <string name="politics_option_socialist">สังคมนิยม</string>
+        <string name="politics_option_communist">คอมมิวนิสต์</string>
+        <string name="politics_option_other">อื่น ๆ</string>
+
+        <!-- Job-role dropdown -->
+        <string name="select_job_role">เลือกตำแหน่ง</string>
+        <string name="job_role_option_not_selected">ยังไม่เลือก</string>
+        <string name="job_role_option_software_developer">วิศวกรซอฟต์แวร์</string>
+        <string name="job_role_option_data_scientist">นักวิทยาศาสตร์ข้อมูล</string>
+        <string name="job_role_option_ux_ui_designer">นักออกแบบ UI/UX</string>
+        <string name="job_role_option_civil_engineer">วิศวกรโยธา</string>
+        <string name="job_role_option_mechanical_engineer">วิศวกรเครื่องกล</string>
+        <string name="job_role_option_electrical_engineer">วิศวกรไฟฟ้า</string>
+        <string name="job_role_option_project_manager">ผู้จัดการโครงการ</string>
+        <string name="job_role_option_product_manager">ผู้จัดการผลิตภัณฑ์</string>
+        <string name="job_role_option_business_analyst">นักวิเคราะห์ธุรกิจ</string>
+        <string name="job_role_option_accountant">นักบัญชี</string>
+        <string name="job_role_option_chartered_accountant">ผู้สอบบัญชีรับอนุญาต</string>
+        <string name="job_role_option_hr_manager">ผู้จัดการ HR</string>
+        <string name="job_role_option_marketing_manager">ผู้จัดการการตลาด</string>
+        <string name="job_role_option_sales_executive">พนักงานขาย</string>
+        <string name="job_role_option_director">ผู้อำนวยการ</string>
+        <string name="job_role_option_ceo">CEO</string>
+        <string name="job_role_option_teacher">ครู</string>
+        <string name="job_role_option_professor">อาจารย์มหาวิทยาลัย</string>
+        <string name="job_role_option_researcher">นักวิจัย</string>
+        <string name="job_role_option_scientist">นักวิทยาศาสตร์</string>
+        <string name="job_role_option_doctor">แพทย์</string>
+        <string name="job_role_option_surgeon">ศัลยแพทย์</string>
+        <string name="job_role_option_nurse">พยาบาล</string>
+        <string name="job_role_option_pharmacist">เภสัชกร</string>
+        <string name="job_role_option_lawyer">ทนายความ</string>
+        <string name="job_role_option_advocate">ทนายผู้ว่าความ</string>
+        <string name="job_role_option_legal_consultant">ที่ปรึกษากฎหมาย</string>
+        <string name="job_role_option_graphic_designer">นักออกแบบกราฟิก</string>
+        <string name="job_role_option_content_writer">นักเขียนคอนเทนต์</string>
+        <string name="job_role_option_photographer">ช่างภาพ</string>
+        <string name="job_role_option_journalist">นักข่าว</string>
+        <string name="job_role_option_editor">บรรณาธิการ</string>
+        <string name="job_role_option_chef">เชฟ</string>
+        <string name="job_role_option_barista">บาริสต้า</string>
+        <string name="job_role_option_pilot">นักบิน</string>
+        <string name="job_role_option_flight_attendant">พนักงานต้อนรับบนเครื่อง</string>
+        <string name="job_role_option_police_officer">ตำรวจ</string>
+        <string name="job_role_option_firefighter">นักดับเพลิง</string>
+        <string name="job_role_option_army_officer">นายทหาร</string>
+        <string name="job_role_option_electrician">ช่างไฟ</string>
+        <string name="job_role_option_plumber">ช่างประปา</string>
+        <string name="job_role_option_carpenter">ช่างไม้</string>
+        <string name="job_role_option_mechanic">ช่างเครื่อง</string>
+        <string name="job_role_option_entrepreneur">ผู้ประกอบการ</string>
+        <string name="job_role_option_intern">นักศึกษาฝึกงาน</string>
+        <string name="job_role_option_other">อื่น ๆ</string>
+
+        <!-- Work/Industry dropdown -->
+        <string name="select_work">เลือกงาน</string>
+        <string name="work_option_not_selected">ยังไม่เลือก</string>
+        <string name="work_option_private_sector">เอกชน</string>
+        <string name="work_option_government">รัฐบาล</string>
+        <string name="work_option_information_technology">ไอที</string>
+        <string name="work_option_healthcare">ดูแลสุขภาพ</string>
+        <string name="work_option_education">การศึกษา</string>
+        <string name="work_option_construction">ก่อสร้าง</string>
+        <string name="work_option_manufacturing">การผลิต</string>
+        <string name="work_option_agriculture">เกษตรกรรม</string>
+        <string name="work_option_pharmaceuticals">เภสัชกรรม</string>
+        <string name="work_option_banking">ธนาคาร</string>
+        <string name="work_option_insurance">ประกันภัย</string>
+        <string name="work_option_real_estate">อสังหาริมทรัพย์</string>
+        <string name="work_option_retail">ค้าปลีก</string>
+        <string name="work_option_e_commerce">อีคอมเมิร์ซ</string>
+        <string name="work_option_telecom">โทรคมนาคม</string>
+        <string name="work_option_automobile">ยานยนต์</string>
+        <string name="work_option_mining">เหมืองแร่</string>
+        <string name="work_option_media_entertainment">สื่อและบันเทิง</string>
+        <string name="work_option_hospitality">การบริการ</string>
+        <string name="work_option_logistics">โลจิสติกส์</string>
+        <string name="work_option_non_profit">ไม่แสวงหากำไร</string>
+        <string name="work_option_startup">สตาร์ทอัพ</string>
+        <string name="work_option_freelance">ฟรีแลนซ์</string>
+        <string name="work_option_unemployed">ว่างงาน</string>
+        <string name="work_option_other">อื่น ๆ</string>
+
+        <!-- Ethnicity & Income -->
+        <string name="ethnicity_label">เชื้อชาติ</string>
+        <string name="select_ethnicity">เลือกเชื้อชาติ</string>
+        <string name="ethnicity_option_not_selected">ยังไม่เลือก</string>
+        <string name="ethnicity_option_indian">ภารตะ (Bharatiya)</string>
+        <string name="ethnicity_option_white">ผิวขาว (คอเคเชียน)</string>
+        <string name="ethnicity_option_black">ผิวดำ / แอฟริกันอเมริกัน</string>
+        <string name="ethnicity_option_hispanic">ฮิสแปนิก / ลาติโน</string>
+        <string name="ethnicity_option_asian">เอเชีย</string>
+        <string name="ethnicity_option_native_american">ชนพื้นเมืองอเมริกัน</string>
+        <string name="ethnicity_option_middle_eastern">ตะวันออกกลาง</string>
+        <string name="ethnicity_option_pacific_islander">ชาวหมู่เกาะแปซิฟิก</string>
+        <string name="ethnicity_option_mixed_other">ผสม / อื่น ๆ</string>
+
+        <string name="income_level_label">ระดับรายได้</string>
+        <string name="select_income_level">เลือกระดับรายได้</string>
+        <string name="income_level_option_not_selected">ยังไม่เลือก</string>
+        <string name="income_level_under_25k">ต่ำกว่า $25k</string>
+        <string name="income_level_25k_50k">$25k–$50k</string>
+        <string name="income_level_50k_75k">$50k–$75k</string>
+        <string name="income_level_75k_100k">$75k–$100k</string>
+        <string name="income_level_100k_150k">$100k–$150k</string>
+        <string name="income_level_over_150k">มากกว่า $150k</string>
+
+        <string name="looking_for_long_term">ระยะยาว</string>
+        <string name="looking_for_short_to_long">สั้น เปิดรับยาว</string>
+        <string name="looking_for_casual">สบาย ๆ</string>
+        <string name="looking_for_dating">ออกเดต</string>
+        <string name="looking_for_exclusive">คบจริงจัง</string>
+
+        <string name="label_custom_love_language">ภาษาความรักแบบกำหนดเอง</string>
+        <string name="label_custom_politics">การเมืองแบบกำหนดเอง</string>
+        <string name="label_custom_job_role">ตำแหน่งแบบกำหนดเอง</string>
+        <string name="label_custom_work">งานแบบกำหนดเอง</string>
+
+        <!-- INTEREST / CAUSE PLACEHOLDERS -->
+        <string name="no_interests">ยังไม่มีความสนใจ</string>
+        <string name="no_social_causes">ยังไม่มีสาเหตุสังคม</string>
+
+        <!-- DatingScreen -->
+        <string name="no_more_swipes_available">ไม่มีสไวป์เหลือ</string>
+
+        <string name="college_mismatch_format">ต่างมหาวิทยาลัย: \"%1$s\" vs \"%2$s\"</string>
+        <string name="post_graduation_mismatch_format">ต่างวุฒิหลังปริญญา: \"%1$s\" vs \"%2$s\"</string>
+        <string name="workplace_mismatch_format">ต่างที่ทำงาน: \"%1$s\" vs \"%2$s\"</string>
+        <string name="job_role_mismatch_format">ต่างตำแหน่งงาน: \"%1$s\" vs \"%2$s\"</string>
+        <string name="love_language_mismatch_format">ต่างภาษาความรัก: \"%1$s\" vs \"%2$s\"</string>
+        <string name="relationship_intent_mismatch_format">ต่างเจตนาความสัมพันธ์: \"%1$s\" vs \"%2$s\"</string>
+        <string name="community_match_format">ชุมชนตรงกัน: ทั้งคู่คือ \"%1$s\"</string>
+        <string name="religion_match_format">ศาสนาตรงกัน: ทั้งคู่คือ \"%1$s\"</string>
+        <string name="city_mismatch_format">ต่างเมือง: \"%1$s\" vs \"%2$s\"</string>
+        <string name="relocation_mismatch_format">ต่างความพร้อมย้าย: \"%1$s\" vs \"%2$s\"</string>
+        <string name="career_plan_mismatch_format">ต่างแผนอาชีพหลังแต่ง: \"%1$s\" vs \"%2$s\"</string>
+        <string name="cultural_mindset_mismatch_format">ต่างทัศนคติวัฒนธรรม: \"%1$s\" vs \"%2$s\"</string>
+
+        <!-- calculateExhaustiveCompatibilityScore -->
+        <string name="workplace_label">ที่ทำงาน</string>
+        <string name="job_role_label">ตำแหน่งงาน</string>
+        <string name="love_language_label">ภาษาความรัก</string>
+        <string name="relationship_intent_label">เจตนาความสัมพันธ์</string>
+        <string name="preferred_language_label">ภาษาที่ชอบ</string>
+        <string name="shared_interests_prefix">ความสนใจร่วม: %1$s</string>
+        <string name="no_common_interests">ไม่มีความสนใจร่วม</string>
+        <string name="interests_not_set">ความสนใจ: ทั้งคู่ยังไม่ตั้งค่า</string>
+        <string name="shared_social_causes_prefix">สาเหตุสังคมร่วม: %1$s</string>
+        <string name="no_common_social_causes">ไม่มีสาเหตุสังคมร่วม</string>
+        <string name="social_causes_not_set">สาเหตุสังคม: ทั้งคู่ยังไม่ตั้งค่า</string>
+        <string name="zodiac_compatibility_prefix">%1$s และ %2$s เข้ากันได้ %3$d%%</string>
+        <string name="zodiac_mismatch_prefix">ต่างราศี: %1$s vs %2$s</string>
+        <string name="zodiac_not_set">ราศี: ยังไม่ตั้งค่า</string>
+        <string name="age_compatibility_prefix">อายุเข้ากัน: %1$d vs %2$d (%3$d%%)</string>
+        <string name="age_not_set">อายุ: ยังไม่ตั้งค่า</string>
+        <string name="matrimony_mismatch">ต่างโหมดสมรส: คนหนึ่งเปิด อีกคนไม่เปิด</string>
+        <string name="matrimony_not_set">โหมดสมรส: ทั้งคู่ยังไม่ตั้งค่า</string>
+        <string name="marriage_timeline_label">ไทม์ไลน์แต่งงาน</string>
+        <string name="relocation_label">การย้ายที่อยู่</string>
+        <string name="post_marriage_career_plan_label">แผนอาชีพหลังแต่งงาน</string>
+        <string name="cultural_mindset_label">ทัศนคติด้านวัฒนธรรม</string>
+        <string name="lifestyle_smoking">บุหรี่</string>
+        <string name="lifestyle_drinking">แอลกอฮอล์</string>
+        <string name="lifestyle_indoor_outdoor">ในบ้าน/นอกบ้าน</string>
+        <string name="lifestyle_sexual_activity">กิจกรรมทางเพศ</string>
+        <string name="lifestyle_sociability">เข้าสังคม</string>
+        <string name="lifestyle_social_media">โซเชียลมีเดีย</string>
+        <string name="lifestyle_dietary_preferences">โภชนาการ</string>
+        <string name="lifestyle_sleep">การนอน</string>
+        <string name="lifestyle_work_life_balance">สมดุลงาน-ชีวิต</string>
+        <string name="balanced">สมดุล</string>
+        <string name="lifestyle_going_out">ออกเที่ยว</string>
+        <string name="lifestyle_exercise">ออกกำลังกาย</string>
+        <string name="lifestyle_adventurousness">ชอบผจญภัย</string>
+        <string name="lifestyle_family_oriented">เน้นครอบครัว</string>
+        <string name="lifestyle_intellectual_curiosity">ใฝ่รู้</string>
+        <string name="lifestyle_creative_expression">แสดงออกสร้างสรรค์</string>
+        <string name="lifestyle_physical_fitness">ความฟิต</string>
+        <string name="lifestyle_spirituality">จิตวิญญาณ</string>
+        <string name="lifestyle_professional_ambition">ทะเยอทะยานอาชีพ</string>
+        <string name="lifestyle_environmental_awareness">ตระหนักสิ่งแวดล้อม</string>
+        <string name="lifestyle_culinary_enthusiasm">หลงใหลอาหาร</string>
+        <string name="lifestyle_political_awareness">ตระหนักการเมือง</string>
+        <string name="lifestyle_community_engagement">ผูกพันชุมชน</string>
+        <string name="lifestyle_sports">กีฬา</string>
+        <string name="lifestyle_field_default">ฟิลด์ไลฟ์สไตล์</string>
+        <string name="lifestyle_not_set_suffix">%1$s: ทั้งคู่ยังไม่ตั้งค่า</string>
+        <string name="lifestyle_one_not_set_suffix">%1$s: คนหนึ่งยังไม่ตั้งค่า</string>
+        <string name="lifestyle_match_format">ทั้งคู่ตรงกัน %1$d คุณลักษณะ: %2$s</string>
+        <string name="lifestyle_no_traits_to_compare">ยังมีคุณลักษณะไม่พอให้เทียบ</string>
+        <string name="lifestyle_similarity_format">ความคล้ายไลฟ์สไตล์: ตรงกัน %1$s%% จาก %2$d ปัจจัย คุณลักษณะร่วม: %3$s</string>
+        <string name="lifestyle_none_common">ไม่มี</string>
+        <string name="lifestyle_not_set_in_profiles">ไลฟ์สไตล์: ทั้งคู่ยังไม่ตั้งค่า</string>
+        <string name="lifestyle_mismatches_format">ต่างกันด้านไลฟ์สไตล์: %1$s</string>
+        <string name="shared_tags_prefix">แท็กร่วม: %1$s</string>
+        <string name="tags_not_set_or_no_overlap">แท็กผู้ใช้: ยังไม่ตั้งค่า หรือไม่ซ้อนทับ</string>
+
+        <string name="postgrad_other">อื่น ๆ</string>
+
+        <!-- Communities (keep names as English ethnonyms where proper) -->
+        <string name="community_other">อื่น ๆ ทั้งหมด</string>
+        <string name="community_adi">Adi</string>
+        <string name="community_andamanese">Andamanese</string>
+        <string name="community_anglo_indian">Anglo-Indian</string>
+        <string name="community_assamese">Assamese</string>
+        <string name="community_awadhi">Awadhi</string>
+        <string name="community_banjara">Banjara</string>
+        <string name="community_bengali">Bengali</string>
+        <string name="community_bhil">Bhil</string>
+        <string name="community_bihari">Bihari</string>
+        <string name="community_bodo">Bodo</string>
+        <string name="community_bhojpuri">Bhojpuri</string>
+        <string name="community_chhattisgarhi">Chhattisgarhi</string>
+        <string name="community_coorgi">Coorgi / Kodava</string>
+        <string name="community_dogra">Dogra</string>
+        <string name="community_garhwali">Garhwali</string>
+        <string name="community_goan">Goan</string>
+        <string name="community_gond">Gond</string>
+        <string name="community_gujarati">Gujarati</string>
+        <string name="community_haryanvi">Haryanvi</string>
+        <string name="community_himachali">Himachali</string>
+        <string name="community_kannadiga">Kannadiga</string>
+        <string name="community_kashmiri">Kashmiri</string>
+        <string name="community_khasi">Khasi</string>
+        <string name="community_konkani">Konkani</string>
+        <string name="community_kumaoni">Kumaoni</string>
+        <string name="community_ladakhi">Ladakhi</string>
+        <string name="community_lakhadweepi">Lakshadweepi</string>
+        <string name="community_lepcha">Lepcha</string>
+        <string name="community_madhya_pradeshi">Madhya Pradeshi</string>
+        <string name="community_malayali">Malayali</string>
+        <string name="community_malayali_mappila">Malayali-Mappila</string>
+        <string name="community_manipuri">Manipuri / Meitei</string>
+        <string name="community_marathi">Marathi</string>
+        <string name="community_marwari">Marwari</string>
+        <string name="community_mizo">Mizo</string>
+        <string name="community_munda">Munda</string>
+        <string name="community_naga">Naga</string>
+        <string name="community_nepali">Nepali / Gorkha</string>
+        <string name="community_nyishi">Nyishi</string>
+        <string name="community_odia">Odia</string>
+        <string name="community_oraon">Oraon</string>
+        <string name="community_parsi">Parsi / Zoroastrian</string>
+        <string name="community_punjabi">Punjabi</string>
+        <string name="community_rajasthani">Rajasthani</string>
+        <string name="community_santhal">Santhal</string>
+        <string name="community_sikkimese">Sikkimese (Bhutia)</string>
+        <string name="community_sindhi">Sindhi</string>
+        <string name="community_tamil">Tamil</string>
+        <string name="community_telugu">Telugu</string>
+        <string name="community_tibetan">Tibetan</string>
+        <string name="community_tripuri">Tripuri</string>
+        <string name="community_urdu_speaker">ผู้พูดภาษาอูรดู</string>
+
+        <!-- Religion -->
+        <string name="religion_other">อื่น ๆ</string>
+        <string name="religion_buddhist">พุทธ</string>
+        <string name="religion_christian">คริสต์</string>
+        <string name="religion_christian_catholic">คาทอลิก</string>
+        <string name="religion_christian_protestant_mainline">โปรเตสแตนต์สายหลัก</string>
+        <string name="religion_christian_evangelical">โปรเตสแตนต์อีเวนเจลิคัล</string>
+        <string name="religion_christian_orthodox">ออร์ทอดอกซ์ตะวันออก</string>
+        <string name="religion_christian_latter_day_saint">LDS (มอร์มอน)</string>
+        <string name="religion_christian_jehovahs_witness">พยานพระยะโฮวา</string>
+        <string name="religion_christian_other">คริสต์อื่น ๆ</string>
+        <string name="religion_hindu">ฮินดู</string>
+        <string name="religion_jain">เชน</string>
+        <string name="religion_jewish">ยิว</string>
+        <string name="religion_muslim">มุสลิม</string>
+        <string name="religion_muslim_sunni">ซุนนี</string>
+        <string name="religion_muslim_shia">ชีอะห์</string>
+        <string name="religion_muslim_ahmadiyya">อาหมะดียะห์</string>
+        <string name="religion_muslim_sufi">ซูฟี</string>
+        <string name="religion_muslim_other">มุสลิมอื่น ๆ</string>
+        <string name="religion_no_religion">ไม่มีศาสนา / ฆราวาส</string>
+        <string name="religion_parsi">โซโรอัสเตอร์ / ปาร์ซี</string>
+        <string name="religion_sikh">ซิกข์</string>
+        <string name="religion_indigenous_tribal">ชนพื้นเมือง / เผ่า</string>
+        <string name="religion_santeria">ซานเตเรีย (คิวบา-แอฟริกัน)</string>
+        <string name="religion_voodou">วูดู (เฮติ)</string>
+        <string name="religion_candomble">คันดอมเบล์ (บราซิล-แอฟริกัน)</string>
+        <string name="religion_umbanda">อุมบันดา (สังเคราะห์บราซิล)</string>
+        <string name="religion_palo_mayombe">พาโล มายอมเบ</string>
+        <string name="religion_native_traditional">จารีตชนพื้นเมืองอเมริกัน</string>
+        <string name="religion_native_church">โบสถ์ชนพื้นเมืองอเมริกัน</string>
+        <string name="religion_vision_quest">วิชันเควสต์ / พิธีกรรม</string>
+        <string name="religion_african_traditional">จารีตแอฟริกัน</string>
+        <string name="religion_obeah">โอบีอาห์ (คาริบเบียน)</string>
+        <string name="religion_hoodoo">ฮูดู (แอฟริกัน-อเมริกัน)</string>
+        <string name="religion_rastafari">ราสตาฟาเรียน</string>
+        <string name="religion_black_protestant">โปรเตสแตนต์สายดำ (เช่น AME, COGIC)</string>
+
+        <!-- Caste / Jati -->
+        <string name="caste_other">อื่น ๆ ทั้งหมด</string>
+        <string name="caste_baidya">Baidya</string>
+        <string name="caste_bhumihar">Bhumihar</string>
+        <string name="caste_bhil">Bhil</string>
+        <string name="caste_brahmin">Brahmin</string>
+        <string name="caste_ezhava">Ezhava / Thiyya</string>
+        <string name="caste_general">General / เปิดกว้าง</string>
+        <string name="caste_gowda">Gowda</string>
+        <string name="caste_gurjar">Gurjar / Gujjar</string>
+        <string name="caste_jat">Jat</string>
+        <string name="caste_kayastha">Kayastha</string>
+        <string name="caste_kshatriya">Kshatriya / Rajput</string>
+        <string name="caste_kurmi">Kurmi</string>
+        <string name="caste_lingayat">Lingayat / Veerashaiva</string>
+        <string name="caste_mahishya">Mahishya</string>
+        <string name="caste_maratha">Maratha</string>
+        <string name="caste_naidu">Naidu</string>
+        <string name="caste_nair">Nair</string>
+        <string name="caste_obc">Other Backward Class (OBC)</string>
+        <string name="caste_patel">Patel / Patidar</string>
+        <string name="caste_rajput">Rajput</string>
+        <string name="caste_rajvanshi">Rajvanshi (Rajbanshi)</string>
+        <string name="caste_reddy">Reddy</string>
+        <string name="caste_sadgop">Sadgop</string>
+        <string name="caste_scheduled_caste">Scheduled Caste (SC)</string>
+        <string name="caste_scheduled_tribe">Scheduled Tribe (ST)</string>
+        <string name="caste_vaishya">Vaishya / Bania</string>
+        <string name="caste_vellalar">Vellalar</string>
+        <string name="caste_yadav">Yadav</string>
+
+        <!-- DM Screen -->
+        <string name="dm_failed_load_profile">โหลดโปรไฟล์ล้มเหลว</string>
+        <string name="dm_error_loading_profile">เกิดข้อผิดพลาดระหว่างโหลดโปรไฟล์</string>
+        <plurals name="dm_next_available_in_days">
+            <item quantity="one">พร้อมใช้อีกครั้งใน: %d วัน</item>
+            <item quantity="other">พร้อมใช้อีกครั้งใน: %d วัน</item>
+        </plurals>
+        <string name="smart_match_title">การจับคู่แบบสมาร์ต</string>
+        <string name="smart_match_select_gender">เลือกเพศที่ต้องการ</string>
+        <string name="gender_male">ผู้ชาย</string>
+        <string name="gender_female">ผู้หญิง</string>
+        <string name="gender_both">ทั้งคู่</string>
+        <string name="action_cancel">ยกเลิก</string>
+        <string name="action_save">บันทึก</string>
+        <string name="action_unmatch">ยกเลิกแมตช์</string>
+        <string name="action_accept">ยอมรับ</string>
+        <string name="action_reject">ปฏิเสธ</string>
+        <string name="action_smart_match">สมาร์ตแมตช์</string>
+        <string name="dm_search_matches_hint">ค้นหาคู่ที่เข้ากัน</string>
+        <string name="dm_upgrade_plus_see_likes">อัปเกรดเป็น Plus เพื่อดูว่าใครถูกใจคุณ</string>
+        <string name="dm_no_matches">ไม่พบคู่ที่เข้ากัน</string>
+        <string name="dm_your_rating">คะแนนของคุณ: %1$s</string>
+        <string name="dm_unmatch_with">ยกเลิกแมตช์กับ %1$s?</string>
+        <string name="dm_unmatch_warning">การดำเนินการนี้จะลบแมตช์และประวัติสนทนา</string>
+        <string name="prompt_country">ประเทศ</string>
+        <string name="prompt_city">เมือง</string>
+        <string name="prompt_locality">ย่าน</string>
+        <string name="placeholder_not_selected">ยังไม่เลือก</string>
+        <string name="dm_select_country_first">เลือกอย่างน้อยประเทศก่อน</string>
+        <string name="dm_location_updated">อัปเดตตำแหน่งแล้ว</string>
+        <string name="dm_voice_compliment">ส่งคำชมเสียงให้คุณ</string>
+        <string name="dm_compliment_label">คำชม</string>
+        <string name="toast_unmatched_success">ยกเลิกแมตช์สำเร็จ</string>
+        <string name="toast_unmatched_failed">ยกเลิกแมตช์ไม่สำเร็จ: %1$s</string>
+        <string name="toast_error_generic">ข้อผิดพลาด: %1$s</string>
+        <string name="dm_upgrade_plus_change_location">อัปเกรดเป็น Plus เพื่อเปลี่ยนตำแหน่ง</string>
+        <string name="content_scroll_to_top">ไปบนสุด</string>
+        <string name="dm_matched_with">คุณแมตช์กับ %1$s!</string>
+        <string name="dm_no_match_available">ยังไม่มีคู่ให้แมตช์ตอนนี้</string>
+        <string name="dm_change_location">เปลี่ยนตำแหน่ง</string>
+
+        <!-- Dating -->
+        <string name="profile_photo">รูปโปรไฟล์</string>
+        <string name="no_images">ไม่มีรูปภาพ</string>
+        <string name="away">ห่างออกไป</string>
+        <string name="featured_posts">โพสต์เด่น</string>
+        <string name="analyzed_on">วิเคราะห์เมื่อ: %1$s</string>
+        <string name="run_analysis">รันวิเคราะห์</string>
+        <string name="no_bio_available">ยังไม่มีไบโอ</string>
+        <string name="select_label">เลือก %1$s</string>
+        <string name="select_country">อยู่ที่</string>
+        <string name="type_country">พิมพ์ประเทศของคุณ</string>
+        <string name="settings_reset_swipe_history">รีเซ็ตการยกเว้นสไวป์</string>
+        <string name="confirm_reset_swipe_history">การดำเนินการนี้จะลบแมตช์ ไลก์ ดิสไลก์ และจำนวนสไวป์ของคุณ ต่อหรือไม่?</string>
+        <string name="lbl_visible_to_public">มองเห็นได้ต่อสาธารณะ</string>
+        <string name="settings_allow_public_maps">ให้สาธารณะเห็นคุณบนแผนที่</string>
+        <string name="performance_metrics">เมตริกผลงาน</string>
+        <string name="matches">แมตช์</string>
+        <string name="rating">คะแนน</string>
+        <string name="swipe_right_percentage">เปอร์เซ็นต์ที่สไวป์ขวาผู้ใช้นี้</string>
+        <string name="west_bengal_ranking">อันดับ</string>
+        <string name="city_ranking">อันดับเมือง</string>
+        <string name="locality_ranking">อันดับย่าน</string>
+        <string name="age_ranking">อันดับอายุ</string>
+        <string name="high_school_ranking">อันดับมัธยม</string>
+        <string name="college_ranking">อันดับมหาวิทยาลัย</string>
+        <string name="high_school_graduation_year">ปีจบมัธยม</string>
+        <string name="college_graduation_year">ปีจบมหาวิทยาลัย</string>
+        <string name="number">%d</string>
+        <string name="percentage">%d%%</string>
+        <string name="tab_cards">การ์ด</string>
+        <string name="city">เมือง</string>
+        <string name="locality">ย่าน</string>
+        <string name="shared_kinks_prefix">รสนิยมร่วม: %1$s</string>
+        <string name="no_common_kinks">ไม่มีรสนิยมร่วม</string>
+        <string name="kinks_not_set">รสนิยม: ทั้งคู่ยังไม่ตั้งค่า</string>
+        <string name="settings">การตั้งค่า</string>
+
+        <!-- Dating screen filters -->
+        <string name="filters">ตัวกรอง</string>
+        <string name="save">บันทึก</string>
+        <string name="clear_selection">ล้างที่เลือก</string>
+        <string name="basic_filters">ตัวกรองพื้นฐาน</string>
+        <string name="gender_preference">เพศที่สนใจ:</string>
+        <string name="gender_either">อื่น ๆ</string>
+        <string name="age_range">ช่วงอายุ: %1$d - %2$d</string>
+        <string name="max_distance">ระยะทาง: %1$dกม.</string>
+        <string name="max_distance_miles">ระยะทาง: %1$dไมล์</string>
+
+        <!-- Education Section -->
+        <string name="education">การศึกษา</string>
+        <string name="high_school">มัธยมปลาย</string>
+        <string name="college">มหาวิทยาลัย</string>
+        <string name="post_grad">หลังปริญญา</string>
+
+        <!-- Preferences Section -->
+        <string name="preferences">การตั้งค่า</string>
+        <string name="community">ชุมชน</string>
+        <string name="religion">ศาสนา</string>
+        <string name="caste">วรรณะ/ชาติตระกูล</string>
+
+        <!-- No profiles / posts -->
+        <string name="no_more_profiles">ไม่มีโปรไฟล์เพิ่มเติม</string>
+        <string name="adjust_filters">ปรับตัวกรองด้วยปุ่ม «ตัวกรอง» ด้านบน</string>
+        <string name="no_posts">ยังไม่มีโพสต์</string>
+
+        <!-- Dating actions -->
+        <string name="super_swipe">ซูเปอร์สไวป์</string>
+        <string name="force_match">บังคับแมตช์</string>
+        <string name="swipe_left">สไวป์ซ้าย</string>
+        <string name="swipe_right">สไวป์ขวา</string>
+        <string name="swipe">สไวป์!</string>
+        <string name="name_age">%1$s, %2$d</string>
+
+        <!-- Collapsible -->
+        <string name="collapse">ย่อ</string>
+        <string name="expand">ขยาย</string>
+
+        <!-- Profile Collapsible Sections Titles -->
+        <string name="compatibility_check">ตรวจความเข้ากัน</string>
+        <string name="bio">ไบโอ</string>
+        <string name="basic_information">ข้อมูลพื้นฐาน</string>
+        <string name="lifestyle_attributes">คุณลักษณะไลฟ์สไตล์</string>
+        <string name="interests">ความสนใจ</string>
+        <string name="social_causes">สาเหตุสังคม</string>
+
+        <!-- Posts Overlay -->
+        <string name="posts">โพสต์</string>
+        <string name="view_more_posts">ดูโพสต์เพิ่มเติม</string>
+
+        <!-- Match PopUp -->
+        <string name="its_a_match">"แมตช์แล้ว!"</string>
+        <string name="your_profile_picture">รูปโปรไฟล์ของคุณ</string>
+        <string name="matched_profile_picture">รูปโปรไฟล์ของคู่</string>
+        <string name="chat_now">แชทเลย</string>
+
+        <!-- Login Screen -->
+        <string name="username_or_email">ผู้ใช้หรืออีเมล</string>
+        <string name="password">รหัสผ่าน</string>
+        <string name="forgot_password">ลืมรหัสผ่าน?</string>
+        <string name="forgot_email">ลืมอีเมล?</string>
+        <string name="reset_password">รีเซ็ตรหัสผ่าน</string>
+        <string name="recover_email">กู้อีเมล</string>
+        <string name="username">ผู้ใช้</string>
+        <string name="enter_username">กรอกชื่อผู้ใช้</string>
+        <string name="your_email">อีเมลของคุณ</string>
+        <string name="submit">ส่ง</string>
+
+        <!-- Landing Screen -->
+        <string name="welcome_kupidx">ยินดีต้อนรับสู่ Kupidx</string>
+        <string name="register">สมัคร</string>
+        <string name="login">เข้าสู่ระบบ</string>
+        <string name="continue_with_google">Google</string>
+        <string name="continue_with_facebook">Facebook</string>
+        <string name="cd_search_feed">ค้นหาฟีด</string>
+        <string name="cd_close_search">ปิดการค้นหา</string>
+        <string name="cd_submit_search">ค้นหา</string>
+        <string name="feed_search_tab_users">ผู้ใช้</string>
+        <string name="feed_search_tab_posts">โพสต์</string>
+        <string name="feed_search_tab_tags">แท็ก</string>
+        <string name="feed_search_no_users">ยังไม่มีผู้ใช้ที่ตรง ลองคำอื่น</string>
+        <string name="feed_search_no_tags">ไม่มีแท็กหรือสถานที่ที่ตรง ลองค้นหาอื่น</string>
+
+        <string name="leaderboard">อันดับ</string>
+
+        <!-- Language Selection -->
+        <string name="choose_language_title">เลือกภาษา</string>
+        <string name="select_preferred_language">เลือกภาษาที่คุณต้องการ</string>
+        <string name="next_button">ถัดไป</string>
+
+        <!-- Create Account -->
+        <string name="create_account_title">สร้างบัญชี</string>
+        <string name="email_label">อีเมล</string>
+        <string name="password_label">รหัสผ่าน</string>
+        <string name="confirm_password_label">ยืนยันรหัสผ่าน</string>
+        <string name="password_mismatch_error">รหัสผ่านไม่ตรงกัน</string>
+        <string name="username_invalid_chars">ชื่อผู้ใช้ห้ามมี ., /, #, $, [, ]</string>
+        <string name="or_click_date_to_refresh">หรือกดรีเฟรช!</string>
+
+        <!-- Enter Name & Height -->
+        <string name="full_name_label">ชื่อ (ไม่บังคับ)</string>
+        <string name="height_label">ส่วนสูง</string>
+        <string name="feet_inches_label">ฟุต + นิ้ว</string>
+        <string name="centimeters_label">เซนติเมตร</string>
+        <string name="feet_label">ฟุต</string>
+        <string name="inches_label">นิ้ว</string>
+        <string name="height_cm_label">ส่วนสูง (ซม.)</string>
+        <string name="caste_title">วรรณะ</string>
+        <string name="select_or_type">เลือกหรือพิมพ์</string>
+        <string name="interested_in_header">สนใจเพศใด?</string>
+        <string name="male_option">ผู้ชาย</string>
+        <string name="female_option">ผู้หญิง</string>
+
+        <!-- Subscription -->
+        <string name="subscription_active">ใช้งานอยู่</string>
+        <string name="subscription_inactive">ไม่ใช้งาน</string>
+        <string name="subscription_completed">เสร็จสมบูรณ์</string>
+        <string name="subscription_cancelled">ยกเลิก</string>
+        <string name="subscription_suspended">ระงับ</string>
+        <string name="subscription_expired">หมดอายุ</string>
+        <string name="subscription_upgrade_title">ยกระดับประสบการณ์</string>
+        <string name="subscription_product_unavailable">สินค้าไม่พร้อมใช้งาน ลองใหม่ภายหลัง</string>
+        <string name="subscription_activated">เปิดใช้สมาชิกแล้ว!</string>
+        <string name="subscription_verification_failed">การยืนยันล้มเหลว</string>
+        <string name="subscription_choose_button">เลือก</string>
+        <string name="subscription_buy_button">ซื้อ</string>
+        <string name="subscription_loading">กำลังโหลด...</string>
+        <string name="subscription_not_now">ยังไม่ใช่ตอนนี้</string>
+        <string name="subscription_period_weekly">รายสัปดาห์</string>
+        <string name="subscription_period_monthly">รายเดือน</string>
+        <string name="subscription_period_yearly">รายปี</string>
+        <string name="subscription_duration_week">1 สัปดาห์</string>
+        <string name="subscription_duration_month">1 เดือน</string>
+        <string name="subscription_duration_year">1 ปี</string>
+        <string name="subscription_one_time_label">จ่ายครั้งเดียว • %1$s</string>
+        <string name="subscription_price_label_inr">₹%1$d / %2$s</string>
+        <string name="subscription_price_label_mxn">MXN%1$s / %2$s</string>
+        <string name="subscription_price_label_usd">$%1$s / %2$s</string>
+        <string name="subscription_tier_plus">Plus</string>
+        <string name="subscription_tier_premium">Premium</string>
+        <string name="subscription_one_time_price_inr">₹%1$d จ่ายครั้งเดียว</string>
+        <string name="subscription_one_time_price_mxn">MXN%1$s จ่ายครั้งเดียว</string>
+        <string name="subscription_one_time_price_usd">$%1$s จ่ายครั้งเดียว</string>
+        <string name="subscription_checkout_description">%1$d ₹ / %2$s</string>
+        <string name="premium_badge_label">Premium</string>
+        <string name="premium_badge_content_description">สมาชิก Premium</string>
+        <string name="post_action">โพสต์</string>
+        <string name="subscription_price_label_thb">THB%1$d / %2$s</string>
+        <string name="subscription_one_time_price_thb">THB%1$d ครั้งเดียว</string>
+
+        <!-- Relative time -->
+        <string name="time_now_short">ตอนนี้</string>
+        <plurals name="time_minutes_short">
+            <item quantity="one">%d นาที</item>
+            <item quantity="other">%d นาที</item>
+        </plurals>
+        <plurals name="time_hours_short">
+            <item quantity="one">%d ชม.</item>
+            <item quantity="other">%d ชม.</item>
+        </plurals>
+        <plurals name="time_days_short">
+            <item quantity="one">%d วัน</item>
+            <item quantity="other">%d วัน</item>
+        </plurals>
+        <plurals name="time_weeks_short">
+            <item quantity="one">%d สัปดาห์</item>
+            <item quantity="other">%d สัปดาห์</item>
+        </plurals>
+
+        <string name="sort_farthest">ไกลที่สุด</string>
+        <string name="next_page">หน้าถัดไป</string>
+
+        <!-- Orientation -->
+        <string name="orientation_straight">⚤ ตรง</string>
+        <string name="orientation_gay">⚣ เกย์</string>
+        <string name="orientation_lesbian">⚢ เลสเบี้ยน</string>
+        <string name="orientation_bisexual">💜 ไบเซ็กชวล</string>
+        <string name="orientation_pansexual">💖 แพนเซ็กชวล</string>
+        <string name="orientation_asexual">🖤 เอเซ็กชวล</string>
+        <string name="orientation_queer">🌈 เควียร์</string>
+
+        <string name="verify_email">ยืนยันอีเมล</string>
+        <string name="resend_link">ส่งลิงก์อีกครั้ง</string>
+        <string name="ive_verified">ยืนยันแล้ว</string>
+
+        <!-- Upload Media -->
+        <string name="upload_media_title">อัปโหลดสื่อ</string>
+        <string name="profile_picture_label">รูปโปรไฟล์</string>
+        <string name="tap_placeholder">แตะ</string>
+        <string name="optional_photos_label">รูปเสริม</string>
+        <string name="optional_voice">เสียงเสริม</string>
+        <string name="add_photos_button">เพิ่มรูป</string>
+        <string name="voice_bio_label">ไบโอเสียง [แตะไอคอนเพื่ออัด/อัดใหม่]</string>
+        <string name="voice_bio_duration_error">ไบโอเสียงเกิน 60 วินาที กรุณาอัดสั้นลง</string>
+
+        <string name="select_day_label">วัน</string>
+        <string name="select_month_label">เดือน</string>
+        <string name="select_year_label">ปี</string>
+
+        <!-- Birthdate, City & Locality -->
+        <string name="enter_birthdate_city_hometown_title">กรอกวันเกิด เมือง และย่าน</string>
+        <string name="select_birth_date_label">เลือกวันเกิด</string>
+        <string name="city_label">เมือง</string>
+        <string name="select_city_default">เลือกเมือง</string>
+        <string name="locality_label">ย่าน</string>
+        <string name="select_locality_default">เลือกย่าน</string>
+        <string name="select_city">-- เลือกเมือง --</string>
+
+        <!-- Interests selection -->
+        <string name="enter_interests_title">เลือก (ได้สูงสุด 9)</string>
+        <string name="global_interests_label">ความสนใจทั่วไป</string>
+        <string name="local_interests_label">ความสนใจท้องถิ่นในย่าน</string>
+        <string name="max_interests_error">เลือกความสนใจได้ไม่เกิน 20 รายการ</string>
+
+        <!-- Education and Location -->
+        <string name="education_and_location_title">กรอกการศึกษา</string>
+        <string name="education_level_label">ระดับการศึกษา</string>
+        <string name="select_education_level">เลือกระดับการศึกษา</string>
+        <string name="high_school_label">มัธยมปลาย</string>
+        <string name="select_or_type_high_school">เลือก</string>
+        <string name="college_label">มหาวิทยาลัย</string>
+        <string name="select_or_type_college">เลือก</string>
+        <string name="post_graduation_label">หลังปริญญา</string>
+        <string name="select_or_type_post_grad">เลือก</string>
+        <string name="select_graduation_year_label">เลือกปีจบ</string>
+        <string name="search_year_label">ค้นหาปี</string>
+
+        <!-- Gender, Community, Religion -->
+        <string name="enter_gender_community_religion_title">กรอกเพศ ชุมชน และศาสนา</string>
+        <string name="gender_label">เพศ</string>
+        <string name="select_gender">เลือกเพศ</string>
+        <string name="community_label">ชุมชน</string>
+        <string name="select_community">เลือกชุมชน</string>
+        <string name="religion_label">ศาสนา</string>
+        <string name="select_religion">เลือกศาสนา</string>
+
+        <!-- Username -->
+        <string name="username_label">ชื่อผู้ใช้</string>
+        <string name="username_empty_error">ห้ามปล่อยชื่อผู้ใช้ว่าง</string>
+        <string name="finish_button">เสร็จสิ้น</string>
+        <string name="locate">ระบุตำแหน่ง</string>
+
+        <!-- Common Dropdown/Search -->
+        <string name="search_label">ค้นหา</string>
+        <string name="select_default">เลือก</string>
+
+        <string name="compliment">คำชม</string>
+        <string name="boost">บูสต์</string>
+        <string name="show_boosted">แสดงผู้ใช้เด่น</string>
+        <string name="boosted_users">ผู้ใช้เด่นใกล้คุณ</string>
+
+        <string-array name="social_causes_list">
+            <!-- Environment & Sustainability -->
+            <item>การเปลี่ยนแปลงสภาพภูมิอากาศและพลังงานสะอาด</item>
+            <item>อากาศสะอาดและต่อต้านมลพิษ</item>
+            <item>อนุรักษ์น้ำและฟื้นฟูลำน้ำ</item>
+            <item>ขยะพลาสติกและรีไซเคิล</item>
+
+            <!-- Health & Well-Being -->
+            <item>สุขภาพจิตและความเป็นอยู่ที่ดี</item>
+            <item>สุขภาพทางเพศและอนามัยเจริญพันธุ์แบบรอบด้าน</item>
+            <item>สุขภาพชุมชนและการฉีดวัคซีน</item>
+
+            <!-- Equality & Rights -->
+            <item>ความเสมอภาคทางเพศและความปลอดภัยสตรี</item>
+            <item>ความเป็นส่วนตัวดิจิทัลและความปลอดภัยออนไลน์</item>
+
+            <!-- Opportunity & Mobility -->
+            <item>พัฒนาทักษะและงานเยาวชน</item>
+            <item>การคมนาคมเมืองที่ยั่งยืน</item>
+
+            <!-- Cultural Nationalism & Social Reforms -->
+            <item>การศึกษาชาติและปฏิรูปหลักสูตร</item>
+            <item>มาตรการควบคุมประชากร</item>
+            <item>คุณค่าครอบครัวดั้งเดิม</item>
+            <item>ทัศนคติทางเพศเชิงบวก</item>
+        </string-array>
+    </resources>
