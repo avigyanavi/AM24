@@ -33,6 +33,8 @@
     <string name="tab_nearby">Nearby</string>
     <string name="tab_cards">Cards</string>
     <string name="tab_map">Map</string>
+    <string name="premium_badge_label">Premium</string>
+    <string name="premium_badge_content_description">Premium member</string>
     <string name="settings_streak_line">Login streak: %1$d days • %2$s</string>
     <string name="cd_city_filter">Browse by city</string>
     <string name="clear_city_filter">Clear city filter</string>

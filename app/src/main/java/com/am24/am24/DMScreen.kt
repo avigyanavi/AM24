@@ -184,7 +184,7 @@ fun DMScreenContent(
     val matchedUsers = remember { mutableStateListOf<Profile>() }
     val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
-    val prefetchedUrls = remember { mutableStateSetOf<String>() }
+    val prefetchedUrls = remember { mutableStateOf(mutableSetOf<String>()) }
     val complimentProfiles = remember { mutableStateListOf<ComplimentWithProfile>() }
     // — new: grab your blocks
     val blockedRef = database.getReference("blocks/$currentUserId")
@@ -266,7 +266,7 @@ fun DMScreenContent(
             matchedUsers.forEach { profile ->
                 val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
                 url?.let {
-                    if (prefetchedUrls.add(it)) {
+                    if (prefetchedUrls.value.add(it)) {
                         val pathKey = Uri.parse(it).path
                         val request = ImageRequest.Builder(context)
                             .data(it)
@@ -396,9 +396,9 @@ fun DMScreenContent(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = { Text(stringResource(R.string.dm_search_matches_hint), color = Color.Gray, fontSize = 12.sp) },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = KupidxOrange,
-                    unfocusedBorderColor = Color.Gray,
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor  = KupidxOrange,
+                    unfocusedIndicatorColor  = Color.Gray,
                     cursorColor = Color(0xFFFF4500),
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.Gray

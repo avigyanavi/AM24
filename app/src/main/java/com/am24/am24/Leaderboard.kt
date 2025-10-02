@@ -101,14 +101,14 @@ fun LeaderboardScreen(
 
     Scaffold(
         topBar = {
-            SmallTopAppBar(
+            TopAppBar(
                 title = { Text("Leaderboard", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
             )
         }
     ) { innerPadding ->
@@ -264,7 +264,7 @@ fun LeaderboardFilters(
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor(),
-                colors = TextFieldDefaults.textFieldColors(cursorColor = KupidxOrange)
+                colors = TextFieldDefaults.colors(cursorColor = KupidxOrange)
             )
             ExposedDropdownMenu(
                 expanded = countryExpanded,
@@ -300,7 +300,7 @@ fun LeaderboardFilters(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cityExpanded) },
                 modifier = Modifier.fillMaxWidth()
                     .menuAnchor(),
-                        colors = TextFieldDefaults.textFieldColors(cursorColor = KupidxOrange)
+                colors = TextFieldDefaults.colors(cursorColor = KupidxOrange)
             )
             ExposedDropdownMenu(
                 expanded = cityExpanded,
@@ -349,8 +349,7 @@ fun LeaderboardFilters(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(localityExpanded) },
                 modifier = Modifier.fillMaxWidth()
                     .menuAnchor(),
-                colors = TextFieldDefaults.textFieldColors(cursorColor = KupidxOrange)
-
+                colors = TextFieldDefaults.colors(cursorColor = KupidxOrange)
             )
             ExposedDropdownMenu(
                 expanded = localityExpanded,
@@ -385,7 +384,7 @@ fun LeaderboardFilters(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(hsExpanded) },
                 modifier = Modifier.fillMaxWidth()
                     .menuAnchor(),
-                colors = TextFieldDefaults.textFieldColors(cursorColor = KupidxOrange)
+                colors = TextFieldDefaults.colors(cursorColor = KupidxOrange)
             )
             ExposedDropdownMenu(
                 expanded = hsExpanded,
@@ -420,7 +419,7 @@ fun LeaderboardFilters(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(collExpanded) },
                 modifier = Modifier.fillMaxWidth()
                     .menuAnchor(),
-                colors = TextFieldDefaults.textFieldColors(cursorColor = KupidxOrange)
+                colors = TextFieldDefaults.colors(cursorColor = KupidxOrange)
             )
             ExposedDropdownMenu(
                 expanded = collExpanded,

@@ -106,7 +106,7 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
                 },
                 actions = {
                 },
-                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
             )
         }
     ) { padding ->

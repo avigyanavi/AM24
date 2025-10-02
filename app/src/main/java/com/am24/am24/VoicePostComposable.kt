@@ -241,7 +241,7 @@ fun VoicePostComposable(
                         Text("Post", color = Color(0xFFFF4500))
                     }
                 },
-                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
             )
         },
         content = { padding ->

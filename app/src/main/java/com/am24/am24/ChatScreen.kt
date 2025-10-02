@@ -1087,7 +1087,7 @@ fun ChatScreenContent(
                         item(duration3, 30L * 24 * 60 * 60 * 1000)
                     }
                 },
-                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
             )
         },
         containerColor = DarkGrayBackground
@@ -1685,8 +1685,8 @@ fun ChatScreenContent(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(100.dp),
-                                colors = TextFieldDefaults.textFieldColors(
-                                    containerColor = Color.DarkGray,
+                                colors = TextFieldDefaults.colors(
+                                    unfocusedContainerColor = Color.DarkGray,
                                     focusedTextColor = Color.White,
                                     unfocusedTextColor = Color.White,
                                     focusedIndicatorColor = Color.Transparent,
@@ -2681,8 +2681,8 @@ fun ChatInputBar(
                 .weight(1f)
                 .heightIn(min = 48.dp)
                 .background(Color.DarkGray, RoundedCornerShape(24.dp)),
-            colors = TextFieldDefaults.textFieldColors(
-                containerColor = Color.DarkGray,
+            colors = TextFieldDefaults.colors(
+                unfocusedContainerColor = Color.DarkGray,
                 focusedTextColor = Color.White,
                 focusedPlaceholderColor = Color.Gray,
                 focusedIndicatorColor = Color.Transparent,

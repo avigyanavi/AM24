@@ -70,9 +70,9 @@ fun ComplimentDialog(
                         )
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = Color(0xFFFF6F00),
-                        unfocusedBorderColor = Color.Gray,
+                    colors = TextFieldDefaults.colors(
+                        focusedIndicatorColor = Color(0xFFFF6F00),
+                        unfocusedIndicatorColor = Color.Gray,
                         cursorColor = Color.White,
                         focusedTextColor = Color.White
                     )

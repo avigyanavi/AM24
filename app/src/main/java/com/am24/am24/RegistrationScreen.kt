@@ -1816,7 +1816,7 @@ fun GraduationYearDropdown(year: String, onYearSelected: (String) -> Unit) {
                 value = searchText,
                 onValueChange = { searchText = it },
                 label = { Text(stringResource(R.string.search_year_label), color = Color(0xFFFF6000)) },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
+                colors = TextFieldDefaults.colors(
                     focusedLabelColor = Color(0xFFFF6000),
                     cursorColor = Color(0xFFFF6000),
                     unfocusedTextColor = Color.White,
@@ -1861,12 +1861,12 @@ fun TextFieldWithLabel(label: String, value: String, onValueChange: (String) -> 
             label = { Text(label, color = Color.White) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
+            colors = TextFieldDefaults.colors(
                 focusedTextColor = Color.White,
                 unfocusedTextColor = Color.White,
                 cursorColor = Color.White,
-                focusedBorderColor = Color(0xFFFF6000),
-                unfocusedBorderColor = Color.White,
+                focusedIndicatorColor = Color(0xFFFF6000),
+                unfocusedIndicatorColor = Color.White,
                 focusedLabelColor = Color(0xFFFF6000),
                 unfocusedLabelColor = Color.White
             )
@@ -1949,8 +1949,8 @@ fun SearchableDropdownWithCustomOption(
                 value         = searchText,
                 onValueChange = { searchText = it },
                 label         = { Text(stringResource(R.string.search_label), fontSize = 11.sp) },
-                colors        = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color(0xFFFF4500),
+                colors        = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color(0xFFFF4500),
                     cursorColor        = Color(0xFFFF4500),
                     focusedTextColor          = Color.White,
                     focusedLabelColor  = Color(0xFFFF4500)
@@ -1987,8 +1987,8 @@ fun SearchableDropdownWithCustomOption(
                 singleLine    = true,
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 modifier      = Modifier.fillMaxWidth(),
-                colors        = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color(0xFFFF4500),
+                colors        = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color(0xFFFF4500),
                     cursorColor        = Color(0xFFFF4500),
                     focusedTextColor          = Color.White,
                     focusedLabelColor  = Color(0xFFFF4500)

@@ -100,7 +100,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 import java.text.Normalizer
-
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 /* ======================================================================================= */
 /*  Theme bits                                                                             */
@@ -136,6 +137,8 @@ data class NearbyUser(
     val isOnline: Boolean,
     val latLng: LatLng?,
     val distanceMeters: Double,
+    val isPremium: Boolean = false,
+    val isPlus: Boolean = false,
     val interests: List<Interest> = emptyList(),
     val roles: List<String> = emptyList(),
     val tribes: List<String> = emptyList(),
@@ -1781,6 +1784,26 @@ private fun ProfileCard(
                             .align(Alignment.TopStart)
                             .padding(8.dp)
                     ) {
+                        if (user.isPremium) {
+                            val ct = stringResource(R.string.premium_badge_content_description)
+                            Box(
+                                modifier = Modifier
+                                    .semantics {
+                                        contentDescription = ct
+                                    }
+                                    .clip(RoundedCornerShape(50))
+                                    .background(Color(0xFFFF2D92))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.premium_badge_label),
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(Modifier.height(4.dp))
+                        }
                         FilmText(
                             text = "${user.username}, ${user.age}",
                             fontSize = 16.sp,

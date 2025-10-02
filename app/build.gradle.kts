@@ -15,7 +15,7 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 207
+        versionCode = 209
         versionName = "4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -54,7 +54,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.13"
+        kotlinCompilerExtensionVersion = "1.7.3"
     }
     packaging {
         jniLibs {
@@ -77,10 +77,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.firebase.analytics)
     implementation("androidx.lifecycle:lifecycle-process:2.8.4")
-    implementation("com.google.android.gms:play-services-ads:23.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     implementation("com.google.firebase:firebase-messaging")
-    implementation("androidx.compose.material3:material3:1.2.1")
     implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation("com.google.firebase:firebase-auth-ktx:23.2.1")
     implementation(libs.firebase.storage)
@@ -103,7 +101,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("io.coil-kt:coil-video:2.2.2")
     implementation("io.coil-kt:coil:2.2.2")
-    implementation("androidx.compose.ui:ui-text:1.8.0")
+    implementation("androidx.compose.ui:ui-text")
     implementation("androidx.media3:media3-transformer:1.8.0")
 
     //geofire

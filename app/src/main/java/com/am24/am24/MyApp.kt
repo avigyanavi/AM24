@@ -15,8 +15,6 @@ import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import com.facebook.FacebookSdk
 import com.facebook.appevents.AppEventsLogger
-import com.am24.am24.AppOpenAdManager
-import com.google.android.gms.ads.MobileAds
 
 class MyApp : Application() {
 
@@ -24,15 +22,8 @@ class MyApp : Application() {
         super.onCreate()
         instance = this
 
-        MobileAds.initialize(this)
-
         ThemeManager.initialize(this)
 
-        appOpenAdManager = AppOpenAdManager(
-            this,
-            "ca-app-pub-5266481866342618/4937350764",
-        )
-        appOpenAdManager.loadAd()
 
 // ───────── Facebook: Explicit init ─────────
         FacebookSdk.setApplicationId("606416195185970")
@@ -131,9 +122,6 @@ class MyApp : Application() {
 
     companion object {
         lateinit var instance: MyApp
-            private set
-
-        lateinit var appOpenAdManager: AppOpenAdManager
             private set
     }
 }

@@ -67,10 +67,18 @@ class NearbyViewModel : ViewModel() {
             val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(state.lastActiveHours.toLong())
             list = list.filter { it.lastActiveAt >= cutoff }
         }
+        val tierComparator = compareByDescending<NearbyUser> { it.isPremium }
+            .thenByDescending { it.isPlus }
         when (state.sortMode) {
-            SortMode.NEARBY -> list.sortedBy { it.distanceMeters }
-            SortMode.ACTIVE -> list.sortedByDescending { it.lastActiveAt }
-            SortMode.FAR -> list.sortedByDescending { it.distanceMeters }
+            SortMode.NEARBY -> list.sortedWith(
+                tierComparator.thenBy { it.distanceMeters }
+            )
+            SortMode.ACTIVE -> list.sortedWith(
+                tierComparator.thenByDescending { it.lastActiveAt }
+            )
+            SortMode.FAR -> list.sortedWith(
+                tierComparator.thenByDescending { it.distanceMeters }
+            )
         }
     }.flowOn(Dispatchers.Default)
 
@@ -288,6 +296,8 @@ class NearbyViewModel : ViewModel() {
                         isOnline = online,
                         latLng = latLng,
                         distanceMeters = distM,
+                        isPremium = p.isPremium,
+                        isPlus = p.isPlus,
                         interests = p.interests,
                         roles = p.roles,
                         tribes = p.tribes,

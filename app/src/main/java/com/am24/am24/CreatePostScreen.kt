@@ -102,7 +102,7 @@ fun CreatePostScreen(
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
             )
         },
         containerColor = DarkGrayBackground,
@@ -405,7 +405,7 @@ fun TextPostComposable(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
             )
         },
         containerColor = DarkGrayBackground,
@@ -687,7 +687,7 @@ fun ImagePostComposable(
                         }, enabled = !isPosting) { Text("Post", color = Color(0xFFFF4500)) }
                     }
                 },
-                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
             )
         },
         containerColor = DarkGrayBackground
@@ -1052,7 +1052,7 @@ fun VideoPostComposable(
                         }, enabled = !isPosting) { Text("Post", color = Color(0xFFFF4500)) }
                     }
                 },
-                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
             )
         },
         containerColor = DarkGrayBackground

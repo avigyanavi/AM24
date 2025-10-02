@@ -1281,8 +1281,8 @@ fun FeedItem(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(100.dp),
-                                    colors = TextFieldDefaults.textFieldColors(
-                                        containerColor       = Color.DarkGray,
+                                    colors = TextFieldDefaults.colors(
+                                        unfocusedContainerColor       = Color.DarkGray,
                                         focusedTextColor     = Color.White,
                                         unfocusedTextColor   = Color.White,
                                         focusedIndicatorColor   = Color.Transparent,

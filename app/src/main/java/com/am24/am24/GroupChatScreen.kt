@@ -99,8 +99,7 @@ fun GroupChatScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
-            )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)            )
         },
         containerColor = Color.Black
     ) { paddingValues ->
@@ -141,8 +140,8 @@ fun GroupChatScreen(
                     modifier = Modifier
                         .weight(1f)
                         .background(Color.DarkGray, RoundedCornerShape(24.dp)),
-                    colors = TextFieldDefaults.textFieldColors(
-                        containerColor = Color.DarkGray,
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color.DarkGray,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         focusedTextColor = Color.White,

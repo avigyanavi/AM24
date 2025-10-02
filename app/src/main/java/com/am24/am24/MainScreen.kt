@@ -917,7 +917,7 @@ fun TopNavBar(
                 }
             }
         },
-        colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
     )
 
     if (showLocationPrefDialog && (isPremium)) {

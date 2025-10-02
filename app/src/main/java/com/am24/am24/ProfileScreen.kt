@@ -6236,8 +6236,8 @@ fun MatrimonyInfoEditSection(
             onValueChange = { marriageTimeline = it },
             label = { Text(stringResource(R.string.marriage_timeline_label), color = Color(0xFFFF6F00)) },
             modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color(0xFFFF6F00),
                 cursorColor = Color(0xFFFF6F00),
                 focusedTextColor = Color.White
             )
@@ -6249,8 +6249,8 @@ fun MatrimonyInfoEditSection(
             onValueChange = { relocationPref = it },
             label = { Text(stringResource(R.string.relocation_label), color = Color(0xFFFF6F00)) },
             modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color(0xFFFF6F00),
                 cursorColor = Color(0xFFFF6F00),
                 focusedTextColor = Color.White
             )
@@ -6262,8 +6262,8 @@ fun MatrimonyInfoEditSection(
             onValueChange = { postMarriagePlan = it },
             label = { Text(stringResource(R.string.post_marriage_career_plan_label), color = Color(0xFFFF6F00)) },
             modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color(0xFFFF6F00),
                 cursorColor = Color(0xFFFF6F00),
                 focusedTextColor = Color.White
             )
@@ -6275,8 +6275,8 @@ fun MatrimonyInfoEditSection(
             onValueChange = { traditionalVsLiberal = it },
             label = { Text(stringResource(R.string.matrimony_traditional_vs_liberal), color = Color(0xFFFF6F00)) },
             modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color(0xFFFF6F00),
                 cursorColor = Color(0xFFFF6F00),
                 focusedTextColor = Color.White
             )
@@ -6291,8 +6291,8 @@ fun MatrimonyInfoEditSection(
             onValueChange = { fatherOccupation = it },
             label = { Text(stringResource(R.string.matrimony_father_occupation), color = Color(0xFFFF6F00)) },
             modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color(0xFFFF6F00),
                 cursorColor = Color(0xFFFF6F00),
                 focusedTextColor = Color.White
             )
@@ -6304,8 +6304,8 @@ fun MatrimonyInfoEditSection(
             onValueChange = { motherOccupation = it },
             label = { Text(stringResource(R.string.matrimony_mother_occupation), color = Color(0xFFFF6F00)) },
             modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFFFF6F00),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color(0xFFFF6F00),
                 cursorColor = Color(0xFFFF6F00),
                 focusedTextColor = Color.White
             )

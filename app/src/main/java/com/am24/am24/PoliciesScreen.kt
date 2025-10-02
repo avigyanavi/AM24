@@ -22,7 +22,7 @@ fun PoliciesScreen(navController: NavController) {
 
     Scaffold(
         topBar = {
-            SmallTopAppBar(
+            TopAppBar(
                 title = { Text("Policies & Support") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {

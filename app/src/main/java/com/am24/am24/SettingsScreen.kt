@@ -560,11 +560,11 @@ fun SettingsScreen(navController: NavController) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(120.dp),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            containerColor       = Color(0xFF1A1A1A),
+                        colors = TextFieldDefaults.colors(
+                            unfocusedContainerColor       = Color(0xFF1A1A1A),
                             cursorColor          = Color.White,
-                            focusedBorderColor   = kupidxOrange,   // ← orange outline (focused)
-                            unfocusedBorderColor = kupidxOrange.copy(alpha = 0.4f), // ← subtler outline (unfocused)
+                            focusedIndicatorColor   = kupidxOrange,   // ← orange outline (focused)
+                            unfocusedIndicatorColor = kupidxOrange.copy(alpha = 0.4f), // ← subtler outline (unfocused)
                             focusedLabelColor    = kupidxOrange
                         )
                     )
@@ -723,7 +723,7 @@ private fun AccountCard(uid: String) {
         unameStatus = "checking"
         delay(500)
         val snap = FirebaseRefs.db.getReference("usernames").child(trimmed).get().await()
-        unameStatus = if (snap.exists() && snap.value != uid) "not" else "ok"
+        unameStatus = if (snap.exists() && snap.value != uid) "❌" else "✅"
     }
 
     SettingsSection {
@@ -769,8 +769,8 @@ private fun AccountCard(uid: String) {
                             onValueChange = { username = it },
                             singleLine = true,
                             label = { Text(stringResource(R.string.username), color = Color(0xFFFF6F00)) },
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedBorderColor = Color(0xFFFF6F00),
+                            colors = TextFieldDefaults.colors(
+                                focusedIndicatorColor = Color(0xFFFF6F00),
                                 cursorColor = Color(0xFFFF6F00),
                                 focusedTextColor = MaterialTheme.colorScheme.onSurface
                             ),
@@ -891,7 +891,7 @@ private fun AccountCard(uid: String) {
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
+                        colors = TextFieldDefaults.colors(cursorColor = KupidxOrange)
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
@@ -901,7 +901,7 @@ private fun AccountCard(uid: String) {
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
+                        colors = TextFieldDefaults.colors(cursorColor = KupidxOrange)
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
@@ -911,7 +911,7 @@ private fun AccountCard(uid: String) {
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(cursorColor = KupidxOrange)
+                        colors = TextFieldDefaults.colors(cursorColor = KupidxOrange)
                     )
                 }
             },

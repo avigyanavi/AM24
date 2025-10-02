@@ -400,8 +400,11 @@ class LandingActivity : ComponentActivity() {
         finish()
     }
 
-    private fun toast(msg: String) =
-        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+    private fun toast(msg: String) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(this@LandingActivity, msg, Toast.LENGTH_LONG).show()
+        }
+    }
 
     private fun collectPasswordFromUser(email: String, onPassword: (String) -> Unit) {
         val input = android.widget.EditText(this).apply {

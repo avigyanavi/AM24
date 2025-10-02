@@ -81,7 +81,7 @@ fun PrivateAlbumScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
             )
         },
         floatingActionButton = {
