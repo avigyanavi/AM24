@@ -607,8 +607,8 @@
     <string name="paywall_button_pay_generic">Pay %1$s and Continue</string>
     <string name="paywall_button_pay_default">Pay and Continue</string>
     <string name="paywall_skip">Skip</string>
-    <string name="paywall_skip_disclaimer">Start your 7-day free trial now</string>
-    <string name="paywall_start_trial_button">Start 7-day free trial</string>
+    <string name="paywall_skip_disclaimer">Start your 1-day free trial now</string>
+    <string name="paywall_start_trial_button">Start 1-day free trial</string>
     <string name="paywall_continue_button">Continue</string>
     <string name="paywall_trial_active_message">Your free trial is active until %1$s.</string>
     <string name="paywall_trial_ended_message">Your free trial has ended. Subscribe to keep your access.</string>

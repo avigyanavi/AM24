@@ -3,6 +3,8 @@ package com.am24.am24
 import android.content.Context
 import android.telephony.TelephonyManager
 import java.util.Locale
+import android.content.ContextWrapper
+
 
 object CountryUtil {
     private val KM_COUNTRIES = setOf(
@@ -64,10 +66,10 @@ object CountryUtil {
     }
 
     fun isProbablyInIndia(ctx: Context): Boolean {
-        val isoBySim   = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
-                as? TelephonyManager)?.simCountryIso?.uppercase(Locale.US)
-        val isoByNet   = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
-                as? TelephonyManager)?.networkCountryIso?.uppercase(Locale.US)
+        val telephony = unwrapBaseContext(ctx)
+            ?.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
         val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
 
         return listOf(isoBySim, isoByNet, isoByLocale).any { it == "IN" }
@@ -75,7 +77,8 @@ object CountryUtil {
 
     fun isIndia(ctx: Context, selectedCountry: String?): Boolean {
         if (canonicalCountry(selectedCountry) == "India") return true
-        val telephony = ctx.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val telephony = unwrapBaseContext(ctx)
+            ?.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
         val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
         val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
         val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
@@ -84,7 +87,8 @@ object CountryUtil {
 
     fun isUnitedStates(ctx: Context, selectedCountry: String?): Boolean {
         if (canonicalCountry(selectedCountry) == "United States") return true
-        val telephony = ctx.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val telephony = unwrapBaseContext(ctx)
+            ?.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
         val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
         val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
         val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
@@ -92,16 +96,17 @@ object CountryUtil {
     }
 
     fun usesKilometers(ctx: Context): Boolean {
-        val isoBySim   = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
-                as? TelephonyManager)?.simCountryIso?.uppercase(Locale.US)
-        val isoByNet   = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
-                as? TelephonyManager)?.networkCountryIso?.uppercase(Locale.US)
+        val telephony = unwrapBaseContext(ctx)
+            ?.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
         val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
 
         return listOf(isoBySim, isoByNet, isoByLocale).any { it in KM_COUNTRIES }
     }
     fun isProbablyInThailand(ctx: Context): Boolean {
-        val telephony = ctx.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val telephony = unwrapBaseContext(ctx)
+            ?.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
         val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
         val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
         val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
@@ -110,22 +115,38 @@ object CountryUtil {
 
     fun isMexico(ctx: Context, selectedCountry: String?): Boolean {
         if (canonicalCountry(selectedCountry) == "Mexico") return true
-        val isoBySim = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
-                as? TelephonyManager)?.simCountryIso?.uppercase(Locale.US)
-        val isoByNet = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
-                as? TelephonyManager)?.networkCountryIso?.uppercase(Locale.US)
+        val telephony = unwrapBaseContext(ctx)
+            ?.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
         val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
         return listOf(isoBySim, isoByNet, isoByLocale).any { it == "MX" }
     }
 
     fun isThailand(ctx: Context, selectedCountry: String?): Boolean {
         if (canonicalCountry(selectedCountry) == "Thailand") return true
-        val isoBySim = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
-                as? TelephonyManager)?.simCountryIso?.uppercase(Locale.US)
-        val isoByNet = (ctx.getSystemService(Context.TELEPHONY_SERVICE)
-                as? TelephonyManager)?.networkCountryIso?.uppercase(Locale.US)
+        val telephony = unwrapBaseContext(ctx)
+            ?.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
         val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
         return listOf(isoBySim, isoByNet, isoByLocale).any { it == "TH" }
+    }
+
+    private fun unwrapBaseContext(context: Context): Context? {
+        var current: Context = context
+        while (current is ContextWrapper) {
+            val base = try {
+                current.baseContext
+            } catch (_: IllegalStateException) {
+                return null
+            } ?: return null
+            if (base === current) {
+                break
+            }
+            current = base
+        }
+        return current
     }
     /**
      * Decide whether Razorpay should be used for payments.

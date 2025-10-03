@@ -237,7 +237,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
                 if (!hasUsedFreeTrial) {
                     skipProcessing = true
                     val now = System.currentTimeMillis()
-                    val expiry = now + TimeUnit.DAYS.toMillis(7)
+                    val expiry = now + TimeUnit.DAYS.toMillis(1)
                     val updates = mutableMapOf<String, Any>(
                         "hasUsedFreeTrial" to true,
                         "freeTrialExpiry" to expiry,
