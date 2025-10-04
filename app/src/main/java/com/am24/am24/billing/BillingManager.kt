@@ -5,9 +5,12 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
 import android.util.Log
 import com.android.billingclient.api.*
 import com.am24.am24.BuildConfig
+import com.am24.am24.MyApp
+import com.facebook.appevents.AppEventsLogger
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
@@ -286,6 +289,29 @@ object BillingManager : PurchasesUpdatedListener {
         valid.forEach { purchase ->
             if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
                 if (!purchase.isAcknowledged) {
+                    try {
+                        val logger = AppEventsLogger.newLogger(MyApp.instance)
+                        purchase.products.forEach { productId ->
+                            when {
+                                productId == "entry_fee" ||
+                                        plusOneTimeIds.contains(productId) ||
+                                        premiumOneTimeIds.contains(productId) -> {
+                                    val params = Bundle().apply {
+                                        putString("product_id", productId)
+                                    }
+                                    logger.logEvent("user_paid", params)
+                                }
+                                plusSubIds.contains(productId) || premiumSubIds.contains(productId) -> {
+                                    val params = Bundle().apply {
+                                        putString("product_id", productId)
+                                    }
+                                    logger.logEvent("user_paid_subscription", params)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w("BillingManager", "Failed to log Facebook purchase event", e)
+                    }
                     val ack = AcknowledgePurchaseParams.newBuilder()
                         .setPurchaseToken(purchase.purchaseToken)
                         .build()
