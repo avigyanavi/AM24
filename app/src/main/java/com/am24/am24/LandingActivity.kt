@@ -73,13 +73,8 @@ class LandingActivity : ComponentActivity() {
     /* Preserve chosen language */
     override fun attachBaseContext(newBase: Context) {
         val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
-        val storedLanguage = prefs.getString("language", null)
-        val defaultLang = when {
-            storedLanguage != null -> storedLanguage
-            CountryUtil.isProbablyInThailand(newBase) -> "th"
-            else -> defaultLanguageCode()
-        }
-        val languageCode = storedLanguage ?: defaultLang
+        val defaultLang = if (Locale.getDefault().country.equals("MX", true)) "es" else "en"
+        val languageCode = prefs.getString("language", defaultLang) ?: defaultLang
         super.attachBaseContext(updateLocale(newBase, languageCode))
     }
 
@@ -208,7 +203,7 @@ class LandingActivity : ComponentActivity() {
         isSigningIn = true
         googleSignInClient.signOut().addOnCompleteListener { task ->
             val launchRunnable = Runnable {
-            val currentState = lifecycle.currentState
+                val currentState = lifecycle.currentState
                 if (currentState.isAtLeast(Lifecycle.State.STARTED)) {
                     googleSignInLauncher.launch(googleSignInClient.signInIntent)
                 } else {
@@ -459,40 +454,9 @@ fun LandingScreen(
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    val storedLanguage = prefs.getString("language", null)
-    val isThailand = remember { CountryUtil.isProbablyInThailand(context) }
-    val defaultLang = if (isThailand) "th" else defaultLanguageCode()
-    val englishLabel = stringResource(R.string.language_name_english)
-    val spanishLabel = stringResource(R.string.language_name_spanish)
-    val thaiLabel = stringResource(R.string.language_name_thai)
-    val languageOptions = if (isThailand) {
-        listOf(
-            englishLabel to "en",
-            thaiLabel to "th"
-        )
-    } else {
-        listOf(
-            englishLabel to "en",
-            spanishLabel to "es",
-            thaiLabel to "th"
-        )
-    }
-    val availableCodes = languageOptions.map { it.second }.toSet()
-    val initialLanguage = storedLanguage?.takeIf { it in availableCodes } ?: defaultLang
-    var selectedLanguage by remember { mutableStateOf(initialLanguage) }
+    var selectedLanguage by remember { mutableStateOf(prefs.getString("language", "en")!!) }
     var shouldRestart by remember { mutableStateOf(false) }
 
-    LaunchedEffect(initialLanguage) {
-        if (selectedLanguage != initialLanguage) {
-            selectedLanguage = initialLanguage
-        }
-        if (storedLanguage != initialLanguage) {
-            prefs.edit().putString("language", initialLanguage).apply()
-            if (storedLanguage != null) {
-                shouldRestart = true
-            }
-        }
-    }
     if (shouldRestart) {
         LaunchedEffect(Unit) {
             delay(100)
@@ -581,13 +545,11 @@ fun LandingScreen(
         if (!isIndia) {
             LanguageSelectionBar(
                 selectedLanguage,
-                languageOptions,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
             ) { lang ->
                 if (lang != selectedLanguage) {
-                    selectedLanguage = lang
                     prefs.edit().putString("language", lang).apply()
                     shouldRestart = true
                 }
@@ -682,11 +644,11 @@ fun SocialSignInButton(
 @Composable
 fun LanguageSelectionBar(
     selectedLanguage: String,
-    languages: List<Pair<String, String>>,
     modifier: Modifier = Modifier,
     onLanguageSelected: (String) -> Unit
 ) {
-    val unlockedCodes = languages.map { it.second }.toSet()
+    val languages = listOf("English" to "en", "Español" to "es", "Thai" to "th")
+    val unlockedCodes = setOf("en", "es", "th")
     val scroll = rememberScrollState()
 
     Row(

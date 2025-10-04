@@ -25,10 +25,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.tasks.await
-import com.am24.am24.billing.BillingScreen
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -59,19 +58,6 @@ fun MainNavGraph(
     postViewModel: PostViewModel,
     locationManager: LocationManager
 ) {
-    val context = LocalContext.current
-    val application = context.findApplication()
-
-    if (application == null) {
-        Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("Unable to load application context", color = Color.White)
-        }
-        return
-    }
-
     var userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     // Read in the current user's matches from Firebase
@@ -100,13 +86,19 @@ fun MainNavGraph(
 
     // Initialize `profileViewModel`
     val profileViewModel: ProfileViewModel = viewModel(
-        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
+            LocalContext.current.applicationContext as Application
+        )
     )
     val nearbyViewModel: NearbyViewModel = viewModel()
     val datingViewModel: DatingViewModel = viewModel(
-        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
+            LocalContext.current.applicationContext as Application
+        )
     )
 
+    // Initialize LocationManager (safe inside Composable)
+    val context = LocalContext.current
     val locationManagerRemembered = remember { locationManager }
 
     val geoFireDatabaseRef = FirebaseRefs.db.getReference("geoFireLocations")

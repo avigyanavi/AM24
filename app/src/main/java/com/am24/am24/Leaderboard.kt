@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import android.app.Application
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -42,21 +43,10 @@ fun LeaderboardScreen(
     navController: NavHostController,
 ) {
     val context = LocalContext.current
-    val application = context.findApplication()
-
-    if (application == null) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("Unable to load application context", color = Color.White)
-        }
-        return
-    }
-
     val profileViewModel: ProfileViewModel = viewModel(
-        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
+            context.applicationContext as Application
+        )
     )
 
     val isPremium by profileViewModel.isPremium.collectAsState(false)
