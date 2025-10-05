@@ -98,6 +98,8 @@ fun SettingsSection(content: @Composable ColumnScope.() -> Unit) {
 
 /* ───────────────────────────────────────────────  main screen ── */
 
+private enum class LocationVisibilityToggle { MATCHES, PUBLIC }
+
 @Composable
 fun SettingsScreen(navController: NavController) {
     val ctx = LocalContext.current
@@ -139,6 +141,7 @@ fun SettingsScreen(navController: NavController) {
     var showResetExcludesDialog by remember { mutableStateOf(false) }
     var feedbackText      by remember { mutableStateOf("") }
     var working           by remember { mutableStateOf(false) }
+    var pendingLocationToggle by remember { mutableStateOf<LocationVisibilityToggle?>(null) }
 
     val isIndian = remember(country) { canonicalCountry(country) == "India" }
 
@@ -445,14 +448,22 @@ fun SettingsScreen(navController: NavController) {
                         scope.launch { userRef.child("isPrivate").setValue(it) }
                     },
                     allowLoc = allowLoc,
-                    onAllowLocChange = {
-                        allowLoc = it
-                        scope.launch { userRef.child("allowLocationForMatches").setValue(it) }
+                    onAllowLocChange = { enable ->
+                        if (enable) {
+                            pendingLocationToggle = LocationVisibilityToggle.MATCHES
+                        } else {
+                            allowLoc = false
+                            scope.launch { userRef.child("allowLocationForMatches").setValue(false) }
+                        }
                     },
                     allowPublic = allowPublic,
-                    onAllowPublicChange = {
-                        allowPublic = it
-                        scope.launch { userRef.child("allowLocationPublic").setValue(it) }
+                    onAllowPublicChange = { enable ->
+                        if (enable) {
+                            pendingLocationToggle = LocationVisibilityToggle.PUBLIC
+                        } else {
+                            allowPublic = false
+                            scope.launch { userRef.child("allowLocationPublic").setValue(false) }
+                        }
                     },
                     isMatrimony = isMatrimony,
                     onMatrimonyChange = {
@@ -668,6 +679,42 @@ fun SettingsScreen(navController: NavController) {
                 }
             )
         }
+    }
+    pendingLocationToggle?.let { target ->
+        val (messageRes, confirmAction) = when (target) {
+            LocationVisibilityToggle.MATCHES ->
+                R.string.location_sharing_warning_matches to {
+                    allowLoc = true
+                    scope.launch { userRef.child("allowLocationForMatches").setValue(true) }
+                }
+
+            LocationVisibilityToggle.PUBLIC ->
+                R.string.location_sharing_warning_public to {
+                    allowPublic = true
+                    scope.launch { userRef.child("allowLocationPublic").setValue(true) }
+                }
+        }
+
+        AlertDialog(
+            onDismissRequest = { pendingLocationToggle = null },
+            title = { Text(stringResource(R.string.location_sharing_warning_title)) },
+            text = { Text(stringResource(messageRes)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmAction()
+                        pendingLocationToggle = null
+                    }
+                ) {
+                    Text(stringResource(R.string.location_sharing_warning_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingLocationToggle = null }) {
+                    Text(stringResource(R.string.location_sharing_warning_cancel))
+                }
+            }
+        )
     }
 }
 

@@ -286,6 +286,10 @@ class NearbyViewModel : ViewModel() {
                     }.filter { it.isNotBlank() }
                     val randomDetail = detailCandidates.randomOrNull()
 
+                    val rolesForCard = if (p.showRolesOnProfile) p.roles else emptyList()
+                    val tribesForCard = if (p.showTribesOnProfile) p.tribes else emptyList()
+                    val kinksForCard = if (p.showKinksOnProfile) p.kinks else emptyList()
+
                     val user = NearbyUser(
                         userId = uid,
                         username = username,
@@ -299,9 +303,9 @@ class NearbyViewModel : ViewModel() {
                         isPremium = p.isPremium,
                         isPlus = p.isPlus,
                         interests = p.interests,
-                        roles = p.roles,
-                        tribes = p.tribes,
-                        kinks = p.kinks,
+                        roles = rolesForCard,
+                        tribes = tribesForCard,
+                        kinks = kinksForCard,
                         sexualOrientation = p.sexualOrientation,
                         compatibilityPct = compat,
                         randomDetail = randomDetail,

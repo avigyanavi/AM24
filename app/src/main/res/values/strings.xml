@@ -592,7 +592,7 @@
     <string name="gender_women">Woman</string>
     <string name="gender_men">Man</string>
 
-    <string name="paywall_title">Confirm you are not a bot and get one month of KupidxPlus (opening offer): see who likes you and more.</string>
+    <string name="paywall_title">Entry fee</string>
     <string name="paywall_entry_fee_message_india">%1$s entry fee - to keep the bots away</string>
     <string name="paywall_entry_fee_message_mexico">%1$s entry fee - to keep the bots away</string>
     <string name="paywall_entry_fee_message_us">%1$s entry fee - to keep the bots away</string>
@@ -642,6 +642,12 @@
     <string name="subscription_one_time_price_usd">$%1$s one-time</string>
     <string name="subscription_one_time_price_thb">THB%1$d one-time</string>
     <string name="subscription_checkout_description">%1$d ₹ / %2$s</string>
+
+    <string name="location_sharing_warning_title">Enable map visibility?</string>
+    <string name="location_sharing_warning_matches">Turning this on will show your approximate location to people you match with on the map. Only enable it if you understand and accept that your matches can see where you are.</string>
+    <string name="location_sharing_warning_public">Turning this on will show your approximate location to anyone browsing the public map. Only enable it if you understand and accept that all users can see where you are.</string>
+    <string name="location_sharing_warning_confirm">Yes, enable it</string>
+    <string name="location_sharing_warning_cancel">Keep disabled</string>
 
     <!-- Place popup & sending -->
     <!-- values/strings.xml (en) — ChatScreen additions -->

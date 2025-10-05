@@ -37,6 +37,8 @@ import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
 import java.text.DateFormat
 import java.util.Date
+import androidx.compose.foundation.background
+
 
 private val PLUS_FEATURES = listOf(
     R.string.feature_no_ads,
@@ -198,9 +200,12 @@ fun ManageSubscriptionScreen(navController: NavController) {
         }
     ) { padding ->
 
+        val backgroundColor = if (isPlus) Color(0xFF121212) else MaterialTheme.colorScheme.background
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(backgroundColor)
                 .padding(padding)
                 .verticalScroll(scroll)
                 .padding(16.dp),
@@ -208,9 +213,7 @@ fun ManageSubscriptionScreen(navController: NavController) {
         ) {
 
             /* ───── status ───── */
-            Text("Membership: $premiumTier", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text("Expires on: $expiry",fontSize = 16.sp)
-            val statusText = when (subscriptionStatus) {
+            val statusLabel = when (subscriptionStatus) {
                 "active" -> stringResource(R.string.subscription_active)
                 "inactive" -> stringResource(R.string.subscription_inactive)
                 "completed" -> stringResource(R.string.subscription_completed)
@@ -220,11 +223,12 @@ fun ManageSubscriptionScreen(navController: NavController) {
                 null -> "N/A"
                 else -> subscriptionStatus ?: "N/A"
             }
-            if (subscriptionStatus != null) {
+            val statusDescription = if (subscriptionStatus != null) {
                 val reason = if (subscriptionStatus == "inactive")
                     " \u2013 " + stringResource(R.string.payment_failed) else ""
-                Text("Status: $statusText$reason", fontSize = 16.sp)
-            }
+                "Status: $statusLabel$reason"
+            } else {
+                null            }
 
             /* ───── benefits ───── */
             val featureList = when {
@@ -232,15 +236,29 @@ fun ManageSubscriptionScreen(navController: NavController) {
                 isPlus    -> PLUS_FEATURES
                 else      -> emptyList()
             }
-            if (featureList.isNotEmpty()) {
-                Text("Your Benefits:", fontWeight = FontWeight.SemiBold)
-                featureList.forEach { bulletResId ->
-                    Text(
-                        text = "• ${stringResource(bulletResId)}",
-                        color = Color.LightGray,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(vertical = 2.dp)
-                    )
+            if (isPlus) {
+                CurrentMembershipCard(
+                    expiry = expiry,
+                    statusText = statusDescription,
+                    featureList = featureList
+                )
+            } else {
+                Text("Membership: $premiumTier", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Expires on: $expiry", fontSize = 16.sp)
+                statusDescription?.let {
+                    Text(it, fontSize = 16.sp)
+                }
+
+                if (featureList.isNotEmpty()) {
+                    Text("Your Benefits:", fontWeight = FontWeight.SemiBold)
+                    featureList.forEach { bulletResId ->
+                        Text(
+                            text = "• ${stringResource(bulletResId)}",
+                            color = Color.LightGray,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        )
+                    }
                 }
             }
 
@@ -288,6 +306,58 @@ fun ManageSubscriptionScreen(navController: NavController) {
         }
     }
 }
+
+@Composable
+private fun CurrentMembershipCard(
+    expiry: String,
+    statusText: String?,
+    featureList: List<Int>
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.subscription_tier_plus),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+            Text(
+                text = "Renews on: $expiry",
+                color = Color.White,
+                fontSize = 14.sp
+            )
+            statusText?.let {
+                Text(
+                    text = it,
+                    color = Color.LightGray,
+                    fontSize = 12.sp
+                )
+            }
+            if (featureList.isNotEmpty()) {
+                Text(
+                    text = "Your Benefits:",
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+                featureList.forEach { bulletResId ->
+                    Text(
+                        text = "• ${stringResource(bulletResId)}",
+                        color = Color.LightGray,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 private fun launchOneTimeUpi(
     scope: CoroutineScope,

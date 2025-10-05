@@ -158,7 +158,7 @@
     <string name="label_radius">Radio</string>
     <string name="gender_women">Mujer</string>
     <string name="gender_men">Hombre</string>
-    <string name="paywall_title">Confirma que no eres un bot y obtén un mes de KupidxPlus (oferta de lanzamiento): mira a quién le gustas y más.</string>
+    <string name="paywall_title">Tarifa de entrada</string>
     <string name="paywall_entry_fee_message_india">Entrada de %1$s para mantener alejados a los bots</string>
     <string name="paywall_entry_fee_message_mexico">Entrada de %1$s para mantener alejados a los bots</string>
     <string name="paywall_entry_fee_message_us">Entrada de %1$s para mantener alejados a los bots</string>
@@ -181,7 +181,8 @@
     <string name="paywall_trial_error">No se pudo iniciar tu prueba gratuita. Inténtalo de nuevo.</string>
     <!-- Place popup & sending -->
     <string name="map_entry_fee_plus_title">¡Plus desbloqueado!</string>
-    <string name="map_entry_fee_plus_message">Gracias por apoyar Kupidx — tus beneficios Plus estarán activos durante el próximo mes.</string>    <string name="map_entry_fee_plus_confirm">Genial</string>
+    <string name="map_entry_fee_plus_message">Gracias por apoyar Kupidx — tus beneficios Plus estarán activos durante el próximo mes.</string>
+    <string name="map_entry_fee_plus_confirm">Genial</string>
     <string name="map_entry_fee_discount_title">Oferta Plus por tiempo limitado</string>
     <string name="map_entry_fee_discount_message">Desbloquea Plus por un mes con un pago único. La oferta termina en %1$d hr.</string>
     <string name="map_entry_fee_discount_upgrade">Mejorar ahora</string>
@@ -208,7 +209,11 @@
     <string name="duration_1d">1 día</string>
     <string name="duration_1w">1 semana</string>
     <string name="duration_1m">1 mes</string>
-
+    <string name="location_sharing_warning_title">¿Habilitar visibilidad en el mapa?</string>
+    <string name="location_sharing_warning_matches">Al activar esta opción, se mostrará tu ubicación aproximada a las personas con las que hagas match en el mapa. Actívala solo si entiendes y aceptas que tus coincidencias podrán ver dónde estás.</string>
+    <string name="location_sharing_warning_public">Al activar esta opción, se mostrará tu ubicación aproximada a cualquier persona que navegue por el mapa público. Actívala solo si entiendes y aceptas que todos los usuarios podrán ver dónde estás.</string>
+    <string name="location_sharing_warning_confirm">Sí, habilítalo</string>
+    <string name="location_sharing_warning_cancel">Mantener desactivado</string>
     <string name="chat_delete_label">Los mensajes se borran %1$s</string>
     <string name="chat_delete_after_1d">después de 1 día</string>
     <string name="chat_delete_after_1w">después de 1 semana</string>

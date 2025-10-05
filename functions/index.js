@@ -13,11 +13,87 @@ const openai = new OpenAI({
  apiKey: "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"   // make sure this env var is set
 });
 
-admin.initializeApp({
-  databaseURL: "https://kupidxdefault.asia-southeast1.firebasedatabase.app"
+const RAW_STORAGE_BUCKET_NAMES = [
+  "am-twentyfour.appspot.com",
+  "am-twentyfour",
+];
+
+const DATABASE_CONFIGS = [
+  {
+    name: "kupidxdefault",
+    url: "https://kupidxdefault.asia-southeast1.firebasedatabase.app",
+  },
+  {
+    name: "am-twentyfour",
+    url: "https://am-twentyfour.firebaseio.com",
+  },
+];
+
+const bucketCache = new Map();
+let DEFAULT_STORAGE_BUCKETS = [];
+
+function sanitizeBucketName(name) {
+  if (!name) return null;
+  return name.replace(/^gs:\/\//, "").replace(/\/+$/, "");
+}
+
+function detectDefaultStorageBucket() {
+  const hasDefaultApp = admin.apps.length > 0;
+  const fromOptions = hasDefaultApp ? sanitizeBucketName(admin.app().options?.storageBucket) : null;
+  if (fromOptions) return fromOptions;
+
+  try {
+    if (process.env.FIREBASE_CONFIG) {
+      const parsed = JSON.parse(process.env.FIREBASE_CONFIG);
+      if (parsed.storageBucket) {
+        const fromConfig = sanitizeBucketName(parsed.storageBucket);
+        if (fromConfig) return fromConfig;
+      }
+    }
+  } catch (err) {
+    functions.logger.warn("Failed to parse FIREBASE_CONFIG for storage bucket", err);
+  }
+
+  if (process.env.GCLOUD_PROJECT) {
+    return sanitizeBucketName(`${process.env.GCLOUD_PROJECT}.appspot.com`);
+  }
+
+  return sanitizeBucketName("am-twentyfour.appspot.com");
+}
+
+const CONFIGURED_STORAGE_BUCKET_NAMES = Array.from(
+  new Set(RAW_STORAGE_BUCKET_NAMES.map(sanitizeBucketName).filter(Boolean)),
+);
+
+const primaryAppOptions = {
+  databaseURL: DATABASE_CONFIGS[0].url,
+};
+
+if (CONFIGURED_STORAGE_BUCKET_NAMES[0]) {
+  primaryAppOptions.storageBucket = CONFIGURED_STORAGE_BUCKET_NAMES[0];
+}
+
+const primaryApp = admin.initializeApp(primaryAppOptions);
+
+const databaseTargets = DATABASE_CONFIGS.map((config, index) => {
+  if (index === 0) {
+    return { ...config, app: primaryApp, db: primaryApp.database() };
+  }
+  const app = admin.initializeApp({ databaseURL: config.url }, `db-${config.name}`);
+  return { ...config, app, db: app.database() };
 });
-const db     = admin.database();
+
+const db     = databaseTargets[0].db;
+
 const USERS  = db.ref('users');
+const AVAILABLE_DATABASE_NAMES = databaseTargets.map((target) => target.name);
+
+DEFAULT_STORAGE_BUCKETS = CONFIGURED_STORAGE_BUCKET_NAMES.slice();
+const detectedBucket = detectDefaultStorageBucket();
+if (detectedBucket && !DEFAULT_STORAGE_BUCKETS.includes(detectedBucket)) {
+  DEFAULT_STORAGE_BUCKETS.push(detectedBucket);
+}
+
 const now    = () => Date.now();
 const BOOST_DURATION_MS = 1 * 60 * 60 * 1_000;   // 1 h
 const PAGE_SIZE = 50;
@@ -52,167 +128,423 @@ const razorpay = new Razorpay({
   key_id:     RZP_KEY_ID,
   key_secret: RZP_KEY_SECRET,
 });
+// ---------- Buckets + Storage helpers ----------
+function getBucket(bucketName) {
+  const sanitized = sanitizeBucketName(bucketName);
+  const targetBucket = sanitized || DEFAULT_STORAGE_BUCKETS[0] || null;
+  if (!targetBucket) return admin.storage().bucket();
+  if (!bucketCache.has(targetBucket)) {
+    bucketCache.set(targetBucket, admin.storage().bucket(targetBucket));
+  }
+  return bucketCache.get(targetBucket);
+}
 
+function gatherStorageUrls(data = {}) {
+  const urls = new Set();
+  const add = (v) => { if (typeof v === "string" && v.trim()) urls.add(v.trim()); };
+
+  add(data.profilepicUrl);
+  add(data.profilepicThumbnailUrl);
+  add(data.voiceNoteUrl);
+  if (Array.isArray(data.optionalPhotoUrls))  data.optionalPhotoUrls.forEach(add);
+  if (Array.isArray(data.privateAlbumUrls))   data.privateAlbumUrls.forEach(add);
+
+  return Array.from(urls);
+}
+
+function parseStorageLocation(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== "string") return null;
+  const url = rawUrl.trim();
+  if (!url) return null;
+
+  if (url.startsWith("gs://")) {
+    const withoutScheme = url.slice(5);
+    const slashIdx = withoutScheme.indexOf("/");
+    const bucket = sanitizeBucketName(slashIdx === -1 ? withoutScheme : withoutScheme.slice(0, slashIdx));
+    const objectPath = slashIdx === -1 ? "" : decodeURIComponent(withoutScheme.slice(slashIdx + 1));
+    return { bucket, objectPath };
+  }
+
+  try {
+    const parsed = new URL(url);
+
+    if (parsed.hostname === "firebasestorage.googleapis.com") {
+      const segments = parsed.pathname.split("/").filter(Boolean);
+      const bIdx = segments.indexOf("b");
+      const oIdx = segments.indexOf("o");
+      const bucket = bIdx !== -1 && segments[bIdx + 1] ? sanitizeBucketName(segments[bIdx + 1]) : null;
+      const objectSegment = oIdx !== -1 ? segments[oIdx + 1] : null;
+      const objectPath = objectSegment ? decodeURIComponent(objectSegment) : null;
+      return { bucket, objectPath };
+    }
+
+    if (parsed.hostname === "storage.googleapis.com") {
+      const [bucketPart, ...rest] = parsed.pathname.split("/").filter(Boolean);
+      const bucket = sanitizeBucketName(bucketPart);
+      const objectPath = rest.length ? rest.map(decodeURIComponent).join("/") : null;
+      return { bucket, objectPath };
+    }
+
+    if (parsed.hostname.endsWith(".storage.googleapis.com")) {
+      const bucket = sanitizeBucketName(parsed.hostname.replace(/\.storage\.googleapis\.com$/i, ""));
+      const objectPath = parsed.pathname.length > 1 ? decodeURIComponent(parsed.pathname.slice(1)) : null;
+      return { bucket, objectPath };
+    }
+  } catch (err) {
+    functions.logger.debug("Failed to parse storage URL", { url, err: err?.message });
+  }
+  return null;
+}
+
+function buildStorageCleanupPlan(uid, data) {
+  const plan = new Map();
+
+  const ensure = (bucketName) => {
+    const sanitized = sanitizeBucketName(bucketName) || DEFAULT_STORAGE_BUCKETS[0] || null;
+    if (!sanitized) return null;
+    if (!plan.has(sanitized)) plan.set(sanitized, { prefixes: new Set(), files: new Set() });
+    return plan.get(sanitized);
+  };
+
+  const addPrefix = (bucketName, prefix) => {
+    const e = ensure(bucketName); if (!e) return;
+    const normalized = prefix.endsWith("/") ? prefix : `${prefix}/`;
+    e.prefixes.add(normalized);
+  };
+
+  const addFile = (bucketName, objectPath) => {
+    const e = ensure(bucketName); if (!e) return;
+    if (objectPath) e.files.add(objectPath);
+  };
+
+  const urls = gatherStorageUrls(data);
+  for (const url of urls) {
+    const loc = parseStorageLocation(url);
+    if (!loc || !loc.objectPath) continue;
+    if (loc.objectPath.startsWith(`users/${uid}/`)) {
+      addPrefix(loc.bucket, `users/${uid}/`);
+    } else {
+      addFile(loc.bucket, loc.objectPath);
+    }
+  }
+
+  for (const bucketName of DEFAULT_STORAGE_BUCKETS) {
+    addPrefix(bucketName, `users/${uid}/`);
+  }
+
+  return plan;
+}
+
+async function cleanupUserStorage(uid, data, summary, logPrefix = "") {
+  summary.storageUsersAttempted += 1;
+  const plan = buildStorageCleanupPlan(uid, data);
+  if (plan.size === 0) return;
+
+  const pref = logPrefix ? `${logPrefix} ` : "";
+
+  for (const [bucketName, { prefixes, files }] of plan.entries()) {
+    let bucket;
+    try {
+      bucket = getBucket(bucketName);
+    } catch (err) {
+      summary.storageErrors += 1;
+      functions.logger.error(`${pref}Failed to access bucket ${bucketName} for uid=${uid}`, err);
+      continue;
+    }
+
+    for (const prefix of prefixes) {
+      try {
+        await bucket.deleteFiles({ prefix, force: true });
+        summary.storagePrefixesDeleted += 1;
+      } catch (err) {
+        summary.storageErrors += 1;
+        functions.logger.error(`${pref}Failed to delete storage prefix ${bucketName}/${prefix} for uid=${uid}`, err);
+      }
+    }
+
+    for (const filePath of files) {
+      try {
+        await bucket.file(filePath).delete({ ignoreNotFound: true });
+        summary.storageFilesDeleted += 1;
+      } catch (err) {
+        summary.storageErrors += 1;
+        functions.logger.error(`${pref}Failed to delete storage file ${bucketName}/${filePath} for uid=${uid}`, err);
+      }
+    }
+  }
+}
+
+// ---------- DB selection helpers ----------
+function parseDatabaseSelectionParam(raw) {
+  if (raw === undefined || raw === null) return [];
+  if (Array.isArray(raw)) return raw.flatMap(parseDatabaseSelectionParam);
+  if (typeof raw === "string") {
+    return raw.split(",").map(s => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function resolveDatabaseTargets(requestedNames) {
+  if (!requestedNames || requestedNames.length === 0) return databaseTargets;
+
+  const normalized = new Set(
+    requestedNames.map(n => n && n.toString().trim().toLowerCase()).filter(Boolean)
+  );
+  if (normalized.has("all") || normalized.has("*")) return databaseTargets;
+
+  const alias = new Map();
+  databaseTargets.forEach((t, i) => {
+    alias.set(t.name.toLowerCase(), t.name);
+    alias.set(`db-${i}`, t.name);
+  });
+  if (databaseTargets[0]) {
+    alias.set("default", databaseTargets[0].name);
+    alias.set("primary", databaseTargets[0].name);
+  }
+
+  const selected = new Set();
+  normalized.forEach(n => { if (alias.has(n)) selected.add(alias.get(n)); });
+
+  return databaseTargets.filter(t => selected.has(t.name));
+}
+
+// ---------- Core deletion impl ----------
+async function deleteUsersWithoutUsernameImpl({
+  database,
+  auth = database ? database.app.auth() : admin.auth(),
+  dryRun = true,
+  batchSize = 500,
+  startKey = null,
+  cleanupStorage = false,
+  databaseName = database ? database.name || database.app?.name || "" : "",
+} = {}) {
+  if (!database) throw new Error("A database reference is required");
+
+  const databaseUrl = (() => {
+    try { return database.ref().toString(); }
+    catch (err) { functions.logger.debug("Failed to resolve database URL", { err: err?.message }); return undefined; }
+  })();
+
+  const logPrefix = databaseName ? `[db:${databaseName}]` : "[db:default]";
+  let lastKey = typeof startKey === "string" ? startKey : null;
+
+  const summary = {
+    dryRun,
+    cleanupStorage,
+    databaseName,
+    databaseUrl,
+    scanned: 0,
+    flaggedCount: 0,
+    deletedAuth: 0,
+    deletedDbUsers: 0,
+    deletedDbUsernames: 0,
+    reasons: {
+      missing_or_empty_username: 0,
+      username_not_in_global_map: 0,
+      username_mapped_to_different_uid: 0,
+    },
+    batches: 0,
+    lastKeyProcessed: null,
+    storageUsersAttempted: 0,
+    storagePrefixesDeleted: 0,
+    storageFilesDeleted: 0,
+    storageErrors: 0,
+  };
+
+  // Preload /usernames map
+  const usernamesSnap = await database.ref("usernames").once("value");
+  const usernamesMap = usernamesSnap.exists() ? usernamesSnap.val() : {};
+
+  const usernameKeysByUid = {};
+  Object.entries(usernamesMap).forEach(([uname, mappedUid]) => {
+    if (!usernameKeysByUid[mappedUid]) usernameKeysByUid[mappedUid] = [];
+    usernameKeysByUid[mappedUid].push(uname);
+  });
+
+  const findMappingFor = (username) => {
+    if (!username) return null;
+    if (Object.prototype.hasOwnProperty.call(usernamesMap, username))
+      return { key: username, uid: usernamesMap[username] };
+    const lc = username.toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(usernamesMap, lc))
+      return { key: lc, uid: usernamesMap[lc] };
+    return null;
+  };
+
+  while (true) {
+    summary.batches += 1;
+    let q = database.ref("users").orderByKey();
+    if (lastKey) q = q.startAfter(lastKey);
+    const snap = await q.limitToFirst(batchSize).once("value");
+    if (!snap.exists()) break;
+
+    const children = [];
+    snap.forEach((child) => children.push(child));
+    if (children.length === 0) break;
+
+    const uidsToDeleteAuth = [];
+    const dbUpdates = {};
+    const storageQueue = [];
+
+    for (const child of children) {
+      const uid = child.key;
+      const data = child.val() || {};
+      summary.scanned += 1;
+
+      const username = (data.username ?? "").toString().trim();
+      let shouldDelete = false;
+      const reasons = [];
+
+      if (!username) {
+        shouldDelete = true;
+        summary.reasons.missing_or_empty_username += 1;
+        reasons.push("missing/empty username");
+      } else {
+        const mapping = findMappingFor(username);
+        if (!mapping) {
+          shouldDelete = true;
+          summary.reasons.username_not_in_global_map += 1;
+          reasons.push("username not found in /usernames");
+        } else if (mapping.uid !== uid) {
+          shouldDelete = true;
+          summary.reasons.username_mapped_to_different_uid += 1;
+          reasons.push(`username mapped to different uid (${mapping.uid})`);
+        }
+      }
+
+      if (shouldDelete) {
+        summary.flaggedCount += 1;
+        functions.logger.warn(`${logPrefix} Flagged for deletion: uid=${uid} username="${username}" reasons=${reasons.join(", ")}`);
+
+        // queue DB deletes
+        dbUpdates[`/users/${uid}`] = null;
+
+        // remove all username keys pointing to this uid
+        (usernameKeysByUid[uid] || []).forEach((k) => { dbUpdates[`/usernames/${k}`] = null; });
+
+        // also remove the profile's username key if it maps here
+        if (username) {
+          const mm = findMappingFor(username);
+          if (mm && mm.uid === uid) dbUpdates[`/usernames/${mm.key}`] = null;
+        }
+
+        // queue auth delete
+        uidsToDeleteAuth.push(uid);
+
+        // optionally plan storage cleanup
+        if (cleanupStorage && !dryRun) storageQueue.push({ uid, data });
+      }
+
+      lastKey = uid; // advance cursor
+    }
+
+    if (!dryRun) {
+      if (Object.keys(dbUpdates).length > 0) {
+        await database.ref().update(dbUpdates);
+        summary.deletedDbUsers += Object.keys(dbUpdates).filter((p) => p.startsWith("/users/")).length;
+        summary.deletedDbUsernames += Object.keys(dbUpdates).filter((p) => p.startsWith("/usernames/")).length;
+      }
+
+      // auth deletions in chunks
+      const CHUNK = 1000;
+      for (let i = 0; i < uidsToDeleteAuth.length; i += CHUNK) {
+        const chunk = uidsToDeleteAuth.slice(i, i + CHUNK);
+        const result = await auth.deleteUsers(chunk);
+        summary.deletedAuth += result.successCount;
+        if (result.failureCount > 0) {
+          result.errors.forEach((e) => {
+            functions.logger.error(`${logPrefix} Auth delete failed for uid=${
+              e.index < chunk.length ? chunk[e.index] : "unknown"
+            }`, e.error);
+          });
+        }
+      }
+
+      // storage cleanup
+      for (const item of storageQueue) {
+        await cleanupUserStorage(item.uid, item.data, summary, logPrefix);
+      }
+    }
+
+    if (children.length < batchSize) break;
+  }
+
+  summary.lastKeyProcessed = lastKey;
+  return summary;
+}
+
+// ---------- HTTPS wrapper ----------
 exports.deleteUsersWithoutUsername = functions
   .region("asia-south1")
   .runWith({ timeoutSeconds: 540, memory: "1GB" })
   .https.onRequest(async (req, res) => {
-    const db = admin.database();
-    const auth = admin.auth();
-
-    const dryRun = (req.query.dryRun ?? "true") !== "false";          // default: true
+    const dryRun = (req.query.dryRun ?? "true") !== "false";
     const BATCH_SIZE = Math.max(50, Math.min(2000, parseInt(req.query.batchSize || "500", 10)));
-    let lastKey = typeof req.query.startKey === "string" ? req.query.startKey : null;
+    const startKey = typeof req.query.startKey === "string" ? req.query.startKey : null;
+    const cleanupStorage = (req.query.cleanupStorage ?? "false") === "true";
+    const requestedDatabases = parseDatabaseSelectionParam(req.query.database);
+    const targets = resolveDatabaseTargets(requestedDatabases);
 
-    const summary = {
-      dryRun,
-      scanned: 0,
-      flaggedCount: 0,
-      deletedAuth: 0,
-      deletedDbUsers: 0,
-      deletedDbUsernames: 0,
-      reasons: {
-        missing_or_empty_username: 0,
-        username_not_in_global_map: 0,
-        username_mapped_to_different_uid: 0,
-      },
-      batches: 0,
-      lastKeyProcessed: null,
-    };
+    if (!targets || targets.length === 0) {
+      return res.status(400).json({
+        error: "No matching databases selected",
+        availableDatabases: AVAILABLE_DATABASE_NAMES,
+      });
+    }
 
     try {
-      // Load the global /usernames map once (key: username -> value: uid)
-      const usernamesSnap = await db.ref("usernames").once("value");
-      const usernamesMap = usernamesSnap.exists() ? usernamesSnap.val() : {};
-
-      // Build a reverse index: uid -> [usernameKeys...]
-      const usernameKeysByUid = {};
-      for (const [uname, mappedUid] of Object.entries(usernamesMap)) {
-        if (!usernameKeysByUid[mappedUid]) usernameKeysByUid[mappedUid] = [];
-        usernameKeysByUid[mappedUid].push(uname);
+      const summaries = [];
+      for (const target of targets) {
+        const summary = await deleteUsersWithoutUsernameImpl({
+          database: target.db,
+          auth: target.app.auth(),
+          dryRun,
+          batchSize: BATCH_SIZE,
+          startKey,
+          cleanupStorage,
+          databaseName: target.name,
+        });
+        summaries.push(summary);
       }
-
-      // Helpers
-      const findMappingFor = (username) => {
-        if (!username) return null;
-        // Try exact, then lowercase (cover common storage patterns)
-        if (Object.prototype.hasOwnProperty.call(usernamesMap, username)) return { key: username, uid: usernamesMap[username] };
-        const lc = username.toLowerCase();
-        if (Object.prototype.hasOwnProperty.call(usernamesMap, lc)) return { key: lc, uid: usernamesMap[lc] };
-        return null;
-      };
-
-      const uidsToDeleteAuth = [];
-      const dbUpdates = {}; // single multi-path update per batch
-      const usernameKeysToDelete = [];
-
-      // Batch scan /users by key
-      // We’ll loop until we run out of children in the current page
-      while (true) {
-        summary.batches += 1;
-        let q = db.ref("users").orderByKey();
-        if (lastKey) q = q.startAfter(lastKey);
-        const snap = await q.limitToFirst(BATCH_SIZE).once("value");
-
-        if (!snap.exists()) break;
-
-        const children = [];
-        snap.forEach((child) => children.push(child));
-        if (children.length === 0) break;
-
-        for (const child of children) {
-          const uid = child.key;
-          const data = child.val() || {};
-          summary.scanned += 1;
-
-          const username = (data.username ?? "").toString().trim();
-          let shouldDelete = false;
-          const reasons = [];
-
-          if (!username) {
-            shouldDelete = true;
-            summary.reasons.missing_or_empty_username += 1;
-            reasons.push("missing/empty username");
-          } else {
-            const mapping = findMappingFor(username);
-            if (!mapping) {
-              shouldDelete = true;
-              summary.reasons.username_not_in_global_map += 1;
-              reasons.push("username not found in /usernames");
-            } else if (mapping.uid !== uid) {
-              shouldDelete = true;
-              summary.reasons.username_mapped_to_different_uid += 1;
-              reasons.push(`username mapped to different uid (${mapping.uid})`);
-            }
-          }
-
-          if (shouldDelete) {
-            summary.flaggedCount += 1;
-            functions.logger.warn(`Flagged for deletion: uid=${uid} username="${username}" reasons=${reasons.join(", ")}`);
-
-            // Queue DB deletions
-            dbUpdates[`/users/${uid}`] = null;
-
-            // Remove all username keys that map to this uid (defensive cleanup)
-            const keysForUid = usernameKeysByUid[uid] || [];
-            for (const k of keysForUid) {
-              usernameKeysToDelete.push(k);
-              dbUpdates[`/usernames/${k}`] = null;
-            }
-
-            // Also remove the profile's username key specifically if it exists & maps here
-            if (username) {
-              const mm = findMappingFor(username);
-              if (mm && mm.uid === uid) {
-                usernameKeysToDelete.push(mm.key);
-                dbUpdates[`/usernames/${mm.key}`] = null;
-              }
-            }
-
-            // Queue Auth deletion
-            uidsToDeleteAuth.push(uid);
-          }
-
-          lastKey = uid; // advance scanning cursor
-        }
-
-        // Commit this batch (DB first, then Auth) unless dry run
-        if (!dryRun) {
-          if (Object.keys(dbUpdates).length > 0) {
-            await db.ref().update(dbUpdates);
-            summary.deletedDbUsers += Object.keys(dbUpdates).filter((p) => p.startsWith("/users/")).length;
-            summary.deletedDbUsernames += Object.keys(dbUpdates).filter((p) => p.startsWith("/usernames/")).length;
-          }
-
-          // Delete auth users in chunks of 1000
-          const chunkSize = 1000;
-          for (let i = 0; i < uidsToDeleteAuth.length; i += chunkSize) {
-            const chunk = uidsToDeleteAuth.slice(i, i + chunkSize);
-            const result = await auth.deleteUsers(chunk);
-            summary.deletedAuth += result.successCount;
-            if (result.failureCount > 0) {
-              result.errors.forEach((e) => {
-                functions.logger.error(`Auth delete failed for uid=${e.index < chunk.length ? chunk[e.index] : "unknown"}:`, e.error);
-              });
-            }
-          }
-        }
-
-        // Reset per-batch accumulators
-        uidsToDeleteAuth.length = 0;
-        usernameKeysToDelete.length = 0;
-        for (const k of Object.keys(dbUpdates)) delete dbUpdates[k];
-
-        // If fewer than batch size, we reached the end
-        if (children.length < BATCH_SIZE) break;
-      }
-
-      summary.lastKeyProcessed = lastKey;
-      return res.status(200).json(summary);
+      return res.status(200).json({
+        dryRun,
+        cleanupStorage,
+        batchSize: BATCH_SIZE,
+        startKey,
+        databases: targets.map((t) => t.name),
+        summaries,
+        availableDatabases: AVAILABLE_DATABASE_NAMES,
+      });
     } catch (err) {
       functions.logger.error("deleteUsersWithoutUsername failed:", err);
       return res.status(500).json({ error: err?.message || String(err) });
     }
+  });
+
+// ---------- Scheduled wrapper ----------
+exports.pruneAbandonedUsers = functions
+  .region("asia-south1")
+  .pubsub.schedule("every 48 hours")
+  .timeZone("UTC")
+  .onRun(async () => {
+    const summaries = [];
+    for (const target of databaseTargets) {
+      try {
+        const summary = await deleteUsersWithoutUsernameImpl({
+          database: target.db,
+          auth: target.app.auth(),
+          dryRun: false,
+          cleanupStorage: true,
+          batchSize: 500,
+          databaseName: target.name,
+        });
+        summaries.push(summary);
+      } catch (err) {
+        functions.logger.error(`pruneAbandonedUsers failed for database ${target.name}`, err);
+      }
+    }
+    functions.logger.info("pruneAbandonedUsers completed", { summaries });
+    return null;
   });
 
 exports.capPhoneRegistrations = functions
@@ -595,13 +927,22 @@ exports.createOneTimeOrder = functions
 /* ───────────────────────────── Chat suggestions ───────────────────────────── */
 
 /* maps “hi”, “bn”, … → prompt fragment */
-const LANG = { hi: "Hindi", bn: "Bengali", en: "English", ta: "Tamil", kn: "Kannada", te: "Telugu" };
+const LANG = {
+  hi: "Hindi",
+  bn: "Bengali",
+  en: "English",
+  ta: "Tamil",
+  kn: "Kannada",
+  te: "Telugu",
+  es: "Mexican Spanish",            // covers 'es' (and 'es-MX' after slicing)
+  th: "Thai"
+};
 
 exports.chatSuggestions = functions
   .region("asia-south1")
   .runWith({ timeoutSeconds: 120, memory: "512MB" })
   .https.onRequest(async (req, res) => {
-    /* CORS */
+    // CORS
     if (req.method === "OPTIONS") {
       return res
         .set({
@@ -611,65 +952,61 @@ exports.chatSuggestions = functions
         })
         .status(204).send("");
     }
-    if (req.method !== "POST") return res.status(405).send("POST only");
+    if (req.method !== "POST") {
+      return res.set("Access-Control-Allow-Origin", "*").status(405).send("POST only");
+    }
 
     try {
-      const {
-        messages       = [],
-        lang            // 🆕 preferred
-      } = req.body || {};
+      const { messages = [], lang } = req.body || {};
+      const LANG = { hi:"Hindi", bn:"Bengali", en:"English", ta:"Tamil", kn:"Kannada", te:"Telugu" };
 
-      const code = String(body.lang ?? "en").trim().slice(0, 2).toLowerCase();
+      const code = String(lang ?? "en").trim().slice(0, 2).toLowerCase();
       const language = LANG[code] || "English";
 
-            // Optional: basic payload guardrails so you don’t blow tokens
-            const trimmed = messages.slice(-10);
-            const images = trimmed.filter((m) => m && m.imageUrl).slice(-3);
+      // Guardrails
+      const trimmed = messages.slice(-10);
+      const imageParts = trimmed
+        .filter(m => m && m.imageUrl)
+        .slice(0, 3)
+        .map(m => ({ type: "image_url", image_url: { url: m.imageUrl } }));
 
-      /* ─── build GPT messages ─── */
+      const recentText = trimmed
+        .map(m => `${m.role}: ${m.text ?? "[image]"}`)
+        .join("\n");
+
       const gptMsgs = [
         {
           role: "system",
           content:
             `You are a “Chat-Suggestion Engine” for a dating app.\n` +
-            `⚠️  ALWAYS reply *exclusively* in ${language}.\n\n` +
-            `Return **JSON only** in this exact schema (no other text):\n` +
+            `ALWAYS reply exclusively in ${language}.\n\n` +
+            `Return JSON only in this schema: ` +
             `{"topics":[],"activities":[{"placeName":"","integration":""}],"integrationTips":[]}`,
         },
         {
           role: "user",
           content: [
-            {
-              type: "text",
-              text:
-                `Recent messages:\n` +
-                messages
-                  .slice(-10)
-                  .map((m) => `${m.role}: ${m.text ?? "[image]"}`)
-            },
-            /* ≤3 pictures */
-            ...messages
-              .filter((m) => m.imageUrl)
-              .slice(-3)
-              .map((m) => ({ type: "image_url", image_url: { url: m.imageUrl } })),
+            { type: "text", text: `Recent messages:\n${recentText}` },
+            ...imageParts,
           ],
-        }
+        },
       ];
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4.1",
+        model: "gpt-4o",
         messages: gptMsgs,
         temperature: 0.7,
         max_tokens: 400,
-        /* NEW: ask the API itself to enforce JSON */
         response_format: { type: "json_object" },
       });
 
-      const json = completion.choices[0].message.content.trim();   // already pure JSON
-
+      const json = completion.choices[0].message.content.trim();
       return res.set("Access-Control-Allow-Origin", "*").send(json);
     } catch (err) {
-      return res.status(500).send(err.message || "internal error");
+      return res
+        .set("Access-Control-Allow-Origin", "*")
+        .status(500)
+        .send(err.message || "internal error");
     }
   });
 
@@ -2055,7 +2392,7 @@ exports.listMexicanUsersByGender = functions
 
       const pushUser = (child) => {
         const u = child.val() || {};
-        if (normalizeCountry(u.country) !== 'Mexico') return;
+        if (normalizeCountry(u.country) !== 'mexico') return;
         const g = (u.gender || '').toString().trim().toLowerCase();
 
         const payload = {

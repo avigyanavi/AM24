@@ -16,6 +16,7 @@ import com.am24.am24.billing.BillingManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.flow.collect
+import com.facebook.appevents.AppEventsConstants
 import com.facebook.appevents.AppEventsLogger
 import java.math.BigDecimal
 import java.util.Currency
@@ -42,6 +43,21 @@ fun PaywallScreen(onPaid: () -> Unit) {
     var hasNavigatedAway by remember(uid) { mutableStateOf(false) }
     var hasUsedFreeTrial by remember { mutableStateOf(false) }
     var freeTrialExpiry by remember { mutableStateOf<Long?>(null) }
+    var hasLoggedCompleteRegistration by remember { mutableStateOf(false) }
+
+    val logger = remember(ctx) { AppEventsLogger.newLogger(ctx) }
+
+    fun logCompleteRegistrationOnce() {
+        if (!hasLoggedCompleteRegistration) {
+            try {
+                logger.logEvent(AppEventsConstants.EVENT_NAME_COMPLETED_REGISTRATION)
+            } catch (_: Exception) {
+                // Ignore analytics failures
+            }
+            hasLoggedCompleteRegistration = true
+        }
+    }
+
     DisposableEffect(userRef) {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -84,6 +100,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
     val onPaidCallback by rememberUpdatedState(onPaid)
     LaunchedEffect(entryFeePaid, plusActive, hasNavigatedAway) {
         if (!hasNavigatedAway && (entryFeePaid || plusActive)) {
+            logCompleteRegistrationOnce()
             hasNavigatedAway = true
             onPaidCallback()
         }
@@ -137,6 +154,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
                         entryFeePaidAt = purchaseTime
                         loginPlusExpiry = finalExpiry
                         isProcessing = false
+                        logCompleteRegistrationOnce()
                         if (!hasNavigatedAway) {
                             hasNavigatedAway = true
                             onPaidCallback()

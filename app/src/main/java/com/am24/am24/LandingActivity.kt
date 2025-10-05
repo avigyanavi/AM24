@@ -647,7 +647,7 @@ fun LanguageSelectionBar(
     modifier: Modifier = Modifier,
     onLanguageSelected: (String) -> Unit
 ) {
-    val languages = listOf("English" to "en", "Español" to "es", "Thai" to "th")
+    val languages = listOf("English" to "en", "Español" to "es")
     val unlockedCodes = setOf("en", "es", "th")
     val scroll = rememberScrollState()
 

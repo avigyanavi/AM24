@@ -157,8 +157,12 @@
     <string name="label_radius">รัศมี</string>
     <string name="gender_women">ผู้หญิง</string>
     <string name="gender_men">ผู้ชาย</string>
-
-    <string name="paywall_title">ยืนยันว่าไม่ใช่บอทและรับ KupidxPlus 1 เดือน (โปรเปิดตัว): ดูว่าใครถูกใจคุณและอีกมาก</string>
+    <string name="location_sharing_warning_title">เปิดการมองเห็นบนแผนที่หรือไม่?</string>
+    <string name="location_sharing_warning_matches">การเปิดใช้งานนี้จะแสดงตำแหน่งโดยประมาณของคุณให้กับคู่แมตช์ของคุณบนแผนที่ เปิดใช้งานเฉพาะเมื่อคุณเข้าใจและยอมรับว่าคู่แมตช์ของคุณสามารถเห็นว่าคุณอยู่ที่ไหน</string>
+    <string name="location_sharing_warning_public">การเปิดใช้งานนี้จะแสดงตำแหน่งโดยประมาณของคุณให้กับทุกคนที่ดูแผนที่สาธารณะ เปิดใช้งานเฉพาะเมื่อคุณเข้าใจและยอมรับว่าผู้ใช้ทั้งหมดสามารถเห็นว่าคุณอยู่ที่ไหน</string>
+    <string name="location_sharing_warning_confirm">ใช่ เปิดใช้งาน</string>
+    <string name="location_sharing_warning_cancel">ปิดไว้เหมือนเดิม</string>
+    <string name="paywall_title">ค่าเข้า</string>
     <string name="paywall_entry_fee_message_india">ค่าเข้า %1$s เพื่อกันบอท</string>
     <string name="paywall_entry_fee_message_mexico">ค่าเข้า %1$s เพื่อกันบอท</string>
     <string name="paywall_entry_fee_message_us">ค่าเข้า %1$s เพื่อกันบอท</string>

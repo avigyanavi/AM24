@@ -1640,32 +1640,19 @@ private fun CardsList(
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        if (users.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
-                }
-            }
-        } else {
-            items(
-                items = users,
-                key = { user -> user.userId }
-            ) { user ->
-                ProfileCard(
-                    user = user,
-                    useMiles = useMiles,    // <---
-                    onLike = { onLike(user) },
-                    onDislike = { onDislike(user) },
-                    onClick = { onCardClick(user) },
-                    onRemove = { onRemove(user.userId) },
-                    onBlock = { onBlock(user.userId) }
-                )
-            }
+        items(
+            items = users,
+            key = { user -> user.userId }
+        ) { user ->
+            ProfileCard(
+                user = user,
+                useMiles = useMiles,    // <---
+                onLike = { onLike(user) },
+                onDislike = { onDislike(user) },
+                onClick = { onCardClick(user) },
+                onRemove = { onRemove(user.userId) },
+                onBlock = { onBlock(user.userId) }
+            )
         }
         item {
             Button(

@@ -637,7 +637,6 @@ private fun createFreshAccount(
         .addOnSuccessListener {
             val logger = AppEventsLogger.newLogger(MyApp.instance)
             logger.logEvent(AppEventsConstants.EVENT_NAME_ACTIVATED_APP)
-            logger.logEvent(AppEventsConstants.EVENT_NAME_COMPLETED_REGISTRATION)
             onSuccess()
         }
         .addOnFailureListener { e ->
