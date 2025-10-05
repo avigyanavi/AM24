@@ -167,29 +167,22 @@ class MainActivity : ComponentActivity() {
             val step = (snap.child("registrationStep")
                 .getValue(Long::class.java) ?: 1L).toInt()
 
-            if (!finished && step >= 8) {
-                auth.signOut()
-                TokenStorageManager.clearToken(this@MainActivity)
-                withContext(Dispatchers.Main) {
-                    startActivity(Intent(this@MainActivity, LandingActivity::class.java))
-                    finish()
-                }
-            }
-            else {
-                val target = if (finished) {
-                    Intent(this@MainActivity, KupidXAppActivity::class.java)
-                        .putExtra("open_notifications", openNotifications)
-                        .putExtra("open_upgrade_landing", openUpgradeLanding)
-                } else {
-                    Intent(this@MainActivity, RegistrationActivity::class.java)
-                        .putExtra("requestedStartStep", step)
-                        .putExtra("signInProvider", currentProvider())
-                }
+            val hasProfile = !snap.child("username")
+                .getValue(String::class.java)
+                .isNullOrBlank()
 
-                withContext(Dispatchers.Main) {
-                    startActivity(target)
-                    finish()
-                }
+            val target = if (finished || hasProfile) {
+                Intent(this@MainActivity, KupidXAppActivity::class.java)
+                    .putExtra("open_notifications", openNotifications)
+                    .putExtra("open_upgrade_landing", openUpgradeLanding)
+            } else {
+                Intent(this@MainActivity, RegistrationActivity::class.java)
+                    .putExtra("requestedStartStep", step)
+                    .putExtra("signInProvider", currentProvider())
+            }
+            withContext(Dispatchers.Main) {
+                startActivity(target)
+                finish()
             }
         }
     }

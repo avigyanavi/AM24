@@ -8,13 +8,19 @@ import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.storage.FirebaseStorage
 import com.am24.am24.billing.BillingManager
 import com.am24.am24.ui.purchase.PurchaseType
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import com.facebook.FacebookSdk
+import com.android.installreferrer.api.ReferrerDetails
 import com.facebook.appevents.AppEventsLogger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class MyApp : Application() {
 
@@ -75,39 +81,18 @@ class MyApp : Application() {
         }
 
         // ───────── Storage bucket ─────────
-        FirebaseStorage.getInstance("gs://am-twentyfour")
-        try {
-            val referrerClient = InstallReferrerClient.newBuilder(this).build()
-            referrerClient.startConnection(object : InstallReferrerStateListener {
-                override fun onInstallReferrerSetupFinished(responseCode: Int) {
-                    when (responseCode) {
-                        InstallReferrerClient.InstallReferrerResponse.OK -> {
-                            try {
-                                val response = referrerClient.installReferrer
-                                GclidStorageManager.cacheFromQueryString(
-                                    this@MyApp,
-                                    response.installReferrer
-                                )
-                            } catch (e: Exception) {
-                                Log.w("MyApp", "Failed to read install referrer", e)
-                            } finally {
-                                referrerClient.endConnection()
-                            }
-                        }
-                        InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED,
-                        InstallReferrerClient.InstallReferrerResponse.SERVICE_UNAVAILABLE -> {
-                            referrerClient.endConnection()
-                        }
-                        else -> referrerClient.endConnection()
-                    }
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val referrerDetails = fetchInstallReferrer()
+                referrerDetails?.installReferrer?.let { installReferrer ->
+                    GclidStorageManager.cacheFromQueryString(
+                        this@MyApp,
+                        installReferrer
+                    )
                 }
-
-                override fun onInstallReferrerServiceDisconnected() {
-                    // No-op: we only need a single fetch.
-                }
-            })
-        } catch (e: Exception) {
-            Log.w("MyApp", "Unable to initialise install referrer", e)
+            } catch (e: Exception) {
+                Log.w("MyApp", "Unable to initialise install referrer", e)
+            }
         }
     }
 
@@ -123,5 +108,60 @@ class MyApp : Application() {
     companion object {
         lateinit var instance: MyApp
             private set
+    }
+
+
+    private suspend fun fetchInstallReferrer(): ReferrerDetails? {
+        val referrerClient = InstallReferrerClient.newBuilder(this).build()
+        return try {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    referrerClient.startConnection(object : InstallReferrerStateListener {
+                        override fun onInstallReferrerSetupFinished(responseCode: Int) {
+                            if (!continuation.isActive) return
+                            when (responseCode) {
+                                InstallReferrerClient.InstallReferrerResponse.OK -> {
+                                    try {
+                                        val response = referrerClient.installReferrer
+                                        continuation.resume(response)
+                                    } catch (e: Exception) {
+                                        continuation.resumeWithException(e)
+                                    }
+                                }
+                                InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED,
+                                InstallReferrerClient.InstallReferrerResponse.SERVICE_UNAVAILABLE -> {
+                                    Log.w(
+                                        "MyApp",
+                                        "Install referrer not available (code=$responseCode)"
+                                    )
+                                    continuation.resume(null)
+                                }
+                                else -> {
+                                    Log.w(
+                                        "MyApp",
+                                        "Unexpected install referrer response (code=$responseCode)"
+                                    )
+                                    continuation.resume(null)
+                                }
+                            }
+                        }
+
+                        override fun onInstallReferrerServiceDisconnected() {
+                            // No-op: single fetch only.
+                        }
+                    })
+                } catch (startError: Exception) {
+                    if (continuation.isActive) {
+                        continuation.resumeWithException(startError)
+                    }
+                }
+            }
+        } finally {
+            try {
+                referrerClient.endConnection()
+            } catch (closeError: Exception) {
+                Log.w("MyApp", "Failed to close install referrer client", closeError)
+            }
+        }
     }
 }

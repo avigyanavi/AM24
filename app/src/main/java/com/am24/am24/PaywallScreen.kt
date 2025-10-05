@@ -1,7 +1,6 @@
 package com.am24.am24
 
 import android.app.Activity
-import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -24,9 +23,6 @@ import com.android.billingclient.api.Purchase
 import java.text.DateFormat
 import java.util.Date
 import java.util.concurrent.TimeUnit
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.text.style.TextAlign
-
 
 
 @Composable
@@ -46,7 +42,6 @@ fun PaywallScreen(onPaid: () -> Unit) {
     var hasNavigatedAway by remember(uid) { mutableStateOf(false) }
     var hasUsedFreeTrial by remember { mutableStateOf(false) }
     var freeTrialExpiry by remember { mutableStateOf<Long?>(null) }
-    var skipProcessing by remember { mutableStateOf(false) }
     DisposableEffect(userRef) {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -173,11 +168,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
         formattedEntryPrice != null -> stringResource(R.string.paywall_button_pay_generic, formattedEntryPrice)
         else -> stringResource(R.string.paywall_button_pay_default)
     }
-    val skipLabel = if (!hasUsedFreeTrial) {
-        stringResource(R.string.paywall_start_trial_button)
-    } else {
-        stringResource(R.string.paywall_continue_button)
-    }
+
     val trialStatusText = when {
         hasUsedFreeTrial && trialActive && trialExpiryLabel != null ->
             stringResource(R.string.paywall_trial_active_message, trialExpiryLabel)
@@ -222,62 +213,5 @@ fun PaywallScreen(onPaid: () -> Unit) {
         ) {
             Text(buttonLabel)
         }
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = stringResource(R.string.paywall_or_separator),
-            color = Color.White,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(16.dp))
-        OutlinedButton(
-            onClick = {
-                if (hasNavigatedAway || skipProcessing) return@OutlinedButton
-
-                if (!hasUsedFreeTrial) {
-                    skipProcessing = true
-                    val now = System.currentTimeMillis()
-                    val expiry = now + TimeUnit.DAYS.toMillis(1)
-                    val updates = mutableMapOf<String, Any>(
-                        "hasUsedFreeTrial" to true,
-                        "freeTrialExpiry" to expiry,
-                        "freeTrialStartedAt" to ServerValue.TIMESTAMP,
-                        "freeTrialCompleted" to false
-                    )
-                    userRef.updateChildren(updates)
-                        .addOnSuccessListener {
-                            hasUsedFreeTrial = true
-                            freeTrialExpiry = expiry
-                            skipProcessing = false
-                            if (!hasNavigatedAway) {
-                                hasNavigatedAway = true
-                                onPaidCallback()
-                            }
-                        }
-                        .addOnFailureListener {
-                            skipProcessing = false
-                            Toast.makeText(ctx, R.string.paywall_trial_error, Toast.LENGTH_LONG).show()
-                        }
-                } else {
-                    hasNavigatedAway = true
-                    onPaidCallback()
-                }
-            },
-            enabled = !skipProcessing,
-            border = BorderStroke(1.dp, KupidxOrange),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = Color.Transparent,
-                contentColor = KupidxOrange
-            )
-        ) {
-            Text(skipLabel)
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(R.string.paywall_skip_disclaimer),
-            color = Color.White,
-            fontSize = 12.sp,
-            textAlign = TextAlign.Center
-        )
     }
 }
