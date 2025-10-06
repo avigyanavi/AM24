@@ -521,30 +521,120 @@ exports.deleteUsersWithoutUsername = functions
     }
   });
 
-// ---------- Scheduled wrapper ----------
-exports.pruneAbandonedUsers = functions
+exports.runAbandonedUserCleanup = functions
   .region("asia-south1")
-  .pubsub.schedule("every 48 hours")
-  .timeZone("UTC")
-  .onRun(async () => {
-    const summaries = [];
-    for (const target of databaseTargets) {
-      try {
+  .runWith({ timeoutSeconds: 540, memory: "1GB" })
+  .https.onRequest(async (_req, res) => {
+    try {
+      const summaries = [];
+      for (const target of databaseTargets) {
         const summary = await deleteUsersWithoutUsernameImpl({
           database: target.db,
           auth: target.app.auth(),
-          dryRun: false,
-          cleanupStorage: true,
+          dryRun: false,            // real deletions
+          cleanupStorage: true,     // also wipe user files
           batchSize: 500,
           databaseName: target.name,
         });
         summaries.push(summary);
-      } catch (err) {
-        functions.logger.error(`pruneAbandonedUsers failed for database ${target.name}`, err);
       }
+
+      functions.logger.info("runAbandonedUserCleanup completed", { summaries });
+      res.status(200).json({
+        message: "Cleanup completed successfully ✅",
+        summaries,
+      });
+    } catch (err) {
+      functions.logger.error("runAbandonedUserCleanup failed", err);
+      res.status(500).json({ error: err.message || "internal error" });
     }
-    functions.logger.info("pruneAbandonedUsers completed", { summaries });
-    return null;
+  });
+
+exports.cleanOrphanedStorage = functions
+  .region("asia-south1")
+  .runWith({ timeoutSeconds: 540, memory: "2GB" })
+  .https.onRequest(async (req, res) => {
+    const confirm = req.query.confirm === "true"; // dry-run by default
+    const summaries = [];
+
+    try {
+      // Collect all URLs currently referenced in DB
+      const referencedUrls = new Set();
+
+      for (const target of databaseTargets) {
+        const dbName = target.name;
+        const usersSnap = await target.db.ref("users").once("value");
+        let count = 0;
+
+        usersSnap.forEach(userSnap => {
+          const data = userSnap.val() || {};
+          const urls = gatherStorageUrls(data);
+          urls.forEach(u => referencedUrls.add(u));
+          count++;
+        });
+
+        summaries.push({
+          database: dbName,
+          usersScanned: count,
+          uniqueUrlsFound: referencedUrls.size
+        });
+      }
+
+      // Normalize gs:// and HTTPS to direct gs:// format
+      const normalizeUrl = (url) => {
+        try {
+          if (url.startsWith("gs://")) return url;
+          const u = new URL(url);
+          if (u.hostname.endsWith("googleapis.com")) {
+            const parts = u.pathname.split("/");
+            const bIndex = parts.indexOf("b");
+            const oIndex = parts.indexOf("o");
+            if (bIndex !== -1 && oIndex !== -1) {
+              const bucket = parts[bIndex + 1];
+              const objectPath = decodeURIComponent(parts[oIndex + 1]);
+              return `gs://${bucket}/${objectPath}`;
+            }
+          }
+        } catch {}
+        return null;
+      };
+
+      const normalizedRefs = new Set();
+      for (const url of referencedUrls) {
+        const n = normalizeUrl(url);
+        if (n) normalizedRefs.add(n);
+      }
+
+      // Scan all buckets
+      for (const bucketName of DEFAULT_STORAGE_BUCKETS) {
+        const bucket = getBucket(bucketName);
+        const [files] = await bucket.getFiles({ autoPaginate: true });
+
+        let orphaned = [];
+        for (const file of files) {
+          const gsUrl = `gs://${bucketName}/${file.name}`;
+          if (!normalizedRefs.has(gsUrl)) {
+            orphaned.push(gsUrl);
+            if (confirm) await file.delete({ ignoreNotFound: true });
+          }
+        }
+
+        summaries.push({
+          bucket: bucketName,
+          totalFiles: files.length,
+          orphanedFiles: orphaned.length,
+          deleted: confirm ? orphaned.length : 0
+        });
+      }
+
+      return res.status(200).json({
+        mode: confirm ? "DELETE CONFIRMED" : "DRY-RUN (no deletions)",
+        summaries
+      });
+    } catch (err) {
+      console.error("cleanOrphanedStorage error:", err);
+      return res.status(500).json({ error: err.message });
+    }
   });
 
 exports.capPhoneRegistrations = functions

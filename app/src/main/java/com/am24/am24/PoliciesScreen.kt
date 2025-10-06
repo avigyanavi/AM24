@@ -92,5 +92,10 @@ private enum class Policy(val title: String, val url: String, val icon: androidx
     Terms("Terms & Conditions",   "https://kupidx.com/terms-of-conditions",       Icons.Default.Article),
     Refunds("Refund Policy",      "https://kupidx.com/refund-policy",     Icons.Default.ShoppingBag),
     Shipping("Shipping & Delivery","https://kupidx.com/shipping-and-delivery",    Icons.Default.LocalShipping),
+    ChildSafety(
+        "Child Endangerment Policy",
+        "file:///android_asset/child_endangerment_policy.html",
+        Icons.Default.Report
+    ),
     DeleteAccount("Delete Account","https://kupidx.com/deleteme", Icons.Default.Delete)
 }

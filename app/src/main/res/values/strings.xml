@@ -44,7 +44,7 @@
     <string name="that_username_is_taken">That username is already taken</string>
     <string name="please_select_gender">Please select your gender</string>
     <string name="toast_select_birth_date">Please select your birth date</string>
-    <string name="toast_minimum_age">You must be at least 14 years old</string>
+    <string name="toast_minimum_age">You must be at least 18 years old</string>
     <string name="toast_pick_valid_username">Pick a valid username and tap Finish</string>
     <string name="toast_complete_required_fields">Please complete the required fields</string>
     <string name="toast_unknown_error">Unknown error</string>

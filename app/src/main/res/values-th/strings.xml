@@ -5212,7 +5212,7 @@
     <string name="block">บล็อก</string>
     <string name="please_select_gender">เลือกเพศของคุณ</string>
     <string name="toast_select_birth_date">เลือกวันเกิดของคุณ</string>
-    <string name="toast_minimum_age">คุณต้องมีอายุอย่างน้อย 14 ปี</string>
+    <string name="toast_minimum_age">คุณต้องมีอายุอย่างน้อย 18 ปี</string>
     <string name="toast_pick_valid_username">เลือกชื่อผู้ใช้ที่ถูกต้องแล้วแตะ เสร็จสิ้น</string>
     <string name="toast_complete_required_fields">กรอกช่องที่จำเป็นให้ครบ</string>
     <string name="toast_unknown_error">ข้อผิดพลาดที่ไม่ทราบ</string>

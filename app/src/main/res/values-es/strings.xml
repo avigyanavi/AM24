@@ -427,7 +427,7 @@
     <string name="block">Bloquear</string>
     <string name="please_select_gender">Selecciona tu género</string>
     <string name="toast_select_birth_date">Selecciona tu fecha de nacimiento</string>
-    <string name="toast_minimum_age">Debes tener al menos 14 años</string>
+    <string name="toast_minimum_age">Debes tener al menos 18 años</string>
     <string name="toast_pick_valid_username">Elige un nombre de usuario válido y toca Finalizar</string>
     <string name="toast_complete_required_fields">Completa los campos obligatorios</string>
     <string name="toast_unknown_error">Error desconocido</string>

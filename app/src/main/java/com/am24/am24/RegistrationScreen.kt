@@ -409,7 +409,7 @@ fun RegistrationScreen(
                                                     context.getString(R.string.toast_select_birth_date),
                                                     Toast.LENGTH_LONG
                                                 ).show()
-                                            calculateAge(registrationViewModel.dob) < 14 ->
+                                            calculateAge(registrationViewModel.dob) < 18 ->
                                                 Toast.makeText(
                                                     context,
                                                     context.getString(R.string.toast_minimum_age),
@@ -2258,7 +2258,7 @@ fun EnterGenderCommunityReligionScreen(
     val userAge = calculateAge(registrationViewModel.dob)
     val isNextEnabled =
             registrationViewModel.dob.isNotBlank() &&
-                    userAge >= 14 &&
+                    userAge >= 18 &&
                     registrationViewModel.gender.isNotBlank()
     LaunchedEffect(isNextEnabled) { registrationViewModel.nextEnabled = isNextEnabled }
 
