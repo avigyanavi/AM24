@@ -6,7 +6,6 @@ package com.am24.am24
 import android.Manifest
 import android.app.Activity
 import android.content.Context
-import android.media.MediaRecorder
 import android.net.Uri
 import android.util.Log
 import android.util.Patterns
@@ -19,7 +18,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.location.Geocoder
-import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -48,13 +46,8 @@ import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MicOff
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -212,11 +205,6 @@ class RegistrationViewModel : ViewModel() {
     var loveLanguage by mutableStateOf("")
     var jobRole by mutableStateOf("")
 
-    // Voice Recording
-    var voiceNoteUri by mutableStateOf<Uri?>(null) // To hold the voice recording URI
-    var voiceNoteFilePath by mutableStateOf<String?>(null) // To hold the file path
-    private var voiceRecorder: MediaRecorder? = null
-
     // Profile and Photos
     var email by mutableStateOf("")
     var password by mutableStateOf("")
@@ -287,27 +275,6 @@ class RegistrationViewModel : ViewModel() {
     var kinks = mutableStateListOf<String>()
     var showKinksOnProfile by mutableStateOf(false)
 
-    // ---------------------------------------------------
-    // Voice Recording Methods
-    // ---------------------------------------------------
-    fun startVoiceRecording(context: Context, filePath: String) {
-        try {
-            voiceRecorder = MediaRecorder().apply {
-                setAudioSource(MediaRecorder.AudioSource.MIC)
-                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                setAudioEncodingBitRate(128000) // e.g., 128 kbps for better quality
-                setAudioSamplingRate(44100) // e.g., 44.1 kHz standard sampling rate
-                setOutputFile(filePath)
-                prepare()
-                start()
-            }
-            voiceNoteFilePath = filePath
-        } catch (e: Exception) {
-            Log.e("RegistrationViewModel", "Error starting voice recording: ${e.message}")
-        }
-    }
-
     /** Convert cm → (feet, inches) */
     fun cmToFeetInches(cm: Int): Pair<Int,Int> {
         val totalInches = cm / 2.54
@@ -319,19 +286,6 @@ class RegistrationViewModel : ViewModel() {
     /** Convert (feet, inches) → cm */
     fun feetInchesToCm(feet: Int, inches: Int): Int {
         return ((feet * 12 + inches) * 2.54).roundToInt()
-    }
-
-    fun stopVoiceRecording() {
-        try {
-            voiceRecorder?.apply {
-                stop()
-                reset()
-                release()
-            }
-            voiceRecorder = null
-        } catch (e: Exception) {
-            Log.e("RegistrationViewModel", "Error stopping voice recording: ${e.message}")
-        }
     }
 }
 
@@ -2838,25 +2792,6 @@ fun uploadProfilePicToFirebase(
     }
 }
 
-fun uploadVoiceToFirebase(
-    storageRef: StorageReference,
-    uri: Uri,
-    registrationViewModel: RegistrationViewModel
-) {
-    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val voiceNoteRef = storageRef.child("users/$userId/voice_note.mp3") // Adjust file extension if necessary
-    voiceNoteRef.putFile(uri)
-        .addOnSuccessListener {
-            voiceNoteRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                registrationViewModel.voiceNoteUrl = downloadUri.toString()
-                Log.d("UploadMedia", "Voice note uploaded successfully: $downloadUri")
-            }
-        }
-        .addOnFailureListener { exception ->
-            Log.e("UploadMedia", "Failed to upload voice note: ${exception.message}")
-        }
-}
-
 //@OptIn(ExperimentalMaterial3Api::class)
 //@Composable
 //fun EnterNameScreen(
@@ -4352,17 +4287,8 @@ fun UploadMediaComposable(
     val storageRef = FirebaseRefs.storage.reference
 
     LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
+    val bioMaxLength = 280
 
-    var isRecording by remember { mutableStateOf(false) }
-    var isPlaying  by remember { mutableStateOf(false) }
-    var isVoiceBioValid by remember { mutableStateOf(true) }
-
-    val voiceFile = remember { File(context.filesDir, "voice_note.mp3") }
-    val voiceFilePath = voiceFile.absolutePath
-    var voiceProgress by remember { mutableStateOf(0f) }
-    var voiceDuration by remember { mutableStateOf(0L) }
-
-    val mediaPlayer = remember { MediaPlayer() }
 
     // Helper: combined list of URIs (first = profile or placeholder)
     val placeholderUriString =
@@ -4443,95 +4369,6 @@ fun UploadMediaComposable(
         registrationViewModel.privateAlbumUris.add(uri)
         uploadPrivateAlbumMedia(context, storageRef, uri, registrationViewModel)
     }
-
-    // Voice-bio helpers
-    fun validateVoiceBio() {
-        try {
-            val temp = MediaPlayer().apply {
-                setDataSource(voiceFilePath)
-                prepare()
-            }
-            voiceDuration = temp.duration.toLong()
-            temp.release()
-            isVoiceBioValid = voiceDuration <= 60_000
-        } catch (e: Exception) {
-            isVoiceBioValid = false
-            Log.e("VoiceValidation", "Could not validate: ${e.message}")
-        }
-    }
-
-    val audioPermissions = arrayOf(
-        Manifest.permission.RECORD_AUDIO,
-        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        Manifest.permission.READ_EXTERNAL_STORAGE
-    )
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { granted ->
-        if (granted.values.all { it }) {
-            isRecording = true
-            registrationViewModel.startVoiceRecording(context, voiceFilePath)
-        } else {
-            Toast.makeText(
-                context,
-                context.getString(R.string.toast_mic_permission_denied),
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
-    fun toggleRecording() {
-        if (isRecording) {
-            isRecording = false
-            registrationViewModel.stopVoiceRecording()
-            registrationViewModel.voiceNoteUri = Uri.fromFile(voiceFile)
-            validateVoiceBio()
-
-            if (isVoiceBioValid) {
-                uploadVoiceToFirebase(
-                    storageRef,
-                    registrationViewModel.voiceNoteUri!!,
-                    registrationViewModel
-                )
-            }
-        } else {
-            permissionLauncher.launch(audioPermissions)
-        }
-    }
-
-    fun togglePlayback() {
-        if (isPlaying) {
-            mediaPlayer.pause()
-            isPlaying = false
-        } else {
-            try {
-                mediaPlayer.reset()
-                mediaPlayer.setDataSource(
-                    registrationViewModel.voiceNoteUri?.path ?: voiceFilePath
-                )
-                mediaPlayer.prepare()
-                mediaPlayer.start()
-                isPlaying = true
-                voiceDuration = mediaPlayer.duration.toLong().coerceAtLeast(1L)
-            } catch (e: IOException) {
-                Log.e("MediaPlayer", "Playback error: ${e.message}")
-            }
-        }
-    }
-
-    LaunchedEffect(isPlaying) {
-        while (isPlaying && mediaPlayer.isPlaying) {
-            voiceProgress = mediaPlayer.currentPosition / voiceDuration.toFloat()
-            delay(300)
-        }
-        if (!mediaPlayer.isPlaying) {
-            isPlaying = false
-            voiceProgress = 0f
-        }
-    }
-
-    DisposableEffect(Unit) { onDispose { mediaPlayer.release() } }
 
     Scaffold(
         containerColor = Color(0xFF1A1A1A)
@@ -4728,59 +4565,50 @@ fun UploadMediaComposable(
             /* ---------------- Voice bio (optional) ---------------- */
             item {
                 Text(
-                    text = stringResource(R.string.voice_bio_label),
+                    text = stringResource(R.string.bio),
                     color = Color.White,
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = ::toggleRecording) {
-                        Icon(
-                            imageVector = if (isRecording) Icons.Default.MicOff else Icons.Default.Mic,
-                            contentDescription = null,
-                            tint = if (isRecording) Color.Red else Color(0xFFFF6000),
-                            modifier = Modifier.size(32.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = registrationViewModel.bio,
+                    onValueChange = { newValue ->
+                        if (newValue.length <= bioMaxLength) {
+                            registrationViewModel.bio = newValue
+                        }
+            },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = fieldColors(),
+                    singleLine = false,
+                    maxLines = 4,
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.registration_bio_helper),
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        val remainingChars = (bioMaxLength - registrationViewModel.bio.length).coerceAtLeast(0)
+                        Text(
+                            text = stringResource(
+                                R.string.registration_bio_character_count,
+                                remainingChars
+                            ),
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 12.sp
                         )
                     }
-                    Spacer(Modifier.width(8.dp))
-                    registrationViewModel.voiceNoteUri?.let {
-                        IconButton(onClick = ::togglePlayback) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                        Slider(
-                            value = voiceProgress,
-                            onValueChange = {},
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(onClick = {
-                            if (isPlaying) togglePlayback()
-                            registrationViewModel.voiceNoteUri = null
-                            File(voiceFilePath).delete()
-                            isVoiceBioValid = true
-                            voiceProgress = 0f
-                        }) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete voice",
-                                tint = Color.White,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-                }
-
-                if (!isVoiceBioValid) {
-                    Text(
-                        text = stringResource(R.string.voice_bio_duration_error),
-                        color = Color.Red,
-                        fontSize = 14.sp
-                    )
-                }
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        val remainingChars = (bioMaxLength - registrationViewModel.bio.length).coerceAtLeast(0)
+        Text(
+            text = stringResource(
+                R.string.registration_bio_character_count,
+                remainingChars
+            ),
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 12.sp
+        )
             }
 
 //            /* ---------------- Next button ---------------- */

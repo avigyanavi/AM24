@@ -436,6 +436,8 @@
     <string name="toast_otp_error">Error de OTP: %1$s</string>
     <string name="toast_swipe_existing_cards_first">Dale me gusta o no me gusta a todas las tarjetas existentes antes de hacer clic en siguiente</string>
     <string name="toast_swipe_existing_nearby_first">Dale me gusta o no me gusta a todos los perfiles existentes antes de hacer clic en siguiente</string>
+    <string name="registration_bio_helper">Comparte una breve biografía sobre ti (opcional).</string>
+    <string name="registration_bio_character_count">Quedan %1$d caracteres</string>
     <string name="toast_invalid_form">Formulario no válido</string>
     <string name="toast_phone_already_linked">Ese número móvil ya está vinculado a otra cuenta.</string>
     <string name="toast_no_signed_in_user">No hay ningún usuario conectado</string>

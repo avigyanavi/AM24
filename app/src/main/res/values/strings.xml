@@ -57,6 +57,8 @@
     <string name="toast_location_permission_denied">Location permission denied</string>
     <string name="toast_swipe_existing_cards_first">Like or Dislike all the existing cards before clicking next</string>
     <string name="toast_swipe_existing_nearby_first">Like or dislike all the existing profiles before clicking next</string>
+    <string name="registration_bio_helper">Share a short bio about yourself (optional).</string>
+    <string name="registration_bio_character_count">%1$d characters remaining</string>
     <string name="toast_explicit_photo">That photo looks explicit – please choose another.</string>
     <string name="toast_private_album_limit">Maximum 10 items</string>
     <string name="toast_mic_permission_denied">Mic permission denied</string>
