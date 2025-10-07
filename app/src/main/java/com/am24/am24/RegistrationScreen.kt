@@ -379,13 +379,6 @@ fun RegistrationScreen(
                                     8 -> {
                                         Toast.makeText(
                                             context,
-                                            context.getString(R.string.toast_complete_entry_fee),
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-                                    9 -> {
-                                        Toast.makeText(
-                                            context,
                                             context.getString(R.string.toast_pick_valid_username),
                                             Toast.LENGTH_LONG
                                         ).show()
@@ -441,11 +434,11 @@ fun RegistrationScreen(
                     5 -> EnterInterestsScreen(registrationViewModel, onNext)
                     6 -> EnterOrientationScreen(registrationViewModel, onNext)
                     7 -> EnterLifestyleScreen(registrationViewModel, onNext)
-                    8 -> {
-                        LaunchedEffect(Unit) { registrationViewModel.nextEnabled = false }
-                        PaywallScreen(onPaid = onNext)
-                    }
-                    9 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
+//                    8 -> {
+//                        LaunchedEffect(Unit) { registrationViewModel.nextEnabled = false }
+//                        PaywallScreen(onPaid = onNext)
+//                    }
+                    8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
                 }
             }
         }

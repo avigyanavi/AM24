@@ -66,6 +66,9 @@ import coil.compose.rememberAsyncImagePainter
 import coil.imageLoader
 import com.am24.am24.util.CachedFullscreenVideoPlayer
 import kotlinx.coroutines.tasks.await
+import com.am24.am24.SexualOrientation
+import com.am24.am24.localized
+import com.am24.am24.toOrientationCode
 
 @Composable
 fun ProfileScreen(
@@ -1001,6 +1004,16 @@ fun BasicInfoSection(profile: Profile, showLocation: Boolean = true) {
         localizedGender(profile.gender),
         genderIcon)
 
+    val orientationText = profile.sexualOrientation
+        .toOrientationCode()
+        ?.localized(ctx)
+        ?: profile.sexualOrientation.ifBlank { stringResource(R.string.not_set) }
+    ProfileDetailRow(
+        stringResource(R.string.sexual_orientation_label),
+        orientationText,
+        Icons.Default.Favorite)
+
+
     // --- Community, religion, height, date joined ---
     if (isIndian) {
         ProfileDetailRow(
@@ -1152,6 +1165,15 @@ fun BasicInfoEditSection(
         )
     }
 
+    val orientationOptions = SexualOrientation.values().toList()
+    var selectedOrientation by remember {
+        mutableStateOf(tempProfile.sexualOrientation.toOrientationCode()?.name ?: "")
+    }
+    var customOrientation by remember {
+        mutableStateOf(
+            if (selectedOrientation.isBlank()) tempProfile.sexualOrientation else ""
+        )
+    }
     // Job Role
     val jobRoleOptions = listOf(
         stringResource(R.string.job_role_option_accountant),
@@ -1845,6 +1867,75 @@ fun BasicInfoEditSection(
             }
         }
 
+        Text(
+            stringResource(R.string.sexual_orientation_label),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF6F00)
+        )
+        Row(
+            Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            orientationOptions.forEach { option ->
+                val localized = option.localized(context)
+                FilterChip(
+                    selected = selectedOrientation == option.name,
+                    onClick = {
+                        if (selectedOrientation == option.name) {
+                            selectedOrientation = ""
+                        } else {
+                            selectedOrientation = option.name
+                            customOrientation = ""
+                        }
+                    },
+                    label = { Text(localized, fontSize = 12.sp, color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        disabledContainerColor = Color.Transparent,
+                        disabledLabelColor = Color(0xFFFF6F00),
+                        selectedContainerColor = Color(0xFFFF6F00),
+                        selectedLabelColor = Color.White
+                    )
+                )
+            }
+        }
+        OutlinedTextField(
+            value = customOrientation,
+            onValueChange = {
+                customOrientation = it
+                if (it.isNotBlank()) {
+                    selectedOrientation = ""
+                }
+            },
+            label = {
+                Text(
+                    stringResource(R.string.custom_orientation_hint),
+                    fontSize = 12.sp,
+                    color = Color(0xFFFF6F00)
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFFFF6F00),
+                unfocusedBorderColor = Color.Gray,
+                cursorColor = Color.White,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
+            ),
+            singleLine = true,
+            placeholder = {
+                Text(
+                    stringResource(R.string.custom_orientation_placeholder),
+                    color = Color.LightGray,
+                    fontSize = 12.sp
+                )
+            }
+        )
+
         // City dropdown (old logic)
         if (isIndian) {
             SearchableDropdownWithCustomOption(
@@ -2443,6 +2534,11 @@ fun BasicInfoEditSection(
                         height = heightCm,
                         height2 = if (isFeet) listOf(feet, inches) else emptyList(),
                         gender = selectedGender.takeIf { it != notSelected }?.toGenderCode()?.name ?: "",
+                        sexualOrientation = when {
+                            customOrientation.isNotBlank() -> customOrientation.trim()
+                            selectedOrientation.isNotBlank() -> selectedOrientation
+                            else -> ""
+                        },
                         jobRole = selectedJobRole.takeIf { it != notSelected } ?: "",
                         customJobRole = selectedJobRole.takeIf { it == jobRoleOptions.last() }
                             ?.let { customJobRole },
@@ -6113,6 +6209,7 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
         "caste" to updatedProfile.caste,
         "bio" to updatedProfile.bio,
         "gender" to updatedProfile.gender,
+        "sexualOrientation" to updatedProfile.sexualOrientation,
         "city" to updatedProfile.city,
         "height"  to updatedProfile.height,
         "height2" to updatedProfile.height2,

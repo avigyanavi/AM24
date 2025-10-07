@@ -111,6 +111,9 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     }
     // ───────────────────────────────────────────────────
     val context = LocalContext.current
+    val userRef = remember(currentUserId) {
+        FirebaseDatabase.getInstance().getReference("users/$currentUserId")
+    }
 
     LaunchedEffect(currentUserId) {
         profileViewModel.fetchCurrentUserProfile()
@@ -123,6 +126,46 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                 .setValue(true)
         }
     }
+
+    LaunchedEffect(currentProfile, entryFeePaidAt, loginPlusExpiry, isEntryFeePaid, isPlus) {
+        if (currentProfile == null) return@LaunchedEffect
+        val recordedPaidAt = entryFeePaidAt
+        val recordedExpiry = loginPlusExpiry
+        val hasRecordedEntryFee =
+            recordedPaidAt > 0L || recordedExpiry > 0L || isEntryFeePaid
+        val monthMillis = TimeUnit.DAYS.toMillis(3)
+
+        if (!hasRecordedEntryFee) {
+            val paidAt = System.currentTimeMillis()
+            val expiry = paidAt + monthMillis
+            val updates = mutableMapOf<String, Any>(
+                "entryFeePaidAt" to paidAt,
+                "loginPlusExpiry" to expiry,
+                "isEntryFeePaid" to true,
+                "entryFeeOfferSeen" to true,
+                "entryFeePlusIntroSeen" to true
+            )
+            if (!isPlus && expiry > System.currentTimeMillis()) {
+                updates["isPlus"] = true
+            }
+            userRef.updateChildren(updates)
+            userRef.child("entryFeeOfferExpiry").removeValue()
+        } else if (recordedPaidAt > 0L) {
+            val expectedExpiry = recordedPaidAt + monthMillis
+            val updates = mutableMapOf<String, Any>(
+                "entryFeeOfferSeen" to true,
+                "entryFeePlusIntroSeen" to true
+            )
+            if (recordedExpiry < expectedExpiry) {
+                updates["loginPlusExpiry"] = expectedExpiry
+            }
+            if (updates.isNotEmpty()) {
+                userRef.updateChildren(updates)
+            }
+            userRef.child("entryFeeOfferExpiry").removeValue()
+        }
+    }
+
 
     LaunchedEffect(shouldForceSubscription, currentRoute) {
         if (shouldForceSubscription && currentRoute?.startsWith("subscription") != true) {

@@ -47,6 +47,8 @@
     <string name="toast_minimum_age">You must be at least 18 years old</string>
     <string name="toast_pick_valid_username">Pick a valid username and tap Finish</string>
     <string name="toast_complete_required_fields">Please complete the required fields</string>
+    <string name="custom_orientation_hint">Custom sexual orientation (optional)</string>
+    <string name="custom_orientation_placeholder">Type to add your own</string>
     <string name="toast_unknown_error">Unknown error</string>
     <string name="toast_otp_failed">OTP failed: %1$s</string>
     <string name="toast_error_with_reason">Error: %1$s</string>

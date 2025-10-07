@@ -5223,6 +5223,8 @@
     <string name="toast_swipe_existing_nearby_first">กดชอบหรือไม่ชอบโปรไฟล์ทั้งหมดที่มีอยู่ก่อนคลิกถัดไป</string>
     <string name="registration_bio_helper">เขียนแนะนำตัวสั้น ๆ (ไม่บังคับ)</string>
     <string name="registration_bio_character_count">เหลือ %1$d อักขระ</string>
+    <string name="custom_orientation_hint">ระบุรสนิยมทางเพศเอง (ไม่บังคับ)</string>
+    <string name="custom_orientation_placeholder">พิมพ์เพื่อเพิ่มของคุณเอง</string>
     <string name="toast_invalid_form">แบบฟอร์มไม่ถูกต้อง</string>
     <string name="toast_phone_already_linked">เบอร์นี้เชื่อมกับบัญชีอื่นแล้ว</string>
     <string name="toast_no_signed_in_user">ไม่มีผู้ใช้ที่เข้าสู่ระบบ</string>

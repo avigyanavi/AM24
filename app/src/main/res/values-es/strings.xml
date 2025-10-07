@@ -434,6 +434,8 @@
     <string name="toast_otp_failed">La verificación por OTP falló: %1$s</string>
     <string name="toast_error_with_reason">Error: %1$s</string>
     <string name="toast_otp_error">Error de OTP: %1$s</string>
+    <string name="custom_orientation_hint">Orientación sexual personalizada (opcional)</string>
+    <string name="custom_orientation_placeholder">Escribe la tuya</string>
     <string name="toast_swipe_existing_cards_first">Dale me gusta o no me gusta a todas las tarjetas existentes antes de hacer clic en siguiente</string>
     <string name="toast_swipe_existing_nearby_first">Dale me gusta o no me gusta a todos los perfiles existentes antes de hacer clic en siguiente</string>
     <string name="registration_bio_helper">Comparte una breve biografía sobre ti (opcional).</string>
