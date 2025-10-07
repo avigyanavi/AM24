@@ -12,7 +12,7 @@ object ThemeManager {
     private const val PREFS_NAME = "settings"
     private const val KEY_DARK_THEME = "dark_theme_enabled"
 
-    private val _isDarkTheme = MutableStateFlow(false)
+    private val _isDarkTheme = MutableStateFlow(true)
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
 
     @Volatile
@@ -24,7 +24,7 @@ object ThemeManager {
             if (!initialized) {
                 val prefs = context.applicationContext
                     .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                _isDarkTheme.value = prefs.getBoolean(KEY_DARK_THEME, false)
+                _isDarkTheme.value = prefs.getBoolean(KEY_DARK_THEME, true)
                 initialized = true
             }
         }
