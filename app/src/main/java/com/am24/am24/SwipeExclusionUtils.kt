@@ -7,27 +7,19 @@ import kotlinx.coroutines.tasks.await
  */
 suspend fun fetchExcludedUsers(me: String): Set<String> {
     val db = FirebaseRefs.db
-    val oneWeekAgo = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1_000L
-    val twoWeeksAgo = System.currentTimeMillis() - 14 * 24 * 60 * 60 * 1_000L
     val excludedIds = mutableSetOf<String>()
 
     // ① matches — every matched UID is excluded
     val matchSnap = db.getReference("matches/$me").get().await()
     matchSnap.children.forEach { excludedIds += it.key!! }
 
-    // ② likes you gave in the last 7 days
+    // ② likes you gave – permanently exclude
     val likeSnap = db.getReference("likesGiven/$me").get().await()
-    likeSnap.children.forEach { child ->
-        val ts = child.getValue(Long::class.java) ?: 0L
-        if (ts >= oneWeekAgo) excludedIds += child.key!!
-    }
+    likeSnap.children.forEach { child -> excludedIds += child.key!! }
 
-    // ③ dislikes you gave in the last 14 days
+    // ③ dislikes you gave – permanently exclude
     val dislikeSnap = db.getReference("dislikesGiven/$me").get().await()
-    dislikeSnap.children.forEach { child ->
-        val ts = child.getValue(Long::class.java) ?: 0L
-        if (ts >= twoWeeksAgo) excludedIds += child.key!!
-    }
+    dislikeSnap.children.forEach { child -> excludedIds += child.key!! }
 
     // ④ permanent excludes based on swipe counts
     val permSnap = db.getReference("users/$me/permanentExcludes").get().await()

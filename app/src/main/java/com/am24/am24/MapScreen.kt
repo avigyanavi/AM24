@@ -284,6 +284,8 @@ fun MapScreen(
     var entryFeeOfferSeen by remember { mutableStateOf(false) }
     var showEntryFeeWelcomeDialog by remember { mutableStateOf(false) }
     var showEntryFeeDiscountDialog by remember { mutableStateOf(false) }
+    var autoPagedNearby by remember { mutableStateOf(false) }
+    var autoPagedCards by remember { mutableStateOf(false) }
     val profileViewModel: ProfileViewModel = viewModel()
 
     LaunchedEffect(selectedTab) {
@@ -817,6 +819,24 @@ fun MapScreen(
                 /* ======================= PEOPLE TAB (grid + mini map) ======================= */
                 0 -> {
                     Box(Modifier.fillMaxSize()) {
+                        DisposableEffect(Unit) {
+                            onDispose { autoPagedNearby = false }
+                        }
+                        LaunchedEffect(
+                            sortedPeople.isEmpty(),
+                            nearbyViewModel.isRefreshing,
+                            userLatLng,
+                            autoPagedNearby
+                        ) {
+                            val location = userLatLng
+                            if (sortedPeople.isEmpty() && !nearbyViewModel.isRefreshing && !autoPagedNearby && location != null) {
+                                autoPagedNearby = true
+                                nearbyViewModel.loadNextPage(25, userId, location, geoFireDatabaseRef)
+                            }
+                            if (sortedPeople.isNotEmpty()) {
+                                autoPagedNearby = false
+                            }
+                        }
                         val refreshState = rememberSwipeRefreshState(nearbyViewModel.isRefreshing)
                         SwipeRefresh(
                             state = refreshState,
@@ -848,8 +868,16 @@ fun MapScreen(
                                     }
                                 },
                                 onNextPage = {
-                                    userLatLng?.let {
-                                        nearbyViewModel.loadNextPage(25, userId, it, geoFireDatabaseRef)
+                                    if (sortedPeople.isNotEmpty()) {
+                                        Toast.makeText(
+                                            ctx,
+                                            R.string.toast_swipe_existing_nearby_first,
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        userLatLng?.let {
+                                            nearbyViewModel.loadNextPage(25, userId, it, geoFireDatabaseRef)
+                                        }
                                     }
                                 }
                             )
@@ -860,6 +888,24 @@ fun MapScreen(
                 /* ======================= CARDS TAB ======================= */
                 1 -> {
                     Box(Modifier.fillMaxSize()) {
+                        DisposableEffect(Unit) {
+                            onDispose { autoPagedCards = false }
+                        }
+                        LaunchedEffect(
+                            sortedPeople.isEmpty(),
+                            nearbyViewModel.isRefreshing,
+                            userLatLng,
+                            autoPagedCards
+                        ) {
+                            val location = userLatLng
+                            if (sortedPeople.isEmpty() && !nearbyViewModel.isRefreshing && !autoPagedCards && location != null) {
+                                autoPagedCards = true
+                                nearbyViewModel.loadNextPage(10, userId, location, geoFireDatabaseRef)
+                            }
+                            if (sortedPeople.isNotEmpty()) {
+                                autoPagedCards = false
+                            }
+                        }
                         CardsList(
                             users = sortedPeople,
                             useMiles = useMiles,          // <-- pass through
@@ -909,8 +955,22 @@ fun MapScreen(
                                 }
                             },
                             onNextPage = {
-                                userLatLng?.let {
-                                    nearbyViewModel.loadNextPage(10, userId, it, geoFireDatabaseRef)                                }
+                                if (sortedPeople.isNotEmpty()) {
+                                    Toast.makeText(
+                                        ctx,
+                                        R.string.toast_swipe_existing_cards_first,
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } else {
+                                    userLatLng?.let {
+                                        nearbyViewModel.loadNextPage(
+                                            10,
+                                            userId,
+                                            it,
+                                            geoFireDatabaseRef
+                                        )
+                                    }
+                                }
                             }
                         )
                     }
@@ -1961,12 +2021,6 @@ private fun PeopleGrid(
     onBlock: (String) -> Unit,
     onNextPage: () -> Unit
 ) {
-    if (users.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
-        }
-        return
-    }
     val gridState = rememberLazyGridState()
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 120.dp),
@@ -1976,18 +2030,31 @@ private fun PeopleGrid(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        itemsIndexed(
-            users,
-            key = { _, item -> item.userId },
-            span = { _, _ -> GridItemSpan(1) }
-        ) { _, item ->
-            NearbyCard(
-                user = item,
-                onClick = { onClick(item) },
-                useMiles = useMiles,
-                onRemove = { onRemove(item.userId) },
-                onBlock = { onBlock(item.userId) }
-            )
+        if (users.isEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
+                }
+            }
+        } else {
+            itemsIndexed(
+                users,
+                key = { _, item -> item.userId },
+                span = { _, _ -> GridItemSpan(1) }
+            ) { _, item ->
+                NearbyCard(
+                    user = item,
+                    onClick = { onClick(item) },
+                    useMiles = useMiles,
+                    onRemove = { onRemove(item.userId) },
+                    onBlock = { onBlock(item.userId) }
+                )
+            }
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
             Button(

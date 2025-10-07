@@ -55,6 +55,8 @@
     <string name="toast_phone_already_linked">That mobile number is already linked to another account.</string>
     <string name="toast_no_signed_in_user">No signed-in user</string>
     <string name="toast_location_permission_denied">Location permission denied</string>
+    <string name="toast_swipe_existing_cards_first">Like or Dislike all the existing cards before clicking next</string>
+    <string name="toast_swipe_existing_nearby_first">Like or dislike all the existing profiles before clicking next</string>
     <string name="toast_explicit_photo">That photo looks explicit – please choose another.</string>
     <string name="toast_private_album_limit">Maximum 10 items</string>
     <string name="toast_mic_permission_denied">Mic permission denied</string>

@@ -5219,6 +5219,8 @@
     <string name="toast_otp_failed">ยืนยัน OTP ล้มเหลว: %1$s</string>
     <string name="toast_error_with_reason">ข้อผิดพลาด: %1$s</string>
     <string name="toast_otp_error">ข้อผิดพลาด OTP: %1$s</string>
+    <string name="toast_swipe_existing_cards_first">กดชอบหรือไม่ชอบการ์ดทั้งหมดที่มีอยู่ก่อนคลิกถัดไป</string>
+    <string name="toast_swipe_existing_nearby_first">กดชอบหรือไม่ชอบโปรไฟล์ทั้งหมดที่มีอยู่ก่อนคลิกถัดไป</string>
     <string name="toast_invalid_form">แบบฟอร์มไม่ถูกต้อง</string>
     <string name="toast_phone_already_linked">เบอร์นี้เชื่อมกับบัญชีอื่นแล้ว</string>
     <string name="toast_no_signed_in_user">ไม่มีผู้ใช้ที่เข้าสู่ระบบ</string>
