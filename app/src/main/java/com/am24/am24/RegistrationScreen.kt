@@ -96,6 +96,8 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
+const val REGISTRATION_FINAL_STEP = 8
+
 class RegistrationActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -107,10 +109,10 @@ class RegistrationActivity : ComponentActivity() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // Check if this registration was initiated via Google sign-up.
-        val provider      = intent.getStringExtra("signInProvider") ?: "emailPassword"
-        val requested     = intent.getIntExtra("requestedStartStep", 1)
-        val initialStep   = if (provider != "emailPassword" && requested == 1) 2 else requested
-
+        val provider    = intent.getStringExtra("signInProvider") ?: "emailPassword"
+        val requested   = intent.getIntExtra("requestedStartStep", 1)
+        val desiredStep = if (provider != "emailPassword" && requested == 1) 2 else requested
+        val initialStep = desiredStep.coerceAtMost(REGISTRATION_FINAL_STEP)
 
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
 
@@ -298,7 +300,7 @@ fun RegistrationScreen(
     val registrationViewModel: RegistrationViewModel = viewModel()
     val context = LocalContext.current
     var currentStep by remember { mutableStateOf(initialStep) }
-    val totalSteps = 9 // now includes orientation screen and entry fee gate
+    val totalSteps = REGISTRATION_FINAL_STEP
     val progress = currentStep.toFloat() / totalSteps.toFloat()
     val displayProgress = when (currentStep) {
         1           -> 0f      // Step-1 should read 0 %
@@ -443,11 +445,7 @@ fun RegistrationScreen(
                     5 -> EnterInterestsScreen(registrationViewModel, onNext)
                     6 -> EnterOrientationScreen(registrationViewModel, onNext)
                     7 -> EnterLifestyleScreen(registrationViewModel, onNext)
-                    8 -> {
-                        LaunchedEffect(Unit) { registrationViewModel.nextEnabled = false }
-                        PaywallScreen(onPaid = onNext)
-                    }
-                    9 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
+                    8 -> EnterUsernameScreen(registrationViewModel, onRegistrationComplete, onBack)
                 }
             }
         }
@@ -2710,6 +2708,20 @@ suspend fun saveProfileToFirebase(
         if (preservedMonetizationFields.isNotEmpty()) {
             userRef.updateChildren(preservedMonetizationFields).await()
         }
+        val hadPlusAccess = existingSnapshot?.child("isPlus")?.getValue(Boolean::class.java) == true
+        val hadPremiumAccess = existingSnapshot?.child("isPremium")?.getValue(Boolean::class.java) == true
+        val hasUsedFreeTrial = existingSnapshot?.child("hasUsedFreeTrial")?.getValue(Boolean::class.java) == true
+        if (!hadPlusAccess && !hadPremiumAccess && !hasUsedFreeTrial) {
+            val trialStart = System.currentTimeMillis()
+            val trialDuration = TimeUnit.DAYS.toMillis(1)
+            val trialUpdates = mapOf<String, Any>(
+                "hasUsedFreeTrial" to true,
+                "freeTrialStartedAt" to trialStart,
+                "freeTrialExpiry" to trialStart + trialDuration,
+                "freeTrialCompleted" to false
+            )
+            userRef.updateChildren(trialUpdates).await()
+        }
         entryFeeOfferExpiryDeadline?.let { expiry ->
             userRef.child("entryFeeOfferExpiry").setValue(expiry).await()
         }
@@ -4288,7 +4300,6 @@ fun UploadMediaComposable(
 
     LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
     val bioMaxLength = 280
-
 
     // Helper: combined list of URIs (first = profile or placeholder)
     val placeholderUriString =
