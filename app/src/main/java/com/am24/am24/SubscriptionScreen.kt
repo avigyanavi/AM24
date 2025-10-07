@@ -5,9 +5,14 @@ package com.am24.am24
 /* Android & Compose */
 import android.app.Activity
 import android.content.Context
-import androidx.activity.compose.BackHandler
+import android.content.Intent
+import androidx.compose.foundation.isSystemInDarkTheme
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -34,6 +39,9 @@ import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
 import com.am24.am24.ui.purchase.PaymentResultListenerHost
 import java.util.Locale
+import com.am24.am24.AccountDeletion
+import com.am24.am24.LandingActivity
+import com.am24.am24.TokenStorageManager
 
 private val PLUS_FEATURES = listOf(
     R.string.feature_no_ads,
@@ -243,6 +251,8 @@ fun SubscriptionScreen(
     /* -------------------------------------------------- */
     val db     = FirebaseDatabase.getInstance().reference
     val scope  = rememberCoroutineScope()
+    var working by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val host        = ctx as? PaymentResultListenerHost   // Razorpay callbacks
     val act         = ctx as FragmentActivity
     val co     = remember { Checkout().apply { setKeyID(RZP_KEY_ID) } }
@@ -430,6 +440,8 @@ fun SubscriptionScreen(
         }
     }
 
+    val kupidxOrange = Color(0xFFFF6F00)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -538,17 +550,20 @@ fun SubscriptionScreen(
                                 ui.selectedPlanId == if (useRazorpay) plan.razorpayId else planToSlug(plan)
                         Button(
                             onClick = { if (!ui.isProcessing) handlePlan(plan) },
-                            enabled = !ui.isProcessing
+                            enabled = !ui.isProcessing,
+                            colors = ButtonDefaults.buttonColors(
+                                contentColor = Color.Black,
+                                disabledContentColor = Color.Black.copy(alpha = 0.38f)
+                            )
                         ) {
                             if (processing)
                                 CircularProgressIndicator(
-                                    color = Color.White,
+                                    color = KupidxOrange,
                                     strokeWidth = 2.dp,
                                     modifier = Modifier.size(18.dp)
                                 )
                             else
-                                Text(stringResource(R.string.subscription_choose_button), color = Color.White)
-                        }
+                                Text(stringResource(R.string.subscription_choose_button), color = KupidxOrange)                        }
                     }
                 }
             }
@@ -618,16 +633,20 @@ fun SubscriptionScreen(
                                         handleOneTime(offer)
                                     }
                                 },
-                                enabled = !ui.isProcessing && productAvailable
+                                enabled = !ui.isProcessing && productAvailable,
+                                colors = ButtonDefaults.buttonColors(
+                                    contentColor = Color.Black,
+                                    disabledContentColor = Color.Black.copy(alpha = 0.38f)
+                                )
                             ) {
                                 when {
                                     processing -> CircularProgressIndicator(
-                                        color = Color.White,
+                                        color = KupidxOrange,
                                         strokeWidth = 2.dp,
                                         modifier = Modifier.size(18.dp)
                                     )
-                                    !productAvailable -> Text(stringResource(R.string.subscription_loading), color = Color.White)
-                                    else -> Text(stringResource(R.string.subscription_buy_button), color = Color.White)
+                                    !productAvailable -> Text(stringResource(R.string.subscription_loading), color = KupidxOrange)
+                                    else -> Text(stringResource(R.string.subscription_buy_button), color = KupidxOrange)
                                 }
                             }
                         }
@@ -640,9 +659,67 @@ fun SubscriptionScreen(
             TextButton(onClick = { navController.popBackStack() }) {
                 Text(
                     stringResource(R.string.subscription_not_now),
-                    color =             Color(0xFFFF6F00)
+                    color = kupidxOrange
                 )
             }
         }
+
+        Spacer(Modifier.height(16.dp))
+        Divider(color = Color(0xFF1E1E1E))
+        Spacer(Modifier.height(16.dp))
+
+        TextButton(
+            onClick = { if (!working) showDeleteDialog = true },
+            enabled = !working,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) {
+            Icon(Icons.Default.Delete, contentDescription = null, tint = kupidxOrange)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.settings_delete_account), color = kupidxOrange)
+        }
+    }
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!working) showDeleteDialog = false },
+            title = { Text(stringResource(R.string.settings_delete_account), color = kupidxOrange) },
+            text = { Text(stringResource(R.string.account_delete_prompt)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (working) return@TextButton
+                        working = true
+                        scope.launch {
+                            try {
+                                AccountDeletion.deleteAccount()
+                                Toast.makeText(ctx, R.string.account_deleted, Toast.LENGTH_LONG).show()
+                                FirebaseAuth.getInstance().signOut()
+                                TokenStorageManager.clearToken(ctx)
+                                ctx.startActivity(Intent(ctx, LandingActivity::class.java))
+                                (ctx as? ComponentActivity)?.finish()
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                    ctx,
+                                    e.message ?: ctx.getString(R.string.toast_unknown_error),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } finally {
+                                working = false
+                                showDeleteDialog = false
+                            }
+                        }
+                    },
+                    enabled = !working
+                ) {
+                    Text(stringResource(R.string.delete), color = kupidxOrange)
+                }
+            },
+            dismissButton = {
+                if (!working) {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text(stringResource(R.string.cancel), color = kupidxOrange)
+                    }
+                }
+            }
+        )
     }
 }

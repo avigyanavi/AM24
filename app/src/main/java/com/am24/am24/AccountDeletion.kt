@@ -40,6 +40,30 @@ object AccountDeletion {
                 }
             }
 
+            // Remove comments left by the user on other posts (including voice comments)
+            val allPostsSnap = postsRef.get().await()
+            for (post in allPostsSnap.children) {
+                val comments = post.child("comments")
+                for (comment in comments.children) {
+                    val commenterId = comment.child("userId").getValue(String::class.java)
+                    if (commenterId == uid) {
+                        val mediaUrl = comment.child("mediaUrl").getValue(String::class.java)
+                        if (!mediaUrl.isNullOrBlank()) {
+                            try {
+                                storage.getReferenceFromUrl(mediaUrl).delete().await()
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to delete comment media: $mediaUrl", e)
+                            }
+                        }
+                        try {
+                            comment.ref.removeValue().await()
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to delete comment", e)
+                        }
+                    }
+                }
+            }
+
             // Remove matches and chats
             val matchesRef = db.getReference("matches")
             val userChatsRef = db.getReference("userChats")
@@ -55,7 +79,22 @@ object AccountDeletion {
                     userChatsRef.child(other).child(uid).removeValue().await()
                     val conv = listOf(uid, other).sorted().joinToString("_")
                     chatsRef.child(conv).removeValue().await()
-                    messagesRef.child(conv).removeValue().await()
+                    val conversationRef = messagesRef.child(conv)
+                    val conversationSnap = conversationRef.get().await()
+                    for (message in conversationSnap.children) {
+                        val sender = message.child("senderId").getValue(String::class.java)
+                        if (sender == uid) {
+                            val mediaUrl = message.child("mediaUrl").getValue(String::class.java)
+                            if (!mediaUrl.isNullOrBlank()) {
+                                try {
+                                    storage.getReferenceFromUrl(mediaUrl).delete().await()
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Failed to delete message media: $mediaUrl", e)
+                                }
+                            }
+                        }
+                    }
+                    conversationRef.removeValue().await()
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to clean chat for $other", e)
                 }
@@ -80,6 +119,12 @@ object AccountDeletion {
             try {
                 val list = userStorage.child("photos").listAll().await()
                 list.items.forEach { item ->
+                    try { item.delete().await() } catch (_: Exception) {}
+                }
+            } catch (_: Exception) {}
+            try {
+                val privateList = userStorage.child("private").listAll().await()
+                privateList.items.forEach { item ->
                     try { item.delete().await() } catch (_: Exception) {}
                 }
             } catch (_: Exception) {}
