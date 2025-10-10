@@ -33,6 +33,7 @@
     <string name="tab_nearby">Nearby</string>
     <string name="tab_cards">Cards</string>
     <string name="tab_map">Map</string>
+    <string name="language_name_vietnamese">Tiếng Việt</string>
     <string name="premium_badge_label">Premium</string>
     <string name="premium_badge_content_description">Premium member</string>
     <string name="post_action">Post</string>

@@ -1031,6 +1031,7 @@ private fun GlobalPrefCard(
         stringResource(R.string.language_name_english) to "en",
         stringResource(R.string.language_name_spanish) to "es",
         stringResource(R.string.language_name_thai) to "th",
+        stringResource(R.string.language_name_vietnamese) to "vi",
     )
     var exp by remember { mutableStateOf(false) }
 

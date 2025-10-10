@@ -8,6 +8,7 @@ fun defaultLanguageCode(): String {
     return when (deviceLanguage) {
         "es" -> "es"
         "th" -> "th"
+        "vi" -> "vi"
         else -> "en"
     }
 }

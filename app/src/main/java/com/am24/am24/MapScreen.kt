@@ -244,7 +244,7 @@ fun MapScreen(
     navController: NavController,
     onProfileMarkerClicked: (String) -> Unit,
     nearbyViewModel: NearbyViewModel,
-    radiusKmDefault: Double = 100.0
+    radiusKmDefault: Double = 500.0
 ) {
     val ctx = LocalContext.current
     val isDarkTheme by ThemeManager.isDarkTheme.collectAsState()
@@ -320,7 +320,7 @@ fun MapScreen(
         }
         sortMode = prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
         radiusKm = prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble()
-        lastActiveHours = prefs.getFloat("map_last_active_hours", 168f).toDouble()
+        lastActiveHours = prefs.getFloat("map_last_active_hours", 336f).toDouble()
     }
     LaunchedEffect(isPlus || isPremium) {
         if (isPlus || isPremium) {

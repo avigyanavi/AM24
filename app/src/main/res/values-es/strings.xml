@@ -412,6 +412,7 @@
         <item quantity="one">%d día restante</item>
         <item quantity="other">%d días restantes</item>
     </plurals>
+    <string name="language_name_vietnamese">Vietnamita</string>
     <string name="settings_trial_expired">La prueba gratuita terminó el %1$s</string>
     <string name="settings_trial_expired_generic">La prueba gratuita ha terminado.</string>
     <string name="settings_trial_message_with_plus">%1$s • %2$s</string>

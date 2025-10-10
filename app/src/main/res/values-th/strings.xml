@@ -5210,6 +5210,7 @@
     <string name="remove_from_stack">เอาออกจากกอง</string>
     <string name="that_username_is_taken">ชื่อนี้ถูกใช้อยู่แล้ว</string>
     <string name="block">บล็อก</string>
+    <string name="language_name_vietnamese">เวียดนาม</string>
     <string name="please_select_gender">เลือกเพศของคุณ</string>
     <string name="toast_select_birth_date">เลือกวันเกิดของคุณ</string>
     <string name="toast_minimum_age">คุณต้องมีอายุอย่างน้อย 18 ปี</string>

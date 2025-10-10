@@ -79,7 +79,7 @@ private fun String.stripAccents(): String =
         .trim()
 
 private val countryMap: Map<String, String> by lazy {
-    val languages = listOf(Locale.ENGLISH, Locale("es"), Locale("th"))
+    val languages = listOf(Locale.ENGLISH, Locale("es"), Locale("th"), Locale("vi"))
     Locale.getISOCountries().flatMap { code ->
         val en = Locale("", code).getDisplayCountry(Locale.ENGLISH)
         languages.map { lang ->
