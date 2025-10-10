@@ -291,8 +291,8 @@ fun MapScreen(
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
         val desiredSortMode = when (selectedTab) {
-            0 -> SortMode.ACTIVE
-            1 -> SortMode.NEARBY
+            0 -> SortMode.NEARBY
+            1 -> SortMode.ACTIVE
             else -> null
         }
 
@@ -1746,6 +1746,8 @@ private fun ProfileCard(
     val swipeableState = rememberSwipeableState(initialValue = 0)
     val anchors = mapOf(-300f to -1, 0f to 0, 300f to 1)
     val swipeOffset = swipeableState.offset.value
+    val context = LocalContext.current
+    val resources = context.resources
 
     LaunchedEffect(swipeableState.currentValue) {
         when (swipeableState.currentValue) {
@@ -1874,7 +1876,6 @@ private fun ProfileCard(
                         user.compatibilityPct?.let {
                             FilmText(text = "Compatibility: $it%")
                         }
-                        val context = LocalContext.current
                         val orientationTag = user.sexualOrientation
                             .toOrientationCode()
                             ?.localized(context)
@@ -1918,16 +1919,21 @@ private fun ProfileCard(
                     }
 
                     // ⬇️ Bottom-left: Distance (replaces randomDetail visually)
-                    val distanceLabel = if (user.distanceMeters.isFinite())
-                        prettyDistance(user.distanceMeters, useMiles) else null
+                    val statusLabel = buildString {
+                        append(timeAgoShort(resources, user.lastActiveAt))
+                        if (user.distanceMeters.isFinite()) {
+                            append(" · ")
+                            append(prettyDistance(user.distanceMeters, useMiles))
+                        }
+                    }
 
-                    distanceLabel?.let { dist ->
+                    if (statusLabel.isNotBlank()) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
                                 .padding(8.dp)
                         ) {
-                            FilmText(text = dist)
+                            FilmText(text = statusLabel)
                         }
                     }
                 }
