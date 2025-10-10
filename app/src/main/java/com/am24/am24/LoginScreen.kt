@@ -18,7 +18,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
@@ -375,10 +374,10 @@ fun LoginScreen(
     var otpInput     by remember { mutableStateOf("") }
     var phoneForOtp  by remember { mutableStateOf("") }
 
-    var phoneNumber by remember { mutableStateOf(TextFieldValue("")) }
+    var phoneNumber by remember { mutableStateOf("") }
 
-    var userOrEmail by remember { mutableStateOf(TextFieldValue(initialUserOrEmail)) }
-    var password    by remember { mutableStateOf(TextFieldValue("")) }
+    var userOrEmail by remember { mutableStateOf(initialUserOrEmail) }
+    var password    by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }   // ⬅ NEW
 
     val context = LocalContext.current
@@ -554,7 +553,7 @@ fun LoginScreen(
             Spacer(Modifier.height(8.dp))
 
             OutlinedButton(
-                onClick = { onLoginClick(userOrEmail.text, password.text) },
+                onClick = { onLoginClick(userOrEmail, password) },
                 modifier = Modifier
                     .height(46.dp),
                 border = BorderStroke(1.dp, KupidxOrange),   // <- fixed line
@@ -597,9 +596,9 @@ fun LoginScreen(
                 OutlinedButton(
                     onClick = {
                         // You can validate and start OTP flow here
-                        if (phoneNumber.text.length >= 10) {
-                            onPhoneLogin(phoneNumber.text)
-                            phoneForOtp = phoneNumber.text
+                        if (phoneNumber.length >= 10) {
+                            onPhoneLogin(phoneNumber)
+                            phoneForOtp = phoneNumber
                             showOtpDialog = true   // Show OTP dialog for user input
                         } else {
                             Toast.makeText(context, "Enter valid phone number", Toast.LENGTH_SHORT)

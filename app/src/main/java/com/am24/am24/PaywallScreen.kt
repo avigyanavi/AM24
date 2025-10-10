@@ -16,7 +16,6 @@ import com.am24.am24.billing.BillingManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.flow.collect
-import com.facebook.appevents.AppEventsConstants
 import com.facebook.appevents.AppEventsLogger
 import java.math.BigDecimal
 import java.util.Currency
@@ -43,18 +42,21 @@ fun PaywallScreen(onPaid: () -> Unit) {
     var hasNavigatedAway by remember(uid) { mutableStateOf(false) }
     var hasUsedFreeTrial by remember { mutableStateOf(false) }
     var freeTrialExpiry by remember { mutableStateOf<Long?>(null) }
-    var hasLoggedCompleteRegistration by remember { mutableStateOf(false) }
+    var hasLoggedPaymentEvent by remember { mutableStateOf(false) }
 
     val logger = remember(ctx) { AppEventsLogger.newLogger(ctx) }
 
-    fun logCompleteRegistrationOnce() {
-        if (!hasLoggedCompleteRegistration) {
-            try {
-                logger.logEvent(AppEventsConstants.EVENT_NAME_COMPLETED_REGISTRATION)
-            } catch (_: Exception) {
-                // Ignore analytics failures
-            }
-            hasLoggedCompleteRegistration = true
+    fun logPaymentEventOnce(priceAmountMicros: Long?, currencyCode: String?) {
+        if (hasLoggedPaymentEvent || priceAmountMicros == null || currencyCode.isNullOrBlank()) {
+            return
+        }
+        try {
+            val amount = BigDecimal.valueOf(priceAmountMicros, 6)
+            val currency = Currency.getInstance(currencyCode)
+            logger.logPurchase(amount, currency)
+            hasLoggedPaymentEvent = true
+        } catch (_: Exception) {
+            // Ignore analytics failures
         }
     }
 
@@ -100,7 +102,6 @@ fun PaywallScreen(onPaid: () -> Unit) {
     val onPaidCallback by rememberUpdatedState(onPaid)
     LaunchedEffect(entryFeePaid, plusActive, hasNavigatedAway) {
         if (!hasNavigatedAway && (entryFeePaid || plusActive)) {
-            logCompleteRegistrationOnce()
             hasNavigatedAway = true
             onPaidCallback()
         }
@@ -140,21 +141,15 @@ fun PaywallScreen(onPaid: () -> Unit) {
                         val offer = BillingManager.products.value
                             .firstOrNull { it.productId == "entry_fee" }
                             ?.oneTimePurchaseOfferDetails
-                        if (offer != null) {
-                            try {
-                                val amount = BigDecimal.valueOf(offer.priceAmountMicros, 6)
-                                val currency = Currency.getInstance(offer.priceCurrencyCode)
-                                AppEventsLogger.newLogger(ctx).logPurchase(amount, currency)
-                            } catch (_: Exception) {
-                                // Ignore analytics failures
-                            }
-                        }
+                        logPaymentEventOnce(
+                            offer?.priceAmountMicros,
+                            offer?.priceCurrencyCode
+                        )
                         entryFeePaid = true
                         plusActive = true
                         entryFeePaidAt = purchaseTime
                         loginPlusExpiry = finalExpiry
                         isProcessing = false
-                        logCompleteRegistrationOnce()
                         if (!hasNavigatedAway) {
                             hasNavigatedAway = true
                             onPaidCallback()
@@ -164,6 +159,12 @@ fun PaywallScreen(onPaid: () -> Unit) {
                         isProcessing = false
                     }
             }
+        }
+    }
+
+    LaunchedEffect(entryFeePaid, entryOffer) {
+        if (entryFeePaid && entryOffer != null) {
+            logPaymentEventOnce(entryOffer.priceAmountMicros, entryOffer.priceCurrencyCode)
         }
     }
 

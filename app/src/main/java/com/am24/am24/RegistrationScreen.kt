@@ -62,7 +62,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -152,6 +151,22 @@ class RegistrationActivity : ComponentActivity() {
                                                 .child(uid)
                                                 .child("registrationFinished")
                                                 .setValue(true)
+                                            val registrationMethod = when (signInMethod) {
+                                                "google", "facebook", "emailPassword" -> signInMethod
+                                                else -> "emailPassword"
+                                            }
+                                            val params = android.os.Bundle().apply {
+                                                putString(
+                                                    AppEventsConstants.EVENT_PARAM_REGISTRATION_METHOD,
+                                                    registrationMethod
+                                                )
+                                            }
+                                            AppEventsLogger
+                                                .newLogger(this@RegistrationActivity)
+                                                .logEvent(
+                                                    AppEventsConstants.EVENT_NAME_COMPLETED_REGISTRATION,
+                                                    params
+                                                )
                                             FirebaseRefs.db.reference.child("users/$uid/registrationStep").removeValue()
                                                 .addOnSuccessListener {
                                                     auth.currentUser?.sendEmailVerification()
@@ -1957,12 +1972,12 @@ fun EnterEmailAndPasswordScreen(
 ) {
     LaunchedEffect(Unit) { registrationViewModel.nextEnabled = false }
 
-    var email           by remember { mutableStateOf(TextFieldValue(registrationViewModel.email)) }
+    var email           by remember { mutableStateOf(registrationViewModel.email) }
     var emailError      by remember { mutableStateOf<String?>(null) }
-    var password        by remember { mutableStateOf(TextFieldValue(registrationViewModel.password)) }
-    var confirmPassword by remember { mutableStateOf(TextFieldValue("")) }
+    var password        by remember { mutableStateOf(registrationViewModel.password) }
+    var confirmPassword by remember { mutableStateOf("") }
     var passwordError   by remember { mutableStateOf(false) }
-    var botField        by remember { mutableStateOf(TextFieldValue(registrationViewModel.honeypot)) }
+    var botField        by remember { mutableStateOf(registrationViewModel.honeypot) }
     var pwdVisible        by remember { mutableStateOf(false) }
     var confirmPwdVisible by remember { mutableStateOf(false) }
     var isSubmitting      by remember { mutableStateOf(false) }
@@ -1987,7 +2002,7 @@ fun EnterEmailAndPasswordScreen(
                 onValueChange = {
                     email = it
                     emailError = null
-                    registrationViewModel.email = it.text
+                    registrationViewModel.email = it
                 },
                 label = { Text(stringResource(R.string.email_label), color = Color.White) },
                 singleLine = true,
@@ -2006,7 +2021,7 @@ fun EnterEmailAndPasswordScreen(
                 value = password,
                 onValueChange = {
                     password = it
-                    registrationViewModel.password = it.text
+                    registrationViewModel.password = it
                 },
                 label = { Text(stringResource(R.string.password_label), color = Color.White) },
                 singleLine = true,
@@ -2046,7 +2061,7 @@ fun EnterEmailAndPasswordScreen(
                 value = botField,
                 onValueChange = {
                     botField = it
-                    registrationViewModel.honeypot = it.text
+                    registrationViewModel.honeypot = it
                 },
                 modifier = Modifier
                     .size(1.dp)
@@ -2060,9 +2075,9 @@ fun EnterEmailAndPasswordScreen(
             Button(
                 enabled = !isSubmitting,
                 onClick = {
-                    val mail = email.text.trim()
-                    val pwd  = password.text.trim()
-                    val pwd2 = confirmPassword.text.trim()
+                    val mail = email.trim()
+                    val pwd  = password.trim()
+                    val pwd2 = confirmPassword.trim()
 
                     if (mail.isEmpty() || pwd.isEmpty()) return@Button
                     if (!Patterns.EMAIL_ADDRESS.matcher(mail).matches()) {
@@ -2073,7 +2088,7 @@ fun EnterEmailAndPasswordScreen(
                     }
                     if (pwd != pwd2) { passwordError = true; return@Button }
                     passwordError = false
-                    if (botField.text.isNotBlank()) {
+                    if (botField.isNotBlank()) {
                         Toast.makeText(
                             ctx,
                             ctx.getString(R.string.toast_invalid_form),
@@ -2387,7 +2402,7 @@ fun EnterUsernameScreen(
         .getInstance("https://kupidxdefault.asia-southeast1.firebasedatabase.app/")
         .getReference()
 
-    var usernameTf by remember { mutableStateOf(TextFieldValue(registrationViewModel.username)) }
+    var usernameTf by remember { mutableStateOf(registrationViewModel.username) }
     var isValid    by remember { mutableStateOf(true) }
     var errorMsg   by remember { mutableStateOf("") }
 
@@ -2409,7 +2424,7 @@ fun EnterUsernameScreen(
                 onValueChange = { tf ->
                     usernameTf = tf
 
-                    val raw = tf.text.trim()
+                    val raw = tf.trim()
                     when {
                         raw.isEmpty() -> {
                             isValid  = false
@@ -2447,7 +2462,7 @@ fun EnterUsernameScreen(
             // ---- Finish Button ----
             Button(
                 onClick = {
-                    val raw = usernameTf.text.trim()
+                    val raw = usernameTf.trim()
 
                     // final guard – never reaches Firebase if invalid
                     if (raw.isEmpty()) {
@@ -2507,7 +2522,7 @@ fun EnterUsernameScreen(
                         }
                 },
                 // ★ Button stays disabled while the text is invalid or blank
-                enabled = usernameTf.text.trim().isNotEmpty() && isValid && !isLoading,
+                enabled = usernameTf.trim().isNotEmpty() && isValid && !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),

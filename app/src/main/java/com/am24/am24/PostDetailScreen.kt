@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -39,7 +38,7 @@ fun PostDetailScreen(
 
     val listState = rememberLazyListState()
     val scope      = rememberCoroutineScope()
-    var commentText by remember { mutableStateOf(TextFieldValue("")) }
+    var commentText by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -174,7 +173,7 @@ fun PostDetailScreen(
                     Button(
                         enabled = myProfile != null && currentUserId != null,  // ✱
                         onClick = {
-                            if (commentText.text.isNotBlank()
+                            if (commentText.isNotBlank()
                                 && currentUserId != null
                                 && myProfile != null) {
 
@@ -182,11 +181,11 @@ fun PostDetailScreen(
                                     commentId   = UUID.randomUUID().toString(),
                                     userId      = currentUserId!!,
                                     username    = myProfile!!.username,           // ✱ safe
-                                    commentText = commentText.text,
+                                    commentText = commentText,
                                     timestamp   = ServerValue.TIMESTAMP
                                 )
                                 postViewModel.addComment(p.postId, comment, {}, {})
-                                commentText = TextFieldValue("")
+                                commentText = ""
                             }
                         },
                         colors = ButtonDefaults.buttonColors(

@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -34,7 +33,7 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
     var otherName by remember { mutableStateOf("") }
     var otherPhoto by remember { mutableStateOf("") }
     val messages = remember { mutableStateListOf<OmegleMessage>() }
-    var input by remember { mutableStateOf(TextFieldValue("")) }
+    var input by remember { mutableStateOf("") }
     val uid = FirebaseAuth.getInstance().currentUser?.uid
     var endedByMe by remember { mutableStateOf(false) }
     var showEndedDialog by remember { mutableStateOf(false) }
@@ -154,12 +153,12 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
                         .padding(horizontal = 8.dp)
                 )
                 IconButton(onClick = {
-                    val text = input.text.trim()
+                    val text = input.trim()
                     if (text.isNotEmpty() && uid != null) {
                         val key = dbRef.child("messages").push().key ?: return@IconButton
                         val msg = OmegleMessage(id = key, senderId = uid, text = text, timestamp = System.currentTimeMillis())
                         dbRef.child("messages").child(key).setValue(msg)
-                        input = TextFieldValue("")
+                        input = ""
                     }
                 }) {
                     Icon(Icons.Default.Send, contentDescription = "send")

@@ -50,8 +50,6 @@ import com.am24.am24.ui.theme.DarkGrayBackground
 import com.facebook.*
 import com.facebook.login.LoginManager
 import com.facebook.login.LoginResult
-import com.facebook.appevents.AppEventsConstants
-import com.facebook.appevents.AppEventsLogger
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -308,21 +306,6 @@ class LandingActivity : ComponentActivity() {
                     val uid  = user.uid
                     val isNewUser = task.result?.additionalUserInfo?.isNewUser == true
 
-                    // ② App Events: Completed Registration (method param)
-                    if (isNewUser) {
-                        val method = when (credential) {
-                            is GoogleAuthCredential   -> "google"
-                            is FacebookAuthCredential -> "facebook"
-                            else                      -> "emailPassword"
-                        }
-                        val params = android.os.Bundle().apply {
-                            putString(AppEventsConstants.EVENT_PARAM_REGISTRATION_METHOD, method)
-                        }
-                        AppEventsLogger.newLogger(this)
-                            .logEvent(AppEventsConstants.EVENT_NAME_COMPLETED_REGISTRATION, params)
-                    }
-
-                    // ③ Save fresh ID token (optional but handy)
                     user.getIdToken(true)
                         .addOnSuccessListener { res ->
                             res.token?.let { TokenStorageManager.saveToken(this@LandingActivity, it) }

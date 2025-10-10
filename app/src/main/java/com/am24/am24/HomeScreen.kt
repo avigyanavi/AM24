@@ -1543,7 +1543,7 @@ fun CommentsDialog(
     // State variables
     var sortOption by remember { mutableStateOf("No Sort") }
     var showSortMenu by remember { mutableStateOf(false) }
-    var commentText by remember { mutableStateOf(TextFieldValue("")) }
+    var commentText by remember { mutableStateOf("") }
 
     // Voice recording states
     var isRecording by remember { mutableStateOf(false) }
@@ -1907,7 +1907,7 @@ fun CommentsDialog(
                                 // Start recording
                                 isRecording = true
                                 // Clear text and recordedVoiceUri since starting fresh recording
-                                commentText = TextFieldValue("")
+                                commentText = ""
                                 recordedVoiceUri = null
                             } else {
                                 permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -1941,9 +1941,9 @@ fun CommentsDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            if (commentText.text.isNotBlank()) {
-                                onComment(commentText.text)
-                                commentText = TextFieldValue("")
+                            if (commentText.isNotBlank()) {
+                                onComment(commentText)
+                                commentText = ""
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
