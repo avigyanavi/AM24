@@ -524,18 +524,15 @@ fun LandingScreen(
             SocialSignInButtons(onGoogleSignIn, onFacebookSignIn)
         }
 
-        val isIndia = remember { CountryUtil.isProbablyInIndia(context) }
-        if (!isIndia) {
-            LanguageSelectionBar(
-                selectedLanguage,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-            ) { lang ->
-                if (lang != selectedLanguage) {
-                    prefs.edit().putString("language", lang).apply()
-                    shouldRestart = true
-                }
+        LanguageSelectionBar(
+            selectedLanguage,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+        ) { lang ->
+            if (lang != selectedLanguage) {
+                prefs.edit().putString("language", lang).apply()
+                shouldRestart = true
             }
         }
 

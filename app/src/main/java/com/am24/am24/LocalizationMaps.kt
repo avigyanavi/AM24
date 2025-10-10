@@ -20,7 +20,9 @@ object LocalizationMaps {
         "kn" to "%2\$02d %1\$s, %3\$d",
         "ml" to "%2\$02d %1\$s, %3\$d",
         "as" to "%2\$02d %1\$s, %3\$d",
-        "pa" to "%2\$02d %1\$s, %3\$d"
+        "pa" to "%2\$02d %1\$s, %3\$d",
+        "th" to "%2$02d %1\$s %3\$d",
+        "vi" to "%2$02d %1\$s %3\$d"
     )
 
 
@@ -76,6 +78,14 @@ object LocalizationMaps {
         "pa" to listOf(
             "ਜਨਵਰੀ", "ਫਰਵਰੀ", "ਮਾਰਚ", "ਅਪ੍ਰੈਲ", "ਮਈ", "ਜੂਨ",
             "ਜੁਲਾਈ", "ਅਗਸਤ", "ਸਤੰਬਰ", "ਅਕਤੂਬਰ", "ਨਵੰਬਰ", "ਦਸੰਬਰ"
+        ),
+        "th" to listOf(
+            "มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+            "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"
+        ),
+        "vi" to listOf(
+            "tháng 1","tháng 2","tháng 3","tháng 4","tháng 5","tháng 6",
+            "tháng 7","tháng 8","tháng 9","tháng 10","tháng 11","tháng 12"
         )
     )
 }
@@ -489,6 +499,12 @@ val casteNameToRes = mapOf(
 
 val genderNameToRes = mapOf(
 
+    "ชาย" to R.string.male_option,
+    "หญิง" to R.string.female_option,
+    "อื่นๆ" to R.string.gender_other,
+    "Nam" to R.string.male_option,
+    "Nữ" to R.string.female_option,
+    "Khác" to R.string.gender_other,
     "Hombre" to R.string.male_option,
     "Mujer" to R.string.female_option,
     "Otro" to R.string.gender_other,
@@ -1074,6 +1090,63 @@ val communityNameToRes = mapOf(
 )
 
 val religionNameToRes = mapOf(
+    // —— Christian denominations
+    "คาทอลิก" to R.string.religion_christian_catholic,                 // th: Catholic
+    "โปรเตสแตนต์สายหลัก" to R.string.religion_christian_protestant_mainline, // th: Mainline Protestant
+    "โปรเตสแตนต์อีแวนเจลิคัล" to R.string.religion_christian_evangelical,    // th: Evangelical Protestant
+    "ออร์ทอดอกซ์ตะวันออก" to R.string.religion_christian_orthodox,          // th: Eastern Orthodox
+    "วิสุทธิชนยุคสุดท้าย (มอรมอน)" to R.string.religion_christian_latter_day_saint, // th: LDS (Mormon)
+    "พยานพระยะโฮวาห์" to R.string.religion_christian_jehovahs_witness,       // th: Jehovah’s Witness
+    "คริสเตียนอื่นๆ" to R.string.religion_christian_other,                     // th: Other Christian
+
+    "Công giáo" to R.string.religion_christian_catholic,                       // vi
+    "Tin Lành dòng chính" to R.string.religion_christian_protestant_mainline,  // vi
+    "Tin Lành Phúc Âm" to R.string.religion_christian_evangelical,             // vi
+    "Chính thống giáo Đông phương" to R.string.religion_christian_orthodox,    // vi
+    "Giáo hội Các Thánh Hữu Ngày Sau (Mặc Môn)" to R.string.religion_christian_latter_day_saint, // vi
+    "Nhân Chứng Giê-hô-va" to R.string.religion_christian_jehovahs_witness,    // vi
+    "Kitô giáo khác" to R.string.religion_christian_other,                     // vi
+
+// —— Muslim denominations
+    "สุหนี่" to R.string.religion_muslim_sunni,       // th
+    "ชีอะห์" to R.string.religion_muslim_shia,       // th
+    "อาหมัดิยะห์" to R.string.religion_muslim_ahmadiyya, // th
+    "ซูฟี" to R.string.religion_muslim_sufi,          // th
+    "มุสลิมอื่นๆ" to R.string.religion_muslim_other,  // th
+
+    "Hồi giáo Sunni" to R.string.religion_muslim_sunni,   // vi
+    "Hồi giáo Shia" to R.string.religion_muslim_shia,     // vi
+    "Ahmadiyya" to R.string.religion_muslim_ahmadiyya,    // vi
+    "Sufi" to R.string.religion_muslim_sufi,              // vi
+    "Hồi giáo khác" to R.string.religion_muslim_other,    // vi
+
+// —— Umbrellas / other major religions
+    "ไม่มีศาสนา / ฆราวาส" to R.string.religion_no_religion,       // th
+    "โซโรอัสเตอร์ / ปาร์ซี" to R.string.religion_parsi,           // th
+    "ศาสนาดั้งเดิม/ชนเผ่า" to R.string.religion_indigenous_tribal,// th
+    "ฮินดู" to R.string.religion_hindu,                             // th
+    "มุสลิม" to R.string.religion_muslim,                           // th
+    "คริสเตียน" to R.string.religion_christian,                     // th
+    "พุทธ" to R.string.religion_buddhist,                           // th
+    "เชน" to R.string.religion_jain,                                 // th
+    "ซิกข์" to R.string.religion_sikh,                               // th
+    "ยิว" to R.string.religion_jewish,                               // th
+    "ไม่มีศาสนา" to R.string.religion_no_religion,                  // th
+    "โซโรอัสเตรียน" to R.string.religion_parsi,                    // th
+    "อื่นๆ" to R.string.religion_other,                              // th
+
+    "Không tôn giáo / Thế tục" to R.string.religion_no_religion,     // vi
+    "Bái Hỏa giáo / Parsi" to R.string.religion_parsi,               // vi
+    "Tín ngưỡng bản địa/bộ lạc" to R.string.religion_indigenous_tribal, // vi
+    "Ấn Độ giáo" to R.string.religion_hindu,                         // vi
+    "Hồi giáo" to R.string.religion_muslim,                          // vi
+    "Kitô giáo" to R.string.religion_christian,                      // vi
+    "Phật giáo" to R.string.religion_buddhist,                       // vi
+    "Kỳ-na giáo" to R.string.religion_jain,                          // vi
+    "Sikh giáo" to R.string.religion_sikh,                           // vi
+    "Do Thái giáo" to R.string.religion_jewish,                      // vi
+    "Không tôn giáo" to R.string.religion_no_religion,               // vi
+    "Khác" to R.string.religion_other,                                // vi
     // Christian denominations
     "Católico" to R.string.religion_christian_catholic,
     "Christian Catholic" to R.string.religion_christian_catholic,
@@ -2563,6 +2636,29 @@ val cityNameToRes = mapOf(
 // ─── Preferences ──────────────────────────────────
 
 val lookingForNameToRes = mapOf(
+    // —— Romance / Connection / Partner
+    "ความโรแมนติก" to R.string.looking_for_romance, // th
+    "ความเชื่อมโยง" to R.string.looking_for_connection, // th
+    "คู่ครอง" to R.string.looking_for_partner, // th
+
+    "Lãng mạn" to R.string.looking_for_romance, // vi
+    "Kết nối" to R.string.looking_for_connection, // vi
+    "Bạn đời" to R.string.looking_for_partner, // vi
+
+// —— Marriage / Long term / Short→Long / Casual / Dating / Exclusive
+    "การแต่งงาน" to R.string.looking_for_marriage,      // th
+    "ระยะยาว" to R.string.looking_for_long_term,         // th
+    "ระยะสั้น: เปิดรับระยะยาว" to R.string.looking_for_short_to_long, // th
+    "ไม่ผูกมัด" to R.string.looking_for_casual,          // th
+    "การเดต" to R.string.looking_for_dating,             // th
+    "คบแบบเอ็กซ์คลูซีฟ" to R.string.looking_for_exclusive, // th
+
+    "Hôn nhân" to R.string.looking_for_marriage,          // vi
+    "Dài hạn" to R.string.looking_for_long_term,          // vi
+    "Ngắn hạn: mở cho dài hạn" to R.string.looking_for_short_to_long, // vi
+    "Không ràng buộc" to R.string.looking_for_casual,     // vi
+    "Hẹn hò" to R.string.looking_for_dating,              // vi
+    "Độc quyền" to R.string.looking_for_exclusive,         // vi
     // Romance
     "Romance" to R.string.looking_for_romance,
     "রোমান্স" to R.string.looking_for_romance, // Bengali
@@ -2632,6 +2728,19 @@ val lookingForNameToRes = mapOf(
 )
 
 val loveLanguageNameToRes = mapOf(
+    // —— Thai
+    "คำยืนยันและชื่นชม" to R.string.love_language_option_words_of_affirmation,
+    "การกระทำเพื่อกันและกัน" to R.string.love_language_option_acts_of_service,
+    "การได้รับของขวัญ" to R.string.love_language_option_receiving_gifts,
+    "เวลาอันมีคุณภาพ" to R.string.love_language_option_quality_time,
+    "การสัมผัสทางกาย" to R.string.love_language_option_physical_touch,
+
+// —— Vietnamese
+    "Lời khẳng định" to R.string.love_language_option_words_of_affirmation,
+    "Hành động phục vụ" to R.string.love_language_option_acts_of_service,
+    "Nhận quà" to R.string.love_language_option_receiving_gifts,
+    "Thời gian chất lượng" to R.string.love_language_option_quality_time,
+    "Tiếp xúc thể chất" to R.string.love_language_option_physical_touch,
 
     "Palabras de afirmación" to R.string.love_language_option_words_of_affirmation,
     "Actos de servicio" to R.string.love_language_option_acts_of_service,
@@ -2710,6 +2819,35 @@ val loveLanguageNameToRes = mapOf(
 )
 
 val politicsNameToRes = mapOf(
+    // —— Thai
+    "ซ้ายจัด" to R.string.politics_option_far_left,
+    "ซ้าย" to R.string.politics_option_left,
+    "กลางซ้าย" to R.string.politics_option_centre_left,
+    "กลาง" to R.string.politics_option_centre,
+    "กลางขวา" to R.string.politics_option_centre_right,
+    "ขวา" to R.string.politics_option_right,
+    "ขวาจัด" to R.string.politics_option_far_right,
+    "เสรีนิยม" to R.string.politics_option_liberal,
+    "อนุรักษนิยม" to R.string.politics_option_conservative,
+    "สายกลาง" to R.string.politics_option_moderate,
+    "สังคมนิยม" to R.string.politics_option_socialist,
+    "คอมมิวนิสต์" to R.string.politics_option_communist,
+    "อื่นๆ" to R.string.politics_option_other,
+
+// —— Vietnamese
+    "Cực tả" to R.string.politics_option_far_left,
+    "Tả" to R.string.politics_option_left,
+    "Trung tả" to R.string.politics_option_centre_left,
+    "Trung tâm" to R.string.politics_option_centre,
+    "Trung hữu" to R.string.politics_option_centre_right,
+    "Hữu" to R.string.politics_option_right,
+    "Cực hữu" to R.string.politics_option_far_right,
+    "Tự do" to R.string.politics_option_liberal,
+    "Bảo thủ" to R.string.politics_option_conservative,
+    "Ôn hòa" to R.string.politics_option_moderate,
+    "Xã hội chủ nghĩa" to R.string.politics_option_socialist,
+    "Cộng sản" to R.string.politics_option_communist,
+    "Khác" to R.string.politics_option_other,
     "Extrema izquierda" to R.string.politics_option_far_left,
     "Izquierda" to R.string.politics_option_left,
     "Centro-izquierda" to R.string.politics_option_centre_left,
