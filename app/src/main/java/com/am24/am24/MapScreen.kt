@@ -1003,12 +1003,12 @@ fun MapScreen(
                                                     bottom = 8.dp
                                                 )
                                         ) {
-                                            BasicTextField(
+                                            TextField(
                                                 value = searchQuery,
                                                 onValueChange = { searchQuery = it },
                                                 singleLine = true,
-                                                textStyle = TextStyle(
-                                                    Color.Black,
+                                                textStyle = LocalTextStyle.current.copy(
+                                                    color = Color.Black,
                                                     fontSize = 14.sp
                                                 ),
                                                 keyboardOptions = KeyboardOptions.Default.copy(
@@ -1023,7 +1023,15 @@ fun MapScreen(
                                                         }
                                                     },
                                                 ),
-                                                cursorBrush = SolidColor(KupidxOrange)
+                                                colors = TextFieldDefaults.colors(
+                                                    focusedIndicatorColor = Color.Transparent,
+                                                    unfocusedIndicatorColor = Color.Transparent,
+                                                    disabledIndicatorColor = Color.Transparent,
+                                                    focusedContainerColor = Color.Transparent,
+                                                    unfocusedContainerColor = Color.Transparent,
+                                                    disabledContainerColor = Color.Transparent,
+                                                    cursorColor = KupidxOrange
+                                                )
                                             )
                                         }
                                         IconButton(

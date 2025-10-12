@@ -6594,7 +6594,7 @@
     <string name="nav_chat">Chat</string>
     <string name="nav_feed">Bảng tin</string>
     <string name="nav_profile">Hồ sơ</string>
-
+    <string name="link_accounts_enter_email_password">Nhập email và mật khẩu cho tài khoản hiện có của bạn để liên kết:</string>
     <!-- Top-bar / actions -->
     <string name="cd_location_settings">Cài đặt vị trí</string>
     <string name="cd_for_you">Dành cho bạn</string>

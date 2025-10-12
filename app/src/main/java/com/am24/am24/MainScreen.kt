@@ -84,13 +84,23 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val freeTrialExpiry = currentProfile?.freeTrialExpiry ?: 0L
     val hasUsedTrial = currentProfile?.hasUsedFreeTrial == true
     val trialExpired = hasUsedTrial && (freeTrialExpiry == 0L || freeTrialExpiry <= now)
-    val entryFeeExpiry = if (entryFeePaidAt > 0L) entryFeePaidAt + TimeUnit.DAYS.toMillis(30) else 0L
-    val entryFeeStillActive = (entryFeeExpiry > now && entryFeeExpiry > 0L) || (loginPlusExpiry > now && loginPlusExpiry > 0L)
-    val hadEntryFeePurchase = entryFeePaidAt > 0L || loginPlusExpiry > 0L || isEntryFeePaid
+    val nextRenewalValue = nextRenewal ?: 0L
+    val entryFeeExpiryFromPaidAt = if (entryFeePaidAt > 0L) {
+        entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
+    } else {
+        0L
+    }
+    val plusExpiryCandidates = listOf(
+        nextRenewalValue,
+        loginPlusExpiry,
+        entryFeeExpiryFromPaidAt
+    )
+    val plusExpiry = plusExpiryCandidates.maxOrNull() ?: 0L
+    val entryFeeStillActive = plusExpiry > now
+    val hadEntryFeePurchase = plusExpiryCandidates.any { it > 0L } || isEntryFeePaid
     val plusAccessExpired = !isPlus && !isPremium && hadEntryFeePurchase && !entryFeeStillActive
 
     val premiumExpiryValue = premiumExpiryDate ?: 0L
-    val nextRenewalValue = nextRenewal ?: 0L
     val subscriptionActive = subscriptionStatus?.equals("active", ignoreCase = true) == true
     val premiumStillActive = (premiumExpiryValue > now && premiumExpiryValue > 0L) ||
             (nextRenewalValue > now && nextRenewalValue > 0L) || subscriptionActive

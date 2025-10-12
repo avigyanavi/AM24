@@ -6577,7 +6577,7 @@
     <string name="boost">Impulso</string>
     <string name="show_boosted">Mostrar usuarios destacados</string>
     <string name="boosted_users">Usuarios destacados cerca</string>
-
+    <string name="link_accounts_enter_email_password">Introduce el correo y la contraseña de tu cuenta existente para vincularla:</string>
     <string-array name="social_causes_list">
         <!-- Environment & Sustainability -->
         <item>Acción climática y energías renovables</item>

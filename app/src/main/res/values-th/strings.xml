@@ -5258,6 +5258,7 @@
     <string name="saved_posts_empty">ยังไม่มีโพสต์ที่บันทึก</string>
     <string name="language_name_english">อังกฤษ</string>
     <string name="language_name_spanish">สเปน</string>
+    <string name="link_accounts_enter_email_password">กรอกอีเมลและรหัสผ่านของบัญชีที่คุณมีอยู่เพื่อเชื่อมบัญชี:</string>
     <string name="language_name_thai">ไทย</string>
         <!-- LA Quick Tags (labels) -->
         <string name="la_tag_dtla_rooftops_label">ดาดฟ้าใน DTLA</string>

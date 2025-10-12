@@ -341,9 +341,11 @@ class LandingActivity : ComponentActivity() {
     }
 
     /* ───────── Collision-handling ───────── */
-    private fun promptForPasswordAndLink(email: String, pending: AuthCredential) {
-        collectPasswordFromUser(email) { password ->
-            val emailCred = EmailAuthProvider.getCredential(email, password)
+    private fun promptForPasswordAndLink(email: String?, pending: AuthCredential) {
+        val sanitizedEmail = email?.trim()?.takeIf { it.isNotEmpty() }
+
+        val attemptLink: (String, String) -> Unit = { resolvedEmail, password ->
+            val emailCred = EmailAuthProvider.getCredential(resolvedEmail, password)
             firebaseAuth.signInWithCredential(emailCred)
                 .addOnCompleteListener(this) { signInTask ->
                     if (signInTask.isSuccessful) {
@@ -373,6 +375,14 @@ class LandingActivity : ComponentActivity() {
                         )
                     }
                 }
+        }
+
+        sanitizedEmail?.let { nonNullEmail ->
+            collectPasswordFromUser(nonNullEmail) { password ->
+                attemptLink(nonNullEmail, password)
+            }
+        } ?: collectEmailAndPasswordFromUser { resolvedEmail, password ->
+            attemptLink(resolvedEmail, password)
         }
     }
 
@@ -404,6 +414,56 @@ class LandingActivity : ComponentActivity() {
             }
             .setNegativeButton(R.string.cancel) { d, _ -> d.cancel() }
             .show()
+    }
+
+    private fun collectEmailAndPasswordFromUser(onCredentials: (String, String) -> Unit) {
+        val emailInput = android.widget.EditText(this).apply {
+            hint = getString(R.string.email_label)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                    android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        }
+        val passwordInput = android.widget.EditText(this).apply {
+            hint = getString(R.string.password)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                    android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            val padding = (16 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding, padding, 0)
+            addView(emailInput)
+            addView(passwordInput)
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.link_accounts_title)
+            .setMessage(R.string.link_accounts_enter_email_password)
+            .setView(container)
+            .setPositiveButton(R.string.ok, null)
+            .setNegativeButton(R.string.cancel) { d, _ -> d.cancel() }
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
+                val emailText = emailInput.text.toString().trim()
+                val passwordText = passwordInput.text.toString()
+
+                if (emailText.isEmpty()) {
+                    emailInput.error = getString(R.string.toast_complete_required_fields)
+                    return@setOnClickListener
+                }
+
+                if (passwordText.isEmpty()) {
+                    passwordInput.error = getString(R.string.toast_complete_required_fields)
+                    return@setOnClickListener
+                }
+
+                dialog.dismiss()
+                onCredentials(emailText, passwordText)
+            }
+        }
+
+        dialog.show()
     }
     private fun formatMessageWithReason(
         @StringRes baseRes: Int,
