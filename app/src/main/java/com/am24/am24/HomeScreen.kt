@@ -106,7 +106,8 @@ fun HomeScreen(
 
     // Wait for filters to load.
     val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
-    if (!filtersLoaded) {
+    val isInitialFeedLoading by postViewModel.isInitialFeedLoading.collectAsState()
+    if (!filtersLoaded || isInitialFeedLoading) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center

@@ -90,12 +90,12 @@ fun DMScreenContent(
 ) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
-    val database = FirebaseRefs.db
-    val matchesRef = database.getReference("matches/$currentUserId")
-    val likesRef = database.getReference("likesReceived/$currentUserId")
-    val usersRef = database.getReference("users")
-    val messagesRootRef = database.getReference("messages")
-    val ratingsRef = database.getReference("ratings")
+    val database = remember { FirebaseRefs.db }
+    val matchesRef = remember(currentUserId) { database.getReference("matches/$currentUserId") }
+    val likesRef = remember(currentUserId) { database.getReference("likesReceived/$currentUserId") }
+    val usersRef = remember { database.getReference("users") }
+    val messagesRootRef = remember { database.getReference("messages") }
+    val ratingsRef = remember { database.getReference("ratings") }
     val datingViewModel: DatingViewModel = viewModel()
     val compliments by datingViewModel.complimentsReceived.collectAsState()
 
@@ -110,15 +110,18 @@ fun DMScreenContent(
     var selectedSmartMatchGender by remember { mutableStateOf("Both") }
 
     LaunchedEffect(currentUserId) {
-        usersRef.child(currentUserId).get()
-            .addOnSuccessListener { snap ->
-                currentUserProfile = snap.getValue(Profile::class.java)
-                isLoadingProfile = false
+        isLoadingProfile = true
+        try {
+            val snapshot = usersRef.child(currentUserId).get().await()
+            currentUserProfile = snapshot.getValue(Profile::class.java)
+            if (currentUserProfile == null) {
+                Toast.makeText(context, context.getString(R.string.dm_error_loading_profile), Toast.LENGTH_SHORT).show()
             }
-            .addOnFailureListener {
-                isLoadingProfile = false // Handle error appropriately
-                Toast.makeText(context, context.getString(R.string.dm_failed_load_profile), Toast.LENGTH_SHORT).show()
-            }
+        } catch (e: Exception) {
+            Toast.makeText(context, context.getString(R.string.dm_failed_load_profile), Toast.LENGTH_SHORT).show()
+        } finally {
+            isLoadingProfile = false
+        }
     }
 
     // Show loading UI while profile is being fetched

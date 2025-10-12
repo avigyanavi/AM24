@@ -113,7 +113,7 @@ fun SettingsScreen(navController: NavController) {
     val userRef = FirebaseRefs.db.getReference("users").child(uid)
     val blocksRef = FirebaseRefs.db.getReference("blocks").child(uid)
 
-    var premiumTier by remember { mutableStateOf("Free") }           // "Free" / "Plus" / "Premium"
+    var premiumTier by remember { mutableStateOf("Plus") }           // "Free" / "Plus" / "Premium"
     var expiry by remember { mutableStateOf(ctx.getString(R.string.na)) }
     var swipes by remember { mutableStateOf(0) }
     var compliments by remember { mutableStateOf(0) }
@@ -142,50 +142,52 @@ fun SettingsScreen(navController: NavController) {
     var feedbackText      by remember { mutableStateOf("") }
     var working           by remember { mutableStateOf(false) }
     var pendingLocationToggle by remember { mutableStateOf<LocationVisibilityToggle?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
 
     val isIndian = remember(country) { canonicalCountry(country) == "India" }
 
     /* load once */
     LaunchedEffect(Unit) {
-        val s = userRef.get().await()
+        isLoading = true
+        try {
+            val s = userRef.get().await()
 // pull the flat `isPremium` boolean and optional expiryDate
-        val plusFlag = s.child("isPlus").getValue(Boolean::class.java) ?: false
-        val premiumFlag = s.child("isPremium").getValue(Boolean::class.java) ?: false
-        val loginPlusExpiryVal = s.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
-        val entryFeePaidFlag = s.child("isEntryFeePaid").getValue(Boolean::class.java) ?: false
-        val entryFeePaidAt = s.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
-        val entryFeeOfferExpiryVal = s.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
-        val now = System.currentTimeMillis()
-        val entryFeeExpiry = if (entryFeePaidAt > 0L) {
-            entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
-        } else 0L
-        val entryFeeActive = entryFeePaidFlag && ((loginPlusExpiryVal > now) || (entryFeeExpiry > now && entryFeeExpiry > 0L))
-        val plusExpired = plusFlag && entryFeePaidFlag && !entryFeeActive && !premiumFlag
+            val plusFlag = s.child("isPlus").getValue(Boolean::class.java) ?: false
+            val premiumFlag = s.child("isPremium").getValue(Boolean::class.java) ?: false
+            val loginPlusExpiryVal = s.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
+            val entryFeePaidFlag = s.child("isEntryFeePaid").getValue(Boolean::class.java) ?: false
+            val entryFeePaidAt = s.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
+            val entryFeeOfferExpiryVal = s.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
+            val now = System.currentTimeMillis()
+            val entryFeeExpiry = if (entryFeePaidAt > 0L) {
+                entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
+            } else 0L
+            val entryFeeActive = entryFeePaidFlag && ((loginPlusExpiryVal > now) || (entryFeeExpiry > now && entryFeeExpiry > 0L))
+            val plusExpired = plusFlag && entryFeePaidFlag && !entryFeeActive && !premiumFlag
 
-        if (plusExpired) {
-            userRef.child("isPlus").setValue(false)
-            if (entryFeePaidFlag) {
-                userRef.child("isEntryFeePaid").setValue(false)
+            if (plusExpired) {
+                userRef.child("isPlus").setValue(false)
+                if (entryFeePaidFlag) {
+                    userRef.child("isEntryFeePaid").setValue(false)
+                }
             }
-        }
 
-        entryFeePaid = entryFeeActive
-        entryFeeOfferExpiry = entryFeeOfferExpiryVal
-        if (entryFeeOfferExpiryVal > 0L && entryFeeOfferExpiryVal < now) {
-            userRef.child("entryFeeOfferExpiry").removeValue()
-            entryFeeOfferExpiry = 0L
-        }
+            entryFeePaid = entryFeeActive
+            entryFeeOfferExpiry = entryFeeOfferExpiryVal
+            if (entryFeeOfferExpiryVal > 0L && entryFeeOfferExpiryVal < now) {
+                userRef.child("entryFeeOfferExpiry").removeValue()
+                entryFeeOfferExpiry = 0L
+            }
+            hasUsedFreeTrial = s.child("hasUsedFreeTrial").getValue(Boolean::class.java) ?: false
+            freeTrialCompleted = s.child("freeTrialCompleted").getValue(Boolean::class.java) ?: false
+            freeTrialExpiry = s.child("freeTrialExpiry").getValue(Long::class.java)
 
-        hasUsedFreeTrial = s.child("hasUsedFreeTrial").getValue(Boolean::class.java) ?: false
-        freeTrialCompleted = s.child("freeTrialCompleted").getValue(Boolean::class.java) ?: false
-        freeTrialExpiry = s.child("freeTrialExpiry").getValue(Long::class.java)
-
-        premiumTier = when {
-            premiumFlag -> "Premium"
-            plusFlag && !plusExpired -> "Plus"
-            entryFeeActive -> "Plus"
-            else -> "Free"
-        }
+            premiumTier = when {
+                premiumFlag -> "Premium"
+                plusFlag && !plusExpired -> "Plus"
+                entryFeeActive -> "Plus"
+                else -> "Plus"
+            }
         val subscriptionIdValue = s.child("subscription").child("id")
             .getValue(String::class.java)
         val nextRenewalValue = s.child("nextRenewal").getValue(Long::class.java)
@@ -219,12 +221,26 @@ fun SettingsScreen(navController: NavController) {
 
         loginPlusExpiry = s.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
 
-        blocksRef.get().addOnSuccessListener { snap ->
-            blocked = snap.children.mapNotNull { it.key }
+            blocksRef.get().addOnSuccessListener { snap ->
+                blocked = snap.children.mapNotNull { it.key }
+            }
+        } catch (e: Exception) {
+            Toast.makeText(ctx, "Unable to load settings", Toast.LENGTH_SHORT).show()
+        } finally {
+            isLoading = false
         }
     }
 
     val listState = rememberLazyListState()
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color(0xFFFF6F00))
+        }
+        return
+    }
     Scaffold { pads ->
         LazyColumn(
             state = listState,

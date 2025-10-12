@@ -72,6 +72,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     val posts: StateFlow<List<Post>> get() = _posts.asStateFlow()
     private val _postsLoaded = MutableStateFlow(false)
     val postsLoaded: StateFlow<Boolean> = _postsLoaded
+    private val _isInitialFeedLoading = MutableStateFlow(true)
+    val isInitialFeedLoading: StateFlow<Boolean> = _isInitialFeedLoading.asStateFlow()
 
     private val _userProfiles = MutableStateFlow<Map<String, Profile>>(emptyMap())
     val userProfiles: StateFlow<Map<String, Profile>> get() = _userProfiles
@@ -790,6 +792,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshPosts() {
         Log.d(TAG, "Refreshing posts...")
         clearAllFilters()
+        _isInitialFeedLoading.value = _currentUserId.value != null
         observePosts() // Re-attach listener
     }
 
@@ -802,7 +805,11 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             postsListener = object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     viewModelScope.launch(Dispatchers.IO) {
-                        val currentUserId = _currentUserId.value ?: return@launch
+                        val currentUserId = _currentUserId.value
+                        if (currentUserId == null) {
+                            _isInitialFeedLoading.value = false
+                            return@launch
+                        }
                         // Fetch blocked users
                         val blockedUsers = fetchBlockedUsers(currentUserId)
 
@@ -816,6 +823,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
                         _userProfiles.value = profiles
                         _posts.value = sortedPosts
+                        if (_isInitialFeedLoading.value) {
+                            _isInitialFeedLoading.value = false
+                        }
 
                         // Confirm StateFlow update
                         Log.d(TAG, "Updated _posts with ${_posts.value.size} posts")
@@ -824,6 +834,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
                 override fun onCancelled(error: DatabaseError) {
                     Log.e(TAG, "Failed to observe posts: ${error.message}")
+                    _isInitialFeedLoading.value = false
                 }
             }
             postsRef.addValueEventListener(postsListener!!)
@@ -832,7 +843,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         // Trigger a one-time fetch for immediate data availability
         viewModelScope.launch {
             try {
-                val currentUserId = _currentUserId.value ?: return@launch
+                val currentUserId = _currentUserId.value ?: run {
+                    _isInitialFeedLoading.value = false
+                    return@launch
+                }
                 // Fetch blocked users
                 val blockedUsers = fetchBlockedUsers(currentUserId)
 
@@ -847,8 +861,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
                 _userProfiles.value = profiles
                 _posts.value = sortedPosts
+                _isInitialFeedLoading.value = false
             } catch (e: Exception) {
                 Log.e(TAG, "One-time fetch failed: ${e.message}")
+                _isInitialFeedLoading.value = false
             }
         }
     }

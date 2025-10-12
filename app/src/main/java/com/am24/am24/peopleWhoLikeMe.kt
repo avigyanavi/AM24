@@ -35,53 +35,14 @@ fun PeopleWhoLikeMeScreen(
     val context = LocalContext.current
     var isPlus by remember { mutableStateOf<Boolean?>(null) }
     var isPremium by remember { mutableStateOf<Boolean?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(currentUserId) {
-        if (currentUserId.isNotBlank()) {
-            try {
-                val db = FirebaseDatabase.getInstance()
-                val premiumSnap = db.getReference("users")
-                    .child(currentUserId)
-                    .child("isPremium")
-                    .get()
-                    .await()
-                val plusSnap = db.getReference("users")
-                    .child(currentUserId)
-                    .child("isPlus")
-                    .get()
-                    .await()
-                isPremium = premiumSnap.getValue(Boolean::class.java) ?: false
-                isPlus = plusSnap.getValue(Boolean::class.java) ?: false
-            } catch (e: Exception) {
-                isPremium = false
-                isPlus = false
-            }
-
-            if (isPremium == false && isPlus == false) {
-                Toast
-                    .makeText(context, "Upgrade to Plus to see who liked you", Toast.LENGTH_SHORT)
-                    .show()
-                navController.popBackStack()
-            }
-        }
-    }
     val blockedRef = FirebaseRefs.db
         .getReference("blocks/$currentUserId")
 
     val blockedIds = remember { mutableStateListOf<String>() }
 
     val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
-
-    // Load blocked IDs
-    LaunchedEffect(currentUserId) {
-        blockedRef.addListenerForSingleValueEvent(object: ValueEventListener {
-            override fun onDataChange(s: DataSnapshot) {
-                blockedIds.clear()
-                s.children.forEach { it.key?.let(blockedIds::add) }
-            }
-            override fun onCancelled(e: DatabaseError) {}
-        })
-    }
 
     val likesReceivedRef = FirebaseRefs.db
         .getReference("likesReceived/$currentUserId")
@@ -99,83 +60,89 @@ fun PeopleWhoLikeMeScreen(
 
     // (1) Get the current user's matched user IDs
     LaunchedEffect(currentUserId) {
-        matchesRef.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
+        if (currentUserId.isBlank()) {
+            isLoading = false
+            return@LaunchedEffect
+        }
+
+        isLoading = true
+        try {
+            val db = FirebaseDatabase.getInstance()
+            val userSnapshot = db.getReference("users")
+                .child(currentUserId)
+                .get()
+                .await()
+
+            val premiumFlag = userSnapshot.child("isPremium").getValue(Boolean::class.java) ?: false
+            val plusFlag = userSnapshot.child("isPlus").getValue(Boolean::class.java) ?: false
+            isPremium = premiumFlag
+            isPlus = plusFlag
+
+            if (!premiumFlag && !plusFlag) {
+                Toast
+                    .makeText(context, "Upgrade to Plus to see who liked you", Toast.LENGTH_SHORT)
+                    .show()
+                likedUsers.clear()
+                blockedIds.clear()
                 myMatchIds.clear()
-                snapshot.children.forEach { data ->
-                    data.key?.let { myMatchIds.add(it) }
+                isLoading = false
+                navController.popBackStack()
+                return@LaunchedEffect
+            }
+            val blockedSnapshot = blockedRef.get().await()
+            blockedIds.clear()
+            blockedSnapshot.children.forEach { it.key?.let(blockedIds::add) }
+
+            val matchesSnapshot = matchesRef.get().await()
+            myMatchIds.clear()
+            matchesSnapshot.children.forEach { data -> data.key?.let(myMatchIds::add) }
+
+            val likesSnapshot = likesReceivedRef.get().await()
+            val userIds = likesSnapshot.children.mapNotNull { it.key }
+
+            val fetchedProfiles = mutableListOf<Profile>()
+            for (userId in userIds) {
+                val profileSnapshot = usersRef.child(userId).get().await()
+                val profile = profileSnapshot.getValue(Profile::class.java)
+                if (profile != null
+                    && !myMatchIds.contains(profile.userId)
+                    && !profile.matches.contains(currentUserId)
+                    && !blockedIds.contains(profile.userId)
+                ) {
+                    fetchedProfiles.add(profile)
                 }
             }
-            override fun onCancelled(error: DatabaseError) {}
-        })
-    }
 
-    // (2) Load the IDs of people who liked me, then fetch each of their profiles
-    LaunchedEffect(currentUserId) {
-        likesReceivedRef.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val userIds = snapshot.children.mapNotNull { it.key }
-                // Now fetch each user's full Profile
-                userIds.forEach { userId ->
-                    usersRef.child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
-                        override fun onDataChange(userSnapshot: DataSnapshot) {
-                            val profile = userSnapshot.getValue(Profile::class.java)
-                            if (profile != null) {
-                                // We'll only add them if NOT matched with the current user
-                                // i.e. if "myMatchIds" does not contain their userId.
-                                // Also we can check if they have matched you in their "matches".
-                                if (!myMatchIds.contains(profile.userId)
-                                    && !profile.matches.contains(currentUserId)
-                                    && !blockedIds.contains(profile.userId)
-                                ) {
-                                    likedUsers.add(profile)
-                                }
-                            }
-                        }
-
-                        override fun onCancelled(error: DatabaseError) {}
-                    })
-                }
-            }
-            override fun onCancelled(error: DatabaseError) {}
-        })
+            likedUsers.clear()
+            likedUsers.addAll(fetchedProfiles)
+        } catch (e: Exception) {
+            isPremium = false
+            isPlus = false
+            likedUsers.clear()
+        } finally {
+            isLoading = false
+        }
     }
 
     // For the scroll-to-top feature
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // Scaffold with a floating action button
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    // Scroll to index 0
-                    coroutineScope.launch { listState.animateScrollToItem(0) }
-                },
-                containerColor = Color(0xFFFF4500)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowUp,
-                    contentDescription = "Scroll to Top",
-                    tint = Color.White
-                )
-            }
-        },
-        containerColor = Color.Black
-    ) { innerPadding ->
-        // Actual list area
+    if (isLoading) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-                .padding(innerPadding)
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            if (likedUsers.isEmpty()) {
-                // Show an empty state if no one liked user
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+            CircularProgressIndicator(color = Color(0xFFFF4500))
+        }
+    } else {
+        Scaffold(
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = {
+                        coroutineScope.launch { listState.animateScrollToItem(0) }
+                    },
+                    containerColor = Color(0xFFFF4500)
                 ) {
                     Text(
                         text = "No one has liked you yet.",
@@ -183,70 +150,87 @@ fun PeopleWhoLikeMeScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black),
-                    state = listState
-                ) {
-                    items(likedUsers) { profile ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp)
-                                .clickable {
-                                    // (4) Navigate with userId as the query param
-                                    navController.navigate("previewUserProfile/${profile.userId}")
-                                },
-                            colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
+            },
+            containerColor = Color.Black
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .padding(innerPadding)
+            ) {
+                if (likedUsers.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No one has liked you yet.",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black),
+                        state = listState
+                    ) {
+                        items(likedUsers) { profile ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp)
+                                    .clickable {
+                                        navController.navigate("previewUserProfile/${profile.userId}")
+                                    },
+                                colors = CardDefaults.cardColors(containerColor = Color.DarkGray)
                             ) {
-                                val placeholder = painterResource(R.drawable.local_placeholder)
-                                val context = LocalContext.current
-                                val model = run {
-                                    val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
-                                    url?.let {
-                                        val pathKey = Uri.parse(it).path
-                                        ImageRequest.Builder(context)
-                                            .data(it)
-                                            .diskCacheKey(pathKey)
-                                            .memoryCacheKey(pathKey)
-                                            .build()
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    val placeholder = painterResource(R.drawable.local_placeholder)
+                                    val localContext = LocalContext.current
+                                    val model = run {
+                                        val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
+                                        url?.let {
+                                            val pathKey = Uri.parse(it).path
+                                            ImageRequest.Builder(localContext)
+                                                .data(it)
+                                                .diskCacheKey(pathKey)
+                                                .memoryCacheKey(pathKey)
+                                                .build()
+                                        }
                                     }
-                                }
-                                // Profile Picture
-                                AsyncImage(
-                                    model = model,
-                                    contentDescription = "Profile Picture",
-                                    placeholder = placeholder,
-                                    error = placeholder,
-                                    modifier = Modifier.size(50.dp)
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
+                                    AsyncImage(
+                                        model = model,
+                                        contentDescription = "Profile Picture",
+                                        placeholder = placeholder,
+                                        error = placeholder,
+                                        modifier = Modifier.size(50.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
 
-                                // (2) Show user's name, username, and numberOfUsersWhoSwiped
-                                Column {
-                                    val displayName = profile.name.ifBlank { profile.username }
-                                    Text(
-                                        text = displayName,
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                    Text(
-                                        text = profile.username,
-                                        color = Color.Gray,
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                    // Display how many likes that user has
-                                    Text(
-                                        text = "Likes: ${profile.numberOfUsersWhoSwiped.toInt()}",
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                    Column {
+                                        val displayName = profile.name.ifBlank { profile.username }
+                                        Text(
+                                            text = displayName,
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                        Text(
+                                            text = profile.username,
+                                            color = Color.Gray,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Text(
+                                            text = "Likes: ${profile.numberOfUsersWhoSwiped.toInt()}",
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
                                 }
                             }
                         }
