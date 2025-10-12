@@ -291,8 +291,8 @@ fun MapScreen(
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
         val desiredSortMode = when (selectedTab) {
-            0 -> SortMode.NEARBY
-            1 -> SortMode.ACTIVE
+            0 -> SortMode.ACTIVE
+            1 -> SortMode.NEARBY
             else -> null
         }
 

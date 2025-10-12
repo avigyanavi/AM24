@@ -38,6 +38,7 @@ import org.json.JSONObject
 import java.text.DateFormat
 import java.util.Date
 import androidx.compose.foundation.background
+import java.util.concurrent.TimeUnit
 
 
 private val PLUS_FEATURES = listOf(
@@ -156,9 +157,30 @@ fun ManageSubscriptionScreen(navController: NavController) {
                     else      -> "Free"
                 }
                 subscriptionId = snap.child("subscription").child("id").getValue(String::class.java)
-                expiry = if (!subscriptionId.isNullOrBlank()) "Never" else
-                    snap.child("nextRenewal").getValue(Long::class.java)
-                        ?.let { DateFormat.getDateInstance().format(Date(it)) } ?: "N/A"
+
+                val nextRenewalValue = snap.child("nextRenewal").getValue(Long::class.java)
+                    ?.takeIf { it > 0L }
+                val loginPlusExpiryValue = snap.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
+                val entryFeePaidAtValue = snap.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
+                val entryFeePaidFlag = snap.child("isEntryFeePaid").getValue(Boolean::class.java) ?: false
+                val now = System.currentTimeMillis()
+                val entryFeeExpiryValue = if (entryFeePaidAtValue > 0L) {
+                    entryFeePaidAtValue + TimeUnit.DAYS.toMillis(30)
+                } else 0L
+                val activeEntryFeeExpiry = entryFeeExpiryValue
+                    .takeIf { entryFeePaidFlag && it > now }
+                val activeLoginPlusExpiry = loginPlusExpiryValue.takeIf { it > now }
+                val resolvedExpiryMillis = nextRenewalValue
+                    ?: activeEntryFeeExpiry
+                    ?: activeLoginPlusExpiry
+                val resolvedExpiryLabel = resolvedExpiryMillis
+                    ?.let { DateFormat.getDateInstance().format(Date(it)) }
+
+                expiry = when {
+                    !subscriptionId.isNullOrBlank() && resolvedExpiryLabel == null -> "Never"
+                    resolvedExpiryLabel != null -> resolvedExpiryLabel
+                    else -> "N/A"
+                }
                 userCountry = snap.child("country").getValue(String::class.java)
                 subscriptionStatus = snap.child("subscriptionStatus").getValue(String::class.java)
             }

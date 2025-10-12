@@ -39,6 +39,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlin.math.min
 
 @Composable
 fun OnlineUsersScreen(navController: NavController) {
@@ -93,10 +94,23 @@ fun OnlineUsersScreen(navController: NavController) {
     }
 
     // --- Grouped lists (derived for perf) ---
-    val (maleUsers, femaleUsers, otherUsers) = remember(users) {
-        val males = users.filter { it.gender.equals("male", true) }
-        val females = users.filter { it.gender.equals("female", true) }
-        val others = users.filter { !it.gender.equals("male", true) && !it.gender.equals("female", true) }
+    val pageSize = 20
+    var visibleCount by remember { mutableStateOf(pageSize) }
+
+    LaunchedEffect(users.size) {
+        visibleCount = min(visibleCount.coerceAtLeast(pageSize), users.size)
+    }
+
+    val visibleUsers = remember(users, visibleCount) {
+        if (visibleCount >= users.size) users else users.take(visibleCount)
+    }
+
+    val hasMoreUsers = visibleUsers.size < users.size
+
+    val (maleUsers, femaleUsers, otherUsers) = remember(visibleUsers) {
+        val males = visibleUsers.filter { it.gender.equals("male", true) }
+        val females = visibleUsers.filter { it.gender.equals("female", true) }
+        val others = visibleUsers.filter { !it.gender.equals("male", true) && !it.gender.equals("female", true) }
         Triple(males, females, others)
     }
 
@@ -250,7 +264,20 @@ fun OnlineUsersScreen(navController: NavController) {
                     )
                 }
             }
-
+            if (hasMoreUsers) {
+                item {
+                    Button(
+                        onClick = {
+                            visibleCount = min(visibleCount + pageSize, users.size)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        Text(stringResource(R.string.next_page))
+                    }
+                }
+            }
             if (errorMessage != null) {
                 item {
                     ErrorState(

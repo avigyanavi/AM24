@@ -71,7 +71,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
-import kotlin.math.roundToInt
+import kotlin.math.min
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.request.ImageRequest
@@ -359,6 +359,19 @@ fun FeedSection(
     var isRefreshing by remember { mutableStateOf(false) }
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isRefreshing)
 
+    val pageSize = 10
+    var visibleCount by remember { mutableStateOf(pageSize) }
+
+    LaunchedEffect(posts.size) {
+        visibleCount = min(visibleCount.coerceAtLeast(pageSize), posts.size)
+    }
+
+    val visiblePosts = remember(posts, visibleCount) {
+        if (visibleCount >= posts.size) posts else posts.take(visibleCount)
+    }
+
+    val hasMorePosts = visiblePosts.size < posts.size
+
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
             val currentUser = userId
@@ -400,7 +413,7 @@ fun FeedSection(
                 }
             }
 
-            itemsIndexed(posts, key = { idx, post -> post.postId.ifEmpty { "post_$idx" } }) { index, post ->
+            itemsIndexed(visiblePosts, key = { idx, post -> post.postId.ifEmpty { "post_$idx" } }) { index, post ->
                 val profile = userProfiles[post.userId]
                 val isSaved = savedPostIds.contains(post.postId)
                 FeedItem(
@@ -522,15 +535,30 @@ fun FeedSection(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // No more posts indicator
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = stringResource(R.string.no_more_older_posts), color = Color.Gray, fontSize = 12.sp)
+            if (hasMorePosts) {
+                item {
+                    Button(
+                        onClick = {
+                            visibleCount = min(visibleCount + pageSize, posts.size)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        Text(stringResource(R.string.next_page))
+                    }
+                }
+            } else {
+                // No more posts indicator
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = stringResource(R.string.no_more_older_posts), color = Color.Gray, fontSize = 12.sp)
+                    }
                 }
             }
         }
