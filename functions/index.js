@@ -637,6 +637,88 @@ exports.cleanOrphanedStorage = functions
     }
   });
 
+exports.activateEntryFeePlusUsers = functions
+  .region('asia-south1')
+  .https.onRequest(async (_req, res) => {
+    try {
+      const nowTs = Date.now();
+      const oneMonthMs = 30 * 24 * 60 * 60 * 1000;
+      const targetRenewalTs = nowTs + oneMonthMs;
+
+      const usersRef = admin.database().ref('users');
+      const snap = await usersRef.once('value');
+
+      if (!snap.exists()) {
+        return res.status(200).send('No users found.');
+      }
+
+      const updates = {};
+      const touchedUsers = new Set();
+      let totalUsers = 0;
+      let freeUsers = 0;
+      let alreadyPlus = 0;
+      let flippedToPlus = 0;
+      let renewalSynced = 0;
+      let statusActivated = 0;
+
+      snap.forEach((userSnap) => {
+        const key = userSnap.key;
+        if (!key) return;
+
+        totalUsers += 1;
+        const data = userSnap.val() || {};
+
+        if (data.isPlus === true) {
+          alreadyPlus += 1;
+          return;
+        }
+
+        freeUsers += 1;
+
+        updates[`${key}/isPlus`] = true;
+        updates[`${key}/nextRenewal`] = targetRenewalTs;
+        touchedUsers.add(key);
+        flippedToPlus += 1;
+        renewalSynced += 1;
+
+        const subscriptionStatus =
+          typeof data.subscriptionStatus === 'string'
+            ? data.subscriptionStatus.toLowerCase()
+            : '';
+        if (subscriptionStatus !== 'active') {
+          updates[`${key}/subscriptionStatus`] = 'active';
+          statusActivated += 1;
+        }
+      });
+
+      const updateCount = Object.keys(updates).length;
+
+      const summaryDetails = [
+        `total users scanned: ${totalUsers}`,
+        `already plus: ${alreadyPlus}`,
+        `free users detected: ${freeUsers}`,
+        `free users flipped: ${flippedToPlus}`,
+        `renewals synced: ${renewalSynced}`,
+        `renewal set to ${new Date(targetRenewalTs).toISOString()}`,
+        `status activated: ${statusActivated}`,
+      ].join(', ');
+
+      if (updateCount === 0) {
+        return res.status(200).send(`No updates required. ${summaryDetails}.`);
+      }
+
+      await usersRef.update(updates);
+
+      res
+        .status(200)
+        .send(
+          `Updated ${touchedUsers.size} user(s) across ${updateCount} field(s). ${summaryDetails}.`
+        );
+    } catch (err) {
+      console.error('activateEntryFeePlusUsers error:', err);
+      res.status(500).send(err.message);
+    }
+  });
 
 
 exports.capPhoneRegistrations = functions

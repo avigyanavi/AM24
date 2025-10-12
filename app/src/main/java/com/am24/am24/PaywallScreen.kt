@@ -30,13 +30,13 @@ fun PaywallScreen(onPaid: () -> Unit) {
     val ctx = LocalContext.current
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val userRef = remember(uid) {
-        FirebaseDatabase.getInstance().getReference("users/$uid")
+        FirebaseRefs.db.getReference("users/$uid")
     }
 
     var userCountry by remember { mutableStateOf<String?>(null) }
     var entryFeePaid by remember { mutableStateOf(false) }
     var plusActive by remember { mutableStateOf(false) }
-    var loginPlusExpiry by remember { mutableStateOf<Long?>(null) }
+    var nextRenewal by remember { mutableStateOf<Long?>(null) }
     var entryFeePaidAt by remember { mutableStateOf<Long?>(null) }
     var entryFeeOfferSeen by remember { mutableStateOf<Boolean?>(null) }
     var hasNavigatedAway by remember(uid) { mutableStateOf(false) }
@@ -66,7 +66,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
                 userCountry = snapshot.child("country").getValue(String::class.java)
                 entryFeePaid = snapshot.child("isEntryFeePaid").getValue(Boolean::class.java) == true
                 plusActive = snapshot.child("isPlus").getValue(Boolean::class.java) == true
-                loginPlusExpiry = snapshot.child("loginPlusExpiry").getValue(Long::class.java)
+                nextRenewal = snapshot.child("nextRenewal").getValue(Long::class.java)
                 entryFeePaidAt = snapshot.child("entryFeePaidAt").getValue(Long::class.java)
                 entryFeeOfferSeen = snapshot.child("entryFeeOfferSeen").getValue(Boolean::class.java)
                 hasUsedFreeTrial = snapshot.child("hasUsedFreeTrial").getValue(Boolean::class.java) == true
@@ -79,29 +79,32 @@ fun PaywallScreen(onPaid: () -> Unit) {
         onDispose { userRef.removeEventListener(listener) }
     }
 
-    LaunchedEffect(entryFeePaid, plusActive, loginPlusExpiry, entryFeePaidAt) {
-        if (!entryFeePaid) return@LaunchedEffect
-
+    LaunchedEffect(entryFeePaid, plusActive, nextRenewal, entryFeePaidAt) {
         val monthInMillis = TimeUnit.DAYS.toMillis(30)
+        val hasActiveRenewal = (nextRenewal ?: 0L) > System.currentTimeMillis()
 
-        if (!plusActive) {
+        if ((entryFeePaid || hasActiveRenewal) && !plusActive) {
             userRef.child("isPlus").setValue(true)
             plusActive = true
         }
 
+        if (!entryFeePaid) return@LaunchedEffect
+
         val paidAt = entryFeePaidAt ?: 0L
         if (paidAt > 0L) {
-            val minimumExpiry = paidAt + monthInMillis
-            val currentExpiry = loginPlusExpiry ?: 0L
-            if (currentExpiry < minimumExpiry) {
-                userRef.child("loginPlusExpiry").setValue(minimumExpiry)
+            val minimumRenewal = paidAt + monthInMillis
+            val currentRenewal = nextRenewal ?: 0L
+            if (currentRenewal < minimumRenewal) {
+                userRef.child("nextRenewal").setValue(minimumRenewal)
+                nextRenewal = minimumRenewal
             }
         }
     }
 
     val onPaidCallback by rememberUpdatedState(onPaid)
-    LaunchedEffect(entryFeePaid, plusActive, hasNavigatedAway) {
-        if (!hasNavigatedAway && (entryFeePaid || plusActive)) {
+    LaunchedEffect(entryFeePaid, plusActive, nextRenewal, hasNavigatedAway) {
+        val hasActiveRenewal = (nextRenewal ?: 0L) > System.currentTimeMillis()
+        if (!hasNavigatedAway && (entryFeePaid || plusActive || hasActiveRenewal)) {
             hasNavigatedAway = true
             onPaidCallback()
         }
@@ -124,9 +127,9 @@ fun PaywallScreen(onPaid: () -> Unit) {
                 isProcessing = true
                 val monthInMillis = TimeUnit.DAYS.toMillis(30)
                 val purchaseTime = purchase.purchaseTime.takeIf { it > 0L } ?: System.currentTimeMillis()
-                val existingExpiry = loginPlusExpiry ?: 0L
-                val desiredExpiry = purchaseTime + monthInMillis
-                val finalExpiry = maxOf(existingExpiry, desiredExpiry)
+                val existingRenewal = nextRenewal ?: 0L
+                val desiredRenewal = purchaseTime + monthInMillis
+                val finalRenewal = maxOf(existingRenewal, desiredRenewal)
                 val updates = mutableMapOf<String, Any>(
                     "entryFeePaidAt" to ServerValue.TIMESTAMP,
                     "isEntryFeePaid" to true,
@@ -134,7 +137,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
                     "entryFeePlusIntroSeen" to false,
                     "entryFeeOfferSeen" to true
                 )
-                updates["loginPlusExpiry"] = finalExpiry
+                updates["nextRenewal"] = finalRenewal
                 userRef.updateChildren(updates)
                     .addOnSuccessListener {
                         userRef.child("entryFeeOfferExpiry").removeValue()
@@ -148,7 +151,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
                         entryFeePaid = true
                         plusActive = true
                         entryFeePaidAt = purchaseTime
-                        loginPlusExpiry = finalExpiry
+                        nextRenewal = finalRenewal
                         isProcessing = false
                         if (!hasNavigatedAway) {
                             hasNavigatedAway = true
@@ -162,8 +165,9 @@ fun PaywallScreen(onPaid: () -> Unit) {
         }
     }
 
-    LaunchedEffect(entryFeePaid, entryOffer) {
-        if (entryFeePaid && entryOffer != null) {
+    LaunchedEffect(entryFeePaid, nextRenewal, entryOffer) {
+        val hasActiveRenewal = (nextRenewal ?: 0L) > System.currentTimeMillis()
+        if ((entryFeePaid || hasActiveRenewal) && entryOffer != null) {
             logPaymentEventOnce(entryOffer.priceAmountMicros, entryOffer.priceCurrencyCode)
         }
     }

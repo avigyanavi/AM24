@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.util.Log
 import com.android.billingclient.api.*
 import com.am24.am24.BuildConfig
+import com.am24.am24.FirebaseRefs
 import com.am24.am24.MyApp
 import com.facebook.appevents.AppEventsLogger
 import com.google.firebase.auth.FirebaseAuth
@@ -398,7 +399,7 @@ object BillingManager : PurchasesUpdatedListener {
         ).maxOrNull()
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val userRef = FirebaseDatabase.getInstance().reference.child("users/$uid")
+        val userRef = FirebaseRefs.db.reference.child("users/$uid")
 
         val premiumActiveFromPurchases = isPremiumSub || hasPremiumOneTime
 

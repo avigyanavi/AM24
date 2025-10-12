@@ -157,18 +157,19 @@ fun ManageSubscriptionScreen(navController: NavController) {
                     else      -> "Free"
                 }
                 subscriptionId = snap.child("subscription").child("id").getValue(String::class.java)
-
                 val nextRenewalValue = snap.child("nextRenewal").getValue(Long::class.java)
                     ?.takeIf { it > 0L }
                 val loginPlusExpiryValue = snap.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
                 val entryFeePaidAtValue = snap.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
-                val entryFeePaidFlag = snap.child("isEntryFeePaid").getValue(Boolean::class.java) ?: false
+                val entryFeeOfferExpiryValue = snap.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
                 val now = System.currentTimeMillis()
-                val entryFeeExpiryValue = if (entryFeePaidAtValue > 0L) {
-                    entryFeePaidAtValue + TimeUnit.DAYS.toMillis(30)
-                } else 0L
-                val activeEntryFeeExpiry = entryFeeExpiryValue
-                    .takeIf { entryFeePaidFlag && it > now }
+                val entryFeePaidExpiry = entryFeePaidAtValue
+                    .takeIf { it > 0L }
+                    ?.let { it + TimeUnit.DAYS.toMillis(30) }
+                    ?.takeIf { it > now }
+                val entryFeeOfferExpiry = entryFeeOfferExpiryValue.takeIf { it > now }
+                val activeEntryFeeExpiry = listOfNotNull(entryFeePaidExpiry, entryFeeOfferExpiry)
+                    .maxOrNull()
                 val activeLoginPlusExpiry = loginPlusExpiryValue.takeIf { it > now }
                 val resolvedExpiryMillis = nextRenewalValue
                     ?: activeEntryFeeExpiry

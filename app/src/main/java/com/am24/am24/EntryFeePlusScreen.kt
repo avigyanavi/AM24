@@ -58,7 +58,7 @@ fun EntryFeePlusScreen(navController: NavController) {
     val ctx = LocalContext.current
     val activity = ctx as? Activity ?: return
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val userRef = remember(uid) { FirebaseDatabase.getInstance().getReference("users/$uid") }
+    val userRef = remember(uid) { FirebaseRefs.db.getReference("users/$uid") }
     var isProcessing by remember { mutableStateOf(false) }
     var offerExpiry by remember { mutableStateOf<Long?>(null) }
     val products by BillingManager.products.collectAsState()
