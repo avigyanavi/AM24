@@ -282,8 +282,7 @@ fun MapScreen(
     var entryFeePlusIntroSeen by remember { mutableStateOf(true) }
     var entryFeeOfferExpiry by remember { mutableStateOf(0L) }
     var entryFeeOfferSeen by remember { mutableStateOf(false) }
-    var showEntryFeeWelcomeDialog by remember { mutableStateOf(false) }
-    var showEntryFeeDiscountDialog by remember { mutableStateOf(false) }
+    var nextRenewal by remember { mutableStateOf(0L) }
     var autoPagedNearby by remember { mutableStateOf(false) }
     var autoPagedCards by remember { mutableStateOf(false) }
     val profileViewModel: ProfileViewModel = viewModel()
@@ -357,8 +356,15 @@ fun MapScreen(
         entryFeeOfferExpiry = snap.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
         entryFeeOfferSeen = snap.child("entryFeeOfferSeen").getValue(Boolean::class.java) ?: false
         val now = System.currentTimeMillis()
-        showEntryFeeWelcomeDialog = entryFeePaidAt > 0L && loginPlusExpiry > now && !entryFeePlusIntroSeen
-        showEntryFeeDiscountDialog = entryFeeOfferExpiry > now && !entryFeeOfferSeen
+        val hasActivePlus = loginPlusExpiry > now || nextRenewal > now
+        if (entryFeePaidAt > 0L && hasActivePlus && !entryFeePlusIntroSeen) {
+            entryFeePlusIntroSeen = true
+            userRef.child("entryFeePlusIntroSeen").setValue(true)
+        }
+        if (entryFeeOfferExpiry > now && !entryFeeOfferSeen) {
+            entryFeeOfferSeen = true
+            userRef.child("entryFeeOfferSeen").setValue(true)
+        }
     }
 
     DisposableEffect(userId) {
@@ -1542,61 +1548,6 @@ fun MapScreen(
                     showSendOverlay = false
                     placeToSend = null
                 }
-            }
-        )
-    }
-
-    if (showEntryFeeWelcomeDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showEntryFeeWelcomeDialog = false
-                entryFeePlusIntroSeen = true
-                userRef.child("entryFeePlusIntroSeen").setValue(true)
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showEntryFeeWelcomeDialog = false
-                    entryFeePlusIntroSeen = true
-                    userRef.child("entryFeePlusIntroSeen").setValue(true)
-                }) {
-                    Text(stringResource(R.string.map_entry_fee_plus_confirm), color = KupidxOrange)
-                }
-            },
-            title = { Text(stringResource(R.string.map_entry_fee_plus_title)) },
-            text = { Text(stringResource(R.string.map_entry_fee_plus_message)) }
-        )
-    }
-
-    if (showEntryFeeDiscountDialog) {
-        val hoursLeft = max(1, ceil((entryFeeOfferExpiry - System.currentTimeMillis()) / 3600000.0).toInt())
-        AlertDialog(
-            onDismissRequest = {
-                showEntryFeeDiscountDialog = false
-                entryFeeOfferSeen = true
-                userRef.child("entryFeeOfferSeen").setValue(true)
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showEntryFeeDiscountDialog = false
-                    entryFeeOfferSeen = true
-                    userRef.child("entryFeeOfferSeen").setValue(true)
-                    navController.navigate("entryFeePlus")
-                }) {
-                    Text(stringResource(R.string.map_entry_fee_discount_upgrade), color = KupidxOrange)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showEntryFeeDiscountDialog = false
-                    entryFeeOfferSeen = true
-                    userRef.child("entryFeeOfferSeen").setValue(true)
-                }) {
-                    Text(stringResource(R.string.map_entry_fee_later), color = KupidxOrange)
-                }
-            },
-            title = { Text(stringResource(R.string.map_entry_fee_discount_title)) },
-            text = {
-                Text(stringResource(R.string.map_entry_fee_discount_message, hoursLeft))
             }
         )
     }

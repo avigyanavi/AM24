@@ -52,7 +52,8 @@ object BillingManager : PurchasesUpdatedListener {
         "kupidx_plus_one_year" to TimeUnit.DAYS.toMillis(365),
         "kupidx_premium_one_month" to TimeUnit.DAYS.toMillis(30),
         "kupidx_premium_one_year" to TimeUnit.DAYS.toMillis(365),
-    )
+        "entry_fee" to TimeUnit.DAYS.toMillis(30),
+        )
 
     private val functions = FirebaseFunctions.getInstance("asia-south1")
 
@@ -392,11 +393,15 @@ object BillingManager : PurchasesUpdatedListener {
         val hasPremiumOneTime = premiumOneTimeExpiry != null && premiumOneTimeExpiry > now
 
         val hasEntryFeePurchase = purchased.any { it.products.contains("entry_fee") }
+        val entryFeeExpiry = oneTimeExpiries
+            .filter { it.first == "entry_fee" }
+            .maxOfOrNull { it.second }
 
         val nextRenewal = listOfNotNull(
             plusOneTimeExpiry?.takeIf { it > now },
             premiumOneTimeExpiry?.takeIf { it > now },
-        ).maxOrNull()
+            entryFeeExpiry?.takeIf { it > now },
+            ).maxOrNull()
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val userRef = FirebaseRefs.db.reference.child("users/$uid")
