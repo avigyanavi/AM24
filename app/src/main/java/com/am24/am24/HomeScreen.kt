@@ -55,7 +55,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.tasks.await
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
@@ -126,36 +126,28 @@ fun HomeScreen(
         // Fetch the current user's own Profile.
         var userProfile by remember { mutableStateOf<Profile?>(null) }
         LaunchedEffect(userId) {
-            if (userId != null) {
-                withContext(Dispatchers.IO) {
-                    val userRef = FirebaseRefs.db.getReference("users").child(userId)
-                    userRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                        override fun onDataChange(snapshot: DataSnapshot) {
-                            snapshot.getValue(Profile::class.java)?.let { fetchedProfile ->
-                                userProfile = fetchedProfile
-                            }
-                        }
-                        override fun onCancelled(error: DatabaseError) {
-                            // Handle any error if needed.
-                        }
-                    })
-                }
+            if (userId == null) {
+                userProfile = null
+                myMatches = emptyList()
+                return@LaunchedEffect
             }
-        }
 
         // 2️⃣ Fetch once from “matches/$userId”
-        LaunchedEffect(userId) {
-            if (userId != null) {
-                FirebaseRefs.db
-                    .getReference("matches")
-                    .child(userId)
-                    .addListenerForSingleValueEvent(object : ValueEventListener {
-                        override fun onDataChange(snapshot: DataSnapshot) {
-                            // Each child key is a matched user’s UID
-                            myMatches = snapshot.children.mapNotNull { it.key }
-                        }
-                        override fun onCancelled(error: DatabaseError) { /* handle error */ }
-                    })
+        val userRef = FirebaseRefs.db.getReference("users").child(userId)
+        val matchesRef = FirebaseRefs.db.getReference("matches").child(userId)
+        try {
+            val profileDeferred = async {
+                val snapshot = userRef.get().await()
+                snapshot.getValue(Profile::class.java)
+            }
+            val matchesDeferred = async {
+                val snapshot = matchesRef.get().await()
+                snapshot.children.mapNotNull { it.key }
+            }
+            userProfile = profileDeferred.await()
+            myMatches = matchesDeferred.await()
+        } catch (e: Exception) {
+            Log.e("HomeScreen", "Failed to load profile or matches", e)
             }
         }
         val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()

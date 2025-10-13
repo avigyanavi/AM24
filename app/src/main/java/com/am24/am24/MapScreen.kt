@@ -103,6 +103,7 @@ import java.text.Normalizer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import android.content.res.Resources
+import kotlinx.coroutines.coroutineScope
 
 /* ======================================================================================= */
 /*  Theme bits                                                                             */
@@ -664,20 +665,78 @@ fun MapScreen(
         // (ensures we re-evaluate allowForMatches vs allowPublic correctly)
         currentIds.forEach { mapVisibility.remove(it) }
 
-        sortedPeople.forEach { u ->
-            if (!mapVisibility.containsKey(u.userId)) {
-                try {
-                    val snap = FirebaseRefs.db.getReference("users")
-                        .child(u.userId).get().await()
-                    val allowForMatches = snap.child("allowLocationForMatches")
-                        .getValue(Boolean::class.java) ?: false
-                    val allowPublic = snap.child("allowLocationPublic")
-                        .getValue(Boolean::class.java) ?: true
-                    val isMatch = matchUids.contains(u.userId)
-                    mapVisibility[u.userId] = if (isMatch) (allowForMatches || allowPublic) else allowPublic
-                } catch (_: Exception) {
-                    mapVisibility[u.userId] = false
+        if (sortedPeople.isEmpty()) {
+            return@LaunchedEffect
+        }
+
+        val visibilityResults = coroutineScope {
+            sortedPeople.map { user ->
+                async {
+                    val isMatch = matchUids.contains(user.userId)
+                    try {
+                        val snap = FirebaseRefs.db.getReference("users")
+                            .child(user.userId)
+                            .get()
+                            .await()
+                        val allowForMatches = snap.child("allowLocationForMatches")
+                            .getValue(Boolean::class.java) ?: false
+                        val allowPublic = snap.child("allowLocationPublic")
+                            .getValue(Boolean::class.java) ?: true
+                        val canShow = if (isMatch) (allowForMatches || allowPublic) else allowPublic
+                        user.userId to canShow
+                    } catch (e: Exception) {
+                        Log.w("MapScreen", "Failed to resolve map visibility for ${user.userId}", e)
+                        user.userId to false
+                    }
                 }
+            }.awaitAll()
+        }
+
+        visibilityResults.forEach { (uid, visible) ->
+            mapVisibility[uid] = visible
+        }
+    }
+
+    LaunchedEffect(matchUids.toList()) {
+        val targetIds = matchUids.toSet()
+        matchProfiles.removeAll { it.userId !in targetIds }
+
+        if (targetIds.isEmpty()) {
+            return@LaunchedEffect
+        }
+
+        val missingIds = targetIds.filterNot { id -> matchProfiles.any { it.userId == id } }
+        if (missingIds.isEmpty()) {
+            return@LaunchedEffect
+        }
+
+        val fetchedProfiles = coroutineScope {
+            missingIds.map { uid ->
+                async {
+                    try {
+                        val snap = FirebaseRefs.db.getReference("users")
+                            .child(uid)
+                            .get()
+                            .await()
+                        val profile = snap.getValue(Profile::class.java) ?: return@async null
+                        MatchProfile(
+                            userId = uid,
+                            name = profile.name,
+                            age = calculateAge(profile.dob),
+                            hometown = profile.hometown,
+                            photoUrl = profile.profilepicUrl
+                        )
+                    } catch (e: Exception) {
+                        Log.w("MapScreen", "Failed to load match profile $uid", e)
+                        null
+                    }
+                }
+            }.awaitAll()
+        }.filterNotNull()
+
+        fetchedProfiles.forEach { match ->
+            if (matchProfiles.none { it.userId == match.userId }) {
+                matchProfiles += match
             }
         }
     }
@@ -1517,24 +1576,6 @@ fun MapScreen(
 
     // send-to-match overlay (outside of Tab when shown)
     if (showSendOverlay) {
-        LaunchedEffect(Unit) {
-            if (matchProfiles.isEmpty()) {
-                matchUids.forEach { uid ->
-                    FirebaseRefs.db.getReference("users").child(uid).get()
-                        .addOnSuccessListener { snap ->
-                            snap.getValue(Profile::class.java)?.let { p ->
-                                matchProfiles += MatchProfile(
-                                    userId = uid,
-                                    name = p.name,
-                                    age = calculateAge(p.dob),
-                                    hometown = p.hometown,
-                                    photoUrl = p.profilepicUrl
-                                )
-                            }
-                        }
-                }
-            }
-        }
         MatchesListOverlay(
             matches = matchProfiles,
             onDismiss = { showSendOverlay = false },
@@ -1659,19 +1700,32 @@ private fun CardsList(
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(
-            items = users,
-            key = { user -> user.userId }
-        ) { user ->
-            ProfileCard(
-                user = user,
-                useMiles = useMiles,    // <---
-                onLike = { onLike(user) },
-                onDislike = { onDislike(user) },
-                onClick = { onCardClick(user) },
-                onRemove = { onRemove(user.userId) },
-                onBlock = { onBlock(user.userId) }
-            )
+        if (users.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
+                }
+            }
+        } else {
+            items(
+                items = users,
+                key = { user -> user.userId }
+            ) { user ->
+                ProfileCard(
+                    user = user,
+                    useMiles = useMiles,    // <---
+                    onLike = { onLike(user) },
+                    onDislike = { onDislike(user) },
+                    onClick = { onCardClick(user) },
+                    onRemove = { onRemove(user.userId) },
+                    onBlock = { onBlock(user.userId) }
+                )
+            }
         }
         item {
             Button(

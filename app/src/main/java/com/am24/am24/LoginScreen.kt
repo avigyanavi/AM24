@@ -256,6 +256,7 @@ class LoginActivity : ComponentActivity() {
                 auth.currentUser?.getIdToken(true)?.await()?.token?.let {
                     TokenStorageManager.saveToken(this@LoginActivity, it)
                 }
+                LocalStorageManager.saveEmailPassword(this@LoginActivity, email, pwd)
                 loginProgress.value = 1f
                 withContext(Dispatchers.Main) {
                     isLoading.value = false
@@ -381,6 +382,25 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }   // ⬅ NEW
 
     val context = LocalContext.current
+
+    LaunchedEffect(initialUserOrEmail) {
+        val trimmed = initialUserOrEmail.trim()
+        if (trimmed.contains("@")) {
+            LocalStorageManager.getSavedPasswordForEmail(context, trimmed)?.let { saved ->
+                password = saved
+                userOrEmail = trimmed
+            }
+        }
+    }
+
+    LaunchedEffect(userOrEmail) {
+        val trimmed = userOrEmail.trim()
+        if (trimmed.contains("@") && password.isBlank()) {
+            LocalStorageManager.getSavedPasswordForEmail(context, trimmed)?.let { saved ->
+                password = saved
+            }
+        }
+    }
 
     /* dialogs */
     var showPwdDialog   by remember { mutableStateOf(false) }

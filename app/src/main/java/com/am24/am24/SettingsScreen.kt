@@ -6,6 +6,7 @@ package com.am24.am24
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
@@ -35,6 +36,9 @@ import com.am24.am24.ui.theme.ThemeManager
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -1203,12 +1207,28 @@ private fun BlockedUsersCard(
 
     /* fetch usernames */
     LaunchedEffect(ids) {
-        val tmp = mutableMapOf<String, String>()
-        ids.forEach {
-            val snap = FirebaseRefs.db.getReference("users").child(it).child("username").get().await()
-            tmp[it] = snap.getValue(String::class.java) ?: it
+        if (ids.isEmpty()) {
+            names = emptyMap()
+            return@LaunchedEffect
         }
-        names = tmp
+        val resolved = coroutineScope {
+            ids.map { userId ->
+                async {
+                    try {
+                        val snap = FirebaseRefs.db.getReference("users")
+                            .child(userId)
+                            .child("username")
+                            .get()
+                            .await()
+                        userId to (snap.getValue(String::class.java) ?: userId)
+                    } catch (e: Exception) {
+                        Log.e("SettingsScreen", "Failed to load username for $userId", e)
+                        userId to userId
+                    }
+                }
+            }.awaitAll()
+        }.toMap()
+        names = resolved
     }
 
     SettingsSection {

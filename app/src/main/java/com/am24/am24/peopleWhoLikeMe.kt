@@ -23,6 +23,9 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -100,17 +103,19 @@ fun PeopleWhoLikeMeScreen(
             val likesSnapshot = likesReceivedRef.get().await()
             val userIds = likesSnapshot.children.mapNotNull { it.key }
 
-            val fetchedProfiles = mutableListOf<Profile>()
-            for (userId in userIds) {
-                val profileSnapshot = usersRef.child(userId).get().await()
-                val profile = profileSnapshot.getValue(Profile::class.java)
-                if (profile != null
-                    && !myMatchIds.contains(profile.userId)
-                    && !profile.matches.contains(currentUserId)
-                    && !blockedIds.contains(profile.userId)
-                ) {
-                    fetchedProfiles.add(profile)
-                }
+            val fetchedProfiles = coroutineScope {
+                userIds.map { userId ->
+                    async {
+                        val profileSnapshot = usersRef.child(userId).get().await()
+                        profileSnapshot.getValue(Profile::class.java)
+                    }
+                }.awaitAll()
+                    .filterNotNull()
+                    .filter { profile ->
+                        !myMatchIds.contains(profile.userId) &&
+                                !profile.matches.contains(currentUserId) &&
+                                !blockedIds.contains(profile.userId)
+                    }
             }
 
             likedUsers.clear()
@@ -126,7 +131,7 @@ fun PeopleWhoLikeMeScreen(
 
     // For the scroll-to-top feature
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
+    val uiCoroutineScope = rememberCoroutineScope()
 
     if (isLoading) {
         Box(
@@ -138,17 +143,19 @@ fun PeopleWhoLikeMeScreen(
     } else {
         Scaffold(
             floatingActionButton = {
-                FloatingActionButton(
-                    onClick = {
-                        coroutineScope.launch { listState.animateScrollToItem(0) }
-                    },
-                    containerColor = Color(0xFFFF4500)
-                ) {
-                    Text(
-                        text = "No one has liked you yet.",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                if (likedUsers.isNotEmpty()) {
+                    FloatingActionButton(
+                        onClick = {
+                            uiCoroutineScope.launch { listState.animateScrollToItem(0) }
+                        },
+                        containerColor = Color(0xFFFF4500)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowUp,
+                            contentDescription = "Scroll to top",
+                            tint = Color.White
+                        )
+                    }
                 }
             },
             containerColor = Color.Black

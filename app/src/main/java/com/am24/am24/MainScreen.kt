@@ -48,6 +48,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.RssFeed
 import androidx.compose.ui.draw.shadow
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.google.firebase.database.FirebaseDatabase
 
 
@@ -223,6 +224,9 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                         if (isBlockedByTrial) return@BottomNavigationBar
 
                         navController.navigate(route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
                             launchSingleTop = true
                             restoreState = true
                         }

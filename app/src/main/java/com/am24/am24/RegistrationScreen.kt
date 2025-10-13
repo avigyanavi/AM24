@@ -2100,7 +2100,11 @@ fun EnterEmailAndPasswordScreen(
 
                     tryRegister(
                         mail, pwd,
-                        onSuccess = { isSubmitting = false; onNext() },
+                        onSuccess = {
+                            isSubmitting = false
+                            LocalStorageManager.saveEmailPassword(ctx, mail, pwd)
+                            onNext()
+                        },
                         onError   = { msg ->
                             isSubmitting = false
                             Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()

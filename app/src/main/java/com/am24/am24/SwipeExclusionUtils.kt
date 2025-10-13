@@ -1,37 +1,57 @@
 package com.am24.am24
 
 import kotlinx.coroutines.tasks.await
-
+import android.util.Log
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 /**
  * Utility function to collect user IDs that should be hidden from swiping UIs.
  */
-suspend fun fetchExcludedUsers(me: String): Set<String> {
+suspend fun fetchExcludedUsers(me: String): Set<String> = coroutineScope {
     val db = FirebaseRefs.db
-    val excludedIds = mutableSetOf<String>()
+    val tag = "SwipeExclusionUtils"
 
-    // ① matches — every matched UID is excluded
-    val matchSnap = db.getReference("matches/$me").get().await()
-    matchSnap.children.forEach { excludedIds += it.key!! }
 
-    // ② likes you gave – permanently exclude
-    val likeSnap = db.getReference("likesGiven/$me").get().await()
-    likeSnap.children.forEach { child -> excludedIds += child.key!! }
-
-    // ③ dislikes you gave – permanently exclude
-    val dislikeSnap = db.getReference("dislikesGiven/$me").get().await()
-    dislikeSnap.children.forEach { child -> excludedIds += child.key!! }
-
-    // ④ permanent excludes based on swipe counts
-    val permSnap = db.getReference("users/$me/permanentExcludes").get().await()
-    permSnap.children.forEach { excludedIds += it.key!! }
-
-    val countsSnap = db.getReference("users/$me/swipeCounts").get().await()
-    countsSnap.children.forEach { child ->
-        val cnt = child.getValue(Int::class.java) ?: 0
-        if (cnt >= 3) excludedIds += child.key!!
+    val matchesDeferred = async {
+        runCatching { db.getReference("matches/$me").get().await() }
+            .onFailure { Log.w(tag, "Failed to load matches for $me", it) }
+            .getOrNull()
+    }
+    val likesDeferred = async {
+        runCatching { db.getReference("likesGiven/$me").get().await() }
+            .onFailure { Log.w(tag, "Failed to load likes for $me", it) }
+            .getOrNull()
+    }
+    val dislikesDeferred = async {
+        runCatching { db.getReference("dislikesGiven/$me").get().await() }
+            .onFailure { Log.w(tag, "Failed to load dislikes for $me", it) }
+            .getOrNull()
+    }
+    val permanentDeferred = async {
+        runCatching { db.getReference("users/$me/permanentExcludes").get().await() }
+            .onFailure { Log.w(tag, "Failed to load permanent excludes for $me", it) }
+            .getOrNull()
+    }
+    val swipeCountsDeferred = async {
+        runCatching { db.getReference("users/$me/swipeCounts").get().await() }
+            .onFailure { Log.w(tag, "Failed to load swipe counts for $me", it) }
+            .getOrNull()
     }
 
-    return excludedIds
+    val excludedIds = mutableSetOf<String>()
+
+    matchesDeferred.await()?.children?.forEach { child -> child.key?.let(excludedIds::add) }
+    likesDeferred.await()?.children?.forEach { child -> child.key?.let(excludedIds::add) }
+    dislikesDeferred.await()?.children?.forEach { child -> child.key?.let(excludedIds::add) }
+    permanentDeferred.await()?.children?.forEach { child -> child.key?.let(excludedIds::add) }
+
+    swipeCountsDeferred.await()?.children?.forEach { child ->
+        val cnt = child.getValue(Int::class.java) ?: 0
+        if (cnt >= 3) {
+            child.key?.let(excludedIds::add)
+        }
+    }
+    excludedIds
 }
 
 /**

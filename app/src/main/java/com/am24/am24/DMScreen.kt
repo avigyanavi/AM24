@@ -56,7 +56,12 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.tasks.await
 import java.text.Normalizer
-
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 private fun canonicalLocationId(name: String): String {
     val normalized = Normalizer.normalize(name, Normalizer.Form.NFD)
@@ -195,14 +200,24 @@ fun DMScreenContent(
 
     LaunchedEffect(compliments) {
         complimentProfiles.clear()
-        compliments.forEach { (senderId, compliment) ->
-            try {
-                val snap = usersRef.child(senderId).get().await()
-                val profile = snap.getValue(Profile::class.java) ?: return@forEach
-                complimentProfiles.add(ComplimentWithProfile(profile, compliment))
-            } catch (_: Exception) {
-            }
+        if (compliments.isEmpty()) {
+            return@LaunchedEffect
         }
+        val resolved = coroutineScope {
+            compliments.map { (senderId, compliment) ->
+                async {
+                    try {
+                        val snap = usersRef.child(senderId).get().await()
+                        val profile = snap.getValue(Profile::class.java) ?: return@async null
+                        ComplimentWithProfile(profile, compliment)
+                    } catch (e: Exception) {
+                        Log.e("DMScreen", "Failed to load compliment sender $senderId", e)
+                        null
+                    }
+                }
+            }.awaitAll().filterNotNull()
+        }
+        complimentProfiles.addAll(resolved)
     }
 
     DisposableEffect(currentUserId) {
@@ -259,12 +274,18 @@ fun DMScreenContent(
 
     val messageListeners = remember { mutableMapOf<String, ValueEventListener>() }
 
-    DisposableEffect(currentUserId) {
-        val fetchListener = fetchUsersFromNode(matchesRef, usersRef, matchedUsers, context) {
-            checkNonInitiatedConversations(matchedUsers, messagesRootRef, currentUserId) { nonInitiated ->
-                nonInitiatedMatches.clear()
-                nonInitiatedMatches.addAll(nonInitiated)
-            }
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isBlank()) return@LaunchedEffect
+        try {
+            val snapshot = matchesRef.get().await()
+            val userIdsToFetch = snapshot.children.mapNotNull { it.key }
+            val fetchedProfiles = fetchProfiles(usersRef, userIdsToFetch)
+            matchedUsers.clear()
+            matchedUsers.addAll(fetchedProfiles)
+
+            val nonInitiated = fetchNonInitiatedConversations(fetchedProfiles, messagesRootRef, currentUserId)
+            nonInitiatedMatches.clear()
+            nonInitiatedMatches.addAll(nonInitiated)
 
             matchedUsers.forEach { profile ->
                 val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
@@ -282,9 +303,11 @@ fun DMScreenContent(
                 }
             }
 
-            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@fetchUsersFromNode
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
+            val activeChatIds = mutableSetOf<String>()
             matchedUsers.forEach { profile ->
                 val chatId = getChatId(uid, profile.userId)
+                activeChatIds.add(chatId)
                 messageListeners[chatId]?.let { old ->
                     messagesRootRef.child(chatId).removeEventListener(old)
                 }
@@ -316,11 +339,28 @@ fun DMScreenContent(
                     .addValueEventListener(listener)
                 messageListeners[chatId] = listener
             }
+            val staleChatIds = messageListeners.keys - activeChatIds
+            staleChatIds.forEach { chatId ->
+                messageListeners.remove(chatId)?.let { listener ->
+                    messagesRootRef.child(chatId).removeEventListener(listener)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("DMScreen", "Failed to load matches", e)
+            Toast.makeText(
+                context,
+                context.getString(R.string.toast_error_generic, e.message ?: ""),
+                Toast.LENGTH_SHORT
+            ).show()
+            matchedUsers.clear()
+            nonInitiatedMatches.clear()
         }
+    }
+
+    DisposableEffect(Unit) {
         onDispose {
-            matchesRef.removeEventListener(fetchListener)
-            messageListeners.forEach { (chatId, l) ->
-                messagesRootRef.child(chatId).removeEventListener(l)
+            messageListeners.forEach { (chatId, listener) ->
+                messagesRootRef.child(chatId).removeEventListener(listener)
             }
             messageListeners.clear()
         }
@@ -461,7 +501,9 @@ fun DMScreenContent(
                 !matchIds.contains(cp.profile.userId) && !blockedIds.contains(cp.profile.userId)
             }
 
-            if (displayedUsers.isEmpty() && complimentItems.isEmpty()) {
+            val hasAnyContent = displayedUsers.isNotEmpty() || complimentItems.isNotEmpty()
+
+            if (!hasAnyContent) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(stringResource(R.string.dm_no_matches), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
@@ -657,13 +699,13 @@ fun DMScreenContent(
             )
         }
 
-        FloatingActionButton(
-            onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
-            containerColor = Color(0xFFFF4500),
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-        ) {
-            Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.content_scroll_to_top), tint = Color.White)
-        }
+            FloatingActionButton(
+                onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
+                containerColor = Color(0xFFFF4500),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+            ) {
+                Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.content_scroll_to_top), tint = Color.White)
+            }
     }
 }
 
@@ -841,92 +883,47 @@ private fun unmatchUser(
         }
 }
 
-private fun checkNonInitiatedConversations(
+private suspend fun fetchNonInitiatedConversations(
     matchedUsers: List<Profile>,
     messagesRootRef: DatabaseReference,
-    currentUserId: String,
-    onResult: (List<Profile>) -> Unit
-) {
-    val nonInitiated = mutableListOf<Profile>()
-    var remaining = matchedUsers.size
-    if (remaining == 0) {
-        onResult(nonInitiated)
-        return
+    currentUserId: String
+): List<Profile> = coroutineScope {
+    if (matchedUsers.isEmpty()) {
+        return@coroutineScope emptyList<Profile>()
     }
 
-    matchedUsers.forEach { profile ->
-        val chatId = getChatId(currentUserId, profile.userId)
-        messagesRootRef.child(chatId).limitToFirst(1).get().addOnSuccessListener {
-            if (!it.exists()) {
-                nonInitiated.add(profile)
+    matchedUsers.map { profile ->
+        async {
+            try {
+                val chatId = getChatId(currentUserId, profile.userId)
+                val snapshot = messagesRootRef.child(chatId).limitToFirst(1).get().await()
+                if (!snapshot.exists()) profile else null
+            } catch (e: Exception) {
+                Log.e("DMScreen", "Failed to inspect conversation for ${profile.userId}", e)
+                null
             }
-            remaining--
-            if (remaining == 0) onResult(nonInitiated)
-        }.addOnFailureListener {
-            remaining--
-            if (remaining == 0) onResult(nonInitiated)
         }
+        }.awaitAll().filterNotNull()
     }
-}
 
-private fun fetchUsersFromNode(
-    ref: DatabaseReference,
+private suspend fun fetchProfiles(
     usersRef: DatabaseReference,
-    usersList: MutableList<Profile>,
-    context: android.content.Context,
-    onComplete: (() -> Unit)? = null
-): ValueEventListener {
-    val listener = object : ValueEventListener {
-        override fun onDataChange(snapshot: DataSnapshot) {
-            val userIdsToFetch = snapshot.children.mapNotNull { it.key }
-            Log.d("DMScreen", "Fetched user IDs from matches: $userIdsToFetch")
-
-            if (userIdsToFetch.isNotEmpty()) {
-                val newUsers = mutableListOf<Profile>()
-                var remaining = userIdsToFetch.size
-
-                userIdsToFetch.forEach { id ->
-                    usersRef.child(id).addListenerForSingleValueEvent(object : ValueEventListener {
-                        override fun onDataChange(userSnapshot: DataSnapshot) {
-                            userSnapshot.getValue(Profile::class.java)?.let { newUsers.add(it) }
-                            remaining--
-                            if (remaining == 0) {
-                                usersList.clear()
-                                usersList.addAll(newUsers)
-                                Log.d(
-                                    "DMScreen",
-                                    "Populated matchedUsers with ${usersList.size} profiles: ${usersList.map { it.userId }}"
-                                )
-                                onComplete?.invoke()
-                            }
-                        }
-
-                        override fun onCancelled(error: DatabaseError) {
-                            Log.e("DMScreen", "DBError in fetchUsersFromNode: ${error.message}")
-                            Toast.makeText(context, context.getString(R.string.toast_error_generic, error.message ?: "" ), Toast.LENGTH_SHORT).show()
-                            remaining--
-                            if (remaining == 0) {
-                                usersList.clear()
-                                usersList.addAll(newUsers)
-                                onComplete?.invoke()
-                            }
-                        }
-                    })
-                }
-            } else {
-                usersList.clear()
-                Log.d("DMScreen", "No user IDs to fetch, cleared matchedUsers")
-                onComplete?.invoke()
+    userIds: List<String>
+): List<Profile> = coroutineScope {
+    if (userIds.isEmpty()) {
+        return@coroutineScope emptyList<Profile>()
+    }
+    userIds.map { id ->
+        async {
+            try {
+                val snapshot = usersRef.child(id).get().await()
+                snapshot.getValue(Profile::class.java)
+            } catch (e: Exception) {
+                Log.e("DMScreen", "Failed to fetch profile for $id", e)
+                null
             }
         }
-
-        override fun onCancelled(error: DatabaseError) {
-            Log.e("DMScreen", "DatabaseError in fetchUsersFromNode: ${error.message}")
-            Toast.makeText(context, context.getString(R.string.toast_error_generic, error.message ?: "" ), Toast.LENGTH_SHORT).show()
-        }
-    }
-    ref.addListenerForSingleValueEvent(listener)
-    return listener
+    }.awaitAll().filterNotNull()
 }
 
 fun getLevelBorderColor(rating: Double): Color {
