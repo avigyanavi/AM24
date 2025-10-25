@@ -7,12 +7,20 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalAirport
+import androidx.compose.material.FractionalThreshold
+import androidx.compose.material.rememberSwipeableState
+import androidx.compose.material.swipeable
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +37,7 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun PreviewUserProfileScreen(
     navController    : NavController,
@@ -139,15 +148,82 @@ fun PreviewUserProfileScreen(
     ) {
         when {
             currentCard != null -> {
-                MatchedUserProfileScreen(
-                    profile          = currentCard,
-                    geoFire          = geoFire,
-                    postViewModel    = postViewModel,
-                    profileViewModel = profileViewModel,
-                    navController    = navController,
-                    showBackButton   = true,
-                    isMatch          = false
-                )
+                val activeProfile = currentCard
+                val swipeableState = rememberSwipeableState(initialValue = 0)
+                val anchors = remember { mapOf(-300f to -1, 0f to 0, 300f to 1) }
+                val swipeOffset = swipeableState.offset.value
+                val maxDrag = 300f
+                val rawAlpha = (abs(swipeOffset) / maxDrag).coerceIn(0f, 1f)
+                val showLikeOverlay = swipeOffset > 0f
+                val showPassOverlay = swipeOffset < 0f
+
+                LaunchedEffect(activeProfile.userId) {
+                    swipeableState.snapTo(0)
+                }
+
+                LaunchedEffect(swipeableState.currentValue, activeProfile.userId) {
+                    when (swipeableState.currentValue) {
+                        -1 -> {
+                            showPassAnim.value = true
+                            handleSwipeLeft(currentUserId, activeProfile.userId)
+                            updateDailySwipeCount()
+                            navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", activeProfile.userId)
+                            markCardProcessed(activeProfile.userId)
+                        }
+                        1 -> {
+                            showLikeAnim.value = true
+                            handleSwipeRight(currentUserId, activeProfile.userId, profileViewModel)
+                            updateDailySwipeCount()
+                            navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", activeProfile.userId)
+                            markCardProcessed(activeProfile.userId)
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .offset { IntOffset(swipeOffset.roundToInt(), 0) }
+                        .swipeable(
+                            state = swipeableState,
+                            anchors = anchors,
+                            thresholds = { _, _ -> FractionalThreshold(0.3f) },
+                            orientation = Orientation.Horizontal
+                        )
+                ) {
+                    MatchedUserProfileScreen(
+                        profile          = activeProfile,
+                        geoFire          = geoFire,
+                        postViewModel    = postViewModel,
+                        profileViewModel = profileViewModel,
+                        navController    = navController,
+                        showBackButton   = true,
+                        isMatch          = false
+                    )
+
+                    if (showPassOverlay) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .padding(24.dp)
+                                .alpha(rawAlpha)
+                        )
+                    }
+                    if (showLikeOverlay) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = null,
+                            tint = Color(0xFFFF6F00),
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(24.dp)
+                                .alpha(rawAlpha)
+                        )
+                    }
+                }
             }
             errorMessage != null -> Text(
                 text      = errorMessage!!,

@@ -29,7 +29,7 @@ import kotlinx.coroutines.tasks.await
 @Composable
 fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: String) {
     val context = LocalContext.current
-    val dbRef = remember { FirebaseDatabase.getInstance().getReference("omegleChats").child(chatId) }
+    val dbRef = remember { FirebaseRefs.db.getReference("omegleChats").child(chatId) }
     var otherName by remember { mutableStateOf("") }
     var otherPhoto by remember { mutableStateOf("") }
     val messages = remember { mutableStateListOf<OmegleMessage>() }
@@ -38,7 +38,7 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
     var endedByMe by remember { mutableStateOf(false) }
     var showEndedDialog by remember { mutableStateOf(false) }
     LaunchedEffect(otherUserId) {
-        val snap = FirebaseDatabase.getInstance().reference.child("users").child(otherUserId).get().await()
+        val snap = FirebaseRefs.db.reference.child("users").child(otherUserId).get().await()
         otherName = snap.child("name").getValue(String::class.java) ?: ""
         otherPhoto = snap.child("profilepicUrl").getValue(String::class.java) ?: ""
     }
@@ -177,7 +177,7 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
 }
 
 private fun cleanupChat(dbRef: DatabaseReference, uid: String?, otherUserId: String, chatId: String) {
-    val ref = FirebaseDatabase.getInstance().reference
+    val ref = FirebaseRefs.db.reference
     uid?.let { ref.child("omegleInvites").child(it).child(chatId).removeValue() }
     ref.child("omegleInvites").child(otherUserId).child(chatId).removeValue()
     dbRef.removeValue()

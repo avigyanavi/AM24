@@ -239,7 +239,7 @@ fun SubscriptionScreen(
         }
     }
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val userRoot = FirebaseDatabase.getInstance().getReference("users/$uid")
+    val userRoot = FirebaseRefs.db.getReference("users/$uid")
     var userCountry by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(uid) {
         userCountry = userRoot.child("country").get().await().getValue(String::class.java)
@@ -250,7 +250,7 @@ fun SubscriptionScreen(
     val isThailand = CountryUtil.isThailand(ctx, userCountry)
 
     /* -------------------------------------------------- */
-    val db     = FirebaseDatabase.getInstance().reference
+    val db     = FirebaseRefs.db.reference
     val scope  = rememberCoroutineScope()
     var working by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }

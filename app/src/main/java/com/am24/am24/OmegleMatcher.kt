@@ -1,7 +1,6 @@
 package com.am24.am24
 
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.tasks.await
 
 data class OmegleMatch(
@@ -11,7 +10,7 @@ data class OmegleMatch(
 
 suspend fun matchRandomOmegleUser(): OmegleMatch? {
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return null
-    val db = FirebaseDatabase.getInstance().reference
+    val db = FirebaseRefs.db.reference
     val presenceSnap = db.child("presence").get().await()
     val onlineUsers = presenceSnap.children.mapNotNull { it.key }.filter { it != uid }
     if (onlineUsers.isEmpty()) return null
@@ -35,7 +34,7 @@ suspend fun matchRandomOmegleUser(): OmegleMatch? {
 
 suspend fun inviteOmegleUser(targetUid: String): OmegleMatch? {
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return null
-    val db = FirebaseDatabase.getInstance().reference
+    val db = FirebaseRefs.db.reference
     val chatId = db.child("omegleChats").push().key ?: return null
     val chatData = mapOf(
         "user1" to uid,

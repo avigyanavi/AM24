@@ -70,7 +70,7 @@ fun PeopleWhoLikeMeScreen(
 
         isLoading = true
         try {
-            val db = FirebaseDatabase.getInstance()
+            val db = FirebaseRefs.db
             val userSnapshot = db.getReference("users")
                 .child(currentUserId)
                 .get()

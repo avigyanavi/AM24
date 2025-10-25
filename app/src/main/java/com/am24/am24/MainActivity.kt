@@ -28,12 +28,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthProvider
-import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -153,7 +151,7 @@ class MainActivity : ComponentActivity() {
         isNavigationInProgress = true
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val db = FirebaseDatabase.getInstance().reference
+            val db = FirebaseRefs.db.reference
             val snap = db.child("users").child(user.uid).get().await()
 
             GclidStorageManager.flushPendingGclid(

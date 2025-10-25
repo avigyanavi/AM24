@@ -1,29 +1,20 @@
 import android.app.Application
-import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.am24.am24.DatingFilterSettings
 import com.am24.am24.ExclusionEventBus
 import com.am24.am24.FirebaseRefs
 import com.am24.am24.Notification
 import com.am24.am24.Profile
 import com.am24.am24.ProfileViewModel
-import com.am24.am24.R
-import com.am24.am24.calculateAge
 import com.am24.am24.calculateDistance
-import com.am24.am24.canonicalGenderRes
 import com.am24.am24.handleSwipeRight
-import com.am24.am24.toGenderCode
-import com.am24.am24.toOrientationCode
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,10 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.util.Calendar
-import java.util.UUID
 import com.google.firebase.functions.FirebaseFunctions
-import com.google.firebase.functions.HttpsCallableReference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.asStateFlow
@@ -210,7 +198,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Call this once (e.g. from DatingScreen’s LaunchedEffect) */
     fun startInventoryWatcher(uid: String) {
-        val root = FirebaseDatabase.getInstance().reference.child("users/$uid")
+        val root = FirebaseRefs.db.reference.child("users/$uid")
 
         val compliments = root.child("availableCompliments")
         val complimentsL = simpleIntListener { _complimentsLeft.value = it }
@@ -499,7 +487,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         MutableStateFlow<Map<String,String>>(emptyMap())
     val verificationStatuses: StateFlow<Map<String,String>>
             = _verificationStatuses
-    private val db = FirebaseDatabase.getInstance().reference
+    private val db = FirebaseRefs.db.reference
 
     /** one-off load for a single uid */
     fun loadVerification(uid: String) = viewModelScope.launch {

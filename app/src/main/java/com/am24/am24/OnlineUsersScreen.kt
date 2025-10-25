@@ -40,12 +40,11 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.math.min
-import com.am24.am24.safePopBackStack
 
 @Composable
 fun OnlineUsersScreen(navController: NavController) {
     val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val db = FirebaseDatabase.getInstance().reference
+    val db = FirebaseRefs.db.reference
 
     var users by remember { mutableStateOf<List<Profile>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }

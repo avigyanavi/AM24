@@ -7,7 +7,6 @@ import com.am24.am24.ui.theme.ThemeManager
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
-import com.google.firebase.database.FirebaseDatabase
 import com.am24.am24.billing.BillingManager
 import com.am24.am24.ui.purchase.PurchaseType
 import com.android.installreferrer.api.InstallReferrerClient
@@ -57,7 +56,7 @@ class MyApp : Application() {
         appCheck.installAppCheckProviderFactory(providerFactory)
 
         // ───────── Realtime DB persistence ─────────
-        try { FirebaseDatabase.getInstance().setPersistenceEnabled(true) } catch (_: Exception) {}
+        FirebaseRefs.warmUp()
 
         // ───────── Play Billing: INAPP packs + SUBS ─────────
         val packQuantities = listOf(5, 10, 20)

@@ -370,7 +370,7 @@ fun MapScreen(
     }
 
     DisposableEffect(userId) {
-        val ref = FirebaseDatabase.getInstance().reference
+        val ref = FirebaseRefs.db.reference
             .child("omegleInvites").child(userId)
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -1602,7 +1602,7 @@ fun MapScreen(
             confirmButton = {
                 TextButton(onClick = {
                     val match = omegleInvite!!
-                    val ref = FirebaseDatabase.getInstance().reference
+                    val ref = FirebaseRefs.db.reference
                     ref.child("omegleChats").child(match.chatId).child("status").setValue("accepted")
                     ref.child("omegleInvites").child(userId).child(match.chatId).removeValue()
                     navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
@@ -1612,7 +1612,7 @@ fun MapScreen(
             dismissButton = {
                 TextButton(onClick = {
                     omegleInvite?.let { match ->
-                        val ref = FirebaseDatabase.getInstance().reference
+                        val ref = FirebaseRefs.db.reference
                         ref.child("omegleChats").child(match.chatId).child("status").setValue("rejected")
                         ref.child("omegleInvites").child(userId).child(match.chatId).removeValue()
                     }

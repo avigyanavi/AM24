@@ -32,7 +32,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.lifecycleScope
 import com.am24.am24.ui.purchase.PaymentResultListenerHost
 import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -61,7 +60,7 @@ class KupidXAppActivity : AppCompatActivity(),
     private var pendingOpenUpgradeLanding = false
 
     private fun setupPresence(uid: String) {
-        val ref = FirebaseDatabase.getInstance().getReference("presence").child(uid)
+        val ref = FirebaseRefs.db.getReference("presence").child(uid)
         presenceRef = ref
         ref.setValue(true)
         ref.onDisconnect().removeValue()

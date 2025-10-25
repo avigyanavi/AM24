@@ -903,7 +903,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             chatsRef.child(conversationId).removeValue().await()
 
             // 4) Delete the messages node (contains chat history and shared posts)
-            val messagesRef = FirebaseDatabase.getInstance().getReference("messages/$conversationId")
+            val messagesRef = FirebaseRefs.db.getReference("messages/$conversationId")
             messagesRef.removeValue().await()
         } catch (e: Exception) {
             Log.e(TAG, "Error unmatching and removing chat: ${e.message}", e)
@@ -1725,8 +1725,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 val username = fetchUsernameById(currentUserId)
                 matches.forEach { matchId ->
                     val chatId = if (currentUserId < matchId) "${currentUserId}_$matchId" else "${matchId}_$currentUserId"
-                    val messagesRef = FirebaseDatabase.getInstance().getReference("messages/$chatId")
-                    val participantsRef = FirebaseDatabase.getInstance().getReference("chatParticipants/$chatId")
+                    val messagesRef = FirebaseRefs.db.getReference("messages/$chatId")
+                    val participantsRef = FirebaseRefs.db.getReference("chatParticipants/$chatId")
                     val newMessageId = messagesRef.push().key ?: run {
                         onFailure("Failed to generate new message ID")
                         return@forEach
@@ -1756,7 +1756,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     messagesRef.child(newMessageId).setValue(sharedMessage).await()
                     Log.d("PostViewModel", "Shared post message written: $newMessageId to chat $chatId, message=$sharedMessage")
 
-                    val notificationsRef = FirebaseDatabase.getInstance().getReference("notifications")
+                    val notificationsRef = FirebaseRefs.db.getReference("notifications")
                     postNotification(
                         notificationsRef = notificationsRef,
                         toUserId = matchId,

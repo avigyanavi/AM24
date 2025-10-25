@@ -5,11 +5,9 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.am24.am24.FirebaseRefs.db
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
-import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -128,7 +126,7 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
     init {
         // Listen to precomputed leaderboard entries instead of the full users node
         Log.d("LeaderboardVM", ">>> init LeaderboardViewModel")
-        val ref = FirebaseDatabase.getInstance()
+        val ref = FirebaseRefs.db
             .getReference("leaderboard")
             listener = object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {

@@ -27,6 +27,10 @@ const DATABASE_CONFIGS = [
     name: "am-twentyfour",
     url: "https://am-twentyfour.firebaseio.com",
   },
+  {
+    name: "kupidx",
+    url: "https://kupidx.asia-southeast1.firebasedatabase.app",
+  },
 ];
 
 const bucketCache = new Map();
@@ -83,10 +87,80 @@ const databaseTargets = DATABASE_CONFIGS.map((config, index) => {
   return { ...config, app, db: app.database() };
 });
 
-const db     = databaseTargets[0].db;
+let activeDatabaseIndex = 0;
+let db     = databaseTargets[activeDatabaseIndex]?.db;
 
-const USERS  = db.ref('users');
+const getUsersRef = () => db.ref('users');
+
 const AVAILABLE_DATABASE_NAMES = databaseTargets.map((target) => target.name);
+
+const FAILOVER_TIMEOUT_MS = 5_000;
+const FAILOVER_CHECK_INTERVAL_MS = 5 * 60 * 1_000;
+let lastHealthCheckTs = 0;
+
+function setActiveDatabase(index, reason = "") {
+  if (index < 0 || index >= databaseTargets.length) return;
+  if (activeDatabaseIndex === index) return;
+
+  activeDatabaseIndex = index;
+  db = databaseTargets[activeDatabaseIndex].db;
+  functions.logger.warn("Switched RTDB target", {
+    activeDatabase: databaseTargets[activeDatabaseIndex].name,
+    reason,
+  });
+}
+
+function findFallbackIndex() {
+  if (databaseTargets.length <= 1) return -1;
+  for (let i = 1; i < databaseTargets.length; i += 1) {
+    if (databaseTargets[i] && databaseTargets[i].db) return i;
+  }
+  return -1;
+}
+
+function withTimeout(promise, timeoutMs) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("timeout")), timeoutMs).unref?.();
+    }),
+  ]);
+}
+
+async function runPrimaryHealthCheck(force = false) {
+  const primary = databaseTargets[0];
+  if (!primary || !primary.db) return;
+
+  const nowTs = Date.now();
+  if (!force && nowTs - lastHealthCheckTs < FAILOVER_CHECK_INTERVAL_MS) return;
+  lastHealthCheckTs = nowTs;
+
+  try {
+    await withTimeout(primary.db.ref(".info/serverTimeOffset").get(), FAILOVER_TIMEOUT_MS);
+    if (activeDatabaseIndex !== 0) {
+      setActiveDatabase(0, "primary healthy");
+    }
+  } catch (err) {
+    const fallbackIndex = findFallbackIndex();
+    if (fallbackIndex !== -1) {
+      setActiveDatabase(fallbackIndex, `primary health check failed: ${err?.message || err}`);
+    } else {
+      functions.logger.error("Primary database health check failed and no fallback configured", err);
+    }
+  }
+}
+
+if (databaseTargets.length > 1) {
+  runPrimaryHealthCheck(true).catch((err) => {
+    functions.logger.error("Initial database health check failed", err);
+  });
+
+  setInterval(() => {
+    runPrimaryHealthCheck().catch((err) => {
+      functions.logger.error("Periodic database health check failed", err);
+    });
+  }, FAILOVER_CHECK_INTERVAL_MS).unref();
+}
 
 DEFAULT_STORAGE_BUCKETS = CONFIGURED_STORAGE_BUCKET_NAMES.slice();
 const detectedBucket = detectDefaultStorageBucket();
@@ -771,6 +845,46 @@ exports.resetDailyPhoneRegistrationCap = functions
     return null;
   });
 
+exports.backupPrimaryDatabaseDaily = functions
+  .region('asia-south1')
+  .runWith({ timeoutSeconds: 540, memory: '2GB' })
+  .pubsub.schedule('every 24 hours')
+  .timeZone('Asia/Kolkata')
+  .onRun(async () => {
+    const primary = databaseTargets[0];
+    const backupTarget = databaseTargets.find((target) => target.name === 'kupidx');
+
+    if (!primary || !primary.db) {
+      functions.logger.warn('Database backup skipped: primary database not configured');
+      return null;
+    }
+
+    if (!backupTarget || !backupTarget.db) {
+      functions.logger.warn('Database backup skipped: backup database not configured');
+      return null;
+    }
+
+    try {
+      await runPrimaryHealthCheck(true);
+      const snapshot = await primary.db.ref().get();
+      const data = snapshot.exists() ? snapshot.val() : null;
+      await backupTarget.db.ref().set(data);
+      functions.logger.info('Primary database backup completed', {
+        source: primary.name,
+        destination: backupTarget.name,
+      });
+    } catch (err) {
+      functions.logger.error('Primary database backup failed', {
+        error: err?.message || err,
+        source: primary?.name,
+        destination: backupTarget?.name,
+      });
+      throw err;
+    }
+
+    return null;
+  });
+
 exports.verifyPayment = functions
 .region("asia-south1")
 .https.onCall(async (data, context) => {
@@ -793,7 +907,7 @@ exports.backfillProfilepicThumbnailUrl = functions
   .region('asia-south1')
   .https.onRequest(async (_req, res) => {
     try {
-      const snap = await USERS.once('value');
+      const snap = await getUsersRef().once('value');
       const updates = {};
 
       snap.forEach(userSnap => {
@@ -807,7 +921,7 @@ exports.backfillProfilepicThumbnailUrl = functions
         return res.status(200).send('No users needed back-fill.');
       }
 
-      await USERS.update(updates);
+      await getUsersRef().update(updates);
       res
         .status(200)
         .send(`Updated ${Object.keys(updates).length} user(s).`);
@@ -1005,7 +1119,7 @@ exports.backfillOrientationAndKinks = functions
   .region('asia-south1')
   .https.onRequest(async (_req, res) => {
     try {
-      const snap = await USERS.once('value');
+      const snap = await getUsersRef().once('value');
       const updates = {};
 
       snap.forEach(userSnap => {
@@ -1019,7 +1133,7 @@ exports.backfillOrientationAndKinks = functions
         return res.status(200).send('No users needed back-fill.');
       }
 
-      await USERS.update(updates);
+      await getUsersRef().update(updates);
       res
         .status(200)
         .send(`Updated ${Object.keys(updates).length} user(s).`);
@@ -1034,7 +1148,7 @@ exports.backfillFreeTrialFields = functions
   .runWith({ timeoutSeconds: 540, memory: '1GB' })
   .https.onRequest(async (_req, res) => {
     try {
-      const snap = await USERS.once('value');
+      const snap = await getUsersRef().once('value');
       const updates = {};
       let affected = 0;
 
@@ -1067,7 +1181,7 @@ exports.backfillFreeTrialFields = functions
         return res.status(200).send('All users already have free trial fields.');
       }
 
-      await USERS.update(updates);
+      await getUsersRef().update(updates);
       return res
         .status(200)
         .send(`Backfilled free trial fields for ${affected} user(s).`);
@@ -1434,7 +1548,7 @@ exports.getGlobalBoostedUsers = functions
   .https.onCall(async () => {
     const cutOff = now() - BOOST_DURATION_MS;
 
-    const snap = await USERS
+    const snap = await getUsersRef()
       .orderByChild('isBoosted').equalTo(true).get();
 
     const profiles = [];
@@ -1451,7 +1565,7 @@ exports.getGlobalPremiumUsers = functions
   .https.onCall(async ({ uid }) => {
     const cutoff = now() - 30 * 24 * 60 * 60 * 1000; // 30 days
 
-    const snap = await USERS
+    const snap = await getUsersRef()
       .orderByChild('lastActive')
       .startAt(cutoff)
       .get();
@@ -1492,7 +1606,7 @@ exports.getGlobalComplimenters = functions
 
     /* 2️⃣  batch-fetch their profiles */
     const profSnaps = await Promise.all(
-      ids.map(id => USERS.child(id).get())
+      ids.map(id => getUsersRef().child(id).get())
     );
 
     const profiles = profSnaps.map(toJson).filter(Boolean);

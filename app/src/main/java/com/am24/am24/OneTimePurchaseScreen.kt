@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ServerValue.increment
 import com.google.firebase.functions.FirebaseFunctions
 import com.razorpay.Checkout
@@ -28,6 +27,7 @@ import androidx.fragment.app.FragmentActivity
 import com.am24.am24.CountryUtil
 import com.am24.am24.billing.BillingViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.am24.am24.FirebaseRefs
 import com.am24.am24.R
 
 enum class PurchaseType(
@@ -56,7 +56,7 @@ fun OneTimePurchaseScreen(
     val ctx        = LocalContext.current
     val scope      = rememberCoroutineScope()
     val uid        = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val userRoot   = FirebaseDatabase.getInstance().getReference("users/$uid")
+    val userRoot   = FirebaseRefs.db.getReference("users/$uid")
     val fx         = FirebaseFunctions.getInstance("asia-south1")
     val checkout   = remember { Checkout().apply { setKeyID("rzp_live_DsoxJLeiCw940M") } }
     val act        = ctx as FragmentActivity

@@ -34,7 +34,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.*
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.graphics.TransformOrigin
@@ -49,8 +48,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.RssFeed
 import androidx.compose.ui.draw.shadow
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import com.google.firebase.database.FirebaseDatabase
-import com.am24.am24.IndiaCityLatLngMap
 
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
@@ -130,7 +127,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
 
     LaunchedEffect(trialExpired) {
         if (trialExpired) {
-            FirebaseDatabase.getInstance()
+            FirebaseRefs.db
                 .getReference("users/$currentUserId/freeTrialCompleted")
                 .setValue(true)
         }
@@ -147,7 +144,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     // Listen for incoming omegle invites
     var omegleInvite by remember { mutableStateOf<OmegleMatch?>(null) }
     DisposableEffect(currentUserId) {
-        val ref = FirebaseDatabase.getInstance().reference
+        val ref = FirebaseRefs.db.reference
             .child("omegleInvites").child(currentUserId)
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -170,7 +167,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     DisposableEffect(omegleInvite?.chatId) {
         val match = omegleInvite
         if (match == null) return@DisposableEffect onDispose {}
-        val statusRef = FirebaseDatabase.getInstance().reference
+        val statusRef = FirebaseRefs.db.reference
             .child("omegleChats").child(match.chatId).child("status")
         val statusListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -250,7 +247,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                 confirmButton = {
                     TextButton(onClick = {
                         val match = omegleInvite!!
-                        val ref = FirebaseDatabase.getInstance().reference
+                        val ref = FirebaseRefs.db.reference
                         ref.child("omegleChats").child(match.chatId).child("status").setValue("accepted")
                         ref.child("omegleInvites").child(currentUserId).child(match.chatId).removeValue()
                         navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
@@ -260,7 +257,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                 dismissButton = {
                     TextButton(onClick = {
                         omegleInvite?.let { match ->
-                            val ref = FirebaseDatabase.getInstance().reference
+                            val ref = FirebaseRefs.db.reference
                             ref.child("omegleChats").child(match.chatId).child("status").setValue("rejected")
                             ref.child("omegleInvites").child(currentUserId).child(match.chatId).removeValue()
                         }

@@ -48,7 +48,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.am24.am24.ui.theme.DarkGrayBackground
-import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import com.google.android.gms.maps.model.LatLng
@@ -71,7 +70,7 @@ fun CreatePostScreen(
     LaunchedEffect(userId) {
         if (userId != null) {
             try {
-                val db = FirebaseDatabase.getInstance()
+                val db = FirebaseRefs.db
                 val premiumSnapshot = db.getReference("users")
                     .child(userId)
                     .child("isPremium")

@@ -10,7 +10,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase        // ✅ RTDB (matches Cloud Function)
 import com.google.firebase.database.ServerValue
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -25,7 +24,7 @@ class PushService : FirebaseMessagingService() {
         fun uploadCurrentToken() {
             FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
                 val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@addOnSuccessListener
-                FirebaseDatabase.getInstance().reference
+                FirebaseRefs.db.reference
                     .child("users").child(uid)
                     .child("fcmTokens").child(token)
                     .setValue(true)            // Boolean flag is enough for pushSummary
@@ -35,7 +34,7 @@ class PushService : FirebaseMessagingService() {
         /** Update the user's lastActive timestamp to the server's time */
         fun updateLastActive() {
             val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-            FirebaseDatabase.getInstance().reference
+            FirebaseRefs.db.reference
                 .child("users").child(uid)
                 .child("lastActive")
                 .setValue(ServerValue.TIMESTAMP)
@@ -45,7 +44,7 @@ class PushService : FirebaseMessagingService() {
     /** Fires if FCM rotates the token (rare). Mirrors it to RTDB. */
     override fun onNewToken(token: String) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        FirebaseDatabase.getInstance().reference
+        FirebaseRefs.db.reference
             .child("users").child(uid)
             .child("fcmTokens").child(token)
             .setValue(true)
