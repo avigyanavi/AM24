@@ -66,6 +66,10 @@ import coil.compose.rememberAsyncImagePainter
 import coil.imageLoader
 import com.am24.am24.util.CachedFullscreenVideoPlayer
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.isActive
+import androidx.compose.runtime.snapshotFlow
 
 @Composable
 fun ProfileScreen(
@@ -828,7 +832,14 @@ fun PhotoCarouselWithOverlay(
                         LaunchedEffect(profile.name) {
                             // tiny pause before you start
                             delay(800)
-                            while (true) {
+                            val hasOverflow = snapshotFlow { scroll.maxValue }
+                                .filter { it > 0 }
+                                .firstOrNull()
+                            if (hasOverflow == null) {
+                                scroll.scrollTo(0)
+                                return@LaunchedEffect
+                            }
+                            while (isActive) {
                                 scroll.animateScrollTo(scroll.maxValue)
                                 delay(800)
                                 scroll.animateScrollTo(0)

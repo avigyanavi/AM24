@@ -67,6 +67,8 @@ class LandingActivity : ComponentActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var callbackManager: CallbackManager   // Facebook
     var isSigningIn by mutableStateOf(false)
+    private var authListener: FirebaseAuth.AuthStateListener? = null
+    private var hasNavigatedAway = false
 
     /* Preserve chosen language */
     override fun attachBaseContext(newBase: Context) {
@@ -92,6 +94,8 @@ class LandingActivity : ComponentActivity() {
     private lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>
 
     private fun continueIntoApp() {
+        if (hasNavigatedAway) return
+        hasNavigatedAway = true
         val uid = FirebaseAuth.getInstance().currentUser?.uid
             ?: run { goToMain(); return }
 
@@ -162,6 +166,12 @@ class LandingActivity : ComponentActivity() {
 
         firebaseAuth = FirebaseAuth.getInstance()          // keep this first
 
+        authListener = FirebaseAuth.AuthStateListener { auth ->
+            if (auth.currentUser != null) {
+                continueIntoApp()
+            }
+        }
+
         /* Skip landing if cached user exists */
         if (firebaseAuth.currentUser != null) {
             continueIntoApp()
@@ -193,6 +203,16 @@ class LandingActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        authListener?.let { firebaseAuth.addAuthStateListener(it) }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        authListener?.let { firebaseAuth.removeAuthStateListener(it) }
     }
 
     /* ───────── Google flow ───────── */

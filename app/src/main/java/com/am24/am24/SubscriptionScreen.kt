@@ -42,6 +42,7 @@ import java.util.Locale
 import com.am24.am24.AccountDeletion
 import com.am24.am24.LandingActivity
 import com.am24.am24.TokenStorageManager
+import com.am24.am24.safePopBackStack
 
 private val PLUS_FEATURES = listOf(
     R.string.feature_no_ads,
@@ -288,7 +289,7 @@ fun SubscriptionScreen(
     }
     /* already subscribed → leave */
     if ((plus == true || premium == true) && !allowIfSubscribed) {
-        LaunchedEffect(Unit) { navController.popBackStack() }
+     LaunchedEffect(Unit) { navController.safePopBackStack() }
         return
     }
 

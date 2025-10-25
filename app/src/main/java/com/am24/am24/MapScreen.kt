@@ -253,6 +253,7 @@ fun MapScreen(
     val gson = remember { Gson() }
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val useMiles = remember { !CountryUtil.usesKilometers(ctx) } // decide unit once
     val userRef = remember(userId) { FirebaseRefs.db.getReference("users").child(userId) }
     var userCountry by remember { mutableStateOf<String?>(null) }
@@ -1108,8 +1109,9 @@ fun MapScreen(
                                                         isLoadingSearch = false
                                                     }
                                                 } else {
+                                                    keyboardController?.hide()
+                                                    focusManager.clearFocus(force = true)
                                                     showSearchBar = false
-                                                    focusManager.clearFocus()
                                                 }
                                             },
                                             modifier = Modifier

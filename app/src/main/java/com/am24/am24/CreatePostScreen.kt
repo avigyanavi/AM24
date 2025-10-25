@@ -307,7 +307,7 @@ fun TextPostComposable(
                     }
                 },
                 actions = {
-                    if (isPosting) {
+                    if (posting) {
                         // show spinner instead of button
                         CircularProgressIndicator(
                             modifier = Modifier
@@ -397,7 +397,7 @@ fun TextPostComposable(
                                     }
                                 )
                             }
-                        }, enabled = !isPosting) {
+                        }, enabled = !posting) {
                             Text(stringResource(R.string.post_action), color = Color(0xFFFF4500))
                         }
                     }
@@ -576,6 +576,8 @@ fun ImagePostComposable(
     var searching      by remember { mutableStateOf(false) }
     val menuExpanded   = placeResults.isNotEmpty()
     val isPosting by postViewModel.isUploading.collectAsState(initial = false)
+    var localPosting by remember { mutableStateOf(false) }
+    val posting = isPosting || localPosting
 
     /* fetch display name once */
     LaunchedEffect(Unit) { username = fetchUsernameById(userId) ?: "Anonymous" }
@@ -615,7 +617,7 @@ fun ImagePostComposable(
                     }
                 },
                 actions = {
-                    if (isPosting) {
+                    if (posting) {
                         // show spinner instead of button
                         CircularProgressIndicator(
                             modifier = Modifier
@@ -627,9 +629,11 @@ fun ImagePostComposable(
                     } else {
                         TextButton(onClick = {
                             scope.launch {
+                                localPosting = true
                                 if (imageUri == null) {
                                     Toast.makeText(ctx, "Select an image first", Toast.LENGTH_SHORT)
                                         .show()
+                                    localPosting = false
                                     return@launch
                                 }
                                 val tags =
@@ -647,6 +651,7 @@ fun ImagePostComposable(
                                         Toast.LENGTH_LONG
                                     ).show()
                                     imageUri = null            // force user to pick another
+                                    localPosting = false
                                     return@launch
                                 }
 
@@ -672,16 +677,18 @@ fun ImagePostComposable(
                                                     "home",
                                                     inclusive = false
                                                 )
+                                                localPosting = false
                                             }
                                         }
                                     },
                                     onError = { e ->
                                         Handler(Looper.getMainLooper()).post {
                                             Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show()
+                                            localPosting = false
                                         }
                                     })
                             }
-                        }, enabled = !isPosting) {
+                        }, enabled = !posting) {
                             Text(stringResource(R.string.post_action), color = Color(0xFFFF4500))
                         }
                     }
@@ -871,7 +878,8 @@ fun VideoPostComposable(
     val scope   = rememberCoroutineScope()
     val userId  = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val isPosting by postViewModel.isUploading.collectAsState(initial = false)
-
+    var localPosting by remember { mutableStateOf(false) }
+    val posting = isPosting || localPosting
     /* ---------- UI state ---------- */
     var username by remember { mutableStateOf("") }
     var videoUri by remember { mutableStateOf<Uri?>(null) }
@@ -973,7 +981,7 @@ fun VideoPostComposable(
                     }
                 },
                 actions = {
-                    if (isPosting) {
+                    if (posting) {
                         // show spinner instead of button
                         CircularProgressIndicator(
                             modifier = Modifier
@@ -985,18 +993,21 @@ fun VideoPostComposable(
                     } else {
                         TextButton(onClick = {
                             scope.launch {
+                                localPosting = true
                                 if (videoUri == null) {
                                     Toast.makeText(ctx, "Select a video first", Toast.LENGTH_SHORT)
                                         .show()
+                                    localPosting = false
                                     return@launch
                                 }
                                 if (videoTooLong(videoUri!!)) {
                                     Toast.makeText(
                                         ctx,
-                                        "Video longer than 30 s",
+                                        "Video must be shorter than 30 s",
                                         Toast.LENGTH_SHORT
                                     )
                                         .show()
+                                    localPosting = false
                                     return@launch
                                 }
                                 val tags =
@@ -1014,6 +1025,7 @@ fun VideoPostComposable(
                                         Toast.LENGTH_LONG
                                     ).show()
                                     videoUri = null
+                                    localPosting = false
                                     return@launch
                                 }
 
@@ -1039,16 +1051,18 @@ fun VideoPostComposable(
                                                     "home",
                                                     inclusive = false
                                                 )
+                                                localPosting = false
                                             }
                                         }
                                     },
                                     onError = { e ->
                                         Handler(Looper.getMainLooper()).post {
                                             Toast.makeText(ctx, e, Toast.LENGTH_SHORT).show()
+                                            localPosting = false
                                         }
                                     })
                             }
-                        }, enabled = !isPosting) { Text( stringResource(R.string.post_action), color = Color(0xFFFF4500)) }
+                        }, enabled = !posting) { Text( stringResource(R.string.post_action), color = Color(0xFFFF4500)) }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)

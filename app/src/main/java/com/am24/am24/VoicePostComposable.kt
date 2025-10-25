@@ -40,6 +40,9 @@ fun VoicePostComposable(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val isPosting by postViewModel.isUploading.collectAsState(initial = false)
+    var localPosting by remember { mutableStateOf(false) }
+    val posting = isPosting || localPosting
 
     // State variables
     var isRecording by remember { mutableStateOf(false) }
@@ -187,59 +190,76 @@ fun VoicePostComposable(
                     }
                 },
                 actions = {
-                    TextButton(onClick = {
-                        // Validate input
-                        if (recordedAudioUri == null) {
-                            Toast.makeText(
-                                context,
-                                "Please record a voice message.",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            return@TextButton
-                        }
-
-                        if (userId == null) {
-                            Toast.makeText(context, "User not authenticated.", Toast.LENGTH_SHORT)
-                                .show()
-                            return@TextButton
-                        }
-
-                        // Convert tags string to list
-                        val tagsList =
-                            tagsInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-
-                        postViewModel.createVoicePost(
-                            userId = userId,
-                            username = username,
-                            voiceUri = recordedAudioUri!!,
-                            userTags = tagsList,
-                            onSuccess = {
-                                coroutineScope.launch {
+                    if (posting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .size(24.dp),
+                            color = Color(0xFFFF4500),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        TextButton(
+                            onClick = {
+                                localPosting = true
+                                // Validate input
+                                if (recordedAudioUri == null) {
                                     Toast.makeText(
                                         context,
-                                        "Voice post created successfully.",
+                                        "Please record a voice message.",
                                         Toast.LENGTH_SHORT
                                     ).show()
-                                    navController.popBackStack()
+                                    localPosting = false
+                                    return@TextButton
                                 }
+                                if (userId == null) {
+                                    Toast.makeText(
+                                        context,
+                                        "User not authenticated",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    localPosting = false
+                                    return@TextButton
+                                }
+                                // Convert tags string to list
+                                val tagsList =
+                                    tagsInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+
+                                postViewModel.createVoicePost(
+                                    userId = userId,
+                                    username = username,
+                                    voiceUri = recordedAudioUri!!,
+                                    userTags = tagsList,
+                                    onSuccess = {
+                                        coroutineScope.launch {
+                                            Toast.makeText(
+                                                context,
+                                                "Voice post created successfully.",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            navController.popBackStack()
+                                            localPosting = false
+                                        }
+                                    },
+                                    onFailure = { error ->
+                                        coroutineScope.launch {
+                                            Toast.makeText(
+                                                context,
+                                                "Failed to create post: $error",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            localPosting = false
+                                        }
+                                    }
+                                )
                             },
-                            onFailure = { error ->
-                                coroutineScope.launch {
-                                    Toast.makeText(
-                                        context,
-                                        "Failed to create post: $error",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
-                        )
-                    },
-                        enabled = recordedAudioUri != null,
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = if (recordedAudioUri != null) Color(0xFFFFA500) else Color.Gray
-                        )
+                            enabled = recordedAudioUri != null && !posting,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = if (recordedAudioUri != null && !posting) Color(0xFFFFA500) else Color.Gray
+                            )
                         ) {
-                        Text(stringResource(R.string.post_action), color = Color(0xFFFF4500))
+                            Text(stringResource(R.string.post_action), color = Color(0xFFFF4500))
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)

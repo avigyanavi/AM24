@@ -14,7 +14,11 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.isActive
 import android.util.Log
+import androidx.compose.runtime.snapshotFlow
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.Toast
@@ -765,7 +769,14 @@ fun ChatScreenContent(
                     val scrollState = rememberScrollState()
                     LaunchedEffect(otherUserProfile?.name ?: chattitle) {
                         delay(500)
-                        while (true) {
+                        val hasOverflow = snapshotFlow { scrollState.maxValue }
+                            .filter { it > 0 }
+                            .firstOrNull()
+                        if (hasOverflow == null) {
+                            scrollState.scrollTo(0)
+                            return@LaunchedEffect
+                        }
+                        while (isActive) {
                             scrollState.animateScrollTo(scrollState.maxValue)
                             delay(1500)
                             scrollState.animateScrollTo(0)

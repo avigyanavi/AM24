@@ -46,6 +46,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.tasks.await
 import com.am24.am24.billing.BillingScreen
+import com.am24.am24.safePopBackStack
 
 // Initialize GeoFire instance globally
 val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
@@ -166,7 +167,7 @@ fun MainNavGraph(
                 FeedbackListScreen()
             } else {
                 LaunchedEffect(Unit) {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                     Toast.makeText(context, "Unauthorized", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -310,7 +311,7 @@ fun MainNavGraph(
             } else {
                 // redirect back or show error
                 LaunchedEffect(Unit) {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                     Toast.makeText(context, "Unauthorized", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -323,7 +324,7 @@ fun MainNavGraph(
             val placeId = backStackEntry.arguments?.getString("placeId")
             if (placeId == null) {
                 LaunchedEffect(Unit) {
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                     Toast.makeText(context, "Missing placeId", Toast.LENGTH_SHORT).show()
                 }
                 return@composable
@@ -401,27 +402,27 @@ fun MainNavGraph(
             val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
             GroupChatScreen(navController = navController, groupId = groupId)
         }
-        composable("buyAiMessages")  { OneTimePurchaseScreen(PurchaseType.AiMessages,  navController) { navController.popBackStack() } }
+        composable("buyAiMessages")  { OneTimePurchaseScreen(PurchaseType.AiMessages,  navController) { navController.safePopBackStack() } }
 
         composable("buySwipes") { OneTimePurchaseScreen(
             type = PurchaseType.Swipes,
             navController,
-            onBack = { navController.popBackStack() }
+            onBack = { navController.safePopBackStack() }
         ) }
         composable("buyBoosts") { OneTimePurchaseScreen(
             type = PurchaseType.Boosts,
             navController,
-            onBack = { navController.popBackStack() }
+            onBack = { navController.safePopBackStack() }
         ) }
         composable("buyCompliments") { OneTimePurchaseScreen(
             type = PurchaseType.Compliments,
             navController,
-            onBack = { navController.popBackStack() }
+            onBack = { navController.safePopBackStack() }
         ) }
         composable("buyBoosts") { OneTimePurchaseScreen(
             type = PurchaseType.Boosts,
             navController,
-            onBack = { navController.popBackStack() }
+            onBack = { navController.safePopBackStack() }
         ) }
         composable("saved_posts") {
             SavedPostsScreen(
@@ -488,7 +489,7 @@ fun MainNavGraph(
             val encoded = backStackEntry.arguments?.getString("userId").orEmpty()
             val targetId = Uri.decode(encoded)
             if (targetId.isBlank()) {
-                LaunchedEffect(Unit) { navController.popBackStack() }
+                LaunchedEffect(Unit) { navController.safePopBackStack() }
                 return@composable
             }
             val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: return@composable

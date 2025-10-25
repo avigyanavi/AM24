@@ -1115,27 +1115,38 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         onFailure: (String) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
+            _isUploading.value = true
             try {
                 // Ensure audio is in MP3 format
-                val mp3Uri = ensureMp3Format(voiceUri, onFailure) ?: return@launch
+                val mp3Uri = ensureMp3Format(voiceUri, onFailure) ?: run {
+                    clearUploadingFlag(); return@launch
+                }
 
                 // Check audio duration
-                val duration = getAudioDuration(mp3Uri, onFailure) ?: return@launch
+                val duration = getAudioDuration(mp3Uri, onFailure) ?: run {
+                    clearUploadingFlag(); return@launch
+                }
                 if (duration > VOICE_MAX_DURATION) {
                     onFailure("Voice recording exceeds the maximum allowed duration of $VOICE_MAX_DURATION seconds.")
+                    clearUploadingFlag()
                     return@launch
                 }
 
                 // Check and compress audio if necessary
-                val compressedVoiceUri = compressAudioIfNeeded(mp3Uri, VOICE_MAX_SIZE, onFailure) ?: return@launch
+                val compressedVoiceUri = compressAudioIfNeeded(mp3Uri, VOICE_MAX_SIZE, onFailure) ?: run {
+                    clearUploadingFlag(); return@launch
+                }
 
                 // Upload voice recording to Firebase Storage
-                val downloadUrl = uploadMediaToStorage(compressedVoiceUri, "voices", onFailure) ?: return@launch
+                val downloadUrl = uploadMediaToStorage(compressedVoiceUri, "voices", onFailure) ?: run {
+                    clearUploadingFlag(); return@launch
+                }
 
                 // Generate post ID
                 val postId = postsRef.push().key
                 if (postId == null) {
                     onFailure("Unable to generate post ID.")
+                    clearUploadingFlag()
                     return@launch
                 }
 
@@ -1161,6 +1172,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
                 // Save post to Realtime Database
                 postsRef.child(postId).setValue(post).await()
+                clearUploadingFlag()
                 refreshPosts()
                 onSuccess()
 
@@ -1178,6 +1190,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
             } catch (e: Exception) {
+                clearUploadingFlag()
                 Log.e(TAG, "Error creating voice post: ${e.message}", e)
                 onFailure(e.message ?: "Unknown error occurred.")
             }

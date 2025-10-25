@@ -48,8 +48,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.snapshotFlow
 import java.util.Calendar
 import kotlin.random.Random
 import androidx.compose.ui.res.pluralStringResource
@@ -159,12 +161,17 @@ fun DMScreenContent(
     val autoScrollState = rememberScrollState()
 
     // kick off an endless back-and-forth animation whenever there's overflow
-    LaunchedEffect(autoScrollState.maxValue) {
+    LaunchedEffect(autoScrollState) {
         // wait for the scroll to measure
-        snapshotFlow { autoScrollState.maxValue }
+        val hasOverflow = snapshotFlow { autoScrollState.maxValue }
+
             .filter { it > 0 }       // only once it's actually overflowed
-            .first()                 // suspend until >0
-        while (true) {
+            .firstOrNull()           // suspend until >0
+        if (hasOverflow == null) {
+            autoScrollState.scrollTo(0)
+            return@LaunchedEffect
+        }
+        while (isActive) {
             autoScrollState.animateScrollTo(autoScrollState.maxValue)
             delay(2000)              // pause at end
             autoScrollState.animateScrollTo(0)
@@ -945,7 +952,14 @@ private fun fetchRandomUserForLottery(
     onResult: (Profile?) -> Unit
 ) {
     usersRef.get().addOnSuccessListener { snap ->
-        val list = snap.children.mapNotNull { it.getValue(Profile::class.java) }
+        val list = snap.children.mapNotNull { child ->
+            try {
+                child.getValue(Profile::class.java)
+            } catch (e: Exception) {
+                Log.w("DMScreen", "Skipping non-profile child ${child.key}", e)
+                null
+            }
+        }
             .filter { it.userId != currentUserId && !excludedIds.contains(it.userId) }
             .filter {
                 gender == "Both" || it.gender.toGenderCode() == gender.toGenderCode()

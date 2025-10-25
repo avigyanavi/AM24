@@ -76,6 +76,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.request.ImageRequest
 import com.am24.am24.util.TextureFullscreenVideoPlayer
+import kotlinx.coroutines.CancellationException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,22 +133,26 @@ fun HomeScreen(
                 return@LaunchedEffect
             }
 
-        // 2️⃣ Fetch once from “matches/$userId”
-        val userRef = FirebaseRefs.db.getReference("users").child(userId)
-        val matchesRef = FirebaseRefs.db.getReference("matches").child(userId)
-        try {
-            val profileDeferred = async {
-                val snapshot = userRef.get().await()
-                snapshot.getValue(Profile::class.java)
-            }
-            val matchesDeferred = async {
-                val snapshot = matchesRef.get().await()
-                snapshot.children.mapNotNull { it.key }
-            }
-            userProfile = profileDeferred.await()
-            myMatches = matchesDeferred.await()
-        } catch (e: Exception) {
-            Log.e("HomeScreen", "Failed to load profile or matches", e)
+            // 2️⃣ Fetch once from “matches/$userId”
+            val userRef = FirebaseRefs.db.getReference("users").child(userId)
+            val matchesRef = FirebaseRefs.db.getReference("matches").child(userId)
+            try {
+                coroutineScope {
+                    val profileDeferred = async {
+                        val snapshot = userRef.get().await()
+                        snapshot.getValue(Profile::class.java)
+                    }
+                    val matchesDeferred = async {
+                        val snapshot = matchesRef.get().await()
+                        snapshot.children.mapNotNull { it.key }
+                    }
+                    userProfile = profileDeferred.await()
+                    myMatches = matchesDeferred.await()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e("HomeScreen", "Failed to load profile or matches", e)
             }
         }
         val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()
@@ -2084,7 +2089,7 @@ fun handleAddVoiceComment(
     userId: String,
     username: String,
     database: DatabaseReference = FirebaseRefs.db.getReference("posts"),
-    storage: FirebaseStorage = FirebaseStorage.getInstance(),
+    storage: FirebaseStorage = FirebaseRefs.storage,
     onSuccess: () -> Unit,
     onFailure: (String) -> Unit
 ) {

@@ -40,6 +40,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.math.min
+import com.am24.am24.safePopBackStack
 
 @Composable
 fun OnlineUsersScreen(navController: NavController) {
@@ -164,7 +165,7 @@ fun OnlineUsersScreen(navController: NavController) {
             val match = waitingMatch!!
             waitingMatch = null
             waitingStatus = "pending"
-            navController.popBackStack("omegleUsers", inclusive = true)
+            navController.safePopBackStack("omegleUsers", inclusive = true)
             navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
         } else if (waitingStatus == "rejected" && waitingMatch != null) {
             cancelInvite()

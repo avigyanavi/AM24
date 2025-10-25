@@ -57,6 +57,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -83,7 +84,6 @@ import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -212,8 +212,8 @@ class RegistrationViewModel : ViewModel() {
     // RegistrationViewModel
     var country       by mutableStateOf("")
     var customCountry by mutableStateOf("")
-    var allowLocationForMatches by mutableStateOf(true)
-    var allowLocationPublic by mutableStateOf(true)
+    var allowLocationForMatches by mutableStateOf(false)
+    var allowLocationPublic by mutableStateOf(false)
     // Add new fields
     var loveLanguage by mutableStateOf("")
     var jobRole by mutableStateOf("")
@@ -1751,97 +1751,6 @@ fun LifestyleSlider(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GraduationYearDropdown(year: String, onYearSelected: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-    val years = (1950..currentYear).map { it.toString() }.reversed() // Generate a reversed list of years
-    var searchText by remember { mutableStateOf("") }
-
-    Box {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF6000)),
-            border = BorderStroke(1.dp, Color(0xFFFF6000))
-        ) {
-            Text(
-                text = year.ifEmpty { stringResource(R.string.select_graduation_year_label) },
-                color = Color(0xFFFF6000)
-            )
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF1A1A1A))
-        ) {
-            // Search Box
-            TextField(
-                value = searchText,
-                onValueChange = { searchText = it },
-                label = { Text(stringResource(R.string.search_year_label), color = Color(0xFFFF6000)) },
-                colors = TextFieldDefaults.colors(
-                    focusedLabelColor = Color(0xFFFF6000),
-                    cursorColor = Color(0xFFFF6000),
-                    unfocusedTextColor = Color.White,
-                    focusedTextColor = Color(0xFFFF6000)
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-            )
-
-            // Filtered Years
-            years.filter { it.contains(searchText, ignoreCase = true) }
-                .forEach { filteredYear ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = filteredYear,
-                                color = Color.White,
-                                modifier = Modifier.padding(8.dp)
-                            )
-                        },
-                        onClick = {
-                            onYearSelected(filteredYear) // Set only the selected field's year
-                            searchText = ""
-                            expanded = false
-                        }
-                    )
-                }
-        }
-    }
-}
-
-// Helper Composable for TextField with Label
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TextFieldWithLabel(label: String, value: String, onValueChange: (String) -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Spacer(modifier = Modifier.height(5.dp))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text(label, color = Color.White) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                cursorColor = Color.White,
-                focusedIndicatorColor = Color(0xFFFF6000),
-                unfocusedIndicatorColor = Color.White,
-                focusedLabelColor = Color(0xFFFF6000),
-                unfocusedLabelColor = Color.White
-            )
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun SearchableDropdownWithCustomOption(
     title: String,
     options: List<String>,
@@ -1858,7 +1767,7 @@ fun SearchableDropdownWithCustomOption(
     }
     var expanded    by remember { mutableStateOf(false) }
     var searchText  by rememberSaveable { mutableStateOf("") }
-
+    val focusManager = LocalFocusManager.current
     // local copy of the custom text
     var customText  by rememberSaveable(selectedOption) {
         mutableStateOf(customInput.orEmpty())
@@ -1906,7 +1815,10 @@ fun SearchableDropdownWithCustomOption(
         /* ---------- Drop-down ---------- */
         DropdownMenu(
             expanded         = expanded,
-            onDismissRequest = { expanded = false },
+            onDismissRequest = {
+                expanded = false
+                focusManager.clearFocus(force = true)
+            },
             modifier         = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFF1A1A1A))
@@ -1933,6 +1845,7 @@ fun SearchableDropdownWithCustomOption(
                         onOptionSelected(option)
                         expanded        = false
                         showCustomInput = option == other
+                        focusManager.clearFocus(force = true)
                     }
                 )
             }
