@@ -5236,6 +5236,7 @@
     <string name="join_random_chat">เข้าร่วมแชทสุ่มไหม?</string>
     <string name="join_chat">เข้าร่วม</string>
     <string name="ignore_chat">เพิกเฉย</string>
+    <string name="no_card_in_page">ไม่มีการ์ดในหน้านี้</string>
     <string name="no_users_online">ยังไม่มีผู้ใช้ออนไลน์</string>
     <string name="end_chat">จบแชท</string>
     <string name="feature_no_ads">ไม่มีโฆษณา</string>

@@ -50,6 +50,7 @@ import androidx.compose.material.icons.outlined.RssFeed
 import androidx.compose.ui.draw.shadow
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.google.firebase.database.FirebaseDatabase
+import com.am24.am24.IndiaCityLatLngMap
 
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
@@ -313,7 +314,6 @@ fun TopNavBar(
         }
     }
 
-    var countryMenuExpanded by remember { mutableStateOf(false) }
     var selectedCountry by rememberSaveable { mutableStateOf("") }
     var cityMenuExpanded by remember { mutableStateOf(false) }
     var selectedCity by rememberSaveable { mutableStateOf("") }
@@ -580,11 +580,11 @@ fun TopNavBar(
                                 cityMenuExpanded = false
                                 navController.navigate("subscription")
                             }
-                        },
-                        enabled = if (hasLocationSpoofAccess) {
-                            CountryUtil.isMexico(context, selectedCountry)
-                        } else {
-                            true
+//                        },
+//                        enabled = if (hasLocationSpoofAccess) {
+//                            CountryUtil.isMexico(context, selectedCountry)
+//                        } else {
+//                            true
                         }
                     ) {
                         Icon(
@@ -593,8 +593,9 @@ fun TopNavBar(
                             tint = when {
                                 !hasLocationSpoofAccess -> Color(0x66FFFFFF)
                                 selectedCity.isNotBlank() -> Color(0xFFFF6F00)
-                                CountryUtil.isMexico(context, selectedCountry) -> Color.White
-                                else -> Color(0x66FFFFFF)
+//                                CountryUtil.isMexico(context, selectedCountry) -> Color.White
+//                                else -> Color(0x66FFFFFF)
+                                else -> Color.White
                             },
                             modifier = Modifier.size(24.dp)
                         )
@@ -616,7 +617,8 @@ fun TopNavBar(
                                         profileRef.updateChildren(
                                             mapOf(
                                                 "city" to "",
-                                                "country" to "Mexico",
+//                                                "country" to "Mexico",
+                                                "country" to "",
                                                 "isLocationSpoofed" to false
                                             )
                                         )
@@ -643,124 +645,15 @@ fun TopNavBar(
                                     selectedCity = ""
                                     savedStateHandle?.set("mapCountryChanged", true)
                                 }
-                        )
-
-                        // Only show if we are on Mexico (your existing support)
-                            if (CountryUtil.isMexico(context, selectedCountry)) {
-                                val cityOptions = stringArrayResource(R.array.mexico_cities).toList()
-                                cityOptions.forEach { city ->
-                                    DropdownMenuItem(
-                                        text = { Text(city) },
-                                        onClick = {
-                                            cityMenuExpanded = false
-                                            val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
-                                            val latLng = MexicoCityLatLngMap.getLatLng(city)
-                                            if (latLng != null) {
-                                                locationManager.pauseUpdates()
-                                                locationManager.setCustomLocation(
-                                                    currentUserId,
-                                                    latLng.first,
-                                                    latLng.second
-                                                )
-                                                profileRef.updateChildren(
-                                                    mapOf(
-                                                        "country" to "Mexico",
-                                                        "city" to city,
-                                                        "isLocationSpoofed" to true
-                                                    )
-                                                )
-                                                selectedCity = city
-                                                savedStateHandle?.set("mapCountryChanged", true)
-                                            } else {
-                                                Toast.makeText(
-                                                    context,
-                                                    context.getString(R.string.city_coords_unavailable, city),
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    // Show selected city label (Mexico only), right after the city icon
-                    if (
-                        hasLocationSpoofAccess &&
-                        CountryUtil.isMexico(context, selectedCountry) &&
-                        selectedCity.isNotBlank()
-                    ) {
-                        Text(
-                            selectedCity,
-                            color = Color(0xFFFF6F00),
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp)
-                        )
-                    }
-                    // 2) Selected COUNTRY text (chip-ish label)
-                    if (hasLocationSpoofAccess && selectedCountry.isNotBlank()) {
-                        Text(
-                            selectedCountry,
-                            color = Color(0xFFFF6F00),
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp)
-                        )
-                    }
-
-                    // 3) Country selector icon (always visible)
-                    IconButton(
-                        onClick = {
-                            if (hasLocationSpoofAccess) {
-                                countryMenuExpanded = !countryMenuExpanded
-                            } else {
-                                countryMenuExpanded = false
-                                navController.navigate("subscription")
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Public,
-                            contentDescription = stringResource(R.string.cd_country_filter),
-                            tint = when {
-                                !hasLocationSpoofAccess -> Color(0x66FFFFFF)
-                                selectedCountry.isNotBlank() -> Color(0xFFFF6F00)
-                                else -> Color.White
-                            },
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    // Country dropdown
-                    if (hasLocationSpoofAccess) {
-                        DropdownMenu(
-                            expanded = countryMenuExpanded,
-                            onDismissRequest = { countryMenuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.clear_country_filter)) },
-                                onClick = {
-                                    countryMenuExpanded = false
-                                    val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
-                                    profileRef.updateChildren(
-                                        mapOf(
-                                            "isLocationSpoofed" to false,
-                                            "country" to "",
-                                            "city" to ""
-                                        )
-                                    )
-                                    selectedCountry = ""
-                                    selectedCity = ""
-                                    locationManager.resumeUpdates()
-                                }
                             )
-                            val countryOptions = stringArrayResource(R.array.country_names).toList()
-                            countryOptions.forEach { c ->
+                                val cityOptions = stringArrayResource(R.array.india_cities).toList()
+                                cityOptions.forEach { city ->
                                 DropdownMenuItem(
-                                    text = { Text(c) },
+                                    text = { Text(city) },
                                     onClick = {
-                                        countryMenuExpanded = false
+                                        cityMenuExpanded = false
                                         val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
-                                        val latLng = CountryLatLngMap.getLatLng(c)
+                                        val latLng = IndiaCityLatLngMap.getLatLng(city)
                                         if (latLng != null) {
                                             locationManager.pauseUpdates()
                                             locationManager.setCustomLocation(
@@ -770,32 +663,37 @@ fun TopNavBar(
                                             )
                                             profileRef.updateChildren(
                                                 mapOf(
-                                                    "country" to c,
-                                                    "city" to "",
+                                                    "country" to "India",
+                                                    "city" to city,
                                                     "isLocationSpoofed" to true
                                                 )
                                             )
+                                            selectedCountry = "India"
+                                            selectedCity = city
+                                            savedStateHandle?.set("mapCountryChanged", true)
                                         } else {
                                             Toast.makeText(
                                                 context,
-                                                context.getString(R.string.country_coords_unavailable, c),
+                                                context.getString(R.string.city_coords_unavailable, city),
                                                 Toast.LENGTH_SHORT
                                             ).show()
-                                            profileRef.updateChildren(
-                                                mapOf(
-                                                    "country" to c,
-                                                    "city" to "",
-                                                    "isLocationSpoofed" to false
-                                                )
-                                            )
                                         }
-                                        selectedCountry = c
-                                        selectedCity = ""
-                                        savedStateHandle?.set("mapCountryChanged", true)
                                     }
                                 )
                             }
                         }
+                    }
+                    // Show selected city label, right after the city icon
+                    if (
+                        hasLocationSpoofAccess &&
+                        selectedCity.isNotBlank()
+                    ) {
+                        Text(
+                            selectedCity,
+                            color = Color(0xFFFF6F00),
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(horizontal = 6.dp)
+                        )
                     }
                 }
 

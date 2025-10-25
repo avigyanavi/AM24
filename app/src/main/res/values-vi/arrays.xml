@@ -226,6 +226,31 @@
         <item>Tlalnepantla</item>
     </string-array>
 
+    <string-array name="india_cities">
+        <item>Delhi</item>
+        <item>Mumbai</item>
+        <item>Bengaluru</item>
+        <item>Hyderabad</item>
+        <item>Chennai</item>
+        <item>Kolkata</item>
+        <item>Pune</item>
+        <item>Ahmedabad</item>
+        <item>Jaipur</item>
+        <item>Surat</item>
+        <item>Lucknow</item>
+        <item>Indore</item>
+        <item>Bhopal</item>
+        <item>Chandigarh</item>
+        <item>Gurgaon</item>
+        <item>Noida</item>
+        <item>Kochi</item>
+        <item>Thiruvananthapuram</item>
+        <item>Goa</item>
+        <item>Nagpur</item>
+        <item>Visakhapatnam</item>
+        <item>Coimbatore</item>
+    </string-array>
+
     <!-- Pan‑India city list with Tier‑1 UAs (with satellites) + at least two other cities per state -->
     <string-array name="city_names">
         <!-- Fallback -->

@@ -6521,6 +6521,7 @@
     <string name="post_shared_label">Bài viết đã chia sẻ</string>
     <string name="superswipe_title">Super-Swipe!</string>
     <string name="chat_your_rating">Đánh giá của bạn: %1$s</string>
+    <string name="no_card_in_page">Không có thẻ nào trong trang này</string>
 
     <!-- a11y / contentDescription (optional) -->
     <string name="cd_stop_recording">Dừng ghi</string>
