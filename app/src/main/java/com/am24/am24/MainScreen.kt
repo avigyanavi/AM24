@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import android.app.Activity
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -42,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import java.util.concurrent.TimeUnit
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -120,7 +122,11 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     }
     // ───────────────────────────────────────────────────
     val context = LocalContext.current
+    val activity = context as? Activity
 
+    BackHandler(enabled = navController.previousBackStackEntry == null) {
+        activity?.finish()
+    }
     LaunchedEffect(currentUserId) {
         profileViewModel.fetchCurrentUserProfile()
     }
@@ -600,6 +606,26 @@ fun TopNavBar(
 
                     // City dropdown (Mexico only)
                     if (hasLocationSpoofAccess) {
+                        val canonicalSpoofCountry = canonicalCountry(
+                            selectedCountry.takeIf { it.isNotBlank() }
+                                ?: homeSelectedCountry?.takeIf { it.isNotBlank() }
+                                ?: "India"
+                        )
+                        val cityOptions = when (canonicalSpoofCountry) {
+                            "Mexico" -> stringArrayResource(R.array.mexico_cities).toList()
+                            "United States" -> stringArrayResource(R.array.usa_cities).toList()
+                            else -> stringArrayResource(R.array.india_cities).toList()
+                        }
+                        val resolvedSpoofCountry = when (canonicalSpoofCountry) {
+                            "Mexico" -> "Mexico"
+                            "United States" -> "United States"
+                            else -> "India"
+                        }
+                        val cityLatLngLookup: (String) -> Pair<Double, Double>? = when (resolvedSpoofCountry) {
+                            "Mexico" -> { city -> MexicoCityLatLngMap.getLatLng(city) }
+                            "United States" -> { city -> UsaCityLatLngMap.getLatLng(city) }
+                            else -> { city -> IndiaCityLatLngMap.getLatLng(city) }
+                        }
                         DropdownMenu(
                             expanded = cityMenuExpanded,
                             onDismissRequest = { cityMenuExpanded = false }
@@ -643,14 +669,13 @@ fun TopNavBar(
                                     savedStateHandle?.set("mapCountryChanged", true)
                                 }
                             )
-                                val cityOptions = stringArrayResource(R.array.india_cities).toList()
-                                cityOptions.forEach { city ->
+                            cityOptions.forEach { city ->
                                 DropdownMenuItem(
                                     text = { Text(city) },
                                     onClick = {
                                         cityMenuExpanded = false
                                         val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
-                                        val latLng = IndiaCityLatLngMap.getLatLng(city)
+                                        val latLng = cityLatLngLookup(city)
                                         if (latLng != null) {
                                             locationManager.pauseUpdates()
                                             locationManager.setCustomLocation(
@@ -660,12 +685,12 @@ fun TopNavBar(
                                             )
                                             profileRef.updateChildren(
                                                 mapOf(
-                                                    "country" to "India",
+                                                    "country" to resolvedSpoofCountry,
                                                     "city" to city,
                                                     "isLocationSpoofed" to true
                                                 )
                                             )
-                                            selectedCountry = "India"
+                                            selectedCountry = resolvedSpoofCountry
                                             selectedCity = city
                                             savedStateHandle?.set("mapCountryChanged", true)
                                         } else {

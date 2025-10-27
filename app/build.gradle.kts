@@ -15,8 +15,8 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 231
-        versionName = "5.0.5"
+        versionCode = 233
+        versionName = "5.1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -54,7 +54,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.7.3"
+        kotlinCompilerExtensionVersion = "1.7.4"
     }
     packaging {
         jniLibs {

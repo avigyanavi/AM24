@@ -45,17 +45,21 @@ fun ActiveNotificationsView(
     navController: NavController
 ) {
     val notifications = remember { mutableStateListOf<Notification>() }
+    var isLoading by remember { mutableStateOf(true) }
 
     // Fetch notifications (both read and unread)
     LaunchedEffect(currentUserId) {
+        isLoading = true
         profileViewModel.getNotifications(
             userId = currentUserId,
             onSuccess = {
                 notifications.clear()
                 notifications.addAll(it)
+                isLoading = false
             },
             onFailure = {
                 // Handle error if needed
+                isLoading = false
             }
         )
     }
@@ -67,9 +71,21 @@ fun ActiveNotificationsView(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        if (notifications.isEmpty()) {
+        if (isLoading) {
             item {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.fillParentMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = KupidxOrange)
+                }
+            }
+        } else if (notifications.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier.fillParentMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         text = "No new notifications",
                         color = Color.White,

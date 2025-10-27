@@ -14,14 +14,19 @@ import com.android.installreferrer.api.InstallReferrerStateListener
 import com.facebook.FacebookSdk
 import com.android.installreferrer.api.ReferrerDetails
 import com.facebook.appevents.AppEventsLogger
+import com.facebook.appevents.internal.AppEventUtility.isEmulator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.SupervisorJob
+
 
 class MyApp : Application() {
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
         super.onCreate()
@@ -44,16 +49,22 @@ class MyApp : Application() {
         Log.d("MyApp", "Facebook SDK initialized synchronously")
 
         // ───────── Firebase App Check ─────────
-        val appCheck = FirebaseAppCheck.getInstance()
-        val providerFactory =
-            if (BuildConfig.DEBUG) {
-                DebugAppCheckProviderFactory.getInstance()
-            } else {
-                val isEmulator = Build.FINGERPRINT.contains("generic")
-                if (isEmulator) DebugAppCheckProviderFactory.getInstance()
-                else PlayIntegrityAppCheckProviderFactory.getInstance()
+        appScope.launch {
+            runCatching {
+                val appCheck = FirebaseAppCheck.getInstance()
+                val providerFactory =
+                    if (BuildConfig.DEBUG) {
+                        DebugAppCheckProviderFactory.getInstance()
+                    } else {
+                        if (isEmulator()) DebugAppCheckProviderFactory.getInstance()
+                        else PlayIntegrityAppCheckProviderFactory.getInstance()
+                    }
+                appCheck.installAppCheckProviderFactory(providerFactory)
+                Log.d("MyApp", "Firebase App Check initialised off the main thread")
+            }.onFailure {
+                Log.w("MyApp", "Unable to initialise Firebase App Check", it)
             }
-        appCheck.installAppCheckProviderFactory(providerFactory)
+        }
 
         // ───────── Realtime DB persistence ─────────
         FirebaseRefs.warmUp()
@@ -80,7 +91,7 @@ class MyApp : Application() {
         }
 
         // ───────── Storage bucket ─────────
-        CoroutineScope(Dispatchers.IO).launch {
+        appScope.launch(Dispatchers.IO) {
             try {
                 val referrerDetails = fetchInstallReferrer()
                 referrerDetails?.installReferrer?.let { installReferrer ->

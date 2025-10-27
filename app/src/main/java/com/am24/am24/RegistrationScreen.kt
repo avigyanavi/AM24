@@ -2667,35 +2667,88 @@ suspend fun saveProfileToFirebase(
     }
 }
 
+@Suppress("ReturnCount")
 suspend fun compressImage(
     context: Context,
     uri: Uri,
     maxWidth: Int = 1080,      // down-scale if wider than this
     quality: Int = 75          // JPEG quality 0‒100
 ): ByteArray? = withContext(Dispatchers.IO) {
+    var sampled: Bitmap? = null
+    var scaled: Bitmap? = null
     try {
-        val original = context.contentResolver.openInputStream(uri)?.use { input ->
-            BitmapFactory.decodeStream(input)
+        val resolver = context.contentResolver
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri)?.use { input ->
+            BitmapFactory.decodeStream(input, null, bounds)
         } ?: return@withContext null
 
-        // scale if needed
-        val ratio = maxWidth.toFloat() / original.width.toFloat()
-        val scaled = if (ratio < 1f) {
+        val sampleSize = calculateInSampleSize(bounds, maxWidth)
+        val decodeOptions = BitmapFactory.Options().apply {
+            inSampleSize = sampleSize
+            inPreferredConfig = Bitmap.Config.RGB_565
+        }
+
+        sampled = resolver.openInputStream(uri)?.use { input ->
+            BitmapFactory.decodeStream(input, null, decodeOptions)
+        }
+
+        val decoded = sampled ?: run {
+            Log.e("CompressImage", "Unable to decode sampled bitmap for uri=$uri")
+            return@withContext null
+        }
+
+        val ratio = maxWidth.toFloat() / decoded.width.toFloat()
+        scaled = if (ratio < 1f) {
+            val targetWidth = (decoded.width * ratio).roundToInt().coerceAtLeast(1)
+            val targetHeight = (decoded.height * ratio).roundToInt().coerceAtLeast(1)
             Bitmap.createScaledBitmap(
-                original,
-                (original.width * ratio).toInt(),
-                (original.height * ratio).toInt(),
+                decoded,
+                targetWidth,
+                targetHeight,
                 true
             )
-        } else original
+        } else {
+            decoded
+        }
 
-        val out = ByteArrayOutputStream()
-        scaled.compress(Bitmap.CompressFormat.JPEG, quality, out)
-        out.toByteArray()
+        ByteArrayOutputStream().use { out ->
+            scaled!!.compress(Bitmap.CompressFormat.JPEG, quality, out)
+            out.toByteArray()
+        }
+    } catch (oom: OutOfMemoryError) {
+        Log.e("CompressImage", "Out of memory while compressing image", oom)
+        null
     } catch (e: Exception) {
         Log.e("CompressImage", "Failed to compress image: ${e.message}")
         null
+    } finally {
+        if (scaled != null && scaled !== sampled && scaled?.isRecycled == false) {
+            scaled?.recycle()
+        }
+        if (sampled?.isRecycled == false) {
+            sampled?.recycle()
+        }
     }
+}
+
+private fun calculateInSampleSize(options: BitmapFactory.Options, maxWidth: Int): Int {
+    val sourceWidth = options.outWidth.takeIf { it > 0 } ?: return 1
+    val sourceHeight = options.outHeight.takeIf { it > 0 } ?: return 1
+    val safeMaxWidth = maxWidth.coerceAtLeast(1)
+
+    var inSampleSize = 1
+    val targetHeight = (sourceHeight * (safeMaxWidth / sourceWidth.toFloat()))
+        .roundToInt()
+        .coerceAtLeast(1)
+
+    while (
+        sourceWidth / inSampleSize > safeMaxWidth ||
+        sourceHeight / inSampleSize > targetHeight
+    ) {
+        inSampleSize *= 2
+    }
+    return inSampleSize.coerceAtLeast(1)
 }
 
 fun uploadProfilePicToFirebase(
