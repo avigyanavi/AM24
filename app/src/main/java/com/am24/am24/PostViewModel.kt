@@ -46,7 +46,16 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private var isFeedPaused = false
     // Firebase Realtime Database reference to "posts"
     private val postsRef = FirebaseRefs.db.getReference("posts")
+    private var postsQuery: Query? = null
 
+    private val FEED_PAGE_SIZE = 40
+    private var oldestLoadedTimestamp: Long? = null
+
+    private val _hasMorePosts = MutableStateFlow(true)
+    val hasMorePosts: StateFlow<Boolean> = _hasMorePosts.asStateFlow()
+
+    private val _isLoadingMore = MutableStateFlow(false)
+    val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
     // Firebase Storage reference
     private val storageRef = FirebaseRefs.storage.reference
 
@@ -316,7 +325,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         super.onCleared()
 
         // ─── 1. main feed listener (your existing code) ───────────────
-        postsListener?.let { postsRef.removeEventListener(it) }
+        detachPostsListener()
+        postsListener = null
 
         // ─── 2. single-post listener we added for PostDetailScreen ────
         singlePostListener?.let { listener ->
@@ -789,10 +799,22 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     // Listener registration to remove when ViewModel is cleared
     private var postsListener: ValueEventListener? = null
 
+    private fun detachPostsListener() {
+        postsListener?.let { listener ->
+            postsQuery?.removeEventListener(listener)
+        }
+        postsQuery = null
+    }
+
     fun refreshPosts() {
         Log.d(TAG, "Refreshing posts...")
         clearAllFilters()
         _isInitialFeedLoading.value = _currentUserId.value != null
+        oldestLoadedTimestamp = null
+        _hasMorePosts.value = true
+        _isLoadingMore.value = false
+        detachPostsListener()
+        postsListener = null
         observePosts() // Re-attach listener
     }
 
@@ -801,6 +823,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      */
     private fun observePosts() {
         isFeedPaused = false                // ← add this
+        val query = postsRef.orderByChild("timestamp").limitToLast(FEED_PAGE_SIZE)
         if (postsListener == null) { // Avoid re-adding listener if already active
             postsListener = object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -814,21 +837,33 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                         val blockedUsers = fetchBlockedUsers(currentUserId)
 
                         val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                            .filter { post -> !blockedUsers.contains(post.userId) } // Filter out posts from blocked users
+                            .filter { post -> !blockedUsers.contains(post.userId) }
                         val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
                         val userIds = sortedPosts.map { it.userId }.toSet()
                         val profiles = fetchUserProfiles(userIds)
 
-                        Log.d(TAG, "Fetched ${sortedPosts.size} posts and ${profiles.size} profiles after filtering blocked users")
+                        val existingPosts = _posts.value
+                        val hadExistingPosts = existingPosts.isNotEmpty()
+                        val recentIds = sortedPosts.map { it.postId }.toSet()
+                        val remainingOldPosts = existingPosts.filterNot { recentIds.contains(it.postId) }
+                        val mergedPosts = (sortedPosts + remainingOldPosts)
+                            .distinctBy { it.postId }
+                            .sortedByDescending { it.getTimestampLong() }
 
-                        _userProfiles.value = profiles
-                        _posts.value = sortedPosts
+                        val combinedProfiles = _userProfiles.value.toMutableMap().apply { putAll(profiles) }
+
+                        _userProfiles.value = combinedProfiles
+                        _posts.value = mergedPosts
+                        oldestLoadedTimestamp = mergedPosts.lastOrNull()?.getTimestampLong()
+                        if (!hadExistingPosts) {
+                            _hasMorePosts.value = sortedPosts.size >= FEED_PAGE_SIZE
+                        }
                         if (_isInitialFeedLoading.value) {
                             _isInitialFeedLoading.value = false
                         }
 
                         // Confirm StateFlow update
-                        Log.d(TAG, "Updated _posts with ${_posts.value.size} posts")
+                        Log.d(TAG, "Updated _posts with ${mergedPosts.size} posts")
                     }
                 }
 
@@ -837,7 +872,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     _isInitialFeedLoading.value = false
                 }
             }
-            postsRef.addValueEventListener(postsListener!!)
+        }
+
+        postsListener?.let { listener ->
+            postsQuery?.removeEventListener(listener)
+            postsQuery = query
+            query.addValueEventListener(listener)
         }
 
         // Trigger a one-time fetch for immediate data availability
@@ -850,17 +890,26 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 // Fetch blocked users
                 val blockedUsers = fetchBlockedUsers(currentUserId)
 
-                val snapshot = postsRef.get().await()
+                val snapshot = query.get().await()
                 val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                    .filter { post -> !blockedUsers.contains(post.userId) } // Filter out posts from blocked users
+                    .filter { post -> !blockedUsers.contains(post.userId) }
                 val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
                 val userIds = sortedPosts.map { it.userId }.toSet()
                 val profiles = fetchUserProfiles(userIds)
 
-                Log.d(TAG, "One-time fetch: ${sortedPosts.size} posts and ${profiles.size} profiles after filtering blocked users")
+                val existingPosts = _posts.value
+                val recentIds = sortedPosts.map { it.postId }.toSet()
+                val remainingOldPosts = existingPosts.filterNot { recentIds.contains(it.postId) }
+                val mergedPosts = (sortedPosts + remainingOldPosts)
+                    .distinctBy { it.postId }
+                    .sortedByDescending { it.getTimestampLong() }
 
-                _userProfiles.value = profiles
-                _posts.value = sortedPosts
+                val combinedProfiles = _userProfiles.value.toMutableMap().apply { putAll(profiles) }
+
+                _userProfiles.value = combinedProfiles
+                _posts.value = mergedPosts
+                oldestLoadedTimestamp = mergedPosts.lastOrNull()?.getTimestampLong()
+                _hasMorePosts.value = sortedPosts.size >= FEED_PAGE_SIZE
                 _isInitialFeedLoading.value = false
             } catch (e: Exception) {
                 Log.e(TAG, "One-time fetch failed: ${e.message}")
@@ -869,11 +918,60 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun loadMorePosts() {
+        val currentUserId = _currentUserId.value ?: return
+        if (_isLoadingMore.value || !_hasMorePosts.value) return
+        if (oldestLoadedTimestamp == null) return
+
+        _isLoadingMore.value = true
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val blockedUsers = fetchBlockedUsers(currentUserId)
+                val lastPost = _posts.value.lastOrNull()
+                if (lastPost == null) {
+                    _isLoadingMore.value = false
+                    return@launch
+                }
+                val snapshot = postsRef.orderByChild("timestamp")
+                    .endAt(lastPost.getTimestampLong().toDouble(), lastPost.postId)
+                    .limitToLast(FEED_PAGE_SIZE + 1)
+                    .get()
+                    .await()
+
+                val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
+                    .filter { post -> !blockedUsers.contains(post.userId) }
+                    .filter { it.postId != lastPost.postId }
+                val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
+                val newPosts = sortedPosts.filterNot { post -> _posts.value.any { it.postId == post.postId } }
+
+                if (newPosts.isNotEmpty()) {
+                    val userIds = newPosts.map { it.userId }.toSet()
+                    val profiles = fetchUserProfiles(userIds)
+                    val combinedProfiles = _userProfiles.value.toMutableMap().apply { putAll(profiles) }
+                    val mergedPosts = (_posts.value + newPosts)
+                        .distinctBy { it.postId }
+                        .sortedByDescending { it.getTimestampLong() }
+
+                    _userProfiles.value = combinedProfiles
+                    _posts.value = mergedPosts
+                    oldestLoadedTimestamp = mergedPosts.lastOrNull()?.getTimestampLong()
+                }
+
+                _hasMorePosts.value = newPosts.size >= FEED_PAGE_SIZE
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load older posts: ${e.message}", e)
+            } finally {
+                _isLoadingMore.value = false
+            }
+        }
+    }
+
     // Pause observing posts
 // PostViewModel.kt
     fun pauseFeed() {
         if (postsListener != null) {
-            postsRef.removeEventListener(postsListener!!)
+            detachPostsListener()
             postsListener = null          // ←  important!
         }
         isFeedPaused = true

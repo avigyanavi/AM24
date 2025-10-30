@@ -71,7 +71,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
-import kotlin.math.min
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.request.ImageRequest
@@ -356,18 +355,8 @@ fun FeedSection(
     var isRefreshing by remember { mutableStateOf(false) }
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isRefreshing)
 
-    val pageSize = 10
-    var visibleCount by remember { mutableStateOf(pageSize) }
-
-    LaunchedEffect(posts.size) {
-        visibleCount = min(visibleCount.coerceAtLeast(pageSize), posts.size)
-    }
-
-    val visiblePosts = remember(posts, visibleCount) {
-        if (visibleCount >= posts.size) posts else posts.take(visibleCount)
-    }
-
-    val hasMorePosts = visiblePosts.size < posts.size
+    val hasMorePosts by postViewModel.hasMorePosts.collectAsState()
+    val isLoadingMore by postViewModel.isLoadingMore.collectAsState()
 
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
@@ -410,8 +399,7 @@ fun FeedSection(
                 }
             }
 
-            itemsIndexed(visiblePosts, key = { idx, post -> post.postId.ifEmpty { "post_$idx" } }) { index, post ->
-                val profile = userProfiles[post.userId]
+            itemsIndexed(posts, key = { idx, post -> post.postId.ifEmpty { "post_$idx" } }) { index, post ->                val profile = userProfiles[post.userId]
                 val isSaved = savedPostIds.contains(post.postId)
                 FeedItem(
                     post = post,
@@ -532,17 +520,29 @@ fun FeedSection(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            if (hasMorePosts) {
+            if (hasMorePosts && posts.isNotEmpty()) {
                 item {
-                    Button(
-                        onClick = {
-                            visibleCount = min(visibleCount + pageSize, posts.size)
-                        },
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(stringResource(R.string.next_page))
+                        Button(
+                            onClick = { postViewModel.loadMorePosts() },
+                            enabled = !isLoadingMore,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.next_page))
+                        }
+                        if (isLoadingMore) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            CircularProgressIndicator(
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(20.dp),
+                                color = Color(0xFFFF6F00)
+                            )
+                        }
                     }
                 }
             } else {
