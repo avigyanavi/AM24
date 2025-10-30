@@ -28,8 +28,7 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.AppCompatImageView
-import androidx.media3.transformer.DefaultEncoderFactory
-import androidx.media3.transformer.VideoEncoderSettings
+import androidx.media3.transformer.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -114,8 +113,11 @@ import kotlinx.coroutines.tasks.await
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.transformer.*
 import com.am24.am24.util.CachedFullscreenVideoPlayer
 import java.io.IOException
+import kotlin.compareTo
+import kotlin.dec
 import com.am24.am24.ui.CompatibilityMeter
 
 // Updated Message data class (without viewed field)
@@ -1863,7 +1865,8 @@ suspend fun compressVideo(
     context: Context,
     uri: Uri,
     targetBitrate: Int = 1_000_000
-): File {
+): ByteArray {
+    // 1) Prepare your temp file
     val outFile = File.createTempFile("compressed_", ".mp4", context.cacheDir)
 
     // 2) Configure encoder settings
@@ -1881,41 +1884,34 @@ suspend fun compressVideo(
         .setEncoderFactory(encoderFactory)
         .build()
 
-    try {
-        suspendCancellableCoroutine<Unit> { cont ->
-            transformer.addListener(object : Transformer.Listener {
-                override fun onCompleted(composition: Composition, exportResult: ExportResult) {
-                    cont.resume(Unit)
-                }
-
-                override fun onError(
-                    composition: Composition,
-                    exportResult: ExportResult,
-                    exportException: ExportException
-                ) {
-                    cont.resumeWithException(exportException)
-                }
-            })
-
-            cont.invokeOnCancellation {
-                transformer.cancel()
-                outFile.delete()
+    // 4) Suspend until transform completes, but post start() on the Main thread
+    suspendCancellableCoroutine<Unit> { cont ->
+        transformer.addListener(object : Transformer.Listener {
+            override fun onCompleted(composition: Composition, exportResult: ExportResult) {
+                cont.resume(Unit)
             }
-            Handler(Looper.getMainLooper()).post {
-                transformer.start(
-                    MediaItem.fromUri(uri),
-                    outFile.absolutePath
-                )
+            override fun onError(
+                composition: Composition,
+                exportResult: ExportResult,
+                exportException: ExportException
+            ) {
+                cont.resumeWithException(exportException)
             }
+        })
+
+        // This must run on the UI thread:
+        Handler(Looper.getMainLooper()).post {
+            transformer.start(
+                MediaItem.fromUri(uri),
+                outFile.absolutePath
+            )
         }
-    } catch (e: Exception) {
-        if (outFile.exists()) {
-            outFile.delete()
-        }
-        throw e
     }
 
-    return outFile
+    // 5) Read the output back into memory (this can be IO)
+    return withContext(Dispatchers.IO) {
+        outFile.readBytes()
+    }
 }
 
 @Composable
@@ -2044,12 +2040,11 @@ suspend fun sendMediaMessage(
     val ext = if (mediaType == "photo") "jpg" else "mp4"
     val remoteName = "${mediaType}_${ts}.$ext"
     val mediaRef = storageRef.child("$mediaType/$chatId/$remoteName")
-    var uploadBytes: ByteArray? = null
-    var uploadFile: File? = null
-    try {
+    val bytes = try {
         when (mediaType) {
-            "photo" -> uploadBytes = compressImage(context, uri)
-            "video" -> uploadFile = compressVideo(context, uri)
+            "photo" -> compressImage(context, uri)
+            "video" -> compressVideo(context, uri)
+            else -> null
         }
     } catch (e: Exception) {
         Log.e("ChatScreen", "Compression failed: ${e.message}")
@@ -2059,10 +2054,10 @@ suspend fun sendMediaMessage(
         return
     }
     try {
-        when {
-            uploadBytes != null -> mediaRef.putBytes(uploadBytes!!).await()
-            uploadFile != null -> mediaRef.putFile(Uri.fromFile(uploadFile)).await()
-            else -> mediaRef.putFile(uri).await()
+        if (bytes != null) {
+            mediaRef.putBytes(bytes).await()
+        } else {
+            mediaRef.putFile(uri).await()
         }
         val downloadUrl = mediaRef.downloadUrl.await().toString()
         val id = messagesRef.push().key ?: return
@@ -2082,12 +2077,6 @@ suspend fun sendMediaMessage(
         Log.e("ChatScreen", "Upload failed: ${e.message}")
         withContext(Dispatchers.Main) {
             Toast.makeText(context, "Failed to upload $mediaType", Toast.LENGTH_SHORT).show()
-        }
-    } finally {
-        uploadFile?.let {
-            if (it.exists()) {
-                it.delete()
-            }
         }
     }
 }
