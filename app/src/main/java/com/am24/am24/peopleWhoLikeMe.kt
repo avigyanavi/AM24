@@ -28,6 +28,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun PeopleWhoLikeMeScreen(
@@ -78,10 +79,32 @@ fun PeopleWhoLikeMeScreen(
 
             val premiumFlag = userSnapshot.child("isPremium").getValue(Boolean::class.java) ?: false
             val plusFlag = userSnapshot.child("isPlus").getValue(Boolean::class.java) ?: false
-            isPremium = premiumFlag
-            isPlus = plusFlag
+            val loginPlusExpiryValue = userSnapshot.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
+            val entryFeePaidAtValue = userSnapshot.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
+            val entryFeePaidFlag = userSnapshot.child("isEntryFeePaid").getValue(Boolean::class.java) ?: false
+            val nextRenewalValue = userSnapshot.child("nextRenewal").getValue(Long::class.java) ?: 0L
+            val premiumExpiryValue = userSnapshot.child("premiumExpiryDate").getValue(Long::class.java) ?: 0L
+            val subscriptionStatusValue = userSnapshot.child("subscriptionStatus").getValue(String::class.java)
 
-            if (!premiumFlag && !plusFlag) {
+            val now = System.currentTimeMillis()
+            val entryFeePaidExpiry = if (entryFeePaidAtValue > 0L) {
+                entryFeePaidAtValue + TimeUnit.DAYS.toMillis(30)
+            } else {
+                0L
+            }
+
+            val hasActivePlus = plusFlag ||
+                    premiumFlag ||
+                    loginPlusExpiryValue > now ||
+                    (entryFeePaidFlag && entryFeePaidExpiry > now) ||
+                    nextRenewalValue > now ||
+                    premiumExpiryValue > now ||
+                    subscriptionStatusValue.equals("active", ignoreCase = true)
+
+            isPremium = premiumFlag || subscriptionStatusValue.equals("active", ignoreCase = true)
+            isPlus = hasActivePlus
+
+            if (!hasActivePlus) {
                 Toast
                     .makeText(context, "Upgrade to Plus to see who liked you", Toast.LENGTH_SHORT)
                     .show()
@@ -107,7 +130,14 @@ fun PeopleWhoLikeMeScreen(
                 userIds.map { userId ->
                     async {
                         val profileSnapshot = usersRef.child(userId).get().await()
-                        profileSnapshot.getValue(Profile::class.java)
+                        val profile = profileSnapshot.getValue(Profile::class.java)?.let { loaded ->
+                            if (loaded.userId.isBlank()) loaded.copy(userId = userId) else loaded
+                        }
+                        if (profile != null && profile.username.isBlank()) {
+                            runCatching { likesReceivedRef.child(userId).removeValue().await() }
+                            return@async null
+                        }
+                        profile
                     }
                 }.awaitAll()
                     .filterNotNull()
