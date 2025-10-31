@@ -21,8 +21,19 @@ import kotlinx.coroutines.flow.map
 import java.util.Locale
 import kotlin.math.roundToInt
 import java.util.concurrent.TimeUnit
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class NearbyViewModel : ViewModel() {
+    private data class NearbyQueryKey(
+        val userId: String,
+        val latBucket: Int,
+        val lngBucket: Int,
+        val radiusBucket: Int,
+        val filterHash: Int,
+    )
+
     private data class NearbyUiState(
         val people: List<NearbyUser>,
         val sortMode: SortMode,
@@ -41,9 +52,19 @@ class NearbyViewModel : ViewModel() {
     var isPremium by mutableStateOf(false)
     var isRefreshing by mutableStateOf(false)
     var currentProfile: Profile? = null
-    var datingFilters by mutableStateOf(DatingFilterSettings())
+    private var _datingFilters by mutableStateOf(DatingFilterSettings())
+    var datingFilters: DatingFilterSettings
+        get() = _datingFilters
+        set(value) {
+            if (_datingFilters != value) {
+                _datingFilters = value
+                invalidateCache()
+                lastQueryKey = null
+            }
+        }
     var currentLimit by mutableStateOf(10)
 
+    private var lastQueryKey: NearbyQueryKey? = null
 
     val nearbyUsers: Flow<List<NearbyUser>> = snapshotFlow {
         NearbyUiState(
@@ -113,6 +134,24 @@ class NearbyViewModel : ViewModel() {
         forceRefresh: Boolean = false,
         previousResults: Map<String, NearbyUser>? = null
     ) {
+        val filtersSnapshot = datingFilters
+        val newKey = NearbyQueryKey(
+            userId = userId,
+            latBucket = (center.latitude * 10_000).roundToInt(),
+            lngBucket = (center.longitude * 10_000).roundToInt(),
+            radiusBucket = (radiusKm * 100).roundToInt(),
+            filterHash = filtersSnapshot.hashCode(),
+        )
+
+        if (!forceRefresh && newKey == lastQueryKey) {
+            if (previousResults != null && people.isEmpty()) {
+                people.addAll(previousResults.values)
+            }
+            isRefreshing = false
+            return
+        }
+        lastQueryKey = newKey
+
         if (forceRefresh) invalidateCache()
         // Reset
         geoQuery?.removeAllListeners()
@@ -162,6 +201,7 @@ class NearbyViewModel : ViewModel() {
         if (userId == null) {
             userCache.clear()
             cacheTimestamps.clear()
+            lastQueryKey = null
         } else {
             userCache.remove(userId)
             cacheTimestamps.remove(userId)
@@ -238,35 +278,43 @@ class NearbyViewModel : ViewModel() {
                 return
             }
 
-            val usersRef = FirebaseRefs.db.getReference("users").child(uid)
-            usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
+            viewModelScope.launch {
+                try {
+                    val snapshot = FirebaseRefs.db.getReference("users").child(uid).get().await()
                     if (reachedLimit || people.size >= limit) {
                         if (!reachedLimit) {
                             reachedLimit = true
                             query.removeAllListeners()
                             isRefreshing = false
                         }
-                        return
+                        return@launch
                     }
-                    val p = snapshot.getValue(Profile::class.java) ?: return
+                    if (UserDeletionCache.isDeleted(FirebaseRefs.db, uid, snapshot)) {
+                        onExit(uid)
+                        return@launch
+                    }
+                    val p = snapshot.getValue(Profile::class.java) ?: run {
+                        onExit(uid)
+                        return@launch
+                    }
                     if (p.isPrivate) {
                         onExit(uid)
-                        return
+                        return@launch
                     }
 
                     // No allowLocationPublic/allowLocationForMatches checks here
                     val username = (p.username ?: "").ifBlank { p.name ?: "" }
                     if (username.isBlank()) {
                         onExit(uid)
-                        return
+                        return@launch
                     }
                     val age = calculateAge(p.dob)
                     if (isPlus && !matchesFilters(p, age)) {
                         onExit(uid)
-                        return
+                        return@launch
                     }
-                    val lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: p.lastActive
+                    val lastActive =
+                        snapshot.child("lastActive").getValue(Long::class.java) ?: p.lastActive
 
                     val online = isUserOnline(now, lastActive)
 
@@ -321,12 +369,11 @@ class NearbyViewModel : ViewModel() {
                         query.removeAllListeners()
                         isRefreshing = false
                     }
+                } catch (err: Exception) {
+                    Log.e("MapScreenVM", "User fetch cancelled $uid: ${err.message}")
+                    onExit(uid)
                 }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e("MapScreenVM", "User fetch cancelled $uid: ${error.message}")
-                }
-            })
+            }
         }
 
         query.addGeoQueryEventListener(object : GeoQueryEventListener {

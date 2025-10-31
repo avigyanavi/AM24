@@ -40,7 +40,9 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.math.min
+import androidx.compose.material.icons.filled.ArrowBack
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnlineUsersScreen(navController: NavController) {
     val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -64,7 +66,16 @@ fun OnlineUsersScreen(navController: NavController) {
                             async {
                                 try {
                                     val snap = db.child("users").child(id).get().await()
-                                    snap.getValue(Profile::class.java)?.copy(userId = id)
+                                    if (UserDeletionCache.isDeleted(FirebaseRefs.db, id, snap)) {
+                                        return@async null
+                                    }
+                                    val profile = snap.getValue(Profile::class.java)?.copy(userId = id)
+                                    if (profile != null && profile.username.isNullOrBlank()) {
+                                        UserDeletionCache.markDeleted(id)
+                                        return@async null
+                                    }
+                                    UserDeletionCache.markActive(id)
+                                    profile
                                 } catch (e: Exception) {
                                     Log.e("OnlineUsersScreen", "Failed to load profile $id", e)
                                     null
@@ -202,7 +213,30 @@ fun OnlineUsersScreen(navController: NavController) {
     }
 
     // --- UI ---
-    Box(Modifier.fillMaxSize()) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.online_users), color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+            )
+        },
+        containerColor = Color.Black
+    ) { paddingValues ->
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(Color.Black)
+        ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -294,6 +328,7 @@ fun OnlineUsersScreen(navController: NavController) {
 
         if (loading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        }
         }
     }
 

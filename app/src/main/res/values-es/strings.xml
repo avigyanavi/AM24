@@ -25,6 +25,8 @@
     <string name="user_hidden_private_album">%1$s ha ocultado su álbum privado</string>
     <string name="view_users_private_album">Ver el álbum privado de %1$s</string>
     <string name="your_match">Tu match</string>
+    <string name="notifications_title">Notificaciones</string>
+    <string name="people_who_like_me_title">Personas a las que les gusto</string>
     <plurals name="notification_unread_messages">
         <item quantity="one">Tienes %d notificación sin leer</item>
         <item quantity="other">Tienes %d notificaciones sin leer</item>

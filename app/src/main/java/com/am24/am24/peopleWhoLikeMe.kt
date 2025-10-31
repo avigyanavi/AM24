@@ -29,7 +29,10 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.ui.res.stringResource
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleWhoLikeMeScreen(
     navController: NavController,
@@ -130,13 +133,18 @@ fun PeopleWhoLikeMeScreen(
                 userIds.map { userId ->
                     async {
                         val profileSnapshot = usersRef.child(userId).get().await()
+                        if (UserDeletionCache.isDeleted(FirebaseRefs.db, userId, profileSnapshot)) {
+                            return@async null
+                        }
                         val profile = profileSnapshot.getValue(Profile::class.java)?.let { loaded ->
                             if (loaded.userId.isBlank()) loaded.copy(userId = userId) else loaded
                         }
                         if (profile != null && profile.username.isBlank()) {
                             runCatching { likesReceivedRef.child(userId).removeValue().await() }
+                            UserDeletionCache.markDeleted(userId)
                             return@async null
                         }
+                        profile?.let { UserDeletionCache.markActive(userId) }
                         profile
                     }
                 }.awaitAll()
@@ -172,6 +180,21 @@ fun PeopleWhoLikeMeScreen(
         }
     } else {
         Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.people_who_like_me_title), color = Color.White) },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = stringResource(R.string.back),
+                                tint = Color.White
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
+                )
+            },
             floatingActionButton = {
                 if (likedUsers.isNotEmpty()) {
                     FloatingActionButton(

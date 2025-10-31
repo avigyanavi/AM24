@@ -6511,7 +6511,8 @@
     <string name="rating_avg_update_failed">Không cập nhật được điểm trung bình.</string>
     <string name="rating_update_failed">Không cập nhật được đánh giá.</string>
     <string name="rating_fetch_failed">Không lấy được đánh giá hiện tại.</string>
-
+    <string name="notifications_title">Thông báo</string>
+    <string name="people_who_like_me_title">Những người thích tôi</string>
     <string name="profile_load_self_failed">Không tải được hồ sơ của bạn.</string>
     <string name="profile_load_other_failed">Không tải được người dùng.</string>
 

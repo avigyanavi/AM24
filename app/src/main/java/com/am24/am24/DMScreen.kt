@@ -216,7 +216,15 @@ fun DMScreenContent(
                 async {
                     try {
                         val snap = usersRef.child(senderId).get().await()
+                        if (UserDeletionCache.isDeleted(FirebaseRefs.db, senderId, snap)) {
+                            return@async null
+                        }
                         val profile = snap.getValue(Profile::class.java) ?: return@async null
+                        if (profile.username.isNullOrBlank()) {
+                            UserDeletionCache.markDeleted(senderId)
+                            return@async null
+                        }
+                        UserDeletionCache.markActive(senderId)
                         ComplimentWithProfile(profile, compliment)
                     } catch (e: Exception) {
                         Log.e("DMScreen", "Failed to load compliment sender $senderId", e)
@@ -479,7 +487,8 @@ fun DMScreenContent(
                                                         calledSweepOnce = true
                                                         try {
                                                                 val data = hashMapOf("source" to "peopleWhoLikedMe_chip")
-                                                                functions.getHttpsCallable("loginEntitlementSweep")
+                                                                FirebaseFunctions.getInstance("asia-south1")
+                                                                .getHttpsCallable("loginEntitlementSweep")
                                                                     .call(data)
                                                                     .addOnSuccessListener {
                                                                             Log.d("DMScreen", "loginEntitlementSweep ok")
@@ -709,16 +718,20 @@ fun DMScreenContent(
                 confirmButton = {
                     TextButton(onClick = {
                         showSmartMatchDialog = false
-                        handleSmartMatch(
-                            currentUserId,
-                            selectedSmartMatchGender,
-                            database,
-                            usersRef,
-                            matchIds,
-                            blockedIds,
-                            context
-                        )
-                    }) {         Text(stringResource(R.string.action_smart_match), color = Color(0xFFFF4500)) }
+                        coroutineScope.launch {
+                            handleSmartMatch(
+                                currentUserId,
+                                selectedSmartMatchGender,
+                                database,
+                                usersRef,
+                                matchIds,
+                                blockedIds,
+                                context
+                            )
+                        }
+                    }) {
+                        Text(stringResource(R.string.action_smart_match), color = Color(0xFFFF4500))
+                    }
                 },
                 dismissButton = {
                     TextButton(onClick = { showSmartMatchDialog = false }) {
@@ -946,7 +959,16 @@ private suspend fun fetchProfiles(
         async {
             try {
                 val snapshot = usersRef.child(id).get().await()
-                snapshot.getValue(Profile::class.java)
+                if (UserDeletionCache.isDeleted(FirebaseRefs.db, id, snapshot)) {
+                    return@async null
+                }
+                val profile = snapshot.getValue(Profile::class.java)
+                if (profile != null && profile.username.isNullOrBlank()) {
+                    UserDeletionCache.markDeleted(id)
+                    return@async null
+                }
+                UserDeletionCache.markActive(id)
+                profile
             } catch (e: Exception) {
                 Log.e("DMScreen", "Failed to fetch profile for $id", e)
                 null
@@ -966,28 +988,32 @@ fun getLevelBorderColor(rating: Double): Color {
     }
 }
 
-private fun fetchRandomUserForLottery(
+private suspend fun fetchRandomUserForLottery(
     usersRef: DatabaseReference,
     gender: String,
     excludedIds: Set<String>,
-    currentUserId: String,
-    onResult: (Profile?) -> Unit
-) {
-    usersRef.get().addOnSuccessListener { snap ->
-        val list = snap.children.mapNotNull { child ->
-            try {
-                child.getValue(Profile::class.java)
-            } catch (e: Exception) {
-                Log.w("DMScreen", "Skipping non-profile child ${child.key}", e)
-                null
-            }
+    currentUserId: String
+): Profile? {
+    val snap = usersRef.get().await()
+
+    val list = snap.children.mapNotNull { child ->
+        val uid = child.key ?: return@mapNotNull null
+
+        // ✅ OK now: we're inside a suspend function
+        if (UserDeletionCache.isDeleted(FirebaseRefs.db, uid, child)) return@mapNotNull null
+
+        val profile = child.getValue(Profile::class.java) ?: return@mapNotNull null
+        if (profile.username.isNullOrBlank()) {
+            UserDeletionCache.markDeleted(uid)
+            return@mapNotNull null
         }
-            .filter { it.userId != currentUserId && !excludedIds.contains(it.userId) }
-            .filter {
-                gender == "Both" || it.gender.toGenderCode() == gender.toGenderCode()
-            }
-        onResult(list.randomOrNull())
-    }.addOnFailureListener { onResult(null) }
+        UserDeletionCache.markActive(uid)
+        profile
+    }
+        .filter { it.userId != currentUserId && !excludedIds.contains(it.userId) }
+        .filter { gender == "Both" || it.gender.toGenderCode() == gender.toGenderCode() }
+
+    return list.randomOrNull()
 }
 
 private fun createMatch(
@@ -1003,7 +1029,7 @@ private fun createMatch(
     database.reference.updateChildren(updates)
 }
 
-private fun handleSmartMatch(
+private suspend fun handleSmartMatch(
     currentUserId: String,
     gender: String,
     database: FirebaseDatabase,
@@ -1013,16 +1039,16 @@ private fun handleSmartMatch(
     context: android.content.Context
 ) {
     val week = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR)
-    database.getReference("users/$currentUserId/lastSmartMatchWeekOfYear").setValue(week)
+    database.getReference("users/$currentUserId/lastSmartMatchWeekOfYear").setValue(week).await()
 
     val excluded = matchIds.toSet() + blockedIds.toSet() + setOf(currentUserId)
-    fetchRandomUserForLottery(usersRef, gender, excluded, currentUserId) { profile ->
-        if (profile != null) {
-            createMatch(database, currentUserId, profile.userId)
-            Toast.makeText(context, context.getString(R.string.dm_matched_with, profile.username), Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(context, context.getString(R.string.dm_no_match_available), Toast.LENGTH_SHORT).show()
-        }
+    val profile = fetchRandomUserForLottery(usersRef, gender, excluded, currentUserId)
+
+    if (profile != null) {
+        createMatch(database, currentUserId, profile.userId)
+        Toast.makeText(context, context.getString(R.string.dm_matched_with, profile.username), Toast.LENGTH_SHORT).show()
+    } else {
+        Toast.makeText(context, context.getString(R.string.dm_no_match_available), Toast.LENGTH_SHORT).show()
     }
 }
 

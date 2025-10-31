@@ -819,18 +819,6 @@ fun ChatScreenContent(
                                         .background(Color.Gray),
                                     contentScale = ContentScale.Crop
                                 )
-                                if (!privateAlbumSharedPartner) {  // overlay but DON'T eat clicks
-                                    Icon(
-                                        Icons.Default.Block,
-                                        contentDescription = null,
-                                        tint = Color.Red,
-                                        modifier = Modifier
-                                            .align(Alignment.CenterVertically)      // RowScope.align – vertical only
-                                            .offset(x = (-6).dp, y = (-10).dp)
-                                            .size(14.dp)
-                                            .pointerInput(Unit) { /* consume nothing */ }
-                                    )
-                                }
                             } else {
                                 otherUserProfile ?: Profile(userId = "", username = "", name = chattitle)
                                 AIOrProfileImage(
@@ -840,18 +828,6 @@ fun ChatScreenContent(
                                         .clip(CircleShape)
                                         .background(Color.Gray)
                                 )
-                                if (!privateAlbumSharedPartner) {  // overlay but DON'T eat clicks
-                                    Icon(
-                                        Icons.Default.Block,
-                                        contentDescription = null,
-                                        tint = Color.Red,
-                                        modifier = Modifier
-                                            .align(Alignment.CenterVertically)      // RowScope.align – vertical only
-                                            .offset(x = (-6).dp, y = (-10).dp)
-                                            .size(14.dp)
-                                            .pointerInput(Unit) { /* consume nothing */ }
-                                    )
-                                }
                             }
                         }
                         Spacer(Modifier.width(8.dp))

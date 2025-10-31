@@ -23,6 +23,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.launch
 
 /**
  * Simple group‑chat screen that stores messages under
@@ -48,6 +49,7 @@ fun GroupChatScreen(
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val database      = FirebaseRefs.db
     val usersRef      = database.getReference("users")
+    val scope = rememberCoroutineScope()
     val messagesRef   = database.getReference("messages").child(groupId)
 
     /* ---------- current user profile ---------- */
@@ -80,9 +82,24 @@ fun GroupChatScreen(
     DisposableEffect(groupId) {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val newList = snapshot.children.mapNotNull { it.getValue(GroupChatMessage::class.java) }
-                messages.clear()
-                messages.addAll(newList.sortedBy { it.timestamp })
+                scope.launch {
+                    try {
+                        val newList = snapshot.children.mapNotNull { it.getValue(GroupChatMessage::class.java) }
+                        val filtered = newList.filter { message ->
+                            val senderId = message.senderId
+                            if (senderId.isBlank()) return@filter false
+                            val deleted = UserDeletionCache.isDeleted(database, senderId)
+                            if (!deleted) {
+                                UserDeletionCache.markActive(senderId)
+                            }
+                            !deleted
+                        }
+                        messages.clear()
+                        messages.addAll(filtered.sortedBy { it.timestamp })
+                    } catch (_: Exception) {
+                        messages.clear()
+                    }
+                }
             }
             override fun onCancelled(error: DatabaseError) {}
         }

@@ -76,6 +76,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.request.ImageRequest
 import com.am24.am24.util.TextureFullscreenVideoPlayer
 import kotlinx.coroutines.CancellationException
+import androidx.compose.runtime.saveable.rememberSaveable
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,21 +90,26 @@ fun HomeScreen(
     val userId = FirebaseAuth.getInstance().currentUser?.uid
     val context = LocalContext.current
 
-    // Immediately update the PostViewModel with the current user ID.
-    LaunchedEffect(userId) {
-        postViewModel.setCurrentUserId(userId)
-        if (userId != null) {
-            postViewModel.loadFiltersFromFirebase(userId)
-        }
-        postViewModel.refreshPosts()
-    }
+// ✅ Initialize VM *before* we gate on filtersLoaded/isInitialFeedLoading
+      LaunchedEffect(userId) {
+              postViewModel.setCurrentUserId(userId)
+              if (userId != null) {
+                      postViewModel.loadFiltersFromFirebase(userId)
+                  }
+          }
+      // Optional one-shot initial refresh after filters loaded:
+      var didInitialRefresh by rememberSaveable(userId) { mutableStateOf(false) }
+      LaunchedEffect(userId, postViewModel.filtersLoaded.collectAsState().value) {
+              if (userId != null && postViewModel.filtersLoaded.value && !didInitialRefresh) {
+                      didInitialRefresh = true
+                      postViewModel.refreshPosts()
+                  }
+          }
 
-    // Pause the feed when the user navigates away.
-    DisposableEffect(Unit) {
-        onDispose {
-            postViewModel.pauseFeed()
-        }
-    }
+      // Pause the feed when the user navigates away.
+      DisposableEffect(Unit) {
+              onDispose { postViewModel.pauseFeed() }
+          }
 
     // Wait for filters to load.
     val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
@@ -121,6 +128,7 @@ fun HomeScreen(
 
         val userProfiles by postViewModel.userProfiles.collectAsState()
         val filterSettings by postViewModel.filterSettings.collectAsState()
+        var lastFilterHash by rememberSaveable { mutableStateOf<Int?>(null) }
         var myMatches by remember { mutableStateOf<List<String>>(emptyList()) }
 
         // Fetch the current user's own Profile.
