@@ -17,6 +17,15 @@
     <string name="your_match">Your match</string>
     <string name="notifications_title">Notifications</string>
     <string name="people_who_like_me_title">People Who Liked Me</string>
+    <string name="filters_active_prefix">Filters active: %1$s</string>
+    <string name="filter_label_age">Age %1$s</string>
+    <string name="filter_label_gender">Gender: %1$s</string>
+    <string name="filter_label_orientation">Orientation: %1$s</string>
+    <string name="filter_label_ethnicity">Ethnicity: %1$s</string>
+    <string name="filter_label_roles">Roles: %1$s</string>
+    <string name="filter_label_tribes">Tribes: %1$s</string>
+    <string name="filter_label_kinks">Kinks: %1$s</string>
+    <string name="filter_label_interests">Interests: %1$s</string>
     <string name="image_post_label">Image Post</string>
     <string name="video_post_label">Video Post</string>
     <string name="upgrade_plus_image_warning">Upgrade to Plus to create Image Posts</string>

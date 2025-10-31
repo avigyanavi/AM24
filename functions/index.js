@@ -665,10 +665,17 @@ exports.loginEntitlementSweep = functions
     if (desiredRenewal > 0 && desiredRenewal !== nextRenewal) {
       updates.nextRenewal = desiredRenewal;
     }
-
+        if (
+          isEntryFeePaid &&
+          desiredRenewal > now &&
+          desiredRenewal > fromEntryFee &&
+          desiredRenewal - THIRTY_DAYS_MS > entryFeePaidAt
+        ) {
+          updates.entryFeePaidAt = desiredRenewal - THIRTY_DAYS_MS;
+        }
     if (desiredRenewal > 0 && desiredRenewal !== entryFeeOfferExpiry) {
-          updates.entryFeeOfferExpiry = desiredRenewal;
-       }
+        updates.entryFeeOfferExpiry = desiredRenewal;
+    }
 
     if (Object.keys(updates).length) {
       updates.lastEntitlementSyncAt = now;

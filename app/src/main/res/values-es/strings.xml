@@ -7,6 +7,15 @@
     <string name="image_post_label">Publicación de imagen</string>
     <string name="video_post_label">Publicación de video</string>
     <string name="roles_compatible">Roles compatibles</string>
+    <string name="filters_active_prefix">Filters active: %1$s</string>
+    <string name="filter_label_age">Age %1$s</string>
+    <string name="filter_label_gender">Gender: %1$s</string>
+    <string name="filter_label_orientation">Orientation: %1$s</string>
+    <string name="filter_label_ethnicity">Ethnicity: %1$s</string>
+    <string name="filter_label_roles">Roles: %1$s</string>
+    <string name="filter_label_tribes">Tribes: %1$s</string>
+    <string name="filter_label_kinks">Kinks: %1$s</string>
+    <string name="filter_label_interests">Interests: %1$s</string>
     <string name="no_card_in_page">No hay tarjetas en esta página</string>
     <string name="shared_tribes_prefix">Tribus compartidas: %1$s</string>
     <string name="upgrade_plus_image_warning">Actualiza a Plus para crear publicaciones de imagen</string>

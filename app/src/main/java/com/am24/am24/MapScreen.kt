@@ -8,7 +8,7 @@ package com.am24.am24
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
+import com.am24.am24.SexualOrientation
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -92,14 +92,12 @@ import kotlin.math.*
 
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import com.google.firebase.auth.FirebaseAuth
 import com.google.gson.Gson
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
-import java.text.Normalizer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import android.content.res.Resources
@@ -270,6 +268,7 @@ fun MapScreen(
     var lastActiveHours by nearbyViewModel::lastActiveHours
     var selectedTab by rememberSaveable { mutableStateOf(1) } // 0: People, 1: Cards, 2: Map
     var datingFilters by nearbyViewModel::datingFilters
+    val defaultDatingFilters = remember { DatingFilterSettings() }
     var showOverflowMenu by remember { mutableStateOf(false) }
     var showFiltersDialog by remember { mutableStateOf(false) }
     var isPlus by remember { mutableStateOf(false) }
@@ -288,6 +287,64 @@ fun MapScreen(
     var autoPagedNearby by remember { mutableStateOf(false) }
     var autoPagedCards by remember { mutableStateOf(false) }
     val profileViewModel: ProfileViewModel = viewModel()
+    val activeFilterLabels = remember(datingFilters, ctx) {
+        val labels = mutableListOf<String>()
+
+        val genderCanonical = canonicalGender(datingFilters.gender)
+        if (genderCanonical.isNotBlank()) {
+            val genderLabel = genderFilterOptions
+                .firstOrNull { it.canonicalValue == genderCanonical }
+                ?.let { ctx.getString(it.labelRes) }
+                ?: genderCanonical.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+            labels += ctx.getString(R.string.filter_label_gender, genderLabel)
+        }
+
+        val orientationCanonical = canonicalOrientation(datingFilters.orientation)
+        if (orientationCanonical.isNotBlank()) {
+            val orientationLabel = SexualOrientation.values()
+                .firstOrNull { it.name.equals(orientationCanonical, ignoreCase = true) }
+                ?.localized(ctx)
+                ?: orientationCanonical.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+            labels += ctx.getString(R.string.filter_label_orientation, orientationLabel)
+        }
+
+        if (datingFilters.ethnicity.isNotBlank()) {
+            labels += ctx.getString(R.string.filter_label_ethnicity, datingFilters.ethnicity)
+        }
+
+        if (datingFilters.ageStart != defaultDatingFilters.ageStart || datingFilters.ageEnd != defaultDatingFilters.ageEnd) {
+            val ageLabel = if (datingFilters.ageEnd >= 100) {
+                "${datingFilters.ageStart}+"
+            } else {
+                "${datingFilters.ageStart}-${datingFilters.ageEnd}"
+            }
+            labels += ctx.getString(R.string.filter_label_age, ageLabel)
+        }
+
+        if (datingFilters.roles.isNotEmpty()) {
+            labels += ctx.getString(R.string.filter_label_roles, datingFilters.roles.joinToString())
+        }
+
+        if (datingFilters.tribes.isNotEmpty()) {
+            labels += ctx.getString(R.string.filter_label_tribes, datingFilters.tribes.joinToString())
+        }
+
+        if (datingFilters.kinks.isNotEmpty()) {
+            labels += ctx.getString(R.string.filter_label_kinks, datingFilters.kinks.joinToString())
+        }
+
+        if (datingFilters.interests.isNotEmpty()) {
+            val interestLabels = datingFilters.interests.map { interest ->
+                buildString {
+                    interest.emoji?.takeIf { it.isNotBlank() }?.let { append(it).append(' ') }
+                    append(interest.name)
+                }
+            }
+            labels += ctx.getString(R.string.filter_label_interests, interestLabels.joinToString())
+        }
+
+        labels
+    }
 
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
@@ -929,6 +986,20 @@ fun MapScreen(
                         text = { Text(stringResource(R.string.tab_map)) }
                     )
                 }
+            }
+
+            if (activeFilterLabels.isNotEmpty()) {
+                Text(
+                    text = ctx.getString(
+                        R.string.filters_active_prefix,
+                        activeFilterLabels.joinToString()
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = KupidxOrange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
             }
 
             when (selectedTab) {
@@ -2290,10 +2361,12 @@ private fun RadiusChip(
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        tonalElevation = 3.dp,
-        shadowElevation = 3.dp,
-        border = BorderStroke(1.dp, Color(0x33FFFFFF))
+        shape = RoundedCornerShape(24.dp),
+        color = KupidxOrange.copy(alpha = 0.12f),
+        contentColor = KupidxOrange,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = BorderStroke(1.dp, KupidxOrange.copy(alpha = 0.7f))
     ) {
         Row(
             Modifier
@@ -2301,9 +2374,9 @@ private fun RadiusChip(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Radar, contentDescription = null)
+            Icon(Icons.Default.Radar, contentDescription = null, tint = KupidxOrange)
             Spacer(Modifier.width(6.dp))
-            Text(label)
+            Text(label, color = KupidxOrange, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.width(6.dp))
             Slider(
                 value = sliderPos,
@@ -2336,10 +2409,12 @@ private fun LastActiveChip(
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        tonalElevation = 3.dp,
-        shadowElevation = 3.dp,
-        border = BorderStroke(1.dp, Color(0x33FFFFFF))
+        shape = RoundedCornerShape(24.dp),
+        color = KupidxOrange.copy(alpha = 0.12f),
+        contentColor = KupidxOrange,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = BorderStroke(1.dp, KupidxOrange.copy(alpha = 0.7f))
     ) {
         Row(
             Modifier
@@ -2347,14 +2422,19 @@ private fun LastActiveChip(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Schedule, contentDescription = null)
+            Icon(Icons.Default.Schedule, contentDescription = null, tint = KupidxOrange)
             Spacer(Modifier.width(6.dp))
-            Text(label)
+            Text(label, color = KupidxOrange, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.width(6.dp))
             Slider(
                 value = hours.toFloat(),
                 onValueChange = { onChange(it.toDouble().coerceIn(minHours, maxHours)) },
                 valueRange = minHours.toFloat()..maxHours.toFloat(),
+                colors = SliderDefaults.colors(
+                    thumbColor = KupidxOrange,
+                    activeTrackColor = KupidxOrange,
+                    inactiveTrackColor = KupidxOrange.copy(alpha = 0.3f)
+                ),
                 modifier = Modifier.weight(1f)
             )
         }

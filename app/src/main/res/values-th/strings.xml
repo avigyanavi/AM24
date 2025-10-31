@@ -5224,6 +5224,15 @@
     <string name="toast_swipe_existing_nearby_first">กดชอบหรือไม่ชอบโปรไฟล์ทั้งหมดที่มีอยู่ก่อนคลิกถัดไป</string>
     <string name="notifications_title">การแจ้งเตือน</string>
     <string name="people_who_like_me_title">คนที่ถูกใจฉัน</string>
+    <string name="filters_active_prefix">Filters active: %1$s</string>
+    <string name="filter_label_age">Age %1$s</string>
+    <string name="filter_label_gender">Gender: %1$s</string>
+    <string name="filter_label_orientation">Orientation: %1$s</string>
+    <string name="filter_label_ethnicity">Ethnicity: %1$s</string>
+    <string name="filter_label_roles">Roles: %1$s</string>
+    <string name="filter_label_tribes">Tribes: %1$s</string>
+    <string name="filter_label_kinks">Kinks: %1$s</string>
+    <string name="filter_label_interests">Interests: %1$s</string>
     <string name="registration_bio_helper">เขียนแนะนำตัวสั้น ๆ (ไม่บังคับ)</string>
     <string name="registration_bio_character_count">เหลือ %1$d อักขระ</string>
     <string name="toast_invalid_form">แบบฟอร์มไม่ถูกต้อง</string>
