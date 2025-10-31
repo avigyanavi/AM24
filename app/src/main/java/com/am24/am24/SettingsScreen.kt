@@ -48,6 +48,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.ceil
 import kotlin.math.max
+import kotlinx.coroutines.Dispatchers
 
 
 /* ───────────────────────────────────────────────  small helpers ── */
@@ -155,6 +156,7 @@ fun SettingsScreen(navController: NavController) {
         isLoading = true
         try {
             val s = userRef.get().await()
+            val pendingWrites = mutableListOf<suspend () -> Unit>()
 // pull the flat `isPremium` boolean and optional expiryDate
             val plusFlag = s.child("isPlus").getValue(Boolean::class.java) ?: false
             val premiumFlag = s.child("isPremium").getValue(Boolean::class.java) ?: false
@@ -177,9 +179,11 @@ fun SettingsScreen(navController: NavController) {
             val plusExpired = plusFlag && entryFeePaidFlag && !entryFeeActive && !premiumFlag
 
             if (plusExpired) {
-                userRef.child("isPlus").setValue(false)
-                if (entryFeePaidFlag) {
-                    userRef.child("isEntryFeePaid").setValue(false)
+                pendingWrites += suspend {
+                    userRef.child("isPlus").setValue(false).await()
+                    if (entryFeePaidFlag) {
+                        userRef.child("isEntryFeePaid").setValue(false).await()
+                    }
                 }
             }
 
@@ -187,7 +191,10 @@ fun SettingsScreen(navController: NavController) {
             val shouldClearOfferExpiry = entryFeeOfferExpiryVal > 0L && entryFeeOfferExpiryVal < now
             entryFeeOfferExpiry = entryFeeOfferExpiryVal.takeUnless { shouldClearOfferExpiry } ?: 0L
             if (shouldClearOfferExpiry) {
-                userRef.child("entryFeeOfferExpiry").removeValue()
+                pendingWrites.add(suspend {
+                    userRef.child("entryFeeOfferExpiry").removeValue().await()
+                    Unit
+                })
             }
             hasUsedFreeTrial = s.child("hasUsedFreeTrial").getValue(Boolean::class.java) ?: false
             freeTrialCompleted = s.child("freeTrialCompleted").getValue(Boolean::class.java) ?: false
@@ -227,13 +234,19 @@ fun SettingsScreen(navController: NavController) {
         allowPublic = s.child("allowLocationPublic").getValue(Boolean::class.java) ?: false
         isMatrimony = s.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
 
-        // ── load the new fields too ──
-        country  = s.child("country").getValue(String::class.java) ?: ""
+            // ── load the new fields too ──
+            country  = s.child("country").getValue(String::class.java) ?: ""
 
-        loginPlusExpiry = s.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
-
+            loginPlusExpiry = s.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
             blocksRef.get().addOnSuccessListener { snap ->
                 blocked = snap.children.mapNotNull { it.key }
+            }
+            if (pendingWrites.isNotEmpty()) {
+                scope.launch(Dispatchers.IO) {
+                    pendingWrites.forEach { action ->
+                        runCatching { action() }
+                    }
+                }
             }
         } catch (e: Exception) {
             Toast.makeText(ctx, "Unable to load settings", Toast.LENGTH_SHORT).show()

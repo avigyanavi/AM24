@@ -19,10 +19,12 @@ import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.flow.update
 import java.util.UUID
+import kotlinx.coroutines.Job
 
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
 
     private val TAG = "ProfileViewModel"
+    private val sessionRepository = SessionDataRepository
     private val usersRef = FirebaseRefs.db.getReference("users")
     private val database = FirebaseRefs.db
     private val notificationsRef = database.getReference("notifications")
@@ -48,7 +50,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     private var complimentsRef: DatabaseReference? = null
     private var complimentsListener: ValueEventListener? = null
+    private var complimentsWatcherStarted = false
 
+    private var profileCollectionJob: Job? = null
     // NEW: Voice recording properties
     private var voiceRecorder: MediaRecorder? = null
     var voiceNoteUrl: String? = null
@@ -104,23 +108,21 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             return
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val snapshot = usersRef.child(currentUserId).get().await()
-                val profile = snapshot.getValue(Profile::class.java)?.copy(
-                    isMatrimonyMode = snapshot.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
-                )
+        sessionRepository.start(currentUserId)
+        if (profileCollectionJob != null) return
+
+        profileCollectionJob = viewModelScope.launch {
+            sessionRepository.profile.collect { profile ->
                 if (profile != null) {
-                    Log.d(TAG, "Fetched profile with isMatrimonyMode: ${profile.isMatrimonyMode}")
+                    Log.d(TAG, "Session profile updated for $currentUserId")
                     _currentUserProfile.value = profile
                     _complimentsLeft.value = profile.availableCompliments
                     _sexualOrientation.value = profile.sexualOrientation
-                    startComplimentsWatcher(currentUserId)
-                } else {
-                    Log.e(TAG, "Failed to fetch current user's profile: Profile is null")
+                    if (!complimentsWatcherStarted) {
+                        startComplimentsWatcher(currentUserId)
+                        complimentsWatcherStarted = true
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error fetching current user profile: ${e.message}")
             }
         }
     }
@@ -763,7 +765,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         complimentsListener?.let { l -> complimentsRef?.removeEventListener(l) }
         complimentsListener = null
         complimentsRef = null
+        complimentsWatcherStarted = false
 
+        profileCollectionJob?.cancel()
+        profileCollectionJob = null
         verificationListener?.let { l -> verificationRef?.removeEventListener(l) }
         verificationListener = null
         verificationRef = null

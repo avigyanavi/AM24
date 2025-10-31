@@ -8,23 +8,14 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.am24.am24.FirebaseRefs.db
-import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.database.*
 import com.google.firebase.database.ktx.getValue
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
 import java.io.File
 import java.util.Calendar
 
@@ -42,6 +33,7 @@ data class FeedSearchResults(
 )
 
 class PostViewModel(application: Application) : AndroidViewModel(application) {
+    private val sessionRepository = SessionDataRepository
 
     private var isFeedPaused = false
     // Firebase Realtime Database reference to "posts"
@@ -77,6 +69,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * StateFlow holding the list of posts.
      */
+    private val _rawPosts = MutableStateFlow<List<Post>>(emptyList())
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> get() = _posts.asStateFlow()
     private val _postsLoaded = MutableStateFlow(false)
@@ -106,6 +99,32 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val _myProfile = MutableStateFlow<Profile?>(null)
     val myProfile: StateFlow<Profile?> = _myProfile.asStateFlow()
 
+    private val _blockedUsers = MutableStateFlow<Set<String>>(emptySet())
+    private val _matchedUsers = MutableStateFlow<Set<String>>(emptySet())
+
+    init {
+        sessionRepository.ensureStarted()
+
+        viewModelScope.launch {
+            sessionRepository.profile.collect { profile ->
+                _myProfile.value = profile
+            }
+        }
+
+        viewModelScope.launch {
+            sessionRepository.blockedUserIds.collect { blocked ->
+                _blockedUsers.value = blocked
+                applyPostFilters()
+            }
+        }
+
+        viewModelScope.launch {
+            sessionRepository.matchIds.collect { matches ->
+                _matchedUsers.value = matches
+            }
+        }
+    }
+
     private val _postFlow = MutableStateFlow<Post?>(null)
     val    postFlow: StateFlow<Post?> = _postFlow.asStateFlow()
 
@@ -133,14 +152,12 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         // stop listening if null
         if (userId == null) return
 
+        sessionRepository.start(userId)
         // start watching the simple ID set:
         watchSavedPostIds(userId)
 
         // still call your existing loadSavedPosts() for the saved-posts screen:
         loadSavedPosts(userId)
-
-        // ─── NEW: start listening to your Profile node ────────────
-        observeMyProfile(userId)
     }
 
     fun showFeedSearchBar() {
@@ -284,9 +301,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private var singlePostListener: ValueEventListener? = null
     private var savedPostIdsRef: DatabaseReference? = null
     private var savedPostIdsListener: ValueEventListener? = null
-    // Listener for the current user's profile
-    private var profileRef: DatabaseReference? = null
-    private var profileListener: ValueEventListener? = null
 
 
     /** Starts (or switches) a realtime listener for one post. */
@@ -342,28 +356,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         savedPostIdsListener = null
         savedPostIdsRef = null
 
-        // ─── 4. user profile listener ──────────────────────────────────
-        profileListener?.let { listener ->
-            profileRef?.removeEventListener(listener)
-        }
-        profileListener = null
-        profileRef = null
-
-        // ─── 5. any additional cleanup you already perform ────────────
+        // ─── 4. any additional cleanup you already perform ────────────
         pauseFeed()                       // keeps your existing behaviour
-    }
-
-    private fun observeMyProfile(userId: String) {
-        profileRef = db.getReference("users").child(userId)
-        profileListener = object : ValueEventListener {
-            override fun onDataChange(snap: DataSnapshot) {
-                snap.getValue(Profile::class.java)?.let {
-                    _myProfile.value = it
-                }
-            }
-            override fun onCancelled(err: DatabaseError) { /* log if you like */ }
-        }
-        profileRef?.addValueEventListener(profileListener!!)
     }
 
     /**
@@ -618,10 +612,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             _profilePosts.value = emptyList() // Reset to avoid stale data
             _postsLoaded.value = false      // ✅ finished – even if list is empty
-            // Fetch blocked users
-            val blockedUsers = if (_currentUserId.value != null)
-                fetchBlockedUsers(_currentUserId.value!!)
-            else emptyList()   // <- still proceed!
 
             if (_currentUserId.value == null) {
                 _isLoading.value = false
@@ -634,9 +624,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     for (postSnapshot in snapshot.children) {
                         try {
                             val post = postSnapshot.getValue(Post::class.java)
-                            if (post != null && !blockedUsers.contains(post.userId)) {
-                                    postsList.add(post)
-                                    Log.d("PostViewModel", "Added post: $post")
+                            if (post != null) {
+                                postsList.add(post)
+                                Log.d("PostViewModel", "Added post: $post")
                             } else if (post == null) {
                                 Log.w("PostViewModel", "Failed to deserialize post at ${postSnapshot.key}: ${postSnapshot.value}")
                             }
@@ -646,6 +636,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     Log.d("PostViewModel", "Setting _profilePosts to ${postsList.size} posts: $postsList")
                     _profilePosts.value = postsList
+                    _rawPosts.value = postsList
+                    applyPostFilters()
                     _isLoading.value = false
                     _postsLoaded.value = true      // ✅ finished – even if list is empty
                     Log.d("PostViewModel", "Fetched ${postsList.size} posts, _profilePosts.value.size=${_profilePosts.value.size}")
@@ -741,7 +733,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 refreshPosts()
                 withContext(Dispatchers.Main) { onDone() }
                 // ─── notify matches, same style as text/voice ───────────────
-                val matches = getMatches(userId)
+                val matches = _matchedUsers.value
                 matches.forEach { receiverId ->
                     val notifType = if (checkIn != null) "match_checkin" else "match_post"
                     val msg       = if (checkIn != null)
@@ -818,6 +810,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         observePosts() // Re-attach listener
     }
 
+    private fun applyPostFilters() {
+        val blocked = _blockedUsers.value
+        val filtered = _rawPosts.value.filter { post -> post.userId !in blocked }
+        if (filtered != _posts.value) {
+            _posts.value = filtered
+        }
+    }
     /**
      * Sets up a real-time listener to observe changes in "posts" node.
      */
@@ -828,21 +827,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             postsListener = object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     viewModelScope.launch(Dispatchers.IO) {
-                        val currentUserId = _currentUserId.value
-                        if (currentUserId == null) {
-                            _isInitialFeedLoading.value = false
-                            return@launch
-                        }
-                        // Fetch blocked users
-                        val blockedUsers = fetchBlockedUsers(currentUserId)
 
                         val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                            .filter { post -> !blockedUsers.contains(post.userId) }
                         val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
                         val userIds = sortedPosts.map { it.userId }.toSet()
                         val profiles = fetchUserProfiles(userIds)
 
-                        val existingPosts = _posts.value
+                        val existingPosts = _rawPosts.value
                         val hadExistingPosts = existingPosts.isNotEmpty()
                         val recentIds = sortedPosts.map { it.postId }.toSet()
                         val remainingOldPosts = existingPosts.filterNot { recentIds.contains(it.postId) }
@@ -853,7 +844,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                         val combinedProfiles = _userProfiles.value.toMutableMap().apply { putAll(profiles) }
 
                         _userProfiles.value = combinedProfiles
-                        _posts.value = mergedPosts
+                        _rawPosts.value = mergedPosts
+                        applyPostFilters()
                         oldestLoadedTimestamp = mergedPosts.lastOrNull()?.getTimestampLong()
                         if (!hadExistingPosts) {
                             _hasMorePosts.value = sortedPosts.size >= FEED_PAGE_SIZE
@@ -883,21 +875,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         // Trigger a one-time fetch for immediate data availability
         viewModelScope.launch {
             try {
-                val currentUserId = _currentUserId.value ?: run {
-                    _isInitialFeedLoading.value = false
-                    return@launch
-                }
-                // Fetch blocked users
-                val blockedUsers = fetchBlockedUsers(currentUserId)
-
                 val snapshot = query.get().await()
                 val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                    .filter { post -> !blockedUsers.contains(post.userId) }
                 val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
                 val userIds = sortedPosts.map { it.userId }.toSet()
                 val profiles = fetchUserProfiles(userIds)
 
-                val existingPosts = _posts.value
+                val existingPosts = _rawPosts.value
                 val recentIds = sortedPosts.map { it.postId }.toSet()
                 val remainingOldPosts = existingPosts.filterNot { recentIds.contains(it.postId) }
                 val mergedPosts = (sortedPosts + remainingOldPosts)
@@ -907,7 +891,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 val combinedProfiles = _userProfiles.value.toMutableMap().apply { putAll(profiles) }
 
                 _userProfiles.value = combinedProfiles
-                _posts.value = mergedPosts
+                _rawPosts.value = mergedPosts
+                applyPostFilters()
                 oldestLoadedTimestamp = mergedPosts.lastOrNull()?.getTimestampLong()
                 _hasMorePosts.value = sortedPosts.size >= FEED_PAGE_SIZE
                 _isInitialFeedLoading.value = false
@@ -919,7 +904,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadMorePosts() {
-        val currentUserId = _currentUserId.value ?: return
         if (_isLoadingMore.value || !_hasMorePosts.value) return
         if (oldestLoadedTimestamp == null) return
 
@@ -927,8 +911,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val blockedUsers = fetchBlockedUsers(currentUserId)
-                val lastPost = _posts.value.lastOrNull()
+                val lastPost = _rawPosts.value.lastOrNull()
                 if (lastPost == null) {
                     _isLoadingMore.value = false
                     return@launch
@@ -940,21 +923,20 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     .await()
 
                 val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                    .filter { post -> !blockedUsers.contains(post.userId) }
                     .filter { it.postId != lastPost.postId }
                 val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
-                val newPosts = sortedPosts.filterNot { post -> _posts.value.any { it.postId == post.postId } }
-
+                val newPosts = sortedPosts.filterNot { post -> _rawPosts.value.any { it.postId == post.postId } }
                 if (newPosts.isNotEmpty()) {
                     val userIds = newPosts.map { it.userId }.toSet()
                     val profiles = fetchUserProfiles(userIds)
                     val combinedProfiles = _userProfiles.value.toMutableMap().apply { putAll(profiles) }
-                    val mergedPosts = (_posts.value + newPosts)
+                    val mergedPosts = (_rawPosts.value + newPosts)
                         .distinctBy { it.postId }
                         .sortedByDescending { it.getTimestampLong() }
 
                     _userProfiles.value = combinedProfiles
-                    _posts.value = mergedPosts
+                    _rawPosts.value = mergedPosts
+                    applyPostFilters()
                     oldestLoadedTimestamp = mergedPosts.lastOrNull()?.getTimestampLong()
                 }
 
@@ -1176,7 +1158,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 refreshPosts()
                 onSuccess()
                 // Send notifications to friends and matches
-                val matches = getMatches(userId)
+                val matches = _matchedUsers.value
                 matches.forEach { receiverId ->
                     val isCheckIn = checkIn != null                      // 🆕
                     val msg = if (isCheckIn)
@@ -1275,7 +1257,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 onSuccess()
 
                 // Send notifications to friends and matches
-                val matches = getMatches(userId)
+                val matches = _matchedUsers.value
                 matches.forEach { receiverId ->
                     val msg = "$username posted a new voice note 🎤"
                     sendNotification(
@@ -1316,19 +1298,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             Log.e(TAG, "Error uploading media: ${e.message}", e)
             onFailure(e.message ?: "Media upload failed.")
             null
-        }
-    }
-
-    /**
-     * Fetches the list of user IDs blocked by the given user.
-     */
-    private suspend fun fetchBlockedUsers(userId: String): List<String> {
-        return try {
-            val snapshot = FirebaseRefs.db.getReference("blocks/$userId").get().await()
-            snapshot.children.mapNotNull { it.key }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching blocked users: ${e.message}", e)
-            emptyList()
         }
     }
 
@@ -2067,38 +2036,18 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
 
-    private suspend fun fetchUserProfiles(userIds: Set<String>): Map<String, Profile> = coroutineScope {
-        val currentUserId = currentUserIdFlow.value ?: ""
-        val matches = getMatches(currentUserId)
-
-        val profiles = mutableMapOf<String, Profile>()
-        val deferreds = userIds.map { userId ->
-            async {
-                val userRef = FirebaseRefs.db.getReference("users").child(userId)
-                val snapshot = userRef.get().await()
-                snapshot.getValue(Profile::class.java)?.let { profile ->
-                    // Set relationship to "match" if userId is in matches
-                    profile.relationship = if (matches.contains(userId)) "match" else null
-                    profiles[userId] = profile
-                }
+    private suspend fun fetchUserProfiles(userIds: Set<String>): Map<String, Profile> {
+        if (userIds.isEmpty()) return emptyMap()
+        val cachedProfiles = ProfileCache.getProfiles(userIds)
+        val matches = _matchedUsers.value
+        return cachedProfiles.mapValues { (id, profile) ->
+            val relationship = if (matches.contains(id)) "match" else null
+            if (profile.relationship == relationship) {
+                profile
+            } else {
+                profile.copy(relationship = relationship)
             }
         }
-        deferreds.awaitAll()
-        profiles
-    }
-
-
-    private suspend fun getMatches(userId: String): List<String> {
-        val matches = mutableListOf<String>()
-        try {
-            val matchesSnapshot = matchesRef.child(userId).get().await()
-            matchesSnapshot.children.forEach { child ->
-                child.key?.let { matches.add(it) }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch matches: ${e.message}")
-        }
-        return matches
     }
 
 

@@ -2607,7 +2607,7 @@ suspend fun saveProfileToFirebase(
             ?.child("entryFeeOfferExpiry")
             ?.getValue(Long::class.java) != null
         val entryFeeOfferExpiryDeadline = if (!existingEntryFeePaid && !hasEntryFeeOfferExpiry) {
-            System.currentTimeMillis() + TimeUnit.HOURS.toMillis(24)
+            System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30)
         } else {
             null
         }

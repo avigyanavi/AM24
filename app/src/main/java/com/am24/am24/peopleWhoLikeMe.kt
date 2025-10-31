@@ -22,15 +22,13 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,131 +38,111 @@ fun PeopleWhoLikeMeScreen(
     currentUserId: String = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 ) {
     val context = LocalContext.current
-    var isPlus by remember { mutableStateOf<Boolean?>(null) }
-    var isPremium by remember { mutableStateOf<Boolean?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-
-    val blockedRef = FirebaseRefs.db
-        .getReference("blocks/$currentUserId")
-
-    val blockedIds = remember { mutableStateListOf<String>() }
+    var upgradePromptShown by remember { mutableStateOf(false) }
 
     val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
+    val sessionReady by SessionDataRepository.sessionReady.collectAsState()
+    val blockedIds by SessionDataRepository.blockedUserIds.collectAsState()
+    val likesMap by SessionDataRepository.likesReceived.collectAsState()
+    val matchIds by SessionDataRepository.matchIds.collectAsState()
+    val plusFlag by profileViewModel.isPlus.collectAsState()
+    val premiumFlag by profileViewModel.isPremium.collectAsState()
+    val loginPlusExpiry by profileViewModel.loginPlusExpiry.collectAsState()
+    val entryFeePaidAt by profileViewModel.entryFeePaidAt.collectAsState()
+    val entryFeePaid by profileViewModel.isEntryFeePaid.collectAsState()
+    val premiumExpiry by profileViewModel.premiumExpiryDate.collectAsState()
+    val subscriptionStatus by profileViewModel.subscriptionStatus.collectAsState()
+    val nextRenewal by profileViewModel.nextRenewal.collectAsState()
 
-    val likesReceivedRef = FirebaseRefs.db
-        .getReference("likesReceived/$currentUserId")
-    val usersRef = FirebaseRefs.db.getReference("users")
 
-    // We also fetch the current user's matches so we can exclude them
-    val matchesRef = FirebaseRefs.db
-        .getReference("matches/$currentUserId")
-
-    // Will hold the final list of profiles who liked me
     val likedUsers = remember { mutableStateListOf<Profile>() }
 
-    // We'll track the user's matched IDs so we can skip them
-    val myMatchIds = remember { mutableStateListOf<String>() }
+    LaunchedEffect(Unit) {
+        if (currentUserId.isNotBlank()) {
+            SessionDataRepository.start(currentUserId)
+            profileViewModel.fetchCurrentUserProfile()
+        }
+    }
 
-    // (1) Get the current user's matched user IDs
-    LaunchedEffect(currentUserId) {
-        if (currentUserId.isBlank()) {
+    LaunchedEffect(
+        sessionReady,
+        likesMap,
+        blockedIds,
+        matchIds,
+        plusFlag,
+        premiumFlag,
+        loginPlusExpiry,
+        entryFeePaid,
+        entryFeePaidAt,
+        premiumExpiry,
+        subscriptionStatus,
+        nextRenewal
+    ) {
+        if (currentUserId.isBlank() || !sessionReady) {
+            isLoading = currentUserId.isNotBlank()
+            return@LaunchedEffect
+        }
+
+        val now = System.currentTimeMillis()
+        val entryFeePaidExpiry = if (entryFeePaid && entryFeePaidAt > 0L) {
+            entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
+        } else {
+            0L
+        }
+        val hasActivePlus = premiumFlag ||
+                plusFlag ||
+                loginPlusExpiry > now ||
+                (entryFeePaid && entryFeePaidExpiry > now) ||
+                (nextRenewal ?: 0L) > now ||
+                (premiumExpiry ?: 0L) > now ||
+                subscriptionStatus?.equals("active", ignoreCase = true) == true
+
+        if (!hasActivePlus) {
+            if (!upgradePromptShown) {
+                upgradePromptShown = true
+                Toast
+                    .makeText(context, "Upgrade to Plus to see who liked you", Toast.LENGTH_SHORT)
+                    .show()
+                likedUsers.clear()
+                navController.popBackStack()
+            }
             isLoading = false
             return@LaunchedEffect
         }
 
         isLoading = true
-        try {
-            val db = FirebaseRefs.db
-            val userSnapshot = db.getReference("users")
-                .child(currentUserId)
-                .get()
-                .await()
 
-            val premiumFlag = userSnapshot.child("isPremium").getValue(Boolean::class.java) ?: false
-            val plusFlag = userSnapshot.child("isPlus").getValue(Boolean::class.java) ?: false
-            val loginPlusExpiryValue = userSnapshot.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
-            val entryFeePaidAtValue = userSnapshot.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
-            val entryFeePaidFlag = userSnapshot.child("isEntryFeePaid").getValue(Boolean::class.java) ?: false
-            val nextRenewalValue = userSnapshot.child("nextRenewal").getValue(Long::class.java) ?: 0L
-            val premiumExpiryValue = userSnapshot.child("premiumExpiryDate").getValue(Long::class.java) ?: 0L
-            val subscriptionStatusValue = userSnapshot.child("subscriptionStatus").getValue(String::class.java)
-
-            val now = System.currentTimeMillis()
-            val entryFeePaidExpiry = if (entryFeePaidAtValue > 0L) {
-                entryFeePaidAtValue + TimeUnit.DAYS.toMillis(30)
-            } else {
-                0L
-            }
-
-            val hasActivePlus = plusFlag ||
-                    premiumFlag ||
-                    loginPlusExpiryValue > now ||
-                    (entryFeePaidFlag && entryFeePaidExpiry > now) ||
-                    nextRenewalValue > now ||
-                    premiumExpiryValue > now ||
-                    subscriptionStatusValue.equals("active", ignoreCase = true)
-
-            isPremium = premiumFlag || subscriptionStatusValue.equals("active", ignoreCase = true)
-            isPlus = hasActivePlus
-
-            if (!hasActivePlus) {
-                Toast
-                    .makeText(context, "Upgrade to Plus to see who liked you", Toast.LENGTH_SHORT)
-                    .show()
-                likedUsers.clear()
-                blockedIds.clear()
-                myMatchIds.clear()
-                isLoading = false
-                navController.popBackStack()
-                return@LaunchedEffect
-            }
-            val blockedSnapshot = blockedRef.get().await()
-            blockedIds.clear()
-            blockedSnapshot.children.forEach { it.key?.let(blockedIds::add) }
-
-            val matchesSnapshot = matchesRef.get().await()
-            myMatchIds.clear()
-            matchesSnapshot.children.forEach { data -> data.key?.let(myMatchIds::add) }
-
-            val likesSnapshot = likesReceivedRef.get().await()
-            val userIds = likesSnapshot.children.mapNotNull { it.key }
-
-            val fetchedProfiles = coroutineScope {
-                userIds.map { userId ->
-                    async {
-                        val profileSnapshot = usersRef.child(userId).get().await()
-                        if (UserDeletionCache.isDeleted(FirebaseRefs.db, userId, profileSnapshot)) {
-                            return@async null
-                        }
-                        val profile = profileSnapshot.getValue(Profile::class.java)?.let { loaded ->
-                            if (loaded.userId.isBlank()) loaded.copy(userId = userId) else loaded
-                        }
-                        if (profile != null && profile.username.isBlank()) {
-                            runCatching { likesReceivedRef.child(userId).removeValue().await() }
-                            UserDeletionCache.markDeleted(userId)
-                            return@async null
-                        }
-                        profile?.let { UserDeletionCache.markActive(userId) }
-                        profile
-                    }
-                }.awaitAll()
-                    .filterNotNull()
-                    .filter { profile ->
-                        !myMatchIds.contains(profile.userId) &&
-                                !profile.matches.contains(currentUserId) &&
-                                !blockedIds.contains(profile.userId)
-                    }
-            }
-
+        if (likesMap.isEmpty()) {
             likedUsers.clear()
-            likedUsers.addAll(fetchedProfiles)
-        } catch (e: Exception) {
-            isPremium = false
-            isPlus = false
-            likedUsers.clear()
-        } finally {
             isLoading = false
+            return@LaunchedEffect
         }
+
+        val sortedProfiles = withContext(Dispatchers.IO) {
+            val fetched = ProfileCache.getProfiles(likesMap.keys)
+            val keepers = mutableListOf<Profile>()
+            fetched.forEach { (userId, profile) ->
+                if (profile.username.isBlank()) {
+                    runCatching {
+                        FirebaseRefs.db.getReference("likesReceived/$currentUserId/$userId").removeValue().await()
+                    }
+                    UserDeletionCache.markDeleted(userId)
+                } else {
+                    UserDeletionCache.markActive(userId)
+                    if (!matchIds.contains(userId) &&
+                        !blockedIds.contains(userId) &&
+                        !profile.matches.contains(currentUserId)
+                    ) {
+                        keepers += profile
+                    }
+                }
+            }
+            keepers.sortedByDescending { likesMap[it.userId] ?: 0L }
+        }
+        likedUsers.clear()
+        likedUsers.addAll(sortedProfiles)
+        isLoading = false
     }
 
     // For the scroll-to-top feature
