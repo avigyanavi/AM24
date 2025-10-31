@@ -135,12 +135,12 @@ fun PaywallScreen(onPaid: () -> Unit) {
                     "isEntryFeePaid" to true,
                     "isPlus" to true,
                     "entryFeePlusIntroSeen" to false,
-                    "entryFeeOfferSeen" to true
+                    "entryFeeOfferSeen" to true,
+                    "entryFeeOfferExpiry" to finalRenewal
                 )
                 updates["nextRenewal"] = finalRenewal
                 userRef.updateChildren(updates)
                     .addOnSuccessListener {
-                        userRef.child("entryFeeOfferExpiry").removeValue()
                         val offer = BillingManager.products.value
                             .firstOrNull { it.productId == "entry_fee" }
                             ?.oneTimePurchaseOfferDetails

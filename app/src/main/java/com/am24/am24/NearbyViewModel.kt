@@ -25,6 +25,21 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+data class MapBootstrapState(
+    val isPlus: Boolean,
+    val isPremium: Boolean,
+    val userCountry: String?,
+    val isIndian: Boolean,
+    val remainingSwipes: Int,
+    val loginPlusExpiry: Long,
+    val entryFeePaidAt: Long,
+    val entryFeePlusIntroSeen: Boolean,
+    val entryFeeOfferExpiry: Long,
+    val entryFeeOfferSeen: Boolean,
+    val nextRenewal: Long,
+    val swipesDayOfYear: Int,
+)
+
 class NearbyViewModel : ViewModel() {
     private data class NearbyQueryKey(
         val userId: String,
@@ -52,6 +67,9 @@ class NearbyViewModel : ViewModel() {
     var isPremium by mutableStateOf(false)
     var isRefreshing by mutableStateOf(false)
     var currentProfile: Profile? = null
+    var mapBootstrapState by mutableStateOf<MapBootstrapState?>(null)
+        private set
+
     private var _datingFilters by mutableStateOf(DatingFilterSettings())
     var datingFilters: DatingFilterSettings
         get() = _datingFilters
@@ -65,6 +83,7 @@ class NearbyViewModel : ViewModel() {
     var currentLimit by mutableStateOf(10)
 
     private var lastQueryKey: NearbyQueryKey? = null
+    private var _hasLoadedExcludes = false
 
     val nearbyUsers: Flow<List<NearbyUser>> = snapshotFlow {
         NearbyUiState(
@@ -111,7 +130,12 @@ class NearbyViewModel : ViewModel() {
     fun setCurrentUserProfile(profile: Profile?) {
         currentProfile = profile
     }
+    fun updateMapBootstrap(state: MapBootstrapState) {
+        mapBootstrapState = state
+        setTier(state.isPlus, state.isPremium)
+    }
 
+    fun hasLoadedExcludes(): Boolean = _hasLoadedExcludes
 
     private var geoQuery: GeoQuery? = null
     private val userCache = mutableMapOf<String, NearbyUser>()
@@ -189,6 +213,7 @@ class NearbyViewModel : ViewModel() {
 
     fun setExcluded(ids: Set<String>) {
         excludedUserIds = ids
+        _hasLoadedExcludes = true
         people.removeAll { it.userId in ids }
     }
 

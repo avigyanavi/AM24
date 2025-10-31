@@ -90,10 +90,20 @@ fun HomeScreen(
     // Immediately update the PostViewModel with the current user ID.
     LaunchedEffect(userId) {
         postViewModel.setCurrentUserId(userId)
-        if (userId != null) {
+
+        if (userId == null) {
+            postViewModel.refreshPosts()
+            return@LaunchedEffect
+        }
+
+        if (!postViewModel.filtersLoaded.value) {
             postViewModel.loadFiltersFromFirebase(userId)
         }
-        postViewModel.refreshPosts()
+        if (postViewModel.postsLoaded.value) {
+            postViewModel.resumeFeed()
+        } else {
+            postViewModel.refreshPosts()
+        }
     }
 
     // Pause the feed when the user navigates away.

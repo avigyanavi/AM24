@@ -609,7 +609,8 @@ exports.confirmEntryFee = functions
       const curRenewal = Number(cur.nextRenewal || 0);
       const desiredRenewal = purchaseTimeMs + THIRTY_DAYS_MS;
       const finalRenewal = Math.max(curRenewal, desiredRenewal);
-
+      const currentOfferExpiry = Number(cur.entryFeeOfferExpiry || 0);
+      const finalOfferExpiry = Math.max(currentOfferExpiry, finalRenewal);
       return {
         ...cur,
         isEntryFeePaid: true,
@@ -618,6 +619,7 @@ exports.confirmEntryFee = functions
         nextRenewal: finalRenewal,
         // optional UI helpers you already use in screens:
         entryFeeOfferSeen: true,
+        entryFeeOfferExpiry: finalOfferExpiry,
         entryFeePlusIntroSeen: false,
         lastEntitlementSyncAt: now,
       };
@@ -644,10 +646,12 @@ exports.loginEntitlementSweep = functions
     const entryFeePaidAt    = Number(u.entryFeePaidAt || 0);
     const loginPlusExpiry   = Number(u.loginPlusExpiry || 0);     // if your login bonus exists
     const nextRenewal       = Number(u.nextRenewal || 0);
+    const entryFeeOfferExpiry = Number(u.entryFeeOfferExpiry || 0);
 
     // Derive the best-known active entitlement window
     const fromEntryFee = entryFeePaidAt > 0 ? entryFeePaidAt + THIRTY_DAYS_MS : 0;
-    const candidates = [nextRenewal, loginPlusExpiry, fromEntryFee].filter(ts => Number(ts) > now);
+    const fromOffer = entryFeeOfferExpiry > now ? entryFeeOfferExpiry : 0;
+    const candidates = [nextRenewal, loginPlusExpiry, fromEntryFee, fromOffer].filter(ts => Number(ts) > now);
     const desiredRenewal = candidates.length ? Math.max(...candidates) : 0;
 
     const updates = {};
@@ -661,6 +665,10 @@ exports.loginEntitlementSweep = functions
     if (desiredRenewal > 0 && desiredRenewal !== nextRenewal) {
       updates.nextRenewal = desiredRenewal;
     }
+
+    if (desiredRenewal > 0 && desiredRenewal !== entryFeeOfferExpiry) {
+          updates.entryFeeOfferExpiry = desiredRenewal;
+       }
 
     if (Object.keys(updates).length) {
       updates.lastEntitlementSyncAt = now;
@@ -1965,12 +1973,13 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
       const nextRenewal    = Number(u.nextRenewal || 0);
       const loginPlusExpiry= Number(u.loginPlusExpiry || 0);
       const entryFeePaidAt = Number(u.entryFeePaidAt || 0);
-
+      const entryFeeOfferExpiry = Number(u.entryFeeOfferExpiry || 0);
       const fromEntryFee   = entryFeePaidAt > 0 ? entryFeePaidAt + THIRTY_DAYS_MS : 0;
       const desiredRenewal = Math.max(
         Number.isFinite(nextRenewal) ? nextRenewal : 0,
         Number.isFinite(loginPlusExpiry) ? loginPlusExpiry : 0,
-        Number.isFinite(fromEntryFee) ? fromEntryFee : 0
+        Number.isFinite(fromEntryFee) ? fromEntryFee : 0,
+        Number.isFinite(entryFeeOfferExpiry) ? entryFeeOfferExpiry : 0
       );
 
       const hasActiveEntitlement = desiredRenewal > now;
@@ -1982,6 +1991,7 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
           updates[`${uid}/isPremium`] = false;
           updates[`${uid}/subscriptionStatus`] = 'inactive';
           updates[`${uid}/nextRenewal`] = null;
+          updates[`${uid}/entryFeeOfferExpiry`] = null;
           updates[`${uid}/swipesInfo/remainingSwipes`] = FREE_SWIPE_QUOTA;
           deactivated += 1;
         }
@@ -1999,6 +2009,9 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
         userUpdates.nextRenewal = desiredRenewal;
         syncedRenewal += 1;
       }
+      if (desiredRenewal > 0 && desiredRenewal !== entryFeeOfferExpiry) {
+              userUpdates.entryFeeOfferExpiry = desiredRenewal;
+           }
       if (Object.keys(userUpdates).length) {
         userUpdates.lastEntitlementSyncAt = now;
         Object.entries(userUpdates).forEach(([k, v]) => {

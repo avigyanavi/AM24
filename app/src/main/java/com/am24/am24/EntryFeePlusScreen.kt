@@ -81,17 +81,18 @@ fun EntryFeePlusScreen(navController: NavController) {
                 isProcessing = true
                 val monthMillis = TimeUnit.DAYS.toMillis(30)
                 val purchaseTime = purchase.purchaseTime.takeIf { it > 0L } ?: System.currentTimeMillis()
+                val renewalTime = purchaseTime + monthMillis
                 val updates = mutableMapOf<String, Any>(
                     "entryFeePaidAt" to ServerValue.TIMESTAMP,
                     "isEntryFeePaid" to true,
                     "isPlus" to true,
                     "entryFeePlusIntroSeen" to false,
                     "entryFeeOfferSeen" to true,
-                    "loginPlusExpiry" to purchaseTime + monthMillis
+                    "loginPlusExpiry" to renewalTime,
+                    "entryFeeOfferExpiry" to renewalTime
                 )
                 userRef.updateChildren(updates)
                     .addOnSuccessListener {
-                        userRef.child("entryFeeOfferExpiry").removeValue()
                         val offerDetails = BillingManager.products.value
                             .firstOrNull { it.productId == "entry_fee" }
                             ?.oneTimePurchaseOfferDetails

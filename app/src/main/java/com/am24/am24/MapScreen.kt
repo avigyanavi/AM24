@@ -309,7 +309,24 @@ fun MapScreen(
             }
         }
     }
+    val bootstrapState = nearbyViewModel.mapBootstrapState
 
+    LaunchedEffect(bootstrapState) {
+        bootstrapState?.let { state ->
+            isPlus = state.isPlus
+            isPremium = state.isPremium
+            userCountry = state.userCountry
+            isIndian = state.isIndian
+            remainingSwipes = state.remainingSwipes
+            swipesLoaded = true
+            loginPlusExpiry = state.loginPlusExpiry
+            entryFeePaidAt = state.entryFeePaidAt
+            entryFeePlusIntroSeen = state.entryFeePlusIntroSeen
+            entryFeeOfferExpiry = state.entryFeeOfferExpiry
+            entryFeeOfferSeen = state.entryFeeOfferSeen
+            nextRenewal = state.nextRenewal
+        }
+    }
     LaunchedEffect(isPremium) {
         if (isPremium) {
             val hasShownDialog = prefs.getBoolean(HAS_SHOWN_LOCATION_DIALOG, false)
@@ -339,24 +356,41 @@ fun MapScreen(
     }
 
     LaunchedEffect(userId) {
+        val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+        val cached = nearbyViewModel.mapBootstrapState
+        val needsBootstrapRefresh = cached == null || cached.swipesDayOfYear != today || nearbyViewModel.currentProfile == null
+        if (!needsBootstrapRefresh) {
+            if (!nearbyViewModel.hasLoadedExcludes()) {
+                nearbyViewModel.setExcluded(fetchExcludedUsers(userId))
+            }
+            swipesLoaded = true
+            return@LaunchedEffect
+        }
         val snap = userRef.get().await()
         val profile = snap.getValue(Profile::class.java)
-        isPlus = snap.child("isPlus").getValue(Boolean::class.java) ?: false
-        isPremium = snap.child("isPremium").getValue(Boolean::class.java) ?: false
-        nearbyViewModel.setTier(isPlus, isPremium)
+        val isPlusRemote = snap.child("isPlus").getValue(Boolean::class.java) ?: false
+        val isPremiumRemote = snap.child("isPremium").getValue(Boolean::class.java) ?: false
+        val nextRenewalRemote = snap.child("nextRenewal").getValue(Long::class.java) ?: 0L
+        isPlus = isPlusRemote
+        isPremium = isPremiumRemote
+        nearbyViewModel.setTier(isPlusRemote, isPremiumRemote)
         nearbyViewModel.setCurrentUserProfile(profile)
         val countryRaw = snap.child("country").getValue(String::class.java) ?: ""
         val canonical = canonicalCountry(countryRaw)
         userCountry = canonical.takeIf { it.isNotBlank() }
         isIndian = canonical == "India"
-        remainingSwipes = loadAndResetSwipesDaily(userId)
+        val remaining = loadAndResetSwipesDaily(userId)
+        remainingSwipes = remaining
         swipesLoaded = true
-        nearbyViewModel.setExcluded(fetchExcludedUsers(userId))
+        if (!nearbyViewModel.hasLoadedExcludes()) {
+            nearbyViewModel.setExcluded(fetchExcludedUsers(userId))
+        }
         loginPlusExpiry = snap.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
         entryFeePaidAt = snap.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
         entryFeePlusIntroSeen = snap.child("entryFeePlusIntroSeen").getValue(Boolean::class.java) ?: true
         entryFeeOfferExpiry = snap.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
         entryFeeOfferSeen = snap.child("entryFeeOfferSeen").getValue(Boolean::class.java) ?: false
+        nextRenewal = nextRenewalRemote
         val now = System.currentTimeMillis()
         val hasActivePlus = loginPlusExpiry > now || nextRenewal > now
         if (entryFeePaidAt > 0L && hasActivePlus && !entryFeePlusIntroSeen) {
@@ -367,6 +401,22 @@ fun MapScreen(
             entryFeeOfferSeen = true
             userRef.child("entryFeeOfferSeen").setValue(true)
         }
+        nearbyViewModel.updateMapBootstrap(
+            MapBootstrapState(
+                isPlus = isPlusRemote,
+                isPremium = isPremiumRemote,
+                userCountry = userCountry,
+                isIndian = isIndian,
+                remainingSwipes = remaining,
+                loginPlusExpiry = loginPlusExpiry,
+                entryFeePaidAt = entryFeePaidAt,
+                entryFeePlusIntroSeen = entryFeePlusIntroSeen,
+                entryFeeOfferExpiry = entryFeeOfferExpiry,
+                entryFeeOfferSeen = entryFeeOfferSeen,
+                nextRenewal = nextRenewalRemote,
+                swipesDayOfYear = today,
+            )
+        )
     }
 
     DisposableEffect(userId) {
@@ -912,6 +962,7 @@ fun MapScreen(
                         ) {
                             PeopleGrid(
                                 users = sortedPeople,
+                                isLoading = nearbyViewModel.isRefreshing || userLatLng == null,
                                 onClick = {
                                     if (swipesLoaded && remainingSwipes <= 0) {
                                         showSwipeLimitOverlay = true
@@ -974,6 +1025,7 @@ fun MapScreen(
                         }
                         CardsList(
                             users = sortedPeople,
+                            isLoading = nearbyViewModel.isRefreshing || userLatLng == null,
                             useMiles = useMiles,          // <-- pass through
                             onLike = { user ->
                                 if (swipesLoaded && remainingSwipes <= 0) {
@@ -1673,6 +1725,7 @@ private fun FilmText(
 @Composable
 private fun CardsList(
     users: List<NearbyUser>,
+    isLoading: Boolean,
     useMiles: Boolean,
     onLike: (NearbyUser) -> Unit,
     onDislike: (NearbyUser) -> Unit,
@@ -1710,7 +1763,11 @@ private fun CardsList(
                         .padding(vertical = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
+                    if (isLoading) {
+                        CircularProgressIndicator(color = KupidxOrange)
+                    } else {
+                        Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
+                    }
                 }
             }
         } else {
@@ -2036,6 +2093,7 @@ private fun ProfileCard(
 @Composable
 private fun PeopleGrid(
     users: List<NearbyUser>,
+    isLoading: Boolean,
     onClick: (NearbyUser) -> Unit,
     useMiles: Boolean,
     onRemove: (String) -> Unit,
@@ -2059,7 +2117,11 @@ private fun PeopleGrid(
                         .padding(vertical = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
+                    if (isLoading) {
+                        CircularProgressIndicator(color = KupidxOrange)
+                    } else {
+                        Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
+                    }
                 }
             }
         } else {

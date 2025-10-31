@@ -163,10 +163,17 @@ fun SettingsScreen(navController: NavController) {
             val entryFeePaidAt = s.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
             val entryFeeOfferExpiryVal = s.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
             val now = System.currentTimeMillis()
-            val entryFeeExpiry = if (entryFeePaidAt > 0L) {
-                entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
-            } else 0L
-            val entryFeeActive = entryFeePaidFlag && ((loginPlusExpiryVal > now) || (entryFeeExpiry > now && entryFeeExpiry > 0L))
+            val entryFeePaidExpiry = entryFeePaidAt
+                .takeIf { it > 0L }
+                ?.let { it + TimeUnit.DAYS.toMillis(30) }
+            val entryFeeOfferExpiryActive = entryFeeOfferExpiryVal.takeIf { it > now }
+            val resolvedEntryFeeExpiry = listOfNotNull(
+                entryFeePaidExpiry?.takeIf { entryFeePaidFlag && it > now },
+                entryFeeOfferExpiryActive
+            ).maxOrNull()
+            val entryFeeActive = entryFeePaidFlag && (
+                    loginPlusExpiryVal > now || resolvedEntryFeeExpiry != null
+                    )
             val plusExpired = plusFlag && entryFeePaidFlag && !entryFeeActive && !premiumFlag
 
             if (plusExpired) {
@@ -176,11 +183,11 @@ fun SettingsScreen(navController: NavController) {
                 }
             }
 
-            entryFeePaid = entryFeeActive
-            entryFeeOfferExpiry = entryFeeOfferExpiryVal
-            if (entryFeeOfferExpiryVal > 0L && entryFeeOfferExpiryVal < now) {
+            entryFeePaid = entryFeePaidFlag
+            val shouldClearOfferExpiry = entryFeeOfferExpiryVal > 0L && entryFeeOfferExpiryVal < now
+            entryFeeOfferExpiry = entryFeeOfferExpiryVal.takeUnless { shouldClearOfferExpiry } ?: 0L
+            if (shouldClearOfferExpiry) {
                 userRef.child("entryFeeOfferExpiry").removeValue()
-                entryFeeOfferExpiry = 0L
             }
             hasUsedFreeTrial = s.child("hasUsedFreeTrial").getValue(Boolean::class.java) ?: false
             freeTrialCompleted = s.child("freeTrialCompleted").getValue(Boolean::class.java) ?: false
@@ -195,8 +202,8 @@ fun SettingsScreen(navController: NavController) {
         val subscriptionIdValue = s.child("subscription").child("id")
             .getValue(String::class.java)
         val nextRenewalValue = s.child("nextRenewal").getValue(Long::class.java)
-        val activeEntryFeeExpiry = entryFeeExpiry.takeIf { entryFeeActive && it > now }
-        val activeLoginPlusExpiry = loginPlusExpiryVal.takeIf { it > now }
+            val activeEntryFeeExpiry = resolvedEntryFeeExpiry
+            val activeLoginPlusExpiry = loginPlusExpiryVal.takeIf { it > now }
 
         loginPlusExpiry = if (plusExpired) 0L else loginPlusExpiryVal
         expiry = when {
