@@ -25,7 +25,7 @@ object FirebaseRefs {
     private const val FAILOVER_TIMEOUT_MS = 5_000L
     private const val HEALTH_CHECK_INTERVAL_MS = 5 * 60 * 1_000L
 
-    const val STORAGE_BUCKET = "gs://am-twentyfour"
+    const val STORAGE_BUCKET = "gs://am-twentyfour.appspot.com"
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 

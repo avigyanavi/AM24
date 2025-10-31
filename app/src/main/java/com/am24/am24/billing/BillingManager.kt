@@ -327,6 +327,24 @@ object BillingManager : PurchasesUpdatedListener {
                         .build()
                     billingClient.consumeAsync(consume) { _, _ -> }
                 }
+
+                // 🔸 Authoritative server flip for entry_fee (non-blocking)
+                                if (purchase.products.contains("entry_fee")) {
+                                        val data = hashMapOf(
+                                                "purchaseToken" to purchase.purchaseToken,
+                                                "productId" to "entry_fee",
+                                                "packageName" to BuildConfig.APPLICATION_ID
+                                                    )
+                                        try {
+                                                functions.getHttpsCallable("confirmEntryFee")
+                                                    .call(data)
+                                                    .addOnFailureListener {
+                                                            Log.w("BillingManager", "confirmEntryFee failed", it)
+                                                        }
+                                            } catch (e: Exception) {
+                                                Log.w("BillingManager", "confirmEntryFee call error", e)
+                                            }
+                                    }
             }
             verifyPurchaseOnServer(purchase)
         }

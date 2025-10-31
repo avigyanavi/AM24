@@ -61,9 +61,8 @@ import java.text.Normalizer
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.tasks.await
+import com.google.firebase.functions.FirebaseFunctions
 
 private fun canonicalLocationId(name: String): String {
     val normalized = Normalizer.normalize(name, Normalizer.Form.NFD)
@@ -201,6 +200,8 @@ fun DMScreenContent(
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
     val prefetchedUrls = remember { mutableStateOf(mutableSetOf<String>()) }
     val complimentProfiles = remember { mutableStateListOf<ComplimentWithProfile>() }
+    var calledSweepOnce by remember { mutableStateOf(false) }
+    val functions = remember { FirebaseFunctions.getInstance("asia-south1") }
     // — new: grab your blocks
     val blockedRef = database.getReference("blocks/$currentUserId")
     val blockedIds = remember { mutableStateListOf<String>() }
@@ -473,12 +474,33 @@ fun DMScreenContent(
                         .clip(CircleShape)
                         .background(Color.DarkGray)
                         .clickable {
-                            if (isPremiumUser) {
-                                navController.navigate("peopleWhoLikedMe")
-                            } else {
-                                Toast.makeText(context, context.getString(R.string.dm_upgrade_plus_see_likes), Toast.LENGTH_SHORT).show()
-                            }
-                        },
+                        // 🔸 Always attempt the sweep once, even if not Plus
+                                                        if (!calledSweepOnce) {
+                                                        calledSweepOnce = true
+                                                        try {
+                                                                val data = hashMapOf("source" to "peopleWhoLikedMe_chip")
+                                                                functions.getHttpsCallable("loginEntitlementSweep")
+                                                                    .call(data)
+                                                                    .addOnSuccessListener {
+                                                                            Log.d("DMScreen", "loginEntitlementSweep ok")
+                                                                        }
+                                                                    .addOnFailureListener { e ->
+                                                                            Log.w("DMScreen", "loginEntitlementSweep failed", e)
+                                                                        }
+                                                            } catch (e: Exception) {
+                                                               Log.w("DMScreen", "loginEntitlementSweep invoke error", e)
+                                                            }
+                                                    }
+                                                        if (isPremiumUser) {
+                                                        navController.navigate("peopleWhoLikedMe")
+                                                    } else {
+                                                        Toast.makeText(
+                                                                context,
+                                                                context.getString(R.string.dm_upgrade_plus_see_likes),
+                                                                Toast.LENGTH_SHORT
+                                                                    ).show()
+                                                    }
+                                                },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

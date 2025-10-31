@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
@@ -152,8 +153,38 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             val db = FirebaseRefs.db.reference
-            val snap = db.child("users").child(user.uid).get().await()
+            val userRef = db.child("users").child(user.uid)
+            val snap = userRef.get().await()
 
+            val now = System.currentTimeMillis()
+            val isPlus = snap.child("isPlus").getValue(Boolean::class.java) == true
+            val isEntryFeePaid = snap.child("isEntryFeePaid").getValue(Boolean::class.java) == true
+            val loginPlusExpiry = snap.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
+            val entryFeePaidAt = snap.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
+            val currentRenewal = snap.child("nextRenewal").getValue(Long::class.java) ?: 0L
+
+            val entryFeeExpiryFromPaidAt = if (entryFeePaidAt > 0L) {
+                entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
+            } else 0L
+            val entryFeeActive = isEntryFeePaid && (
+                    loginPlusExpiry > now || (entryFeeExpiryFromPaidAt > now && entryFeeExpiryFromPaidAt > 0L)
+                    )
+
+            if (!isPlus && entryFeeActive) {
+                val resolvedRenewal = listOf(loginPlusExpiry, entryFeeExpiryFromPaidAt)
+                    .filter { it > now }
+                    .maxOrNull()
+
+                val updates = mutableMapOf<String, Any>("isPlus" to true)
+                val desiredRenewal = resolvedRenewal ?: 0L
+                if (desiredRenewal > 0L && desiredRenewal != currentRenewal) {
+                    updates["nextRenewal"] = desiredRenewal
+                }
+
+                if (updates.isNotEmpty()) {
+                    userRef.updateChildren(updates).await()
+                }
+            }
             GclidStorageManager.flushPendingGclid(
                 this@MainActivity,
                 user.uid,

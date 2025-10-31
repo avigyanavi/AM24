@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.lifecycleScope
 import com.am24.am24.ui.purchase.PaymentResultListenerHost
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -158,12 +159,21 @@ class KupidXAppActivity : AppCompatActivity(),
         checkLocationPermissions()
 
         runCatching { PushService.uploadCurrentToken() }.onFailure { it.printStackTrace() }
-        runCatching { FirebaseStorage.getInstance("gs://am-twentyfour.com") }.onFailure { it.printStackTrace() }
+        runCatching { FirebaseStorage.getInstance("gs://am-twentyfour.appspot.com") }.onFailure { it.printStackTrace() }
         runCatching { postViewModel.loadFiltersFromFirebase(uid) }.onFailure { it.printStackTrace() }
 
         if (hasLocationPermission()) {
             runCatching { locationManager.updateUserLocation(uid) }.onFailure { it.printStackTrace() }
         }
+
+        // 🔸 Server-side reconciliation each login (fire-and-forget; UI doesn't wait)
+                try {
+                        FirebaseFunctions.getInstance("asia-south1")
+                            .getHttpsCallable("loginEntitlementSweep")
+                            .call(hashMapOf<String, Any>())
+                    } catch (_: Exception) {
+                        // ignore – non-critical
+                    }
     }
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)

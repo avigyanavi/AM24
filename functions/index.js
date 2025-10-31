@@ -547,14 +547,135 @@ async function deleteUsersWithoutUsernameImpl({
   return summary;
 }
 
+// ---- Entry-fee confirmation (idempotent) ---------------------------
+exports.confirmEntryFee = functions
+  .region('asia-south1')
+  .https.onCall(async (data, context) => {
+    const uid = context.auth?.uid;
+    if (!uid) throw new functions.https.HttpsError('unauthenticated', 'Sign-in required');
+
+    const purchaseToken = (data?.purchaseToken || '').trim();
+    const productId     = (data?.productId || 'entry_fee').trim();
+    const packageName   = (data?.packageName || 'com.am24.am24').trim();
+
+    if (!purchaseToken || !productId || !packageName) {
+      throw new functions.https.HttpsError('invalid-argument', 'purchaseToken, productId, packageName required');
+    }
+
+    // Bind token→uid to prevent reuse across accounts on same phone
+    const tokenRef = db.ref(`purchaseTokens/${purchaseToken}`);
+    const bound = (await tokenRef.get()).val();
+    if (bound && bound.uid !== uid) {
+      throw new functions.https.HttpsError('failed-precondition', 'Token belongs to another user');
+    }
+
+    // Verify with Google Play (INAPP)
+    const auth = new google.auth.GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/androidpublisher'],
+    });
+    const client = await auth.getClient();
+    const api = google.androidpublisher({ version: 'v3', auth: client });
+
+    const resp = await api.purchases.products.get({
+      packageName,
+      productId,
+      token: purchaseToken,
+    });
+
+    const purchase = resp.data || {};
+    // purchaseState: 0=purchased, 1=canceled (legacy), 2=pending (Play)
+    if (purchase.purchaseState !== 0) {
+      throw new functions.https.HttpsError('failed-precondition', 'Not purchased');
+    }
+
+    const purchaseTimeMs = Number(purchase.purchaseTimeMillis || Date.now());
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+    // Persist token→uid (idempotent)
+    await tokenRef.update({
+      uid,
+      productId,
+      packageName,
+      purchaseTimeMs,
+      googleState: purchase.purchaseState ?? null,
+      at: admin.database.ServerValue.TIMESTAMP,
+    });
+
+    // Atomically flip user fields at /users/{uid}
+    const userRef = db.ref(`users/${uid}`);
+    await userRef.transaction((current) => {
+      const now = Date.now();
+      const cur = current || {};
+      const curRenewal = Number(cur.nextRenewal || 0);
+      const desiredRenewal = purchaseTimeMs + THIRTY_DAYS_MS;
+      const finalRenewal = Math.max(curRenewal, desiredRenewal);
+
+      return {
+        ...cur,
+        isEntryFeePaid: true,
+        isPlus: true,
+        entryFeePaidAt: cur.entryFeePaidAt ?? purchaseTimeMs, // don’t overwrite if already set
+        nextRenewal: finalRenewal,
+        // optional UI helpers you already use in screens:
+        entryFeeOfferSeen: true,
+        entryFeePlusIntroSeen: false,
+        lastEntitlementSyncAt: now,
+      };
+    });
+
+    return { ok: true };
+  });
+
+// ---- Login sweep: reconcile entitlements on every login ------------
+exports.loginEntitlementSweep = functions
+  .region('asia-south1')
+  .https.onCall(async (_data, context) => {
+    const uid = context.auth?.uid;
+    if (!uid) throw new functions.https.HttpsError('unauthenticated', 'Sign-in required');
+
+    const snap = await db.ref(`users/${uid}`).get();
+    const u = snap.val() || {};
+
+    const now = Date.now();
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+    const isPlus            = !!u.isPlus;
+    const isEntryFeePaid    = !!u.isEntryFeePaid;
+    const entryFeePaidAt    = Number(u.entryFeePaidAt || 0);
+    const loginPlusExpiry   = Number(u.loginPlusExpiry || 0);     // if your login bonus exists
+    const nextRenewal       = Number(u.nextRenewal || 0);
+
+    // Derive the best-known active entitlement window
+    const fromEntryFee = entryFeePaidAt > 0 ? entryFeePaidAt + THIRTY_DAYS_MS : 0;
+    const candidates = [nextRenewal, loginPlusExpiry, fromEntryFee].filter(ts => Number(ts) > now);
+    const desiredRenewal = candidates.length ? Math.max(...candidates) : 0;
+
+    const updates = {};
+
+    // If user should be active (any future candidate) but flag isn’t set, flip it.
+    if (!isPlus && (desiredRenewal > now || (isEntryFeePaid && fromEntryFee > now))) {
+      updates.isPlus = true;
+    }
+
+    // Keep server as the canonical nextRenewal = max(current, derived)
+    if (desiredRenewal > 0 && desiredRenewal !== nextRenewal) {
+      updates.nextRenewal = desiredRenewal;
+    }
+
+    if (Object.keys(updates).length) {
+      updates.lastEntitlementSyncAt = now;
+      await db.ref(`users/${uid}`).update(updates);
+    }
+
+    return { ok: true, applied: updates };
+  });
+
 // ---------- HTTPS wrapper ----------
-exports.deleteUsersWithoutUsername = functions
+exports.deleteUsersWithoutUsernameOneShot = functions
   .region("asia-south1")
-  .runWith({ timeoutSeconds: 540, memory: "1GB" })
+  .runWith({ timeoutSeconds: 540, memory: "2GB" })
   .https.onRequest(async (req, res) => {
     const dryRun = (req.query.dryRun ?? "true") !== "false";
-    const BATCH_SIZE = Math.max(50, Math.min(2000, parseInt(req.query.batchSize || "500", 10)));
-    const startKey = typeof req.query.startKey === "string" ? req.query.startKey : null;
     const cleanupStorage = (req.query.cleanupStorage ?? "false") === "true";
     const requestedDatabases = parseDatabaseSelectionParam(req.query.database);
     const targets = resolveDatabaseTargets(requestedDatabases);
@@ -568,29 +689,146 @@ exports.deleteUsersWithoutUsername = functions
 
     try {
       const summaries = [];
+
       for (const target of targets) {
-        const summary = await deleteUsersWithoutUsernameImpl({
-          database: target.db,
-          auth: target.app.auth(),
+        const database = target.db;
+        const auth     = target.app.auth();
+        const dbName   = target.name;
+
+        const summary = {
           dryRun,
-          batchSize: BATCH_SIZE,
-          startKey,
           cleanupStorage,
-          databaseName: target.name,
+          databaseName: dbName,
+          scanned: 0,
+          flaggedCount: 0,
+          deletedAuth: 0,
+          deletedDbUsers: 0,
+          deletedDbUsernames: 0,
+          reasons: {
+            missing_or_empty_username: 0,
+            username_not_in_global_map: 0,
+            username_mapped_to_different_uid: 0,
+          },
+          storageUsersAttempted: 0,
+          storagePrefixesDeleted: 0,
+          storageFilesDeleted: 0,
+          storageErrors: 0,
+        };
+
+        // 1) Read entire username map and users in one go
+        const [usernamesSnap, usersSnap] = await Promise.all([
+          database.ref("usernames").once("value"),
+          database.ref("users").once("value"),
+        ]);
+
+        const usernamesMap = usernamesSnap.exists() ? usernamesSnap.val() : {};
+        const usernameKeysByUid = {};
+        Object.entries(usernamesMap).forEach(([uname, mappedUid]) => {
+          if (!usernameKeysByUid[mappedUid]) usernameKeysByUid[mappedUid] = [];
+          usernameKeysByUid[mappedUid].push(uname);
         });
+
+        const findMappingFor = (username) => {
+          if (!username) return null;
+          if (Object.prototype.hasOwnProperty.call(usernamesMap, username))
+            return { key: username, uid: usernamesMap[username] };
+          const lc = username.toLowerCase();
+          if (Object.prototype.hasOwnProperty.call(usernamesMap, lc))
+            return { key: lc, uid: usernamesMap[lc] };
+          return null;
+        };
+
+        const updates = {};
+        const uidsToDeleteAuth = [];
+        const storageQueue = [];
+
+        // 2) Walk all users once; build updates + auth deletions
+        usersSnap.forEach((child) => {
+          const uid = child.key;
+          const data = child.val() || {};
+          summary.scanned += 1;
+
+          const username = (data.username ?? "").toString().trim();
+          let shouldDelete = false;
+          if (!username) {
+            summary.reasons.missing_or_empty_username += 1;
+            shouldDelete = true;
+          } else {
+            const mapping = findMappingFor(username);
+            if (!mapping) {
+              summary.reasons.username_not_in_global_map += 1;
+              shouldDelete = true;
+            } else if (mapping.uid !== uid) {
+              summary.reasons.username_mapped_to_different_uid += 1;
+              shouldDelete = true;
+            }
+          }
+
+          if (!shouldDelete) return;
+
+          summary.flaggedCount += 1;
+
+          // remove user row
+          updates[`/users/${uid}`] = null;
+
+          // remove any username keys that point to this uid
+          (usernameKeysByUid[uid] || []).forEach((k) => {
+            updates[`/usernames/${k}`] = null;
+          });
+
+          // remove the profile's own username key if it maps here
+          if (username) {
+            const mm = findMappingFor(username);
+            if (mm && mm.uid === uid) updates[`/usernames/${mm.key}`] = null;
+          }
+
+          // auth deletion & optional storage cleanup
+          uidsToDeleteAuth.push(uid);
+          if (cleanupStorage && !dryRun) {
+            storageQueue.push({ uid, data });
+          }
+        });
+
+        // 3) Execute DB update, Auth deletions, Storage cleanup
+        if (!dryRun) {
+          if (Object.keys(updates).length > 0) {
+            await database.ref().update(updates);
+            summary.deletedDbUsers = Object.keys(updates).filter((p) => p.startsWith("/users/")).length;
+            summary.deletedDbUsernames = Object.keys(updates).filter((p) => p.startsWith("/usernames/")).length;
+          }
+
+          // Auth API enforces chunking (max 1000); keep even though no “batching” of /users scan.
+          const CHUNK = 1000;
+          for (let i = 0; i < uidsToDeleteAuth.length; i += CHUNK) {
+            const chunk = uidsToDeleteAuth.slice(i, i + CHUNK);
+            const result = await auth.deleteUsers(chunk);
+            summary.deletedAuth += result.successCount;
+            if (result.failureCount > 0) {
+              result.errors.forEach((e) => {
+                functions.logger.error(`[deleteUsersWithoutUsernameOneShot:${dbName}] Auth delete failed for uid=${
+                  e.index < chunk.length ? chunk[e.index] : "unknown"
+                }`, e.error);
+              });
+            }
+          }
+
+          for (const item of storageQueue) {
+            await cleanupUserStorage(item.uid, item.data, summary, `[db:${dbName}]`);
+          }
+        }
+
         summaries.push(summary);
       }
+
       return res.status(200).json({
         dryRun,
         cleanupStorage,
-        batchSize: BATCH_SIZE,
-        startKey,
         databases: targets.map((t) => t.name),
         summaries,
         availableDatabases: AVAILABLE_DATABASE_NAMES,
       });
     } catch (err) {
-      functions.logger.error("deleteUsersWithoutUsername failed:", err);
+      functions.logger.error("deleteUsersWithoutUsernameOneShot failed:", err);
       return res.status(500).json({ error: err?.message || String(err) });
     }
   });
@@ -1724,21 +1962,72 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
   .onRun(async () => {
     const now = Date.now();
     const usersRef = admin.database().ref('users');
-
-    const snapshot = await usersRef.orderByChild('nextRenewal').endAt(now).once('value');
+    const snapshot = await usersRef.once('value');
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
     const updates = {};
+    let deactivated = 0;
+    let activated = 0;
+    let syncedRenewal = 0;
+
     snapshot.forEach(userSnap => {
-      const user = userSnap.val();
-      if (user.isPlus || user.isPremium) {
-        updates[`${userSnap.key}/isPlus`] = false;
-        updates[`${userSnap.key}/isPremium`] = false;
-        updates[`${userSnap.key}/swipesInfo/remainingSwipes`] = FREE_SWIPE_QUOTA;
+      const uid = userSnap.key;
+      const u = userSnap.val() || {};
+
+      const isPlus         = !!u.isPlus;
+      const isPremium      = !!u.isPremium;
+      const nextRenewal    = Number(u.nextRenewal || 0);
+      const loginPlusExpiry= Number(u.loginPlusExpiry || 0);
+      const entryFeePaidAt = Number(u.entryFeePaidAt || 0);
+
+      const fromEntryFee   = entryFeePaidAt > 0 ? entryFeePaidAt + THIRTY_DAYS_MS : 0;
+      const desiredRenewal = Math.max(
+        Number.isFinite(nextRenewal) ? nextRenewal : 0,
+        Number.isFinite(loginPlusExpiry) ? loginPlusExpiry : 0,
+        Number.isFinite(fromEntryFee) ? fromEntryFee : 0
+      );
+
+      const hasActiveEntitlement = desiredRenewal > now;
+
+      if (!hasActiveEntitlement) {
+        // Entitlement finished → deactivate both tiers (keep old behavior)
+        if (isPlus || isPremium || nextRenewal) {
+          updates[`${uid}/isPlus`] = false;
+          updates[`${uid}/isPremium`] = false;
+          updates[`${uid}/subscriptionStatus`] = 'inactive';
+          updates[`${uid}/nextRenewal`] = null;
+          updates[`${uid}/swipesInfo/remainingSwipes`] = FREE_SWIPE_QUOTA;
+          deactivated += 1;
+        }
+        return; // done with this user
+      }
+
+      // Entitlement active → ensure Plus is on & renewal is synced
+      // (Don’t force Premium true here—Premium stays driven by webhooks/billing)
+      const userUpdates = {};
+      if (!isPlus) {
+        userUpdates.isPlus = true;
+        activated += 1;
+      }
+      if (desiredRenewal !== nextRenewal) {
+        userUpdates.nextRenewal = desiredRenewal;
+        syncedRenewal += 1;
+      }
+      if (Object.keys(userUpdates).length) {
+        userUpdates.lastEntitlementSyncAt = now;
+        Object.entries(userUpdates).forEach(([k, v]) => {
+          updates[`${uid}/${k}`] = v;
+        });
       }
     });
 
-    await usersRef.update(updates);
-    console.log("Expired one-time subscriptions reset.");
+    if (Object.keys(updates).length > 0) {
+      await usersRef.update(updates);
+    }
+    console.log(
+      `[checkExpiredOneTimeSubscriptions] deactivated=${deactivated}, ` +
+      `activated=${activated}, renewalSynced=${syncedRenewal}`
+    );
   });
 
 // 1️⃣ Add a cancel function
