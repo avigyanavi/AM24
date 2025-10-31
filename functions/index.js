@@ -675,161 +675,147 @@ exports.deleteUsersWithoutUsernameOneShot = functions
   .region("asia-south1")
   .runWith({ timeoutSeconds: 540, memory: "2GB" })
   .https.onRequest(async (req, res) => {
-    const dryRun = (req.query.dryRun ?? "true") !== "false";
-    const cleanupStorage = (req.query.cleanupStorage ?? "false") === "true";
-    const requestedDatabases = parseDatabaseSelectionParam(req.query.database);
-    const targets = resolveDatabaseTargets(requestedDatabases);
-
-    if (!targets || targets.length === 0) {
-      return res.status(400).json({
-        error: "No matching databases selected",
-        availableDatabases: AVAILABLE_DATABASE_NAMES,
-      });
-    }
-
     try {
-      const summaries = [];
+      const dryRun = (req.query.dryRun ?? "true") !== "false";
+      const cleanupStorage = (req.query.cleanupStorage ?? "false") === "true";
+      const usersRef = admin.database().ref("users");
 
-      for (const target of targets) {
-        const database = target.db;
-        const auth     = target.app.auth();
-        const dbName   = target.name;
+      // 1) Load full username map once
+      const usernamesSnap = await admin.database().ref("usernames").once("value");
+      const usernamesMap = usernamesSnap.exists() ? usernamesSnap.val() : {};
 
-        const summary = {
-          dryRun,
-          cleanupStorage,
-          databaseName: dbName,
-          scanned: 0,
-          flaggedCount: 0,
-          deletedAuth: 0,
-          deletedDbUsers: 0,
-          deletedDbUsernames: 0,
-          reasons: {
-            missing_or_empty_username: 0,
-            username_not_in_global_map: 0,
-            username_mapped_to_different_uid: 0,
-          },
-          storageUsersAttempted: 0,
-          storagePrefixesDeleted: 0,
-          storageFilesDeleted: 0,
-          storageErrors: 0,
-        };
+      // reverse map: uid -> [usernameKeys]
+      const usernameKeysByUid = {};
+      Object.entries(usernamesMap).forEach(([uname, mappedUid]) => {
+        if (!usernameKeysByUid[mappedUid]) usernameKeysByUid[mappedUid] = [];
+        usernameKeysByUid[mappedUid].push(uname);
+      });
 
-        // 1) Read entire username map and users in one go
-        const [usernamesSnap, usersSnap] = await Promise.all([
-          database.ref("usernames").once("value"),
-          database.ref("users").once("value"),
-        ]);
+      const findMappingFor = (username) => {
+        if (!username) return null;
+        const key = username in usernamesMap
+          ? username
+          : (username.toLowerCase() in usernamesMap ? username.toLowerCase() : null);
+        return key ? { key, uid: usernamesMap[key] } : null;
+      };
 
-        const usernamesMap = usernamesSnap.exists() ? usernamesSnap.val() : {};
-        const usernameKeysByUid = {};
-        Object.entries(usernamesMap).forEach(([uname, mappedUid]) => {
-          if (!usernameKeysByUid[mappedUid]) usernameKeysByUid[mappedUid] = [];
-          usernameKeysByUid[mappedUid].push(uname);
-        });
+      // 2) Load ALL users in ONE snapshot
+      const allUsersSnap = await usersRef.once("value");
+      if (!allUsersSnap.exists()) {
+        return res.status(200).json({ ok: true, dryRun, cleanupStorage, scanned: 0, flagged: 0, message: "No users." });
+      }
 
-        const findMappingFor = (username) => {
-          if (!username) return null;
-          if (Object.prototype.hasOwnProperty.call(usernamesMap, username))
-            return { key: username, uid: usernamesMap[username] };
-          const lc = username.toLowerCase();
-          if (Object.prototype.hasOwnProperty.call(usernamesMap, lc))
-            return { key: lc, uid: usernamesMap[lc] };
-          return null;
-        };
+      // Accumulators
+      const dbUpdates = {};          // batched path -> value
+      const uidsToDeleteAuth = [];   // will chunk by 1000
+      const storageQueue = [];       // [{uid, data}]
+      const summary = {
+        dryRun, cleanupStorage,
+        scanned: 0, flagged: 0,
+        deletedAuth: 0,
+        deletedDbUsers: 0,
+        deletedDbUsernames: 0,
+        storageUsersAttempted: 0,
+        storagePrefixesDeleted: 0,
+        storageFilesDeleted: 0,
+        storageErrors: 0,
+        reasons: {
+          missing_or_empty_username: 0,
+          username_not_in_global_map: 0,
+          username_mapped_to_different_uid: 0,
+        }
+      };
 
-        const updates = {};
-        const uidsToDeleteAuth = [];
-        const storageQueue = [];
+      // 3) Decide who to delete
+      allUsersSnap.forEach(child => {
+        summary.scanned += 1;
+        const uid = child.key;
+        const data = child.val() || {};
+        const username = (data.username ?? "").toString().trim();
 
-        // 2) Walk all users once; build updates + auth deletions
-        usersSnap.forEach((child) => {
-          const uid = child.key;
-          const data = child.val() || {};
-          summary.scanned += 1;
-
-          const username = (data.username ?? "").toString().trim();
-          let shouldDelete = false;
-          if (!username) {
-            summary.reasons.missing_or_empty_username += 1;
+        let shouldDelete = false;
+        if (!username) {
+          shouldDelete = true;
+          summary.reasons.missing_or_empty_username += 1;
+        } else {
+          const mapping = findMappingFor(username);
+          if (!mapping) {
             shouldDelete = true;
-          } else {
-            const mapping = findMappingFor(username);
-            if (!mapping) {
-              summary.reasons.username_not_in_global_map += 1;
-              shouldDelete = true;
-            } else if (mapping.uid !== uid) {
-              summary.reasons.username_mapped_to_different_uid += 1;
-              shouldDelete = true;
-            }
-          }
-
-          if (!shouldDelete) return;
-
-          summary.flaggedCount += 1;
-
-          // remove user row
-          updates[`/users/${uid}`] = null;
-
-          // remove any username keys that point to this uid
-          (usernameKeysByUid[uid] || []).forEach((k) => {
-            updates[`/usernames/${k}`] = null;
-          });
-
-          // remove the profile's own username key if it maps here
-          if (username) {
-            const mm = findMappingFor(username);
-            if (mm && mm.uid === uid) updates[`/usernames/${mm.key}`] = null;
-          }
-
-          // auth deletion & optional storage cleanup
-          uidsToDeleteAuth.push(uid);
-          if (cleanupStorage && !dryRun) {
-            storageQueue.push({ uid, data });
-          }
-        });
-
-        // 3) Execute DB update, Auth deletions, Storage cleanup
-        if (!dryRun) {
-          if (Object.keys(updates).length > 0) {
-            await database.ref().update(updates);
-            summary.deletedDbUsers = Object.keys(updates).filter((p) => p.startsWith("/users/")).length;
-            summary.deletedDbUsernames = Object.keys(updates).filter((p) => p.startsWith("/usernames/")).length;
-          }
-
-          // Auth API enforces chunking (max 1000); keep even though no “batching” of /users scan.
-          const CHUNK = 1000;
-          for (let i = 0; i < uidsToDeleteAuth.length; i += CHUNK) {
-            const chunk = uidsToDeleteAuth.slice(i, i + CHUNK);
-            const result = await auth.deleteUsers(chunk);
-            summary.deletedAuth += result.successCount;
-            if (result.failureCount > 0) {
-              result.errors.forEach((e) => {
-                functions.logger.error(`[deleteUsersWithoutUsernameOneShot:${dbName}] Auth delete failed for uid=${
-                  e.index < chunk.length ? chunk[e.index] : "unknown"
-                }`, e.error);
-              });
-            }
-          }
-
-          for (const item of storageQueue) {
-            await cleanupUserStorage(item.uid, item.data, summary, `[db:${dbName}]`);
+            summary.reasons.username_not_in_global_map += 1;
+          } else if (mapping.uid !== uid) {
+            shouldDelete = true;
+            summary.reasons.username_mapped_to_different_uid += 1;
           }
         }
 
-        summaries.push(summary);
+        if (!shouldDelete) return;
+
+        summary.flagged += 1;
+
+        // queue db deletes
+        dbUpdates[`users/${uid}`] = null;
+
+        // remove any /usernames entries that point to this uid
+        (usernameKeysByUid[uid] || []).forEach(k => { dbUpdates[`usernames/${k}`] = null; });
+
+        // also remove profile's username key if it maps here
+        if (username) {
+          const mm = findMappingFor(username);
+          if (mm && mm.uid === uid) dbUpdates[`usernames/${mm.key}`] = null;
+        }
+
+        // queue auth delete
+        uidsToDeleteAuth.push(uid);
+
+        // optional storage cleanup
+        if (cleanupStorage && !dryRun) storageQueue.push({ uid, data });
+      });
+
+      // 4) Apply DB updates in internal chunks (avoid 16 MB write limit)
+      const writeUpdatesInChunks = async (updatesObj, chunkSize = 500) => {
+        const entries = Object.entries(updatesObj);
+        for (let i = 0; i < entries.length; i += chunkSize) {
+          const slice = Object.fromEntries(entries.slice(i, i + chunkSize));
+          await admin.database().ref().update(slice);
+        }
+      };
+
+      if (!dryRun) {
+        if (Object.keys(dbUpdates).length) {
+          await writeUpdatesInChunks(dbUpdates, 500);
+          summary.deletedDbUsers = Object.keys(dbUpdates).filter(p => p.startsWith("users/")).length;
+          summary.deletedDbUsernames = Object.keys(dbUpdates).filter(p => p.startsWith("usernames/")).length;
+        }
+
+        // 5) Auth deletes (chunks of 1000)
+        const CHUNK = 1000;
+        for (let i = 0; i < uidsToDeleteAuth.length; i += CHUNK) {
+          const chunk = uidsToDeleteAuth.slice(i, i + CHUNK);
+          const resDel = await admin.auth().deleteUsers(chunk);
+          summary.deletedAuth += resDel.successCount;
+          if (resDel.failureCount > 0) {
+            resDel.errors.forEach(e => {
+              functions.logger.error("[deleteUsersWithoutUsernameOneShot] auth delete failed",
+                { uid: chunk[e.index], error: e.error?.message });
+            });
+          }
+        }
+
+        // 6) Storage cleanup for each user
+        for (const item of storageQueue) {
+          await cleanupUserStorage(item.uid, item.data, summary, "[one-shot]");
+        }
       }
 
       return res.status(200).json({
-        dryRun,
-        cleanupStorage,
-        databases: targets.map((t) => t.name),
-        summaries,
-        availableDatabases: AVAILABLE_DATABASE_NAMES,
+        ok: true,
+        ...summary,
+        authDeleteQueued: uidsToDeleteAuth.length,
+        dbPathsTouched: Object.keys(dbUpdates).length,
       });
     } catch (err) {
-      functions.logger.error("deleteUsersWithoutUsernameOneShot failed:", err);
-      return res.status(500).json({ error: err?.message || String(err) });
+      functions.logger.error("deleteUsersWithoutUsernameOneShot FAILED", err);
+      return res.status(500).json({ ok: false, error: err?.message || String(err) });
     }
   });
 
