@@ -1320,6 +1320,32 @@ const PLAN_TIERS = {
 
 
 const FREE_SWIPE_QUOTA = 20;
+const PREMIUM_ACTIVE_STATUSES = new Set([
+  'active',
+  'trialing',
+  'in_trial',
+  'authorised',
+  'authorized',
+  'authenticated',
+  'pending',
+  'auto_renewing',
+  'on_hold',
+]);
+const PREMIUM_CANCELLED_STATUSES = new Set([
+  'inactive',
+  'cancelled',
+  'canceled',
+  'completed',
+  'expired',
+  'halted',
+  'paused',
+]);
+const ENTRY_FEE_SUCCESS_STATUSES = new Set([
+  'paid',
+  'success',
+  'successful',
+  'completed',
+]);
 exports.checkExpiredOneTimeSubscriptions = functions.pubsub
   .schedule('every 24 hours')
   .timeZone('Asia/Kolkata')
@@ -1344,19 +1370,96 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
       const loginPlusExpiry= Number(u.loginPlusExpiry || 0);
       const entryFeePaidAt = Number(u.entryFeePaidAt || 0);
       const entryFeeOfferExpiry = Number(u.entryFeeOfferExpiry || 0);
+      const premiumExpiryDate = Number(u.premiumExpiryDate || 0);
+      const subscription      = typeof u.subscription === 'object' && u.subscription
+        ? u.subscription
+        : {};
+      const subscriptionCurrentEnd = Number(
+        subscription.current_end ??
+        subscription.currentEnd ??
+        subscription.currentPeriodEnd ??
+        subscription.expiryTimeMillis ??
+        subscription.expiry_time_millis ??
+        0
+      );
+      const subscriptionNextBillingAt = Number(
+        subscription.next_billing_at ??
+        subscription.nextBillingAt ??
+        subscription.renewalTimeMillis ??
+        subscription.renewal_time_millis ??
+        0
+      );
+      const subscriptionStatusRaw = typeof u.subscriptionStatus === 'string'
+        ? u.subscriptionStatus.toLowerCase()
+        : '';
+      const subscriptionStatusFromObject = typeof subscription.status === 'string'
+        ? subscription.status.toLowerCase()
+        : '';
+      const activePremiumStatus =
+        PREMIUM_ACTIVE_STATUSES.has(subscriptionStatusRaw) ||
+        PREMIUM_ACTIVE_STATUSES.has(subscriptionStatusFromObject);
+      const cancelledPremiumStatus =
+        PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusRaw) ||
+        PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusFromObject);
+      const subscriptionIdentifiers = [
+        typeof u.subscriptionId === 'string' ? u.subscriptionId.trim() : '',
+        typeof subscription.id === 'string' ? subscription.id.trim() : '',
+        typeof subscription.subscriptionId === 'string' ? subscription.subscriptionId.trim() : '',
+        typeof subscription.productId === 'string' ? subscription.productId.trim() : '',
+        typeof subscription.planId === 'string' ? subscription.planId.trim() : '',
+        typeof subscription.plan_id === 'string' ? subscription.plan_id.trim() : '',
+      ].filter(Boolean);
+      const hasPremiumIdentifier = subscriptionIdentifiers.length > 0;
       const fromEntryFee   = entryFeePaidAt > 0 ? entryFeePaidAt + THIRTY_DAYS_MS : 0;
       const desiredRenewal = Math.max(
         Number.isFinite(nextRenewal) ? nextRenewal : 0,
         Number.isFinite(loginPlusExpiry) ? loginPlusExpiry : 0,
         Number.isFinite(fromEntryFee) ? fromEntryFee : 0,
-        Number.isFinite(entryFeeOfferExpiry) ? entryFeeOfferExpiry : 0
+        Number.isFinite(entryFeeOfferExpiry) ? entryFeeOfferExpiry : 0,
+        Number.isFinite(premiumExpiryDate) ? premiumExpiryDate : 0,
+        Number.isFinite(subscriptionCurrentEnd) ? subscriptionCurrentEnd : 0,
+        Number.isFinite(subscriptionNextBillingAt) ? subscriptionNextBillingAt : 0
       );
 
-      const hasActiveEntitlement = desiredRenewal > now;
+      const premiumRenewal = Math.max(
+      Number.isFinite(premiumExpiryDate) ? premiumExpiryDate : 0,
+      Number.isFinite(subscriptionCurrentEnd) ? subscriptionCurrentEnd : 0,
+      Number.isFinite(subscriptionNextBillingAt) ? subscriptionNextBillingAt : 0,
+      Number.isFinite(nextRenewal) ? nextRenewal : 0
+      );
+      const premiumFlagged = isPremium && !cancelledPremiumStatus;
+      const hasPremiumEntitlement =
+      (Number.isFinite(premiumRenewal) && premiumRenewal > now) ||
+      activePremiumStatus ||
+       (premiumFlagged && hasPremiumIdentifier);
+       const entryFeePaymentStatus = typeof u.entryFeePaymentStatus === 'string'
+       ? u.entryFeePaymentStatus.toLowerCase()
+       : '';
+       const isEntryFeePaid =
+       u.isEntryFeePaid === true || ENTRY_FEE_SUCCESS_STATUSES.has(entryFeePaymentStatus);
+       const entryFeeAccessActive =
+       (Number.isFinite(fromEntryFee) && fromEntryFee > now) ||
+       (Number.isFinite(entryFeeOfferExpiry) && entryFeeOfferExpiry > now) ||
+       (isEntryFeePaid && fromEntryFee === 0 && entryFeeOfferExpiry === 0);
+
+       const hasActiveEntitlement =
+       desiredRenewal > now ||
+       hasPremiumEntitlement ||
+       premiumFlagged ||
+       entryFeeAccessActive;
 
       if (!hasActiveEntitlement) {
         // Entitlement finished → deactivate both tiers (keep old behavior)
-        if (isPlus || isPremium || nextRenewal) {
+          if (
+                  isPlus ||
+                  isPremium ||
+                  nextRenewal ||
+                  loginPlusExpiry ||
+                  premiumExpiryDate ||
+                  entryFeeOfferExpiry ||
+                  entryFeePaidAt ||
+                  hasPremiumIdentifier
+                ) {
           updates[`${uid}/isPlus`] = false;
           updates[`${uid}/isPremium`] = false;
           updates[`${uid}/subscriptionStatus`] = 'inactive';
@@ -1375,13 +1478,22 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
         userUpdates.isPlus = true;
         activated += 1;
       }
+       const shouldHavePremiumFlag = hasPremiumEntitlement || premiumFlagged;
+            if (shouldHavePremiumFlag !== isPremium) {
+              userUpdates.isPremium = shouldHavePremiumFlag;
+            }
       if (desiredRenewal !== nextRenewal) {
         userUpdates.nextRenewal = desiredRenewal;
         syncedRenewal += 1;
       }
-      if (desiredRenewal > 0 && desiredRenewal !== entryFeeOfferExpiry) {
+      const shouldSyncEntryFee = entryFeePaidAt > 0 || entryFeeOfferExpiry > 0;
+            if (
+              shouldSyncEntryFee &&
+              desiredRenewal > 0 &&
+              desiredRenewal !== entryFeeOfferExpiry
+            ) {
               userUpdates.entryFeeOfferExpiry = desiredRenewal;
-           }
+            }
       if (Object.keys(userUpdates).length) {
         userUpdates.lastEntitlementSyncAt = now;
         Object.entries(userUpdates).forEach(([k, v]) => {
@@ -1397,6 +1509,125 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
       `[checkExpiredOneTimeSubscriptions] deactivated=${deactivated}, ` +
       `activated=${activated}, renewalSynced=${syncedRenewal}`
     );
+  });
+
+exports.loginEntitlementSweep = functions
+  .region('asia-south1')
+  .https.onCall(async (_data, context) => {
+    const uid = context.auth?.uid;
+    if (!uid) {
+      throw new functions.https.HttpsError('unauthenticated', 'Sign-in required');
+    }
+
+    const snap = await db.ref(`users/${uid}`).get();
+    const u = snap.val() || {};
+
+    const now = Date.now();
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+    const isPlus = !!u.isPlus;
+    const isPremium = !!u.isPremium;
+    const entryFeePaidAt = Number(u.entryFeePaidAt || 0);
+    const loginPlusExpiry = Number(u.loginPlusExpiry || 0);
+    const nextRenewal = Number(u.nextRenewal || 0);
+    const entryFeeOfferExpiry = Number(u.entryFeeOfferExpiry || 0);
+    const premiumExpiryDate = Number(u.premiumExpiryDate || 0);
+    const subscription = typeof u.subscription === 'object' && u.subscription ? u.subscription : {};
+    const subscriptionCurrentEnd = Number(
+      subscription.current_end ??
+        subscription.currentEnd ??
+        subscription.currentPeriodEnd ??
+        subscription.expiryTimeMillis ??
+        subscription.expiry_time_millis ??
+        0,
+    );
+    const subscriptionNextBillingAt = Number(
+      subscription.next_billing_at ??
+        subscription.nextBillingAt ??
+        subscription.renewalTimeMillis ??
+        subscription.renewal_time_millis ??
+        0,
+    );
+    const subscriptionStatusRaw = typeof u.subscriptionStatus === 'string' ? u.subscriptionStatus.toLowerCase() : '';
+    const subscriptionStatusFromObject = typeof subscription.status === 'string' ? subscription.status.toLowerCase() : '';
+    const activePremiumStatus =
+      PREMIUM_ACTIVE_STATUSES.has(subscriptionStatusRaw) || PREMIUM_ACTIVE_STATUSES.has(subscriptionStatusFromObject);
+    const cancelledPremiumStatus =
+      PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusRaw) || PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusFromObject);
+    const subscriptionIdentifiers = [
+      typeof u.subscriptionId === 'string' ? u.subscriptionId.trim() : '',
+      typeof subscription.id === 'string' ? subscription.id.trim() : '',
+      typeof subscription.subscriptionId === 'string' ? subscription.subscriptionId.trim() : '',
+      typeof subscription.productId === 'string' ? subscription.productId.trim() : '',
+      typeof subscription.planId === 'string' ? subscription.planId.trim() : '',
+      typeof subscription.plan_id === 'string' ? subscription.plan_id.trim() : '',
+    ].filter(Boolean);
+    const hasPremiumIdentifier = subscriptionIdentifiers.length > 0;
+
+    const entryFeePaymentStatus = typeof u.entryFeePaymentStatus === 'string' ? u.entryFeePaymentStatus.toLowerCase() : '';
+    const isEntryFeePaid = u.isEntryFeePaid === true || ENTRY_FEE_SUCCESS_STATUSES.has(entryFeePaymentStatus);
+
+    const fromEntryFee = entryFeePaidAt > 0 ? entryFeePaidAt + THIRTY_DAYS_MS : 0;
+    const desiredRenewal = Math.max(
+      Number.isFinite(nextRenewal) ? nextRenewal : 0,
+      Number.isFinite(loginPlusExpiry) ? loginPlusExpiry : 0,
+      Number.isFinite(fromEntryFee) ? fromEntryFee : 0,
+      Number.isFinite(entryFeeOfferExpiry) ? entryFeeOfferExpiry : 0,
+      Number.isFinite(premiumExpiryDate) ? premiumExpiryDate : 0,
+      Number.isFinite(subscriptionCurrentEnd) ? subscriptionCurrentEnd : 0,
+      Number.isFinite(subscriptionNextBillingAt) ? subscriptionNextBillingAt : 0,
+    );
+
+    const premiumRenewal = Math.max(
+      Number.isFinite(premiumExpiryDate) ? premiumExpiryDate : 0,
+      Number.isFinite(subscriptionCurrentEnd) ? subscriptionCurrentEnd : 0,
+      Number.isFinite(subscriptionNextBillingAt) ? subscriptionNextBillingAt : 0,
+      Number.isFinite(nextRenewal) ? nextRenewal : 0,
+    );
+    const premiumFlagged = isPremium && !cancelledPremiumStatus;
+    const hasPremiumEntitlement =
+      (Number.isFinite(premiumRenewal) && premiumRenewal > now) || activePremiumStatus || (premiumFlagged && hasPremiumIdentifier);
+    const entryFeeAccessActive =
+      (Number.isFinite(fromEntryFee) && fromEntryFee > now) ||
+      (Number.isFinite(entryFeeOfferExpiry) && entryFeeOfferExpiry > now) ||
+      (isEntryFeePaid && fromEntryFee === 0 && entryFeeOfferExpiry === 0);
+
+    const hasActiveEntitlement = desiredRenewal > now || hasPremiumEntitlement || premiumFlagged || entryFeeAccessActive;
+
+    const updates = {};
+
+    if (hasActiveEntitlement && !isPlus) {
+      updates.isPlus = true;
+    }
+
+    const shouldHavePremiumFlag = hasPremiumEntitlement || premiumFlagged;
+    if (shouldHavePremiumFlag !== isPremium) {
+      updates.isPremium = shouldHavePremiumFlag;
+    }
+
+    if (desiredRenewal > 0 && desiredRenewal !== nextRenewal) {
+      updates.nextRenewal = desiredRenewal;
+    }
+
+    if (
+      isEntryFeePaid &&
+      desiredRenewal > now &&
+      desiredRenewal > fromEntryFee &&
+      desiredRenewal - THIRTY_DAYS_MS > entryFeePaidAt
+    ) {
+      updates.entryFeePaidAt = desiredRenewal - THIRTY_DAYS_MS;
+    }
+
+    if (desiredRenewal > 0 && desiredRenewal !== entryFeeOfferExpiry) {
+      updates.entryFeeOfferExpiry = desiredRenewal;
+    }
+
+    if (Object.keys(updates).length) {
+      updates.lastEntitlementSyncAt = now;
+      await db.ref(`users/${uid}`).update(updates);
+    }
+
+    return { ok: true, applied: updates };
   });
 
 // 1️⃣ Add a cancel function

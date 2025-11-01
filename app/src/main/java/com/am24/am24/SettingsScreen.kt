@@ -164,6 +164,7 @@ fun SettingsScreen(navController: NavController) {
             val entryFeePaidFlag = s.child("isEntryFeePaid").getValue(Boolean::class.java) ?: false
             val entryFeePaidAt = s.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
             val entryFeeOfferExpiryVal = s.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
+            val nextRenewalValue = s.child("nextRenewal").getValue(Long::class.java) ?: 0L
             val now = System.currentTimeMillis()
             val entryFeePaidExpiry = entryFeePaidAt
                 .takeIf { it > 0L }
@@ -173,8 +174,11 @@ fun SettingsScreen(navController: NavController) {
                 entryFeePaidExpiry?.takeIf { entryFeePaidFlag && it > now },
                 entryFeeOfferExpiryActive
             ).maxOrNull()
+            val nextRenewalActive = nextRenewalValue.takeIf { it > now }
             val entryFeeActive = entryFeePaidFlag && (
-                    loginPlusExpiryVal > now || resolvedEntryFeeExpiry != null
+                    loginPlusExpiryVal > now ||
+                            resolvedEntryFeeExpiry != null ||
+                            nextRenewalActive != null
                     )
             val plusExpired = plusFlag && entryFeePaidFlag && !entryFeeActive && !premiumFlag
 
@@ -206,33 +210,32 @@ fun SettingsScreen(navController: NavController) {
                 entryFeeActive -> "Plus"
                 else -> "Plus"
             }
-        val subscriptionIdValue = s.child("subscription").child("id")
-            .getValue(String::class.java)
-        val nextRenewalValue = s.child("nextRenewal").getValue(Long::class.java)
-            val activeEntryFeeExpiry = resolvedEntryFeeExpiry
+            val subscriptionIdValue = s.child("subscription").child("id")
+                .getValue(String::class.java)
+            val activeEntryFeeExpiry = listOfNotNull(resolvedEntryFeeExpiry, nextRenewalActive).maxOrNull()
             val activeLoginPlusExpiry = loginPlusExpiryVal.takeIf { it > now }
 
-        loginPlusExpiry = if (plusExpired) 0L else loginPlusExpiryVal
-        expiry = when {
-            activeEntryFeeExpiry != null -> DateFormat.getDateInstance().format(Date(activeEntryFeeExpiry))
-            !subscriptionIdValue.isNullOrBlank() -> "Never"
-            nextRenewalValue != null -> DateFormat.getDateInstance().format(Date(nextRenewalValue))
-            activeLoginPlusExpiry != null -> DateFormat.getDateInstance().format(Date(activeLoginPlusExpiry))
-            else -> ctx.getString(R.string.na)
-        }
+            loginPlusExpiry = if (plusExpired) 0L else loginPlusExpiryVal
+            expiry = when {
+                activeEntryFeeExpiry != null -> DateFormat.getDateInstance().format(Date(activeEntryFeeExpiry))
+                !subscriptionIdValue.isNullOrBlank() -> "Never"
+                nextRenewalActive != null -> DateFormat.getDateInstance().format(Date(nextRenewalActive))
+                activeLoginPlusExpiry != null -> DateFormat.getDateInstance().format(Date(activeLoginPlusExpiry))
+                else -> ctx.getString(R.string.na)
+            }
 
-        subscriptionId = subscriptionIdValue
-        subscriptionStatus = s.child("subscriptionStatus").getValue(String::class.java)
+            subscriptionId = subscriptionIdValue
+            subscriptionStatus = s.child("subscriptionStatus").getValue(String::class.java)
 
-        swipes      = s.child("swipesInfo/remainingSwipes").getValue(Int::class.java) ?: 0
-        compliments = s.child("availableCompliments").getValue(Int::class.java) ?: 0
-        aiMessages    = s.child("availableAiMessages").getValue(Int::class.java) ?: 0   // ← NEW
+            swipes      = s.child("swipesInfo/remainingSwipes").getValue(Int::class.java) ?: 0
+            compliments = s.child("availableCompliments").getValue(Int::class.java) ?: 0
+            aiMessages    = s.child("availableAiMessages").getValue(Int::class.java) ?: 0   // ← NEW
 
-        isPrivate   = s.child("isPrivate").getValue(Boolean::class.java) ?: false
-        preferredLang = s.child("preferredLanguage").getValue(String::class.java) ?: defaultLang
-        allowLoc    = s.child("allowLocationForMatches").getValue(Boolean::class.java) ?: false
-        allowPublic = s.child("allowLocationPublic").getValue(Boolean::class.java) ?: false
-        isMatrimony = s.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
+            isPrivate   = s.child("isPrivate").getValue(Boolean::class.java) ?: false
+            preferredLang = s.child("preferredLanguage").getValue(String::class.java) ?: defaultLang
+            allowLoc    = s.child("allowLocationForMatches").getValue(Boolean::class.java) ?: false
+            allowPublic = s.child("allowLocationPublic").getValue(Boolean::class.java) ?: false
+            isMatrimony = s.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
 
             // ── load the new fields too ──
             country  = s.child("country").getValue(String::class.java) ?: ""

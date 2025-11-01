@@ -167,7 +167,9 @@ class MainActivity : ComponentActivity() {
                 entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
             } else 0L
             val entryFeeActive = isEntryFeePaid && (
-                    loginPlusExpiry > now || (entryFeeExpiryFromPaidAt > now && entryFeeExpiryFromPaidAt > 0L)
+                    loginPlusExpiry > now ||
+                            (entryFeeExpiryFromPaidAt > now && entryFeeExpiryFromPaidAt > 0L) ||
+                            currentRenewal > now
                     )
 
             if (!isPlus && entryFeeActive) {
