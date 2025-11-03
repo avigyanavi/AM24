@@ -22,9 +22,6 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -44,11 +41,11 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import android.content.Context
 import androidx.activity.compose.BackHandler
-import java.util.concurrent.TimeUnit
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.RssFeed
 import androidx.compose.ui.draw.shadow
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 
 
@@ -66,60 +63,22 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val mainViewModel: MainViewModel = viewModel()
+    val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
+    mainViewModel.ensureListeners()
+    mainViewModel.onRouteChanged(currentRoute)
 
     // ➋ only show the global Top/Bottom bars if NOT on leaderboard
 
     val profileViewModel: ProfileViewModel = viewModel()
     val currentProfile by profileViewModel.currentUserProfile.collectAsState()
+
     // ─── collect both flags ───────────────────────────
     val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
     val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
-    val loginPlusExpiry by profileViewModel.loginPlusExpiry.collectAsState()
-    val entryFeePaidAt by profileViewModel.entryFeePaidAt.collectAsState()
-    val isEntryFeePaid by profileViewModel.isEntryFeePaid.collectAsState()
-    val premiumExpiryDate by profileViewModel.premiumExpiryDate.collectAsState(initial = null)
-    val subscriptionStatus by profileViewModel.subscriptionStatus.collectAsState(initial = null)
-    val nextRenewal by profileViewModel.nextRenewal.collectAsState(initial = null)
-    val activeSubscriptionId by profileViewModel.subscriptionId.collectAsState(initial = null)
-    val now = System.currentTimeMillis()
-    val freeTrialExpiry = currentProfile?.freeTrialExpiry ?: 0L
-    val hasUsedTrial = currentProfile?.hasUsedFreeTrial == true
-    val trialExpired = hasUsedTrial && (freeTrialExpiry == 0L || freeTrialExpiry <= now)
-    val nextRenewalValue = nextRenewal ?: 0L
-    val entryFeeExpiryFromPaidAt = if (entryFeePaidAt > 0L) {
-        entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
-    } else {
-        0L
-    }
-    val plusExpiryCandidates = listOf(
-        nextRenewalValue,
-        loginPlusExpiry,
-        entryFeeExpiryFromPaidAt
-    )
-    val plusExpiry = plusExpiryCandidates.maxOrNull() ?: 0L
-    val entryFeeStillActive = plusExpiry > now
-    val hadEntryFeePurchase = plusExpiryCandidates.any { it > 0L } || isEntryFeePaid
-    val plusAccessExpired = !isPlus && !isPremium && hadEntryFeePurchase && !entryFeeStillActive
-
-    val premiumExpiryValue = premiumExpiryDate ?: 0L
-    val subscriptionActive = subscriptionStatus?.equals("active", ignoreCase = true) == true
-    val premiumStillActive = (premiumExpiryValue > now && premiumExpiryValue > 0L) ||
-            (nextRenewalValue > now && nextRenewalValue > 0L) || subscriptionActive
-    val hadPremiumPlan = premiumExpiryValue > 0L || nextRenewalValue > 0L ||
-            !subscriptionStatus.isNullOrBlank() || !activeSubscriptionId.isNullOrBlank() ||
-            (currentProfile?.razorpaySubscriptionId?.isNullOrBlank() == false)
-    val premiumAccessExpired = !isPlus && !isPremium && hadPremiumPlan && !premiumStillActive
-
-    val trialLock = trialExpired && !isPlus && !isPremium
-    val shouldForceSubscription = trialLock || plusAccessExpired || premiumAccessExpired
-    val baseAllowsGlobalBars = currentRoute?.startsWith("chat/") == false &&
-            currentRoute != "leaderboard"
-    val showTopBar = !shouldForceSubscription && baseAllowsGlobalBars
-    val showBottomBar = if (shouldForceSubscription) {
-        currentRoute == "settings" || currentRoute?.startsWith("subscription") == true
-    } else {
-        baseAllowsGlobalBars
-    }
+    val shouldForceSubscription = mainUiState.shouldForceSubscription
+    val showTopBar = mainUiState.showTopBar
+    val showBottomBar = mainUiState.showBottomBar
     // ───────────────────────────────────────────────────
     val context = LocalContext.current
     val activity = context as? Activity
@@ -131,14 +90,6 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         profileViewModel.fetchCurrentUserProfile()
     }
 
-    LaunchedEffect(trialExpired) {
-        if (trialExpired) {
-            FirebaseRefs.db
-                .getReference("users/$currentUserId/freeTrialCompleted")
-                .setValue(true)
-        }
-    }
-
     LaunchedEffect(shouldForceSubscription, currentRoute) {
         if (shouldForceSubscription && currentRoute?.startsWith("subscription") != true) {
             navController.navigate("subscription?allowIfSubscribed=false&force=true") {
@@ -147,47 +98,6 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         }
     }
 
-    // Listen for incoming omegle invites
-    var omegleInvite by remember { mutableStateOf<OmegleMatch?>(null) }
-    DisposableEffect(currentUserId) {
-        val ref = FirebaseRefs.db.reference
-            .child("omegleInvites").child(currentUserId)
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val first = snapshot.children.firstOrNull()
-                if (first != null) {
-                    val chatId = first.key ?: return
-                    val otherUid = first.getValue(String::class.java) ?: return
-                    omegleInvite = OmegleMatch(chatId, otherUid)
-                } else {
-                    omegleInvite = null
-                }
-            }
-            override fun onCancelled(error: DatabaseError) {}
-        }
-        ref.addValueEventListener(listener)
-        onDispose { ref.removeEventListener(listener) }
-    }
-
-    // Listen for invite cancellation
-    DisposableEffect(omegleInvite?.chatId) {
-        val match = omegleInvite
-        if (match == null) return@DisposableEffect onDispose {}
-        val statusRef = FirebaseRefs.db.reference
-            .child("omegleChats").child(match.chatId).child("status")
-        val statusListener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val status = snapshot.getValue(String::class.java)
-                if (status == "canceled") {
-                    omegleInvite = null
-                    Toast.makeText(context, R.string.request_canceled, Toast.LENGTH_SHORT).show()
-                }
-            }
-            override fun onCancelled(error: DatabaseError) {}
-        }
-        statusRef.addValueEventListener(statusListener)
-        onDispose { statusRef.removeEventListener(statusListener) }
-    }
 
     var showOnlineUsers by remember { mutableStateOf(false) }
     LaunchedEffect(navBackStackEntry?.destination?.route) {
@@ -212,6 +122,18 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
                         } else {
                             navController.navigate("omegleUsers")
                         }
+                    },
+                    mainUiState = mainUiState,
+                    onLocationPreferencesClick = { mainViewModel.showLocationDialog() },
+                    onLocationDialogDismiss = { mainViewModel.hideLocationDialog() },
+                    onLocationDialogConfirm = { matches, public, private ->
+                        mainViewModel.updateLocationPreferences(matches, public, private)
+                    },
+                    onClearLocationSpoofing = {
+                        mainViewModel.clearLocationSpoofing()
+                    },
+                    onSetLocationSpoofing = { country, city ->
+                        mainViewModel.setSpoofedLocation(country, city)
                     }
                 )
             }
@@ -246,30 +168,34 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
             postViewModel = postViewModel,
             locationManager = locationManager
         )
-        if (omegleInvite != null) {
+        val pendingInvite = mainUiState.omegleInvite
+        if (pendingInvite != null) {
             AlertDialog(
                 onDismissRequest = { /* keep dialog until user acts */ },
                 text = { Text(stringResource(R.string.join_random_chat), color = KupidxOrange) },
                 confirmButton = {
                     TextButton(onClick = {
-                        val match = omegleInvite!!
-                        val ref = FirebaseRefs.db.reference
-                        ref.child("omegleChats").child(match.chatId).child("status").setValue("accepted")
-                        ref.child("omegleInvites").child(currentUserId).child(match.chatId).removeValue()
-                        navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
-                        omegleInvite = null
+                        mainViewModel.acceptOmegleInvite(pendingInvite)
+                        navController.navigate("omegleChat/${pendingInvite.chatId}/${pendingInvite.otherUserId}")
                     }) { Text(stringResource(R.string.join_chat), color = KupidxOrange) }
                 },
                 dismissButton = {
+                    mainViewModel.rejectOmegleInvite(pendingInvite)
                     TextButton(onClick = {
-                        omegleInvite?.let { match ->
-                            val ref = FirebaseRefs.db.reference
-                            ref.child("omegleChats").child(match.chatId).child("status").setValue("rejected")
-                            ref.child("omegleInvites").child(currentUserId).child(match.chatId).removeValue()
-                        }
-                        omegleInvite = null
                     }) { Text(stringResource(R.string.ignore_chat), color = KupidxOrange) }
                 }
+            )
+        }
+        val inviteMessage = mainUiState.inviteStatusMessage
+        if (inviteMessage != null) {
+            AlertDialog(
+                onDismissRequest = { mainViewModel.clearInviteStatusMessage() },
+                confirmButton = {
+                    TextButton(onClick = { mainViewModel.clearInviteStatusMessage() }) {
+                        Text(stringResource(id = android.R.string.ok), color = KupidxOrange)
+                    }
+                },
+                text = { Text(stringResource(inviteMessage), color = KupidxOrange) }
             )
         }
     }
@@ -287,7 +213,13 @@ fun TopNavBar(
     isPlus: Boolean,
     locationManager: LocationManager,
     showOnlineUsers: Boolean,
-    onToggleOnlineUsers: () -> Unit
+    onToggleOnlineUsers: () -> Unit,
+    mainUiState: MainUiState,
+    onLocationPreferencesClick: () -> Unit,
+    onLocationDialogDismiss: () -> Unit,
+    onLocationDialogConfirm: (Boolean, Boolean, Boolean) -> Unit,
+    onClearLocationSpoofing: () -> Unit,
+    onSetLocationSpoofing: (String, String) -> Unit
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -298,11 +230,11 @@ fun TopNavBar(
     val isProfileScreen = currentRoute == "profile"
     val isDMScreen = currentRoute == "dms"
 
-    val unreadCount = remember { mutableStateOf(0) }
-    var showLocationPrefDialog by remember { mutableStateOf(false) }
-    var allowLocationForMatches by remember { mutableStateOf(false) }
-    var allowLocationPublic by remember { mutableStateOf(false) }
-    var isPrivate by remember { mutableStateOf(false) }
+    val unreadCount = mainUiState.unreadNotifications
+    val allowLocationForMatches = mainUiState.allowLocationForMatches
+    val allowLocationPublic = mainUiState.allowLocationPublic
+    val isPrivate = mainUiState.isPrivateProfile
+    val showLocationPrefDialog = mainUiState.showLocationPrefDialog
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     val mapSelectedTab by savedStateHandle?.getStateFlow("mapSelectedTab", 0)?.collectAsState()
@@ -312,94 +244,20 @@ fun TopNavBar(
 
     LaunchedEffect(triggerLocationDialog) {
         if (triggerLocationDialog) {
-            showLocationPrefDialog = true
+            onLocationPreferencesClick()
             savedStateHandle?.set("showLocationPrefDialog", false)
         }
     }
 
-    var selectedCountry by rememberSaveable { mutableStateOf("") }
+    val selectedCountry = mainUiState.selectedCountry
     var cityMenuExpanded by remember { mutableStateOf(false) }
-    var selectedCity by rememberSaveable { mutableStateOf("") }
+    val selectedCity = mainUiState.selectedCity
     val feedFilterState by postViewModel.feedFilters.collectAsState()
     val homeSelectedCountry = feedFilterState.feedFilters.country
 
-    // Fetch premium status from Firebase
-    DisposableEffect(currentUserId) {
-        val profileRef = FirebaseRefs.db
-            .getReference("users")
-            .child(currentUserId)
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                // Fetch allowLocationForMatches
-                val savedPref = snapshot.child("allowLocationForMatches").getValue(Boolean::class.java)
-                if (savedPref == null) {
-                    profileRef.child("allowLocationForMatches").setValue(false)
-                    allowLocationForMatches = false
-                } else {
-                    allowLocationForMatches = savedPref
-                }
-
-                // Fetch allowLocationPublic
-                val savedPublicPref = snapshot.child("allowLocationPublic").getValue(Boolean::class.java)
-                if (savedPublicPref == null) {
-                    profileRef.child("allowLocationPublic").setValue(false)
-                    allowLocationPublic = false
-                } else {
-                    allowLocationPublic = savedPublicPref
-                }
-
-                // Fetch isPrivate
-                val savedPrivatePref = snapshot.child("isPrivate").getValue(Boolean::class.java)
-                if (savedPrivatePref == null) {
-                    profileRef.child("isPrivate").setValue(false)
-                    isPrivate = false
-                } else {
-                    isPrivate = savedPrivatePref
-                }
-                // Track spoofed country
-                val spoofed = snapshot.child("isLocationSpoofed").getValue(Boolean::class.java) == true
-                val country = snapshot.child("country").getValue(String::class.java) ?: ""
-                val city = snapshot.child("city").getValue(String::class.java) ?: ""
-                selectedCountry = if (spoofed) country else ""
-                selectedCity = if (spoofed) city else ""
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("TopNavBar", "Failed to fetch profile: ${error.message}")
-            }
-        }
-        profileRef.addValueEventListener(listener)
-        onDispose {
-            profileRef.removeEventListener(listener)
-        }
-    }
-
-    // Observe unread notifications count
-    DisposableEffect(currentUserId) {
-        val notificationsRef = FirebaseRefs.db
-            .getReference("notifications")
-            .child(currentUserId)
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val count = snapshot.children.count { child ->
-                    val notification = child.getValue(Notification::class.java)
-                    notification?.isRead == "false"
-                }
-                unreadCount.value = count
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("TopNavBar", "Failed to fetch unread notifications count: ${error.message}")
-            }
-        }
-        notificationsRef.addValueEventListener(listener)
-        onDispose {
-            notificationsRef.removeEventListener(listener)
-        }
-    }
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    val hasLocationSpoofAccess = isPlus || isPremium
+    val hasLocationSpoofAccess = mainUiState.hasLocationSpoofAccess
 
     LaunchedEffect(Unit) {
         val savedOrientation = prefs.getString("map_orientation_filter", "") ?: ""
@@ -634,27 +492,12 @@ fun TopNavBar(
                                 text = { Text(stringResource(R.string.clear_city_filter)) },
                                 onClick = {
                                     cityMenuExpanded = false
-                                    val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
                                     if (selectedCountry.isBlank()) {
                                         // No fixed country → back to GPS
-                                        profileRef.updateChildren(
-                                            mapOf(
-                                                "city" to "",
-//                                                "country" to "Mexico",
-                                                "country" to "",
-                                                "isLocationSpoofed" to false
-                                            )
-                                        )
+                                        onClearLocationSpoofing()
                                         locationManager.resumeUpdates()
                                     } else {
                                         // Keep the country, clear city
-                                        profileRef.updateChildren(
-                                            mapOf(
-                                                "city" to "",
-                                                "country" to selectedCountry,
-                                                "isLocationSpoofed" to true
-                                            )
-                                        )
                                         val countryLatLng = CountryLatLngMap.getLatLng(selectedCountry)
                                         if (countryLatLng != null) {
                                             locationManager.pauseUpdates()
@@ -664,8 +507,8 @@ fun TopNavBar(
                                                 countryLatLng.second
                                             )
                                         }
+                                        onSetLocationSpoofing(selectedCountry, "")
                                     }
-                                    selectedCity = ""
                                     savedStateHandle?.set("mapCountryChanged", true)
                                 }
                             )
@@ -674,7 +517,6 @@ fun TopNavBar(
                                     text = { Text(city) },
                                     onClick = {
                                         cityMenuExpanded = false
-                                        val profileRef = FirebaseRefs.db.getReference("users").child(currentUserId)
                                         val latLng = cityLatLngLookup(city)
                                         if (latLng != null) {
                                             locationManager.pauseUpdates()
@@ -683,15 +525,7 @@ fun TopNavBar(
                                                 latLng.first,
                                                 latLng.second
                                             )
-                                            profileRef.updateChildren(
-                                                mapOf(
-                                                    "country" to resolvedSpoofCountry,
-                                                    "city" to city,
-                                                    "isLocationSpoofed" to true
-                                                )
-                                            )
-                                            selectedCountry = resolvedSpoofCountry
-                                            selectedCity = city
+                                            onSetLocationSpoofing(resolvedSpoofCountry, city)
                                             savedStateHandle?.set("mapCountryChanged", true)
                                         } else {
                                             Toast.makeText(
@@ -721,7 +555,7 @@ fun TopNavBar(
 
                 /* 2) Existing location icon */
                 if (isPremium) {
-                    IconButton(onClick = { showLocationPrefDialog = true }) {
+                    IconButton(onClick = onLocationPreferencesClick) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = stringResource(R.string.cd_location_settings),
@@ -826,13 +660,13 @@ fun TopNavBar(
                 }) {
                     BadgedBox(
                         badge = {
-                            if (unreadCount.value > 0) {
+                            if (unreadCount > 0) {
                                 Badge(
                                     containerColor = Color.Red,
                                     modifier = Modifier.size(15.dp)
                                 ) {
                                     Text(
-                                        text = unreadCount.value.toString(),
+                                        text = unreadCount.toString(),
                                         color = Color.White,
                                         fontSize = 10.sp
                                     )
@@ -854,25 +688,13 @@ fun TopNavBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
     )
 
-    if (showLocationPrefDialog && (isPremium)) {
+    if (showLocationPrefDialog && isPremium) {
         LocationPrivacyDialog(
             allowLocationForMatches = allowLocationForMatches,
             allowLocationPublic = allowLocationPublic,
             isPrivate = isPrivate,
-            onDismiss = { showLocationPrefDialog = false },
-            onConfirm = { matches, public, private ->
-                allowLocationForMatches = matches
-                allowLocationPublic = public
-                isPrivate = private
-                val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
-                userRef.child("allowLocationForMatches").setValue(matches)
-                userRef.child("allowLocationPublic").setValue(public)
-                userRef.child("isPrivate").setValue(private)
-                    .addOnFailureListener { e ->
-                        Log.e("TopNavBar", "Failed to save preference: ${e.message}")
-                    }
-                showLocationPrefDialog = false
-            },
+            onDismiss = onLocationDialogDismiss,
+            onConfirm = onLocationDialogConfirm,
         )
     }
 }
