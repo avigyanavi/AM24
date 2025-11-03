@@ -4,7 +4,6 @@
 package com.am24.am24
 
 import EditPicAndVoiceBioScreen
-import DatingViewModel
 import android.app.Application
 import android.net.Uri
 import android.os.Build
@@ -27,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -92,11 +90,6 @@ fun MainNavGraph(
         )
     )
     val nearbyViewModel: NearbyViewModel = viewModel()
-    val datingViewModel: DatingViewModel = viewModel(
-        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
-            LocalContext.current.applicationContext as Application
-        )
-    )
 
     // Initialize LocationManager (safe inside Composable)
     val context = LocalContext.current
@@ -109,30 +102,6 @@ fun MainNavGraph(
         startDestination = "map",
         modifier = modifier
     ) {
-        composable("dating") {
-            DatingScreen(
-                navController = navController,
-                geoFire = geoFire,
-                datingViewModel = datingViewModel
-            )
-        }
-        composable(
-            route = "dating_screen?initialQuery={initialQuery}",
-            arguments = listOf(
-                navArgument("initialQuery") {
-                    type = NavType.StringType
-                    defaultValue = ""
-                }
-            )
-        ) { backStackEntry ->
-            val initialQuery = backStackEntry.arguments?.getString("initialQuery") ?: ""
-            DatingScreen(
-                navController = navController,
-                geoFire = geoFire,
-                datingViewModel = datingViewModel,
-                initialQuery = initialQuery
-            )
-        }
         composable("dms") {
             DMScreen(
                 navController = navController,

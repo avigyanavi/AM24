@@ -163,7 +163,7 @@ fun MatchedUserProfileScreen(
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // matches DatingScreen’s centered meter behavior
+                                // keep the compatibility meter centered to match the legacy swipe UI
                                 if (showBackButton) {
                                     IconButton(onClick = { navController.popBackStack() }) {
                                         Icon(

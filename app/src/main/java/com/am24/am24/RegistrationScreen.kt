@@ -3037,12 +3037,6 @@ fun EnterBirthdateCityHometownScreen(
     var selectedCity by remember { mutableStateOf(cities.firstOrNull() ?: "") }
     var customCity by remember { mutableStateOf(registrationViewModel.customCity) }
     var isLocating by remember { mutableStateOf(false) }
-    var dontShowLocation by remember {
-        mutableStateOf(
-            !registrationViewModel.allowLocationPublic &&
-                    !registrationViewModel.allowLocationForMatches
-        )
-    }
 
     var agartala = stringResource(R.string.city_agartala)
     var ahmedabad = stringResource(R.string.city_ahmedabad)
@@ -3476,18 +3470,6 @@ fun EnterBirthdateCityHometownScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = fieldColors()
                     )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = dontShowLocation,
-                        onCheckedChange = { checked ->
-                            dontShowLocation = checked
-                            registrationViewModel.allowLocationForMatches = !checked
-                            registrationViewModel.allowLocationPublic = !checked
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.dont_show_location), color = Color.White)
                 }
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(

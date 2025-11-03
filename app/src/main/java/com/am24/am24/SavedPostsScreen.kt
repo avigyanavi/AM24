@@ -2,6 +2,7 @@
 
 package com.am24.am24
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -149,10 +150,14 @@ fun SavedPostsScreen(
                             )
                         },
                         onUserClick = {
-                            if (post.userId == userId) {
-                                navController.navigate("profile")
-                            } else {
-                                navController.navigate("dating_screen?initialQuery=${post.userId}")
+                            when {
+                                post.userId == userId -> navController.navigate("profile")
+                                myMatches.contains(post.userId) ->
+                                    navController.navigate("matchedUserProfile/${post.userId}")
+                                else -> {
+                                    val encodedId = Uri.encode(post.userId)
+                                    navController.navigate("previewUserProfile/$encodedId")
+                                }
                             }
                         },
                         onTagClick = { /* no-op */ },

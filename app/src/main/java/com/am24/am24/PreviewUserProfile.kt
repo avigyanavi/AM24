@@ -400,7 +400,7 @@ private fun SwipeFeedbackIcon(
     }
 }
 
-/* decrement remainingSwipes just like DatingScreen does */
+/* decrement remainingSwipes to mirror the legacy swipe flow behaviour */
 private suspend fun updateDailySwipeCount() {
     val uid = FirebaseAuth.getInstance().uid ?: return
     val ref = FirebaseRefs.db.getReference("users/$uid/swipesInfo/remainingSwipes")

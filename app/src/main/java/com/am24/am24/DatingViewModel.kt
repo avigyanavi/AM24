@@ -196,7 +196,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Call this once (e.g. from DatingScreen’s LaunchedEffect) */
+    /** Call this once from whichever surface first needs compliment/boost inventory (chat, DMs, etc.). */
     fun startInventoryWatcher(uid: String) {
         val root = FirebaseRefs.db.reference.child("users/$uid")
 
