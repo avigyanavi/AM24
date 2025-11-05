@@ -610,10 +610,10 @@
     <string name="gender_men">Man</string>
 
     <string name="paywall_title">Entry fee</string>
-    <string name="paywall_entry_fee_message_india">%1$s entry fee - to keep the bots away</string>
-    <string name="paywall_entry_fee_message_mexico">%1$s entry fee - to keep the bots away</string>
-    <string name="paywall_entry_fee_message_us">%1$s entry fee - to keep the bots away</string>
-    <string name="paywall_entry_fee_message_generic">%1$s entry fee - to keep the bots away</string>
+    <string name="paywall_entry_fee_message_india">%1$s entry fee</string>
+    <string name="paywall_entry_fee_message_mexico">%1$s entry fee</string>
+    <string name="paywall_entry_fee_message_us">%1$s entry fee</string>
+    <string name="paywall_entry_fee_message_generic">%1$s entry fee</string>
     <string name="paywall_entry_fee_loading">Entry fee - price loading…</string>
     <string name="paywall_opening_offer_message">Opening offer: access for 1 month from your payment.</string>
     <string name="paywall_button_processing">Processing…</string>

@@ -395,7 +395,7 @@ fun MapScreen(
         }
         sortMode = prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
         radiusKm = prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble()
-        lastActiveHours = prefs.getFloat("map_last_active_hours", 336f).toDouble()
+        lastActiveHours = prefs.getFloat("map_last_active_hours", 48f).toDouble()
     }
     LaunchedEffect(isPlus || isPremium) {
         if (isPlus || isPremium) {
@@ -871,7 +871,12 @@ fun MapScreen(
         topBar = {
                 TopAppBar(
                     title = {
-                        Box(Modifier.fillMaxWidth()) {
+                        val trailingActionsInset = 6.dp
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(end = trailingActionsInset)
+                        ) {
                             if (sortMode == SortMode.ACTIVE) {
                                 LastActiveChip(
                                     hours = lastActiveHours,
@@ -900,26 +905,33 @@ fun MapScreen(
                             SortMode.ACTIVE -> Icons.Default.Schedule to R.string.sort_last_active
                             SortMode.FAR -> Icons.Default.Place to R.string.sort_farthest
                         }
-                        FilledTonalIconButton(
-                            onClick = {
-                                sortMode = when (sortMode) {
-                                    SortMode.NEARBY -> SortMode.ACTIVE
-                                    SortMode.ACTIVE -> SortMode.FAR
-                                    SortMode.FAR -> SortMode.NEARBY
-                                }
-                                prefs.edit().putString("map_sort_mode", sortMode.name).apply()
-                                userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
-                            },
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = KupidxOrange.copy(alpha = 0.00f),
-                                contentColor = KupidxOrange
-                            ),
-                            shape = RoundedCornerShape(20.dp)
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            color = KupidxOrange.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, KupidxOrange.copy(alpha = 0.7f)),
+                            tonalElevation = 0.dp,
+                            shadowElevation = 0.dp
                         ) {
-                            Icon(
-                                imageVector = sortIcon,
-                                contentDescription = stringResource(sortLabelRes)
-                            )
+                            IconButton(
+                                onClick = {
+                                    sortMode = when (sortMode) {
+                                        SortMode.NEARBY -> SortMode.ACTIVE
+                                        SortMode.ACTIVE -> SortMode.FAR
+                                        SortMode.FAR -> SortMode.NEARBY
+                                    }
+                                    prefs.edit().putString("map_sort_mode", sortMode.name).apply()
+                                    userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
+                                },
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = Color.Transparent,
+                                    contentColor = KupidxOrange
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = sortIcon,
+                                    contentDescription = stringResource(sortLabelRes)
+                                )
+                            }
                         }
                         Box {
                             IconButton(onClick = { showOverflowMenu = true }) {
@@ -1033,7 +1045,8 @@ fun MapScreen(
                         ) {
                             PeopleGrid(
                                 users = sortedPeople,
-                                isLoading = nearbyViewModel.isRefreshing || userLatLng == null,
+                                isLoading = nearbyViewModel.isRefreshing || userLatLng == null ||
+                                        !nearbyViewModel.hasAttemptedInitialLoad,
                                 onClick = {
                                     if (swipesLoaded && remainingSwipes <= 0) {
                                         showSwipeLimitOverlay = true
@@ -1096,7 +1109,8 @@ fun MapScreen(
                         }
                         CardsList(
                             users = sortedPeople,
-                            isLoading = nearbyViewModel.isRefreshing || userLatLng == null,
+                            isLoading = nearbyViewModel.isRefreshing || userLatLng == null ||
+                                    !nearbyViewModel.hasAttemptedInitialLoad,
                             useMiles = useMiles,          // <-- pass through
                             onLike = { user ->
                                 if (swipesLoaded && remainingSwipes <= 0) {

@@ -61,7 +61,7 @@ class NearbyViewModel : ViewModel() {
     var sortMode by mutableStateOf(SortMode.NEARBY)
     // Default radius shown in the People tab
     var radiusKm by mutableStateOf(50.0)
-    var lastActiveHours by mutableStateOf(24.0)
+    var lastActiveHours by mutableStateOf(48.0)
     var excludedUserIds by mutableStateOf<Set<String>>(emptySet())
     var isPlus by mutableStateOf(false)
     var isPremium by mutableStateOf(false)
@@ -81,9 +81,40 @@ class NearbyViewModel : ViewModel() {
             }
         }
     var currentLimit by mutableStateOf(10)
+    var hasAttemptedInitialLoad by mutableStateOf(false)
+        private set
 
     private var lastQueryKey: NearbyQueryKey? = null
     private var _hasLoadedExcludes = false
+    private var pendingFetches = 0
+    private var geoQueryCompleted = false
+
+    private fun resetRefreshTracking() {
+        pendingFetches = 0
+        geoQueryCompleted = false
+        isRefreshing = true
+    }
+
+    private fun markFetchStarted() {
+        pendingFetches += 1
+        isRefreshing = true
+    }
+
+    private fun markFetchFinished() {
+        if (pendingFetches > 0) {
+            pendingFetches -= 1
+        }
+        if (pendingFetches == 0 && geoQueryCompleted) {
+            isRefreshing = false
+        }
+    }
+
+    private fun markQueryCompleted() {
+        geoQueryCompleted = true
+        if (pendingFetches == 0) {
+            isRefreshing = false
+        }
+    }
 
     val nearbyUsers: Flow<List<NearbyUser>> = snapshotFlow {
         NearbyUiState(
@@ -158,6 +189,7 @@ class NearbyViewModel : ViewModel() {
         forceRefresh: Boolean = false,
         previousResults: Map<String, NearbyUser>? = null
     ) {
+        hasAttemptedInitialLoad = true
         val filtersSnapshot = datingFilters
         val newKey = NearbyQueryKey(
             userId = userId,
@@ -171,6 +203,8 @@ class NearbyViewModel : ViewModel() {
             if (previousResults != null && people.isEmpty()) {
                 people.addAll(previousResults.values)
             }
+            pendingFetches = 0
+            geoQueryCompleted = true
             isRefreshing = false
             return
         }
@@ -180,7 +214,7 @@ class NearbyViewModel : ViewModel() {
         // Reset
         geoQuery?.removeAllListeners()
         geoQuery = null
-        isRefreshing = true
+        resetRefreshTracking()
         people.clear()
 
         previousResults?.values
@@ -239,6 +273,8 @@ class NearbyViewModel : ViewModel() {
         center: LatLng,
         geoFireDatabaseRef: DatabaseReference
     ) {
+        hasAttemptedInitialLoad = true
+
         val prev = people.associateBy { it.userId }
         currentLimit += increment
         refreshNearbyUsers(
@@ -275,7 +311,7 @@ class NearbyViewModel : ViewModel() {
                 if (!reachedLimit) {
                     reachedLimit = true
                     query.removeAllListeners()
-                    isRefreshing = false
+                    markQueryCompleted()
                 }
                 return
             }
@@ -298,11 +334,12 @@ class NearbyViewModel : ViewModel() {
                 if (people.size >= limit) {
                     reachedLimit = true
                     query.removeAllListeners()
-                    isRefreshing = false
+                    markQueryCompleted()
                 }
                 return
             }
 
+            markFetchStarted()
             viewModelScope.launch {
                 try {
                     val snapshot = FirebaseRefs.db.getReference("users").child(uid).get().await()
@@ -310,7 +347,7 @@ class NearbyViewModel : ViewModel() {
                         if (!reachedLimit) {
                             reachedLimit = true
                             query.removeAllListeners()
-                            isRefreshing = false
+                            markQueryCompleted()
                         }
                         return@launch
                     }
@@ -392,11 +429,13 @@ class NearbyViewModel : ViewModel() {
                     if (people.size >= limit) {
                         reachedLimit = true
                         query.removeAllListeners()
-                        isRefreshing = false
+                        markQueryCompleted()
                     }
                 } catch (err: Exception) {
                     Log.e("MapScreenVM", "User fetch cancelled $uid: ${err.message}")
                     onExit(uid)
+                } finally {
+                    markFetchFinished()
                 }
             }
         }
