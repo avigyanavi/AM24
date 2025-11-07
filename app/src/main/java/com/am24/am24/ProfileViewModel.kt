@@ -20,6 +20,7 @@ import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.flow.update
 import java.util.UUID
 import kotlinx.coroutines.Job
+import java.util.concurrent.TimeUnit
 
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -105,6 +106,12 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     private val _subscriptionId = MutableStateFlow<String?>(null)
     val subscriptionId: StateFlow<String?> = _subscriptionId
+
+    private val _remainingSwipes = MutableStateFlow(0)
+    val remainingSwipes: StateFlow<Int> = _remainingSwipes
+
+    private val _availableAiMessages = MutableStateFlow(0)
+    val availableAiMessages: StateFlow<Int> = _availableAiMessages
 
     private var monetizationRef: DatabaseReference? = null
     private var monetizationListener: ValueEventListener? = null
@@ -199,6 +206,28 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 val entryFeeOfferExpiryValue = snapshot.child("entryFeeOfferExpiry").asLongOrZero()
                 val entryFeeOfferSeenValue =
                     snapshot.child("entryFeeOfferSeen").getValue(Boolean::class.java) == true
+                val swipesRemaining =
+                    snapshot.child("swipesInfo").child("remainingSwipes")
+                        .getValue(Int::class.java) ?: 0
+                val availableAiMessagesValue =
+                    snapshot.child("availableAiMessages").getValue(Int::class.java) ?: 0
+
+                val now = System.currentTimeMillis()
+                val sanitizedOfferExpiry =
+                    if (entryFeeOfferExpiryValue > 0L && entryFeeOfferExpiryValue < now) 0L
+                    else entryFeeOfferExpiryValue
+                val entryFeePaidExpiry = entryFeePaidAtValue
+                    .takeIf { it > 0L }
+                    ?.let { it + TimeUnit.DAYS.toMillis(30) }
+                val nextRenewalActive = nextRenewalValue?.takeIf { it > now }
+                val loginPlusActive = loginPlus.takeIf { it > now }
+                val entryFeeActive = entryFeePaid && (
+                        (entryFeePaidExpiry?.let { it > now } == true) ||
+                                nextRenewalActive != null ||
+                                loginPlusActive != null
+                        )
+                val plusFlag = snapshot.child("isPlus").getValue(Boolean::class.java) == true
+                val premiumFlag = snapshot.child("isPremium").getValue(Boolean::class.java) == true
 
                 _loginPlusExpiry.value = loginPlus
                 _isEntryFeePaid.value = entryFeePaid
@@ -208,8 +237,25 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 _nextRenewal.value = nextRenewalValue
                 _subscriptionId.value = subscriptionIdValue
                 _entryFeePlusIntroSeen.value = entryFeePlusIntroSeenValue
-                _entryFeeOfferExpiry.value = entryFeeOfferExpiryValue
+                _entryFeeOfferExpiry.value = sanitizedOfferExpiry
                 _entryFeeOfferSeen.value = entryFeeOfferSeenValue
+                _remainingSwipes.value = swipesRemaining
+                _availableAiMessages.value = availableAiMessagesValue
+
+                if (entryFeeOfferExpiryValue > 0L && entryFeeOfferExpiryValue < now) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        runCatching { ref.child("entryFeeOfferExpiry").removeValue().await() }
+                    }
+                }
+
+                if (plusFlag && entryFeePaid && !entryFeeActive && !premiumFlag) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        runCatching {
+                            ref.child("isPlus").setValue(false).await()
+                            ref.child("isEntryFeePaid").setValue(false).await()
+                        }
+                    }
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {

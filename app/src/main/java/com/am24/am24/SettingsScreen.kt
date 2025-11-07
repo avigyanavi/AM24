@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.am24.am24.ui.theme.ThemeManager
+import com.am24.am24.SessionDataRepository
+import com.am24.am24.ProfileViewModel
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
@@ -106,13 +108,28 @@ fun SettingsSection(content: @Composable ColumnScope.() -> Unit) {
 private enum class LocationVisibilityToggle { MATCHES, PUBLIC }
 
 @Composable
-fun SettingsScreen(navController: NavController) {
+fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewModel) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val user = FirebaseAuth.getInstance().currentUser ?: return
     val uid = user.uid
 
     val isDarkTheme by ThemeManager.isDarkTheme.collectAsState()
+    val sessionReady by SessionDataRepository.sessionReady.collectAsState(initial = false)
+    val currentProfile by profileViewModel.currentUserProfile.collectAsState()
+    val isPlusFlag by profileViewModel.isPlus.collectAsState(initial = false)
+    val isPremiumFlag by profileViewModel.isPremium.collectAsState(initial = false)
+    val loginPlusExpiryValue by profileViewModel.loginPlusExpiry.collectAsState()
+    val entryFeeOfferExpiryValue by profileViewModel.entryFeeOfferExpiry.collectAsState()
+    val entryFeePaidAtValue by profileViewModel.entryFeePaidAt.collectAsState()
+    val entryFeePaidFlag by profileViewModel.isEntryFeePaid.collectAsState(initial = false)
+    val nextRenewalValue by profileViewModel.nextRenewal.collectAsState()
+    val subscriptionStatusValue by profileViewModel.subscriptionStatus.collectAsState()
+    val subscriptionIdValue by profileViewModel.subscriptionId.collectAsState()
+    val complimentsCount by profileViewModel.complimentsLeft.collectAsState()
+    val remainingSwipesCount by profileViewModel.remainingSwipes.collectAsState()
+    val aiMessagesCount by profileViewModel.availableAiMessages.collectAsState()
+    val blockedIds by SessionDataRepository.blockedUserIds.collectAsState()
 
     /* Firebase refs */
     val userRef = FirebaseRefs.db.getReference("users").child(uid)
@@ -147,116 +164,96 @@ fun SettingsScreen(navController: NavController) {
     var feedbackText      by remember { mutableStateOf("") }
     var working           by remember { mutableStateOf(false) }
     var pendingLocationToggle by remember { mutableStateOf<LocationVisibilityToggle?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    var seededProfile by remember { mutableStateOf(false) }
 
     val isIndian = remember(country) { canonicalCountry(country) == "India" }
 
-    /* load once */
-    LaunchedEffect(Unit) {
-        isLoading = true
-        try {
-            val s = userRef.get().await()
-            val pendingWrites = mutableListOf<suspend () -> Unit>()
-// pull the flat `isPremium` boolean and optional expiryDate
-            val plusFlag = s.child("isPlus").getValue(Boolean::class.java) ?: false
-            val premiumFlag = s.child("isPremium").getValue(Boolean::class.java) ?: false
-            val loginPlusExpiryVal = s.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
-            val entryFeePaidFlag = s.child("isEntryFeePaid").getValue(Boolean::class.java) ?: false
-            val entryFeePaidAt = s.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
-            val entryFeeOfferExpiryVal = s.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
-            val nextRenewalValue = s.child("nextRenewal").getValue(Long::class.java) ?: 0L
-            val now = System.currentTimeMillis()
-            val entryFeePaidExpiry = entryFeePaidAt
-                .takeIf { it > 0L }
-                ?.let { it + TimeUnit.DAYS.toMillis(30) }
-            val entryFeeOfferExpiryActive = entryFeeOfferExpiryVal.takeIf { it > now }
-            val resolvedEntryFeeExpiry = listOfNotNull(
-                entryFeePaidExpiry?.takeIf { entryFeePaidFlag && it > now },
-                entryFeeOfferExpiryActive
-            ).maxOrNull()
-            val nextRenewalActive = nextRenewalValue.takeIf { it > now }
-            val entryFeeActive = entryFeePaidFlag && (
-                    loginPlusExpiryVal > now ||
-                            resolvedEntryFeeExpiry != null ||
-                            nextRenewalActive != null
-                    )
-            val plusExpired = plusFlag && entryFeePaidFlag && !entryFeeActive && !premiumFlag
-
-            if (plusExpired) {
-                pendingWrites += suspend {
-                    userRef.child("isPlus").setValue(false).await()
-                    if (entryFeePaidFlag) {
-                        userRef.child("isEntryFeePaid").setValue(false).await()
-                    }
-                }
-            }
-
-            entryFeePaid = entryFeePaidFlag
-            val shouldClearOfferExpiry = entryFeeOfferExpiryVal > 0L && entryFeeOfferExpiryVal < now
-            entryFeeOfferExpiry = entryFeeOfferExpiryVal.takeUnless { shouldClearOfferExpiry } ?: 0L
-            if (shouldClearOfferExpiry) {
-                pendingWrites.add(suspend {
-                    userRef.child("entryFeeOfferExpiry").removeValue().await()
-                    Unit
-                })
-            }
-            hasUsedFreeTrial = s.child("hasUsedFreeTrial").getValue(Boolean::class.java) ?: false
-            freeTrialCompleted = s.child("freeTrialCompleted").getValue(Boolean::class.java) ?: false
-            freeTrialExpiry = s.child("freeTrialExpiry").getValue(Long::class.java)
-
-            premiumTier = when {
-                premiumFlag -> "Premium"
-                plusFlag && !plusExpired -> "Plus"
-                entryFeeActive -> "Plus"
-                else -> "Plus"
-            }
-            val subscriptionIdValue = s.child("subscription").child("id")
-                .getValue(String::class.java)
-            val activeEntryFeeExpiry = listOfNotNull(resolvedEntryFeeExpiry, nextRenewalActive).maxOrNull()
-            val activeLoginPlusExpiry = loginPlusExpiryVal.takeIf { it > now }
-
-            loginPlusExpiry = if (plusExpired) 0L else loginPlusExpiryVal
-            expiry = when {
-                activeEntryFeeExpiry != null -> DateFormat.getDateInstance().format(Date(activeEntryFeeExpiry))
-                !subscriptionIdValue.isNullOrBlank() -> "Never"
-                nextRenewalActive != null -> DateFormat.getDateInstance().format(Date(nextRenewalActive))
-                activeLoginPlusExpiry != null -> DateFormat.getDateInstance().format(Date(activeLoginPlusExpiry))
-                else -> ctx.getString(R.string.na)
-            }
-
-            subscriptionId = subscriptionIdValue
-            subscriptionStatus = s.child("subscriptionStatus").getValue(String::class.java)
-
-            swipes      = s.child("swipesInfo/remainingSwipes").getValue(Int::class.java) ?: 0
-            compliments = s.child("availableCompliments").getValue(Int::class.java) ?: 0
-            aiMessages    = s.child("availableAiMessages").getValue(Int::class.java) ?: 0   // ← NEW
-
-            isPrivate   = s.child("isPrivate").getValue(Boolean::class.java) ?: false
-            preferredLang = s.child("preferredLanguage").getValue(String::class.java) ?: defaultLang
-            allowLoc    = s.child("allowLocationForMatches").getValue(Boolean::class.java) ?: false
-            allowPublic = s.child("allowLocationPublic").getValue(Boolean::class.java) ?: false
-            isMatrimony = s.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
-
-            // ── load the new fields too ──
-            country  = s.child("country").getValue(String::class.java) ?: ""
-
-            loginPlusExpiry = s.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
-            blocksRef.get().addOnSuccessListener { snap ->
-                blocked = snap.children.mapNotNull { it.key }
-            }
-            if (pendingWrites.isNotEmpty()) {
-                scope.launch(Dispatchers.IO) {
-                    pendingWrites.forEach { action ->
-                        runCatching { action() }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Toast.makeText(ctx, "Unable to load settings", Toast.LENGTH_SHORT).show()
-        } finally {
-            isLoading = false
-        }
+    LaunchedEffect(uid) {
+        profileViewModel.fetchCurrentUserProfile()
     }
+
+    LaunchedEffect(blockedIds) {
+        blocked = blockedIds.toList()
+    }
+
+    LaunchedEffect(
+        sessionReady,
+        currentProfile,
+        isPremiumFlag,
+        isPlusFlag,
+        loginPlusExpiryValue,
+        entryFeeOfferExpiryValue,
+        entryFeePaidAtValue,
+        entryFeePaidFlag,
+        nextRenewalValue,
+        subscriptionStatusValue,
+        subscriptionIdValue,
+        complimentsCount,
+        remainingSwipesCount,
+        aiMessagesCount
+    ) {
+        if (!sessionReady) return@LaunchedEffect
+        val profile = currentProfile ?: return@LaunchedEffect
+
+        val now = System.currentTimeMillis()
+        val entryFeePaidExpiry = entryFeePaidAtValue
+            .takeIf { it > 0L }
+            ?.let { it + TimeUnit.DAYS.toMillis(30) }
+        val nextRenewalActive = nextRenewalValue?.takeIf { it > now }
+        val activeEntryFeeExpiry = listOfNotNull(
+            entryFeePaidExpiry?.takeIf { entryFeePaidFlag && it > now },
+            nextRenewalActive
+        ).maxOrNull()
+        val activeLoginPlusExpiry = loginPlusExpiryValue.takeIf { it > now }
+        val entryFeeActive = entryFeePaidFlag && (
+                loginPlusExpiryValue > now ||
+                        activeEntryFeeExpiry != null ||
+                        nextRenewalActive != null
+                )
+        val plusExpired = (isPlusFlag || entryFeePaidFlag) && !entryFeeActive && !isPremiumFlag
+
+        premiumTier = when {
+            isPremiumFlag -> "Premium"
+            isPlusFlag && !plusExpired -> "Plus"
+            entryFeeActive -> "Plus"
+            else -> "Free"
+        }
+        val offerActive = entryFeeOfferExpiryValue.takeIf { it > now }
+
+        loginPlusExpiry = if (plusExpired) 0L else loginPlusExpiryValue
+        expiry = when {
+            activeEntryFeeExpiry != null -> DateFormat.getDateInstance().format(Date(activeEntryFeeExpiry))
+            !subscriptionIdValue.isNullOrBlank() -> "Never"
+            nextRenewalActive != null -> DateFormat.getDateInstance().format(Date(nextRenewalActive))
+            activeLoginPlusExpiry != null -> DateFormat.getDateInstance().format(Date(activeLoginPlusExpiry))
+            else -> ctx.getString(R.string.na)
+        }
+
+        subscriptionId = subscriptionIdValue
+        subscriptionStatus = subscriptionStatusValue
+
+        swipes = remainingSwipesCount
+        compliments = complimentsCount
+        aiMessages = aiMessagesCount
+
+        entryFeePaid = entryFeePaidFlag
+        entryFeeOfferExpiry = offerActive ?: 0L
+
+        hasUsedFreeTrial = profile.hasUsedFreeTrial
+        freeTrialCompleted = profile.freeTrialCompleted
+        freeTrialExpiry = profile.freeTrialExpiry
+
+        if (!seededProfile) {
+            preferredLang = profile.preferredLanguage.ifBlank { defaultLang }
+            isPrivate = profile.isPrivate
+            allowLoc = profile.allowLocationForMatches
+            allowPublic = profile.allowLocationPublic
+            isMatrimony = profile.isMatrimonyMode
+            seededProfile = true
+        }
+        country = profile.country
+    }
+    val isLoading = !sessionReady || currentProfile == null
 
     val listState = rememberLazyListState()
     if (isLoading) {

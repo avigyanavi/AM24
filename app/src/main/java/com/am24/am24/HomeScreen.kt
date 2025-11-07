@@ -55,10 +55,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import kotlinx.coroutines.tasks.await
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import com.am24.am24.SessionDataRepository
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import com.google.accompanist.placeholder.PlaceholderHighlight
 import com.google.accompanist.placeholder.material.placeholder
@@ -82,6 +82,7 @@ import kotlinx.coroutines.CancellationException
 fun HomeScreen(
     navController: NavController,
     postViewModel: PostViewModel,
+    profileViewModel: ProfileViewModel,
     modifier: Modifier = Modifier
 ) {
     // Get the current user ID from FirebaseAuth.
@@ -95,6 +96,8 @@ fun HomeScreen(
             postViewModel.refreshPosts()
             return@LaunchedEffect
         }
+
+        profileViewModel.fetchCurrentUserProfile()
 
         if (!postViewModel.filtersLoaded.value) {
             postViewModel.loadFiltersFromFirebase(userId)
@@ -130,39 +133,8 @@ fun HomeScreen(
 
         val userProfiles by postViewModel.userProfiles.collectAsState()
         val filterSettings by postViewModel.filterSettings.collectAsState()
-        var myMatches by remember { mutableStateOf<List<String>>(emptyList()) }
-
-        // Fetch the current user's own Profile.
-        var userProfile by remember { mutableStateOf<Profile?>(null) }
-        LaunchedEffect(userId) {
-            if (userId == null) {
-                userProfile = null
-                myMatches = emptyList()
-                return@LaunchedEffect
-            }
-
-            // 2️⃣ Fetch once from “matches/$userId”
-            val userRef = FirebaseRefs.db.getReference("users").child(userId)
-            val matchesRef = FirebaseRefs.db.getReference("matches").child(userId)
-            try {
-                coroutineScope {
-                    val profileDeferred = async {
-                        val snapshot = userRef.get().await()
-                        snapshot.getValue(Profile::class.java)
-                    }
-                    val matchesDeferred = async {
-                        val snapshot = matchesRef.get().await()
-                        snapshot.children.mapNotNull { it.key }
-                    }
-                    userProfile = profileDeferred.await()
-                    myMatches = matchesDeferred.await()
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.e("HomeScreen", "Failed to load profile or matches", e)
-            }
-        }
+        val myMatches by SessionDataRepository.matchIds.collectAsState()
+        val userProfile by profileViewModel.currentUserProfile.collectAsState()
         val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()
         val isFeedSearchMode by postViewModel.isFeedSearchMode.collectAsState()
         val isFeedSearchLoading by postViewModel.isFeedSearchLoading.collectAsState()
@@ -177,7 +149,7 @@ fun HomeScreen(
             posts = posts,
             postViewModel = postViewModel,
             userProfiles = userProfiles,
-            matches      = myMatches,
+            matches      = myMatches.toList(),
             filterOption = filterSettings.filterOption,
             filterValue = "",  // if extra parameter needed
             searchQuery = feedSearchQuery,

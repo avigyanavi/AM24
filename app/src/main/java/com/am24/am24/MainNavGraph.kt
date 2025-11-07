@@ -113,7 +113,11 @@ fun MainNavGraph(
             LeaderboardScreen(navController)
         }
         composable("home") {
-            HomeScreen(navController = navController, postViewModel = postViewModel)
+            HomeScreen(
+                navController = navController,
+                postViewModel = postViewModel,
+                profileViewModel = profileViewModel
+            )
         }
         composable("create_post") {
             CreatePostScreen(navController = navController, postViewModel = postViewModel)
@@ -272,7 +276,10 @@ fun MainNavGraph(
             )
         }
         composable("settings") {
-            SettingsScreen(navController = navController)
+            SettingsScreen(
+                navController = navController,
+                profileViewModel = profileViewModel
+            )
         }
         composable("verifications_review") { backStackEntry ->
             val isAdmin by profileViewModel.isAdmin.collectAsState()
