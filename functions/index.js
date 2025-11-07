@@ -1318,6 +1318,29 @@ const PLAN_TIERS = {
   plan_QjmpS4xg31rg:       { plus: false, premium: true  },  // ₹999 / year
 };
 
+function resolveSubscriptionTier(user = {}) {
+  const subscription = typeof user.subscription === "object" && user.subscription
+    ? user.subscription
+    : {};
+
+  const planCandidates = [
+    subscription.planId,
+    subscription.plan_id,
+    subscription.plan?.id,
+    subscription.notes?.planId,
+    user.subscriptionPlanId,
+    user.planId,
+  ];
+
+  for (const candidate of planCandidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      const planId = candidate.trim();
+      return { planId, tier: PLAN_TIERS[planId] || null };
+    }
+  }
+
+  return { planId: null, tier: null };
+}
 
 const FREE_SWIPE_QUOTA = 20;
 const PREMIUM_ACTIVE_STATUSES = new Set([
@@ -1389,6 +1412,8 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
         subscription.renewal_time_millis ??
         0
       );
+      const { tier: subscriptionTier } = resolveSubscriptionTier(u);
+      const subscriptionIsPremiumPlan = subscriptionTier?.premium === true;
       const subscriptionStatusRaw = typeof u.subscriptionStatus === 'string'
         ? u.subscriptionStatus.toLowerCase()
         : '';
@@ -1396,11 +1421,15 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
         ? subscription.status.toLowerCase()
         : '';
       const activePremiumStatus =
+       subscriptionIsPremiumPlan && (
         PREMIUM_ACTIVE_STATUSES.has(subscriptionStatusRaw) ||
-        PREMIUM_ACTIVE_STATUSES.has(subscriptionStatusFromObject);
+        PREMIUM_ACTIVE_STATUSES.has(subscriptionStatusFromObject)
+       );
       const cancelledPremiumStatus =
-        PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusRaw) ||
-        PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusFromObject);
+        subscriptionIsPremiumPlan && (
+          PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusRaw) ||
+          PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusFromObject)
+        );
       const subscriptionIdentifiers = [
         typeof u.subscriptionId === 'string' ? u.subscriptionId.trim() : '',
         typeof subscription.id === 'string' ? subscription.id.trim() : '',
@@ -1409,7 +1438,7 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
         typeof subscription.planId === 'string' ? subscription.planId.trim() : '',
         typeof subscription.plan_id === 'string' ? subscription.plan_id.trim() : '',
       ].filter(Boolean);
-      const hasPremiumIdentifier = subscriptionIdentifiers.length > 0;
+      const hasPremiumIdentifier = subscriptionIsPremiumPlan && subscriptionIdentifiers.length > 0;
       const fromEntryFee   = entryFeePaidAt > 0 ? entryFeePaidAt + THIRTY_DAYS_MS : 0;
       const desiredRenewal = Math.max(
         Number.isFinite(nextRenewal) ? nextRenewal : 0,
@@ -1421,12 +1450,22 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
         Number.isFinite(subscriptionNextBillingAt) ? subscriptionNextBillingAt : 0
       );
 
-      const premiumRenewal = Math.max(
-      Number.isFinite(premiumExpiryDate) ? premiumExpiryDate : 0,
-      Number.isFinite(subscriptionCurrentEnd) ? subscriptionCurrentEnd : 0,
-      Number.isFinite(subscriptionNextBillingAt) ? subscriptionNextBillingAt : 0,
-      Number.isFinite(nextRenewal) ? nextRenewal : 0
-      );
+      const premiumRenewalSources = [0];
+      if (Number.isFinite(premiumExpiryDate)) {
+        premiumRenewalSources.push(premiumExpiryDate);
+      }
+      if (subscriptionIsPremiumPlan) {
+        if (Number.isFinite(subscriptionCurrentEnd)) {
+           premiumRenewalSources.push(subscriptionCurrentEnd);
+      }
+        if (Number.isFinite(subscriptionNextBillingAt)) {
+           premiumRenewalSources.push(subscriptionNextBillingAt);
+      }
+        if (Number.isFinite(nextRenewal)) {
+           premiumRenewalSources.push(nextRenewal);
+        }
+      }
+      const premiumRenewal = Math.max(...premiumRenewalSources);
       const premiumFlagged = isPremium && !cancelledPremiumStatus;
       const hasPremiumEntitlement =
       (Number.isFinite(premiumRenewal) && premiumRenewal > now) ||
@@ -1548,13 +1587,15 @@ exports.loginEntitlementSweep = functions
         subscription.renewal_time_millis ??
         0,
     );
+    const { tier: subscriptionTier } = resolveSubscriptionTier(u);
+    const subscriptionIsPremiumPlan = subscriptionTier?.premium === true;
     const subscriptionStatusRaw = typeof u.subscriptionStatus === 'string' ? u.subscriptionStatus.toLowerCase() : '';
     const subscriptionStatusFromObject = typeof subscription.status === 'string' ? subscription.status.toLowerCase() : '';
     const activePremiumStatus =
-      PREMIUM_ACTIVE_STATUSES.has(subscriptionStatusRaw) || PREMIUM_ACTIVE_STATUSES.has(subscriptionStatusFromObject);
-    const cancelledPremiumStatus =
-      PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusRaw) || PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusFromObject);
-    const subscriptionIdentifiers = [
+      subscriptionIsPremiumPlan &&
+        (PREMIUM_ACTIVE_STATUSES.has(subscriptionStatusRaw) || PREMIUM_ACTIVE_STATUSES.has(subscriptionStatusFromObject));    const cancelledPremiumStatus =
+      subscriptionIsPremiumPlan &&
+        (PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusRaw) || PREMIUM_CANCELLED_STATUSES.has(subscriptionStatusFromObject));    const subscriptionIdentifiers = [
       typeof u.subscriptionId === 'string' ? u.subscriptionId.trim() : '',
       typeof subscription.id === 'string' ? subscription.id.trim() : '',
       typeof subscription.subscriptionId === 'string' ? subscription.subscriptionId.trim() : '',
@@ -1562,7 +1603,7 @@ exports.loginEntitlementSweep = functions
       typeof subscription.planId === 'string' ? subscription.planId.trim() : '',
       typeof subscription.plan_id === 'string' ? subscription.plan_id.trim() : '',
     ].filter(Boolean);
-    const hasPremiumIdentifier = subscriptionIdentifiers.length > 0;
+    const hasPremiumIdentifier = subscriptionIsPremiumPlan && subscriptionIdentifiers.length > 0;
 
     const entryFeePaymentStatus = typeof u.entryFeePaymentStatus === 'string' ? u.entryFeePaymentStatus.toLowerCase() : '';
     const isEntryFeePaid = u.isEntryFeePaid === true || ENTRY_FEE_SUCCESS_STATUSES.has(entryFeePaymentStatus);
@@ -1578,12 +1619,22 @@ exports.loginEntitlementSweep = functions
       Number.isFinite(subscriptionNextBillingAt) ? subscriptionNextBillingAt : 0,
     );
 
-    const premiumRenewal = Math.max(
-      Number.isFinite(premiumExpiryDate) ? premiumExpiryDate : 0,
-      Number.isFinite(subscriptionCurrentEnd) ? subscriptionCurrentEnd : 0,
-      Number.isFinite(subscriptionNextBillingAt) ? subscriptionNextBillingAt : 0,
-      Number.isFinite(nextRenewal) ? nextRenewal : 0,
-    );
+     const premiumRenewalSources = [0];
+      if (Number.isFinite(premiumExpiryDate)) {
+      premiumRenewalSources.push(premiumExpiryDate);
+     }
+    if (subscriptionIsPremiumPlan) {
+      if (Number.isFinite(subscriptionCurrentEnd)) {
+        premiumRenewalSources.push(subscriptionCurrentEnd);
+      }
+      if (Number.isFinite(subscriptionNextBillingAt)) {
+        premiumRenewalSources.push(subscriptionNextBillingAt);
+      }
+      if (Number.isFinite(nextRenewal)) {
+        premiumRenewalSources.push(nextRenewal);
+      }
+    }
+    const premiumRenewal = Math.max(...premiumRenewalSources);
     const premiumFlagged = isPremium && !cancelledPremiumStatus;
     const hasPremiumEntitlement =
       (Number.isFinite(premiumRenewal) && premiumRenewal > now) || activePremiumStatus || (premiumFlagged && hasPremiumIdentifier);

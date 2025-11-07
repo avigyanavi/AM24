@@ -63,7 +63,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import androidx.wear.compose.material.FractionalThreshold
@@ -243,6 +242,7 @@ fun MapScreen(
     navController: NavController,
     onProfileMarkerClicked: (String) -> Unit,
     nearbyViewModel: NearbyViewModel,
+    profileViewModel: ProfileViewModel,
     radiusKmDefault: Double = 500.0
 ) {
     val ctx = LocalContext.current
@@ -286,7 +286,16 @@ fun MapScreen(
     var nextRenewal by remember { mutableStateOf(0L) }
     var autoPagedNearby by remember { mutableStateOf(false) }
     var autoPagedCards by remember { mutableStateOf(false) }
-    val profileViewModel: ProfileViewModel = viewModel()
+    val sessionReady by SessionDataRepository.sessionReady.collectAsState(initial = false)
+    val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
+    val isPlusFlag by profileViewModel.isPlus.collectAsState(initial = false)
+    val isPremiumFlag by profileViewModel.isPremium.collectAsState(initial = false)
+    val loginPlusExpiryFlow by profileViewModel.loginPlusExpiry.collectAsState()
+    val entryFeePaidAtFlow by profileViewModel.entryFeePaidAt.collectAsState()
+    val entryFeePlusIntroSeenFlow by profileViewModel.entryFeePlusIntroSeen.collectAsState()
+    val entryFeeOfferExpiryFlow by profileViewModel.entryFeeOfferExpiry.collectAsState()
+    val entryFeeOfferSeenFlow by profileViewModel.entryFeeOfferSeen.collectAsState()
+    val nextRenewalFlow by profileViewModel.nextRenewal.collectAsState()
     val activeFilterLabels = remember(datingFilters, ctx) {
         val labels = mutableListOf<String>()
 
@@ -344,6 +353,10 @@ fun MapScreen(
         }
 
         labels
+    }
+
+    LaunchedEffect(userId) {
+        profileViewModel.fetchCurrentUserProfile()
     }
 
     LaunchedEffect(selectedTab) {
@@ -412,7 +425,21 @@ fun MapScreen(
         }
     }
 
-    LaunchedEffect(userId) {
+    LaunchedEffect(
+        userId,
+        sessionReady,
+        currentUserProfile,
+        isPlusFlag,
+        isPremiumFlag,
+        loginPlusExpiryFlow,
+        entryFeePaidAtFlow,
+        entryFeePlusIntroSeenFlow,
+        entryFeeOfferExpiryFlow,
+        entryFeeOfferSeenFlow,
+        nextRenewalFlow,
+    ) {
+        if (!sessionReady) return@LaunchedEffect
+        val profile = currentUserProfile ?: return@LaunchedEffect
         val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
         val cached = nearbyViewModel.mapBootstrapState
         val needsBootstrapRefresh = cached == null || cached.swipesDayOfYear != today || nearbyViewModel.currentProfile == null
@@ -423,17 +450,11 @@ fun MapScreen(
             swipesLoaded = true
             return@LaunchedEffect
         }
-        val snap = userRef.get().await()
-        val profile = snap.getValue(Profile::class.java)
-        val isPlusRemote = snap.child("isPlus").getValue(Boolean::class.java) ?: false
-        val isPremiumRemote = snap.child("isPremium").getValue(Boolean::class.java) ?: false
-        val nextRenewalRemote = snap.child("nextRenewal").getValue(Long::class.java) ?: 0L
-        isPlus = isPlusRemote
-        isPremium = isPremiumRemote
-        nearbyViewModel.setTier(isPlusRemote, isPremiumRemote)
+        isPlus = isPlusFlag
+        isPremium = isPremiumFlag
+        nearbyViewModel.setTier(isPlusFlag, isPremiumFlag)
         nearbyViewModel.setCurrentUserProfile(profile)
-        val countryRaw = snap.child("country").getValue(String::class.java) ?: ""
-        val canonical = canonicalCountry(countryRaw)
+        val canonical = canonicalCountry(profile.country)
         userCountry = canonical.takeIf { it.isNotBlank() }
         isIndian = canonical == "India"
         val remaining = loadAndResetSwipesDaily(userId)
@@ -442,14 +463,15 @@ fun MapScreen(
         if (!nearbyViewModel.hasLoadedExcludes()) {
             nearbyViewModel.setExcluded(fetchExcludedUsers(userId))
         }
-        loginPlusExpiry = snap.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
-        entryFeePaidAt = snap.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
-        entryFeePlusIntroSeen = snap.child("entryFeePlusIntroSeen").getValue(Boolean::class.java) ?: true
-        entryFeeOfferExpiry = snap.child("entryFeeOfferExpiry").getValue(Long::class.java) ?: 0L
-        entryFeeOfferSeen = snap.child("entryFeeOfferSeen").getValue(Boolean::class.java) ?: false
-        nextRenewal = nextRenewalRemote
+        loginPlusExpiry = loginPlusExpiryFlow
+        entryFeePaidAt = entryFeePaidAtFlow
+        entryFeePlusIntroSeen = entryFeePlusIntroSeenFlow
+        entryFeeOfferExpiry = entryFeeOfferExpiryFlow
+        entryFeeOfferSeen = entryFeeOfferSeenFlow
+        val nextRenewalValue = nextRenewalFlow ?: 0L
+        nextRenewal = nextRenewalValue
         val now = System.currentTimeMillis()
-        val hasActivePlus = loginPlusExpiry > now || nextRenewal > now
+        val hasActivePlus = loginPlusExpiry > now || nextRenewalValue > now
         if (entryFeePaidAt > 0L && hasActivePlus && !entryFeePlusIntroSeen) {
             entryFeePlusIntroSeen = true
             userRef.child("entryFeePlusIntroSeen").setValue(true)
@@ -460,8 +482,8 @@ fun MapScreen(
         }
         nearbyViewModel.updateMapBootstrap(
             MapBootstrapState(
-                isPlus = isPlusRemote,
-                isPremium = isPremiumRemote,
+                isPlus = isPlusFlag,
+                isPremium = isPremiumFlag,
                 userCountry = userCountry,
                 isIndian = isIndian,
                 remainingSwipes = remaining,
@@ -470,7 +492,7 @@ fun MapScreen(
                 entryFeePlusIntroSeen = entryFeePlusIntroSeen,
                 entryFeeOfferExpiry = entryFeeOfferExpiry,
                 entryFeeOfferSeen = entryFeeOfferSeen,
-                nextRenewal = nextRenewalRemote,
+                nextRenewal = nextRenewalValue,
                 swipesDayOfYear = today,
             )
         )

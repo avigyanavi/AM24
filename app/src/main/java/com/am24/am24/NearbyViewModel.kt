@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlin.math.abs
 
 data class MapBootstrapState(
     val isPlus: Boolean,
@@ -47,6 +48,7 @@ class NearbyViewModel : ViewModel() {
         val lngBucket: Int,
         val radiusBucket: Int,
         val filterHash: Int,
+        val sortMode: SortMode,
     )
 
     private data class NearbyUiState(
@@ -191,12 +193,14 @@ class NearbyViewModel : ViewModel() {
     ) {
         hasAttemptedInitialLoad = true
         val filtersSnapshot = datingFilters
+        val currentSortMode = sortMode
         val newKey = NearbyQueryKey(
             userId = userId,
             latBucket = (center.latitude * 10_000).roundToInt(),
             lngBucket = (center.longitude * 10_000).roundToInt(),
             radiusBucket = (radiusKm * 100).roundToInt(),
             filterHash = filtersSnapshot.hashCode(),
+            sortMode = currentSortMode,
         )
 
         if (!forceRefresh && newKey == lastQueryKey) {
@@ -216,6 +220,27 @@ class NearbyViewModel : ViewModel() {
         geoQuery = null
         resetRefreshTracking()
         people.clear()
+
+        if (currentSortMode == SortMode.ACTIVE) {
+            markFetchStarted()
+            viewModelScope.launch {
+                try {
+                    val users = fetchActiveUsers(
+                        currentUserId = userId,
+                        center = center,
+                        geoFireDatabaseRef = geoFireDatabaseRef,
+                        limit = currentLimit
+                    )
+                    people.addAll(users)
+                } catch (e: Exception) {
+                    Log.e("MapScreenVM", "Active users fetch failed: ${e.message}", e)
+                } finally {
+                    markFetchFinished()
+                    markQueryCompleted()
+                }
+            }
+            return
+        }
 
         previousResults?.values
             ?.filter { prev ->
@@ -365,8 +390,9 @@ class NearbyViewModel : ViewModel() {
                     }
 
                     // No allowLocationPublic/allowLocationForMatches checks here
-                    val username = (p.username ?: "").ifBlank { p.name ?: "" }
-                    if (username.isBlank()) {
+                    val usernameCandidate = resolveUsername(snapshot, p, uid)
+                        ?: p.name.takeIf { it.isNotBlank() }
+                    val username = usernameCandidate?.takeIf { it.isNotBlank() } ?: run {
                         onExit(uid)
                         return@launch
                     }
@@ -451,6 +477,149 @@ class NearbyViewModel : ViewModel() {
             }
         })
         return query
+    }
+
+    private suspend fun fetchActiveUsers(
+        currentUserId: String,
+        center: LatLng,
+        geoFireDatabaseRef: DatabaseReference,
+        limit: Int,
+    ): List<NearbyUser> {
+        val now = System.currentTimeMillis()
+        val fetchCount = (limit * 4).coerceAtLeast(limit + 10)
+        val snapshot = FirebaseRefs.db.getReference("users")
+            .orderByChild("lastActive")
+            .limitToLast(fetchCount)
+            .get()
+            .await()
+
+        val results = mutableListOf<NearbyUser>()
+        val seen = mutableSetOf<String>()
+
+        val children = snapshot.children.toList().asReversed()
+        for (child in children) {
+            if (results.size >= limit) break
+            val uid = child.key ?: continue
+            if (!seen.add(uid)) continue
+            if (uid == currentUserId) continue
+            if (uid in excludedUserIds) continue
+            if (UserDeletionCache.isDeleted(FirebaseRefs.db, uid, child)) continue
+
+            val profile = child.getValue(Profile::class.java) ?: continue
+            if (profile.isPrivate) continue
+
+            val usernameCandidate = resolveUsername(child, profile, uid)
+                ?: profile.name.takeIf { it.isNotBlank() }
+            val username = usernameCandidate?.takeIf { it.isNotBlank() } ?: continue
+
+            val age = calculateAge(profile.dob)
+            if (isPlus && !matchesFilters(profile, age)) continue
+
+            val lastActive = child.child("lastActive").getValue(Long::class.java) ?: profile.lastActive
+            val online = isUserOnline(now, lastActive)
+
+            val latLng = profileLatLng(profile) ?: fetchGeoLatLng(uid, geoFireDatabaseRef)
+            val distM = latLng?.let { distanceMeters(center, it) } ?: Double.POSITIVE_INFINITY
+
+            val compat = currentProfile?.let { cp ->
+                val ageCompat = ageCompatibilityScore(calculateAge(cp.dob), age)
+                val zodiacCompat = zodiacCompatibilityScore(cp.zodiac ?: "", profile.zodiac ?: "")
+                (((ageCompat + zodiacCompat) / 2.0) * 100).roundToInt()
+            }
+
+            val detailCandidates = buildList {
+                add(profile.bio)
+                add(profile.jobRole)
+                add(profile.work)
+                add(profile.college)
+                add(profile.religion)
+                add(profile.community)
+                if (profile.allowLocationPublic) add(profile.hometown)
+            }.filter { it.isNotBlank() }
+            val randomDetail = detailCandidates.randomOrNull()
+
+            val rolesForCard = if (profile.showRolesOnProfile) profile.roles else emptyList()
+            val tribesForCard = if (profile.showTribesOnProfile) profile.tribes else emptyList()
+            val kinksForCard = if (profile.showKinksOnProfile) profile.kinks else emptyList()
+
+            val user = NearbyUser(
+                userId = uid,
+                username = username,
+                age = age,
+                gender = canonicalGender(profile.gender),
+                photoUrl = profile.profilepicUrl,
+                lastActiveAt = lastActive,
+                isOnline = online,
+                latLng = latLng,
+                distanceMeters = distM,
+                isPremium = profile.isPremium,
+                isPlus = profile.isPlus,
+                interests = profile.interests,
+                roles = rolesForCard,
+                tribes = tribesForCard,
+                kinks = kinksForCard,
+                sexualOrientation = profile.sexualOrientation,
+                compatibilityPct = compat,
+                randomDetail = randomDetail,
+                loveLanguage = profile.loveLanguage,
+                socialCauses = profile.socialCauses,
+                politics = profile.politics
+            )
+
+            results += user
+            userCache[uid] = user
+            cacheTimestamps[uid] = now
+        }
+
+        return results
+    }
+
+    private suspend fun resolveUsername(
+        snapshot: DataSnapshot,
+        profile: Profile,
+        uid: String,
+    ): String? {
+        val direct = profile.username.ifBlank {
+            snapshot.child("username").getValue(String::class.java).orEmpty()
+        }.trim()
+        if (direct.isNotBlank()) return direct
+
+        return try {
+            val usernameSnap = FirebaseRefs.db.getReference("usernames")
+                .orderByValue()
+                .equalTo(uid)
+                .limitToFirst(1)
+                .get()
+                .await()
+            usernameSnap.children.firstOrNull()?.key?.trim()
+        } catch (e: Exception) {
+            Log.w("MapScreenVM", "Username lookup failed for $uid: ${e.message}", e)
+            null
+        }
+    }
+
+    private suspend fun fetchGeoLatLng(
+        uid: String,
+        geoFireDatabaseRef: DatabaseReference,
+    ): LatLng? {
+        return try {
+            val locSnap = geoFireDatabaseRef.child(uid).child("l").get().await()
+            val lat = locSnap.child("0").getValue(Double::class.java)
+            val lng = locSnap.child("1").getValue(Double::class.java)
+            if (lat != null && lng != null) LatLng(lat, lng) else null
+        } catch (e: Exception) {
+            Log.w("MapScreenVM", "Geo lookup failed for $uid: ${e.message}", e)
+            null
+        }
+    }
+
+    private fun profileLatLng(profile: Profile): LatLng? {
+        val lat = profile.latitude
+        val lng = profile.longitude
+        if (lat == 0.0 && lng == 0.0) return null
+        if (!lat.isFinite() || !lng.isFinite()) return null
+        if (abs(lat) < 0.0001 && abs(lng) < 0.0001) return null
+        return LatLng(lat, lng)
     }
 
     private fun upsert(list: MutableList<NearbyUser>, item: NearbyUser) {

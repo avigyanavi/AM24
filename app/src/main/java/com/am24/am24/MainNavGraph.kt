@@ -106,6 +106,7 @@ fun MainNavGraph(
             DMScreen(
                 navController = navController,
                 nearbyViewModel = nearbyViewModel,
+                profileViewModel = profileViewModel,
             )
         }
         composable("leaderboard") {
@@ -360,7 +361,8 @@ fun MainNavGraph(
                         navController.navigate("previewUserProfile/$profileId")
                     }
                 },
-                nearbyViewModel = nearbyViewModel
+                nearbyViewModel = nearbyViewModel,
+                profileViewModel = profileViewModel,
             )
         }
 

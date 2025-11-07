@@ -85,15 +85,17 @@ data class ComplimentWithProfile(
 fun DMScreen(
     navController: NavController,
     nearbyViewModel: NearbyViewModel,
-) {
-    DMScreenContent(navController, nearbyViewModel)
+    profileViewModel: ProfileViewModel,
+    ) {
+    DMScreenContent(navController, nearbyViewModel, profileViewModel)
 }
 
 @Composable
 fun DMScreenContent(
     navController: NavController,
     nearbyViewModel: NearbyViewModel,
-) {
+    profileViewModel: ProfileViewModel,
+    ) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
     val database = remember { FirebaseRefs.db }
@@ -104,34 +106,23 @@ fun DMScreenContent(
     val ratingsRef = remember { database.getReference("ratings") }
     val datingViewModel: DatingViewModel = viewModel()
     val compliments by datingViewModel.complimentsReceived.collectAsState()
+    val sessionReady by SessionDataRepository.sessionReady.collectAsState(initial = false)
+    val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
 
     var showRatingOverlay by remember { mutableStateOf(false) }
     var profileToRate by remember { mutableStateOf<Profile?>(null) }
     var tempRating by remember { mutableStateOf(-1.0) }
     var showUnmatchDialog by remember { mutableStateOf(false) }
     var profileToUnmatch by remember { mutableStateOf<Profile?>(null) }
-    var isLoadingProfile by remember { mutableStateOf(true) } // Track loading state
-    var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
     var showSmartMatchDialog by remember { mutableStateOf(false) }
     var selectedSmartMatchGender by remember { mutableStateOf("Both") }
 
     LaunchedEffect(currentUserId) {
-        isLoadingProfile = true
-        try {
-            val snapshot = usersRef.child(currentUserId).get().await()
-            currentUserProfile = snapshot.getValue(Profile::class.java)
-            if (currentUserProfile == null) {
-                Toast.makeText(context, context.getString(R.string.dm_error_loading_profile), Toast.LENGTH_SHORT).show()
-            }
-        } catch (e: Exception) {
-            Toast.makeText(context, context.getString(R.string.dm_failed_load_profile), Toast.LENGTH_SHORT).show()
-        } finally {
-            isLoadingProfile = false
-        }
+        profileViewModel.fetchCurrentUserProfile()
     }
 
     // Show loading UI while profile is being fetched
-    if (isLoadingProfile) {
+    if (!sessionReady) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -180,15 +171,15 @@ fun DMScreenContent(
 
 
 // 1️⃣  Build the chip list
-    val groupChatTitles = remember(currentUserProfile) {
+    val groupChatTitles = remember(profile) {
         buildList {
-            currentUserProfile?.country
-                ?.takeIf { it.isNotBlank() }
+            profile.country
+                .takeIf { it.isNotBlank() }
                 ?.let { add(it) }
-            currentUserProfile?.city
-                ?.takeIf { it.isNotBlank() }?.let { add(it) }
-            currentUserProfile?.hometown
-                ?.takeIf { it.isNotBlank() }?.let { add(it) }
+            profile.city
+                .takeIf { it.isNotBlank() }?.let { add(it) }
+            profile.hometown
+                .takeIf { it.isNotBlank() }?.let { add(it) }
         }.distinct()
     }
 

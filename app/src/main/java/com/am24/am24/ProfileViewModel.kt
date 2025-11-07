@@ -94,6 +94,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _nextRenewal = MutableStateFlow<Long?>(null)
     val nextRenewal: StateFlow<Long?> = _nextRenewal
 
+    private val _entryFeePlusIntroSeen = MutableStateFlow(true)
+    val entryFeePlusIntroSeen: StateFlow<Boolean> = _entryFeePlusIntroSeen
+
+    private val _entryFeeOfferExpiry = MutableStateFlow(0L)
+    val entryFeeOfferExpiry: StateFlow<Long> = _entryFeeOfferExpiry
+
+    private val _entryFeeOfferSeen = MutableStateFlow(false)
+    val entryFeeOfferSeen: StateFlow<Boolean> = _entryFeeOfferSeen
+
     private val _subscriptionId = MutableStateFlow<String?>(null)
     val subscriptionId: StateFlow<String?> = _subscriptionId
 
@@ -185,6 +194,11 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 val nextRenewalValue = snapshot.child("nextRenewal").asNullableLong()
                 val subscriptionIdValue =
                     snapshot.child("subscription").child("id").getValue(String::class.java)
+                val entryFeePlusIntroSeenValue =
+                    snapshot.child("entryFeePlusIntroSeen").getValue(Boolean::class.java) ?: true
+                val entryFeeOfferExpiryValue = snapshot.child("entryFeeOfferExpiry").asLongOrZero()
+                val entryFeeOfferSeenValue =
+                    snapshot.child("entryFeeOfferSeen").getValue(Boolean::class.java) == true
 
                 _loginPlusExpiry.value = loginPlus
                 _isEntryFeePaid.value = entryFeePaid
@@ -193,6 +207,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 _subscriptionStatus.value = subscriptionStatusValue
                 _nextRenewal.value = nextRenewalValue
                 _subscriptionId.value = subscriptionIdValue
+                _entryFeePlusIntroSeen.value = entryFeePlusIntroSeenValue
+                _entryFeeOfferExpiry.value = entryFeeOfferExpiryValue
+                _entryFeeOfferSeen.value = entryFeeOfferSeenValue
             }
 
             override fun onCancelled(error: DatabaseError) {

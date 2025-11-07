@@ -149,10 +149,9 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
 
                         navController.navigate(route) {
                             popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+                                inclusive = false
                             }
                             launchSingleTop = true
-                            restoreState = true
                         }
                     }
                 )
