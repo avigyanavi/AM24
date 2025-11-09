@@ -610,7 +610,12 @@
     <string name="label_radius">Radius</string>
     <string name="gender_women">Woman</string>
     <string name="gender_men">Man</string>
-
+    <string name="settings_search_username">Search usernames</string>
+    <string name="settings_search_username_title">Search usernames</string>
+    <string name="settings_search_username_placeholder">Search by username</string>
+    <string name="settings_search_username_hint">Enter a username to preview someone</string>
+    <string name="settings_search_username_no_results">No users found for that username.</string>
+    <string name="settings_search_username_premium_only">Premium only</string>
     <string name="paywall_title">Entry fee</string>
 <string name="paywall_entry_fee_message_india">%1$s entry fee - Prove you are not a bot and help keep the community real.</string>
     <string name="paywall_entry_fee_message_mexico">%1$s entry fee - Prove you are not a bot and help keep the community real.</string>

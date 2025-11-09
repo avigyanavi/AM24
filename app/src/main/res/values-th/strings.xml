@@ -5233,6 +5233,12 @@
     <string name="filter_label_tribes">Tribes: %1$s</string>
     <string name="filter_label_kinks">Kinks: %1$s</string>
     <string name="filter_label_interests">Interests: %1$s</string>
+    <string name="settings_search_username">ค้นหาชื่อผู้ใช้</string>
+    <string name="settings_search_username_title">ค้นหาชื่อผู้ใช้</string>
+    <string name="settings_search_username_placeholder">ค้นหาจากชื่อผู้ใช้</string>
+    <string name="settings_search_username_hint">กรอกชื่อผู้ใช้เพื่อดูโปรไฟล์ของใครบางคน</string>
+    <string name="settings_search_username_no_results">ไม่พบบัญชีผู้ใช้ที่ค้นหา</string>
+    <string name="settings_search_username_premium_only">สำหรับ Premium เท่านั้น</string>
     <string name="dm_likes_label">ถูกใจ</string>
     <string name="dm_compliment_view_profile">ดูโปรไฟล์</string>
     <string name="registration_email_locked">อีเมลของคุณได้รับการยืนยันแล้ว จึงไม่สามารถแก้ไขได้</string>

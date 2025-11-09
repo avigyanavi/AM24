@@ -281,6 +281,9 @@ fun MainNavGraph(
                 profileViewModel = profileViewModel
             )
         }
+        composable("searchUsername") {
+            UsernameSearchScreen(navController = navController)
+        }
         composable("verifications_review") { backStackEntry ->
             val isAdmin by profileViewModel.isAdmin.collectAsState()
             if (isAdmin) {

@@ -6524,7 +6524,12 @@
     <string name="filter_label_interests">Interests: %1$s</string>
     <string name="profile_load_self_failed">Không tải được hồ sơ của bạn.</string>
     <string name="profile_load_other_failed">Không tải được người dùng.</string>
-
+    <string name="settings_search_username">Tìm tên người dùng</string>
+    <string name="settings_search_username_title">Tìm tên người dùng</string>
+    <string name="settings_search_username_placeholder">Tìm theo tên người dùng</string>
+    <string name="settings_search_username_hint">Nhập tên người dùng để xem trước hồ sơ của ai đó.</string>
+    <string name="settings_search_username_no_results">Không tìm thấy người dùng với tên đó.</string>
+    <string name="settings_search_username_premium_only">Chỉ dành cho Premium</string>
     <string name="unmatch_success">Bạn đã hủy ghép với người này.</string>
     <string name="unmatch_failed">Hủy ghép thất bại. Vui lòng thử lại.</string>
     <string name="dm_likes_label">Lượt thích</string>

@@ -27,7 +27,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import com.am24.am24.AccountDeletion
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,28 +62,33 @@ fun SettingsRow(
     trailingText: String? = null,
     showChevron: Boolean = true,
     tint: Color = MaterialTheme.colorScheme.onSurface,
+    enabled: Boolean = true,
     onClick: () -> Unit = {}
 ) {
+    val titleColor = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+    val iconTint = if (enabled) tint else MaterialTheme.colorScheme.onSurfaceVariant
+    val trailingColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
     ListItem(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = onClick != {}, onClick = onClick),
-        leadingContent = { CompositionLocalProvider(LocalContentColor provides tint, content = icon) },
-        headlineContent = { Text(title, color = tint) },
+            .alpha(if (enabled) 1f else 0.6f)
+            .clickable(enabled = enabled, onClick = onClick),
+        leadingContent = { CompositionLocalProvider(LocalContentColor provides iconTint, content = icon) },
+        headlineContent = { Text(title, color = titleColor) },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (trailingText != null) {
                     Text(
                         trailingText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = trailingColor
                     )
                 }
                 if (showChevron) {
                     Icon(
                         Icons.Default.KeyboardArrowRight,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = trailingColor
                     )
                 }
             }
@@ -397,7 +402,32 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
 
                     Divider(Modifier.padding(start = 56.dp))
 
-                    if (premiumTier == "Premium") {
+                    val isPremiumMember = premiumTier == "Premium"
+                    val isPlusMember = premiumTier == "Plus"
+                    if (isPremiumMember) {
+                        SettingsRow(
+                            icon = { Icon(Icons.Default.Search, null) },
+                            title = stringResource(R.string.settings_search_username),
+                            onClick = { navController.navigate("searchUsername") }
+                        )
+                    } else {
+                        SettingsRow(
+                            icon = { Icon(Icons.Default.Search, null) },
+                            title = stringResource(R.string.settings_search_username),
+                            trailingText = stringResource(R.string.settings_search_username_premium_only),
+                            showChevron = !isPlusMember,
+                            enabled = !isPlusMember,
+                            onClick = {
+                                if (!isPlusMember) {
+                                    navController.navigate("subscription?allowIfSubscribed=true&force=false")
+                                }
+                            }
+                        )
+                    }
+
+                    Divider(Modifier.padding(start = 56.dp))
+
+                    if (isPremiumMember) {
                         SettingsRow(
                             icon  = { Icon(Icons.Outlined.Leaderboard, null) },
                             title = stringResource(R.string.leaderboard),

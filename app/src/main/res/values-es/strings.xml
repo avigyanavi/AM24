@@ -8,6 +8,12 @@
     <string name="video_post_label">Publicación de video</string>
     <string name="roles_compatible">Roles compatibles</string>
     <string name="filters_active_prefix">Filters active: %1$s</string>
+    <string name="settings_search_username">Buscar nombres de usuario</string>
+    <string name="settings_search_username_title">Buscar nombres de usuario</string>
+    <string name="settings_search_username_placeholder">Buscar por nombre de usuario</string>
+    <string name="settings_search_username_hint">Ingresa un nombre de usuario para ver el perfil de alguien.</string>
+    <string name="settings_search_username_no_results">No se encontraron usuarios con ese nombre.</string>
+    <string name="settings_search_username_premium_only">Solo Premium</string>
     <string name="filter_label_age">Age %1$s</string>
     <string name="filter_label_gender">Gender: %1$s</string>
     <string name="filter_label_orientation">Orientation: %1$s</string>
