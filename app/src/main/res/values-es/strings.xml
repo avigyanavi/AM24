@@ -16,6 +16,9 @@
     <string name="filter_label_tribes">Tribes: %1$s</string>
     <string name="filter_label_kinks">Kinks: %1$s</string>
     <string name="filter_label_interests">Interests: %1$s</string>
+    <string name="dm_likes_label">Me gusta</string>
+    <string name="dm_compliment_view_profile">Ver perfil</string>
+    <string name="registration_email_locked">Tu correo ya está verificado. Ya no puedes editarlo.</string>
     <string name="no_card_in_page">No hay tarjetas en esta página</string>
     <string name="shared_tribes_prefix">Tribus compartidas: %1$s</string>
     <string name="upgrade_plus_image_warning">Actualiza a Plus para crear publicaciones de imagen</string>

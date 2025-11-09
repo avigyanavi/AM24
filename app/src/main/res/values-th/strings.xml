@@ -5233,6 +5233,9 @@
     <string name="filter_label_tribes">Tribes: %1$s</string>
     <string name="filter_label_kinks">Kinks: %1$s</string>
     <string name="filter_label_interests">Interests: %1$s</string>
+    <string name="dm_likes_label">ถูกใจ</string>
+    <string name="dm_compliment_view_profile">ดูโปรไฟล์</string>
+    <string name="registration_email_locked">อีเมลของคุณได้รับการยืนยันแล้ว จึงไม่สามารถแก้ไขได้</string>
     <string name="registration_bio_helper">เขียนแนะนำตัวสั้น ๆ (ไม่บังคับ)</string>
     <string name="registration_bio_character_count">เหลือ %1$d อักขระ</string>
     <string name="toast_invalid_form">แบบฟอร์มไม่ถูกต้อง</string>

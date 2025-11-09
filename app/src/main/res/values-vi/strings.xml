@@ -6527,7 +6527,9 @@
 
     <string name="unmatch_success">Bạn đã hủy ghép với người này.</string>
     <string name="unmatch_failed">Hủy ghép thất bại. Vui lòng thử lại.</string>
-
+    <string name="dm_likes_label">Lượt thích</string>
+    <string name="dm_compliment_view_profile">Xem hồ sơ</string>
+    <string name="registration_email_locked">Email của bạn đã được xác minh. Bạn không thể chỉnh sửa nữa.</string>
     <string name="post_shared_label">Bài viết đã chia sẻ</string>
     <string name="superswipe_title">Super-Swipe!</string>
     <string name="chat_your_rating">Đánh giá của bạn: %1$s</string>

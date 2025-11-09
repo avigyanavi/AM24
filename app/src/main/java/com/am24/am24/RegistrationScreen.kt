@@ -318,8 +318,12 @@ fun RegistrationScreen(
         totalSteps  -> 0.99f   // Keep the 99 % cap on the last step
         else        -> progress
     }
+    var hasCompletedStep1 by remember { mutableStateOf(initialStep > 1) }
     val onNext = {
         registrationViewModel.nextEnabled = false
+        if (currentStep == 1) {
+            hasCompletedStep1 = true
+        }
         currentStep += 1
         saveStep(currentStep)
     }
@@ -333,14 +337,22 @@ fun RegistrationScreen(
             }
             // BACK from Step 2 → Step 1: delete half-baked account, clear email/password, go to step 1
             currentStep == 2 -> {
-                cleanupIncompleteUser(
-                    FirebaseAuth.getInstance(),
-                    FirebaseRefs.db,       //  ✨ NO “.getInstance()” here
-                    FirebaseRefs.storage   // instead of FirebaseStorage.getInstance()
-                )
-                registrationViewModel.email = ""
-                registrationViewModel.password = ""
-                currentStep = 1
+                if (!hasCompletedStep1) {
+                    cleanupIncompleteUser(
+                        FirebaseAuth.getInstance(),
+                        FirebaseRefs.db,       //  ✨ NO “.getInstance()” here
+                        FirebaseRefs.storage   // instead of FirebaseStorage.getInstance()
+                    )
+                    registrationViewModel.email = ""
+                    registrationViewModel.password = ""
+                    currentStep = 1
+                } else {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.registration_email_locked),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
             // any other back (steps > 2) just go back a step
             currentStep > 2 -> {
@@ -1039,16 +1051,17 @@ fun EnterLifestyleScreen(
                     }
                 }
 
-//                item {
-//                    Spacer(modifier = Modifier.height(24.dp))
-//                    Button(
-//                        onClick = { onNext() },
-//                        modifier = Modifier.fillMaxWidth(),
-//                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000))
-//                    ) {
-//                        Text(text = stringResource(R.string.next_button), color = Color.White)
-//                    }
-//                }
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = onNext,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
+                    shape = CircleShape
+                ) {
+                    Text(text = stringResource(R.string.next_button), color = Color.White)
+                }
             }
         }
     )
@@ -2257,25 +2270,24 @@ fun EnterGenderCommunityReligionScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-//                // Next Button
-//                Button(
-//                    onClick = { if (isNextEnabled) onNext() },
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .height(56.dp),
-//                    enabled = isNextEnabled,
-//                    colors = ButtonDefaults.buttonColors(
-//                        containerColor = if (isNextEnabled) Color(0xFFFF6000) else Color.Gray
-//                    ),
-//                    shape = CircleShape
-//                ) {
-//                    Text(
-//                        text = stringResource(R.string.next_button),
-//                        color = Color.White,
-//                        fontSize = 18.sp,
-//                        fontWeight = FontWeight.Bold
-//                    )
-//                }
+                Button(
+                    onClick = { if (isNextEnabled) onNext() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    enabled = isNextEnabled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isNextEnabled) Color(0xFFFF6000) else Color.DarkGray
+                    ),
+                    shape = CircleShape
+                ) {
+                    Text(
+                        text = stringResource(R.string.next_button),
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     )
@@ -3763,16 +3775,14 @@ fun EnterInterestsScreen(
     registrationViewModel: RegistrationViewModel,
     onNext: () -> Unit
 ) {
-    val ready = true
-    LaunchedEffect(ready) { registrationViewModel.nextEnabled = ready }
     val maxInterests = 20
 
     val categorized = interestPresets()
 
-    /* ───── 2) Flatten once for validation ───── */
-    val allInterests = remember { categorized.values.flatten() }
     val interestsOverLimit = registrationViewModel.interests.size > maxInterests
+    val canProceed = registrationViewModel.interests.isNotEmpty() && !interestsOverLimit
 
+    LaunchedEffect(canProceed) { registrationViewModel.nextEnabled = canProceed }
     /* ───── 3) UI ───── */
     Scaffold { innerPadding ->
         Column(
@@ -3840,29 +3850,24 @@ fun EnterInterestsScreen(
                     }
 
                     Spacer(Modifier.height(24.dp))
-
-
-//            /* Next button */
-//            Button(
-//                onClick  = onNext,
-//                enabled  = registrationViewModel.interests.isNotEmpty() && !interestsOverLimit,
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .height(56.dp),
-//                colors = ButtonDefaults.buttonColors(
-//                    containerColor =
-//                        if (registrationViewModel.interests.isNotEmpty() && !interestsOverLimit)
-//                            Color(0xFFFF6000) else Color.DarkGray
-//                ),
-//                shape = CircleShape
-//            ) {
-//                Text(
-//                    text = stringResource(R.string.next_button),
-//                    color = Color.White,
-//                    fontSize = 18.sp,
-//                    fontWeight = FontWeight.Bold
-//                )
-//            }
+                    Button(
+                        onClick = { if (canProceed) onNext() },
+                        enabled = canProceed,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (canProceed) Color(0xFFFF6000) else Color.DarkGray
+                        ),
+                        shape = CircleShape
+                    ) {
+                        Text(
+                            text = stringResource(R.string.next_button),
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -4251,9 +4256,15 @@ fun UploadMediaComposable(
     val scope = rememberCoroutineScope()
     val storageRef = FirebaseRefs.storage.reference
 
-    LaunchedEffect(Unit) { registrationViewModel.nextEnabled = true }
     val bioMaxLength = 280
 
+    val hasPrimaryPhoto =
+        registrationViewModel.profilePictureUri != null ||
+                !registrationViewModel.profilePicUrl.isNullOrBlank()
+
+    LaunchedEffect(hasPrimaryPhoto) {
+        registrationViewModel.nextEnabled = hasPrimaryPhoto
+    }
     // Helper: combined list of URIs (first = profile or placeholder)
     val placeholderUriString =
         "android.resource://${context.packageName}/drawable/local_placeholder"
@@ -4565,27 +4576,23 @@ fun UploadMediaComposable(
         )
             }
 
-//            /* ---------------- Next button ---------------- */
-//            item {
-//                Button(
-//                    onClick = {
-//                        if (registrationViewModel.profilePictureUri == null && registrationViewModel.profilePicUrl.isNullOrBlank()) {
-//                            registrationViewModel.profilePicUrl =
-//                                "android.resource://${context.packageName}/drawable/local_placeholder"
-//                        }
-//                        if (canProceed) onNext()
-//                    },
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .height(54.dp),
-//                    enabled = canProceed,
-//                    colors = ButtonDefaults.buttonColors(
-//                        containerColor = if (canProceed) Color(0xFFFF6000) else Color.DarkGray
-//                    )
-//                ) {
-//                    Text(stringResource(R.string.next_button), color = Color.White)
-//                }
-//            }
+            val canProceed = hasPrimaryPhoto
+            item {
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = { if (canProceed) onNext() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    enabled = canProceed,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (canProceed) Color(0xFFFF6000) else Color.DarkGray
+                    ),
+                    shape = CircleShape
+                ) {
+                    Text(stringResource(R.string.next_button), color = Color.White)
+                }
+            }
         }
     }
 }

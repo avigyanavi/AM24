@@ -2297,7 +2297,20 @@ private fun FeedSearchUserResults(
                 )
             }
         } else {
-            items(profiles, key = { it.userId }) { profile ->
+            itemsIndexed(
+                profiles,
+                key = { index, profile ->
+                    buildString {
+                        append(
+                            profile.userId.ifBlank {
+                                profile.username.ifBlank { "profile" }
+                            }
+                        )
+                        append("_")
+                        append(index)
+                    }
+                }
+            ) { _, profile ->
                 ListItem(
                     headlineContent = {
                         Text(profile.username, color = Color.White)
@@ -2369,7 +2382,16 @@ private fun FeedSearchTagResults(
                 )
             }
         } else {
-            items(tags, key = { it.value.lowercase() }) { tag ->
+            itemsIndexed(
+                tags,
+                key = { index, tag ->
+                    buildString {
+                        append(tag.value.lowercase().ifBlank { "tag" })
+                        append("_")
+                        append(index)
+                    }
+                }
+            ) { _, tag ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

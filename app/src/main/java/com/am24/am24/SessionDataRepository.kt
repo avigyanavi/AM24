@@ -146,8 +146,10 @@ object SessionDataRepository {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val likes = snapshot.children.associate { child ->
-                    val timestamp = child.child("timestamp").getValue(Long::class.java)
-                    child.key!! to (timestamp ?: 0L)
+                    val nestedTimestamp = child.child("timestamp").getValue(Long::class.java)
+                    val directTimestamp = child.getValue(Long::class.java)
+                    val timestamp = nestedTimestamp ?: directTimestamp ?: 0L
+                    child.key!! to timestamp
                 }
                 _likesReceived.value = likes
             }

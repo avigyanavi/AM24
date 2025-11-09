@@ -1878,10 +1878,20 @@ private fun CardsList(
                 }
             }
         } else {
-            items(
+            itemsIndexed(
                 items = users,
-                key = { user -> user.userId }
-            ) { user ->
+                key = { index, user ->
+                    buildString {
+                        append(
+                            user.userId.ifBlank {
+                                user.username.ifBlank { "user" }
+                            }
+                        )
+                        append("_")
+                        append(index)
+                    }
+                }
+            ) { _, user ->
                 ProfileCard(
                     user = user,
                     useMiles = useMiles,    // <---
@@ -2234,7 +2244,17 @@ private fun PeopleGrid(
         } else {
             itemsIndexed(
                 users,
-                key = { _, item -> item.userId },
+                key = { index, item ->
+                    buildString {
+                        append(
+                            item.userId.ifBlank {
+                                item.username.ifBlank { "user" }
+                            }
+                        )
+                        append("_")
+                        append(index)
+                    }
+                },
                 span = { _, _ -> GridItemSpan(1) }
             ) { _, item ->
                 NearbyCard(

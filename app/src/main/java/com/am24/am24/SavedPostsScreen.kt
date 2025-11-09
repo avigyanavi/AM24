@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -118,10 +118,20 @@ fun SavedPostsScreen(
                     .background(Color.Black),
                 contentPadding = PaddingValues(16.dp)
             ) {
-                items(
+                itemsIndexed(
                     items = savedPosts,
-                    key = { it.postId }
-                ) { post ->
+                    key = { index, post ->
+                        buildString {
+                            append(
+                                post.postId.ifBlank {
+                                    post.userId.ifBlank { "post" }
+                                }
+                            )
+                            append("_")
+                            append(index)
+                        }
+                    }
+                ) { _, post ->
                     val profile = userProfiles[post.userId]
                     // ③ figure out if this one is currently saved
                     val isSaved = savedIds.contains(post.postId)

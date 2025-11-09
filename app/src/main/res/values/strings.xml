@@ -600,7 +600,9 @@
     <string name="sort_last_active">Last active</string>
     <string name="sort_farthest">Farthest</string>
     <string name="next_page">Next page</string>
-
+    <string name="dm_likes_label">Likes</string>
+    <string name="dm_compliment_view_profile">View profile</string>
+    <string name="registration_email_locked">Your email is already verified. You can no longer edit it.</string>
     <!-- People grid -->
     <string name="no_one_nearby_yet">No one nearby yet</string>
 
@@ -610,10 +612,10 @@
     <string name="gender_men">Man</string>
 
     <string name="paywall_title">Entry fee</string>
-    <string name="paywall_entry_fee_message_india">%1$s entry fee</string>
-    <string name="paywall_entry_fee_message_mexico">%1$s entry fee</string>
-    <string name="paywall_entry_fee_message_us">%1$s entry fee</string>
-    <string name="paywall_entry_fee_message_generic">%1$s entry fee</string>
+<string name="paywall_entry_fee_message_india">%1$s entry fee - Prove you are not a bot and help keep the community real.</string>
+    <string name="paywall_entry_fee_message_mexico">%1$s entry fee - Prove you are not a bot and help keep the community real.</string>
+    <string name="paywall_entry_fee_message_us">%1$s entry fee - Prove you are not a bot and help keep the community real.</string>
+    <string name="paywall_entry_fee_message_generic">%1$s entry fee - Prove you are not a bot and help keep the community real.</string>
     <string name="paywall_entry_fee_loading">Entry fee - price loading…</string>
     <string name="paywall_opening_offer_message">Opening offer: access for 1 month from your payment.</string>
     <string name="paywall_button_processing">Processing…</string>

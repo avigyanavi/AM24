@@ -191,6 +191,7 @@ fun DMScreenContent(
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
     val prefetchedUrls = remember { mutableStateOf(mutableSetOf<String>()) }
     val complimentProfiles = remember { mutableStateListOf<ComplimentWithProfile>() }
+    val complimentQueue = remember { mutableStateListOf<ComplimentWithProfile>() }
     var calledSweepOnce by remember { mutableStateOf(false) }
     val functions = remember { FirebaseFunctions.getInstance("asia-south1") }
     // — new: grab your blocks
@@ -200,6 +201,7 @@ fun DMScreenContent(
     LaunchedEffect(compliments) {
         complimentProfiles.clear()
         if (compliments.isEmpty()) {
+            complimentQueue.clear()
             return@LaunchedEffect
         }
         val resolved = coroutineScope {
@@ -222,9 +224,11 @@ fun DMScreenContent(
                         null
                     }
                 }
-            }.awaitAll().filterNotNull()
+            }.awaitAll().filterNotNull().sortedByDescending { it.compliment.timestamp }
         }
         complimentProfiles.addAll(resolved)
+        complimentQueue.clear()
+        complimentQueue.addAll(resolved)
     }
 
     DisposableEffect(currentUserId) {
@@ -467,6 +471,13 @@ fun DMScreenContent(
                     .padding(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Text(
+                    text = stringResource(R.string.dm_likes_label),
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(end = 6.dp)
+                )
                 Box(
                     modifier = Modifier
                         .size(60.dp)
@@ -526,7 +537,7 @@ fun DMScreenContent(
             }
 
             val displayedUsers = matchedUsers
-            val complimentItems = complimentProfiles.filter { cp ->
+            val complimentItems = complimentQueue.filter { cp ->
                 !matchIds.contains(cp.profile.userId) && !blockedIds.contains(cp.profile.userId)
             }
 
@@ -546,30 +557,6 @@ fun DMScreenContent(
                         .visibleScrollbar(listState),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(complimentItems) { item ->
-                        ComplimentCard(
-                            profile = item.profile,
-                            compliment = item.compliment,
-                            onAccept = {
-                                createMatch(database, currentUserId, item.profile.userId)
-                                val updates = mapOf(
-                                    "compliments/${item.profile.userId}/$currentUserId" to null,
-                                    "complimentsReceived/$currentUserId/${item.profile.userId}" to null
-                                )
-                                database.reference.updateChildren(updates)
-                            },
-                            onReject = {
-                                val updates = mapOf(
-                                    "compliments/${item.profile.userId}/$currentUserId" to null,
-                                    "complimentsReceived/$currentUserId/${item.profile.userId}" to null
-                                )
-                                database.reference.updateChildren(updates)
-                            },
-                            onClick = {
-                                navController.navigate("previewUserProfile/${item.profile.userId}")
-                            }
-                        )
-                    }
                     items(displayedUsers) { profile ->
                         val lastMsg = lastMessages[profile.userId] ?: Triple("", false, true)
                         DMUserCard(
@@ -596,6 +583,39 @@ fun DMScreenContent(
                     }
                 }
             }
+        }
+        val complimentItems = complimentQueue.filter { cp ->
+            !matchIds.contains(cp.profile.userId) && !blockedIds.contains(cp.profile.userId)
+        }
+        if (complimentItems.isNotEmpty()) {
+            ComplimentPopupStack(
+                items = complimentItems,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
+                onAccept = { item ->
+                    createMatch(database, currentUserId, item.profile.userId)
+                    val updates = mapOf(
+                        "compliments/${item.profile.userId}/$currentUserId" to null,
+                        "complimentsReceived/$currentUserId/${item.profile.userId}" to null
+                    )
+                    complimentQueue.remove(item)
+                    complimentProfiles.removeAll { it.profile.userId == item.profile.userId }
+                    database.reference.updateChildren(updates)
+                },
+                onReject = { item ->
+                    val updates = mapOf(
+                        "compliments/${item.profile.userId}/$currentUserId" to null,
+                        "complimentsReceived/$currentUserId/${item.profile.userId}" to null
+                    )
+                    complimentQueue.remove(item)
+                    complimentProfiles.removeAll { it.profile.userId == item.profile.userId }
+                    database.reference.updateChildren(updates)
+                },
+                onOpenProfile = { item ->
+                    navController.navigate("previewUserProfile/${item.profile.userId}")
+                }
+            )
         }
         if (showRatingOverlay && profileToRate != null) {
             Dialog(onDismissRequest = {
@@ -888,6 +908,113 @@ fun ComplimentCard(
                 TextButton(onClick = onAccept) { Text(stringResource(R.string.action_accept), color = Color(0xFFFF4500)) }
                 TextButton(onClick = onReject) { Text(stringResource(R.string.action_reject), color = Color.Red) }
 
+            }
+        }
+    }
+}
+
+@Composable
+private fun ComplimentPopupStack(
+    items: List<ComplimentWithProfile>,
+    modifier: Modifier = Modifier,
+    onAccept: (ComplimentWithProfile) -> Unit,
+    onReject: (ComplimentWithProfile) -> Unit,
+    onOpenProfile: (ComplimentWithProfile) -> Unit
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.End
+    ) {
+        items.take(3).forEach { item ->
+            ComplimentPopupCard(
+                complimentWithProfile = item,
+                onAccept = { onAccept(item) },
+                onReject = { onReject(item) },
+                onOpenProfile = { onOpenProfile(item) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ComplimentPopupCard(
+    complimentWithProfile: ComplimentWithProfile,
+    onAccept: () -> Unit,
+    onReject: () -> Unit,
+    onOpenProfile: () -> Unit
+) {
+    val profile = complimentWithProfile.profile
+    val compliment = complimentWithProfile.compliment
+    Surface(
+        modifier = Modifier
+            .widthIn(max = 320.dp)
+            .wrapContentHeight(),
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 6.dp,
+        shadowElevation = 6.dp,
+        color = Color(0xCC1F1F1F),
+        border = BorderStroke(1.dp, getLevelBorderColor(profile.averageRating))
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AIOrProfileImage(
+                    profile = profile,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = profile.name.ifBlank { profile.username },
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    val complimentText = if (compliment.text.isNotBlank()) {
+                        compliment.text
+                    } else {
+                        stringResource(R.string.dm_compliment_label)
+                    }
+                    Text(
+                        text = complimentText,
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onOpenProfile) {
+                    Text(
+                        text = stringResource(R.string.dm_compliment_view_profile),
+                        color = Color.White,
+                        fontSize = 12.sp
+                    )
+                }
+                TextButton(onClick = onReject) {
+                    Text(
+                        text = stringResource(R.string.action_reject),
+                        color = Color.Red,
+                        fontSize = 12.sp
+                    )
+                }
+                TextButton(onClick = onAccept) {
+                    Text(
+                        text = stringResource(R.string.action_accept),
+                        color = Color(0xFFFF4500),
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
     }

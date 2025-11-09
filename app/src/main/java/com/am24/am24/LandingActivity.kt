@@ -42,7 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
+import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.Lifecycle
 import com.am24.am24.KupidxOrange
 import com.am24.am24.ui.theme.AppTheme
@@ -162,7 +162,7 @@ class LandingActivity : ComponentActivity() {
                 }
             }
 
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        enableEdgeToEdge()
 
         firebaseAuth = FirebaseAuth.getInstance()          // keep this first
 

@@ -138,7 +138,13 @@ fun PeopleWhoLikeMeScreen(
                     }
                 }
             }
-            keepers.sortedByDescending { likesMap[it.userId] ?: 0L }
+            keepers.sortedWith(
+                compareByDescending<Profile> { profile ->
+                    profile.UsersWhoLikeMe.size
+                }.thenByDescending { profile ->
+                    likesMap[profile.userId] ?: 0L
+                }
+            )
         }
         likedUsers.clear()
         likedUsers.addAll(sortedProfiles)
