@@ -86,6 +86,9 @@ class NearbyViewModel : ViewModel() {
     var hasAttemptedInitialLoad by mutableStateOf(false)
         private set
 
+    var hasLoadedFirstResult by mutableStateOf(false)
+        private set
+
     private var lastQueryKey: NearbyQueryKey? = null
     private var _hasLoadedExcludes = false
     private var pendingFetches = 0
@@ -206,6 +209,7 @@ class NearbyViewModel : ViewModel() {
         if (!forceRefresh && newKey == lastQueryKey) {
             if (previousResults != null && people.isEmpty()) {
                 people.addAll(previousResults.values)
+                markFirstResultIfNeeded()
             }
             pendingFetches = 0
             geoQueryCompleted = true
@@ -220,6 +224,7 @@ class NearbyViewModel : ViewModel() {
         geoQuery = null
         resetRefreshTracking()
         people.clear()
+        hasLoadedFirstResult = false
 
         if (currentSortMode == SortMode.ACTIVE) {
             markFetchStarted()
@@ -232,6 +237,7 @@ class NearbyViewModel : ViewModel() {
                         limit = currentLimit
                     )
                     people.addAll(users)
+                    markFirstResultIfNeeded()
                 } catch (e: Exception) {
                     Log.e("MapScreenVM", "Active users fetch failed: ${e.message}", e)
                 } finally {
@@ -252,6 +258,7 @@ class NearbyViewModel : ViewModel() {
                 val distM = distanceMeters(center, loc)
                 val updated = prev.copy(distanceMeters = distM)
                 people.add(updated)
+                markFirstResultIfNeeded()
                 userCache[prev.userId] = updated
                 cacheTimestamps[prev.userId] = System.currentTimeMillis()
             }
@@ -289,6 +296,11 @@ class NearbyViewModel : ViewModel() {
         } else {
             userCache.remove(userId)
             cacheTimestamps.remove(userId)
+        }
+    }
+    private fun markFirstResultIfNeeded() {
+        if (!hasLoadedFirstResult && people.isNotEmpty()) {
+            hasLoadedFirstResult = true
         }
     }
 
@@ -624,7 +636,12 @@ class NearbyViewModel : ViewModel() {
 
     private fun upsert(list: MutableList<NearbyUser>, item: NearbyUser) {
         val idx = list.indexOfFirst { it.userId == item.userId }
-        if (idx >= 0) list[idx] = item else list.add(item)
+        if (idx >= 0) {
+            list[idx] = item
+        } else {
+            list.add(item)
+            markFirstResultIfNeeded()
+        }
     }
 
     private fun matchesFilters(p: Profile, age: Int): Boolean {

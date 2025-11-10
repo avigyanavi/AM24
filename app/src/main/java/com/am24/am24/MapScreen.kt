@@ -1067,8 +1067,12 @@ fun MapScreen(
                         ) {
                             PeopleGrid(
                                 users = sortedPeople,
-                                isLoading = nearbyViewModel.isRefreshing || userLatLng == null ||
-                                        !nearbyViewModel.hasAttemptedInitialLoad,
+                                isLoading =
+                                    !nearbyViewModel.hasLoadedFirstResult && (
+                                            userLatLng == null ||
+                                                    !nearbyViewModel.hasAttemptedInitialLoad ||
+                                                    nearbyViewModel.isRefreshing
+                                            ),
                                 onClick = {
                                     if (swipesLoaded && remainingSwipes <= 0) {
                                         showSwipeLimitOverlay = true

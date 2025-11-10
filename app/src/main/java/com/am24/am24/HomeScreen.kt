@@ -76,6 +76,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.request.ImageRequest
 import com.am24.am24.util.TextureFullscreenVideoPlayer
 import kotlinx.coroutines.CancellationException
+import androidx.compose.runtime.saveable.rememberSaveable
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -682,7 +684,6 @@ fun FeedItem(
 
     // Annotate post content based on formatting markers
     val annotatedText = buildFormattedText(post.contentText ?: "")
-    val context = LocalContext.current
     val scope   = rememberCoroutineScope()
     val ctx = LocalContext.current
     var showVideoDialog by remember { mutableStateOf(false) }
@@ -864,9 +865,10 @@ fun FeedItem(
 
                 // Media Content - Photo, Video, Voice
                 if (post.mediaType != null && post.mediaUrl != null) {
-                    val context = LocalContext.current // Get the context once outside
+                    val context = LocalContext.current
+                    val placeholderPainter = painterResource(R.drawable.local_placeholder)
+                    var isMediaRevealed by rememberSaveable(post.postId) { mutableStateOf(false) }
                     Spacer(modifier = Modifier.height(8.dp))
-                    val ctx = LocalContext.current
                     Box(modifier = Modifier.fillMaxWidth()) {
                         when (post.mediaType) {
                             /* ---------- PHOTO ---------- */
@@ -876,28 +878,43 @@ fun FeedItem(
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
                                         .clip(RoundedCornerShape(6.dp))
-                                        .then(
-                                            if (postViewModel.canPlayMedia()) {
-                                                Modifier.clickable {
-                                                    postViewModel.recordMediaPlay()
-                                                    // optional: open full-screen photo viewer here
-                                                }
-                                            } else {
-                                                val ms =  stringResource(R.string.free_tier_media_limit_msg)
-                                                Modifier
-                                                    .blur(16.dp)
-                                                    .clickable {
-                                                        Toast.makeText(context, ms, Toast.LENGTH_SHORT).show()
-                                                    }
+                                        .background(Color.Black)
+                                        .clickable {
+                                            if (!isMediaRevealed) {
+                                                isMediaRevealed = true
                                             }
-                                        )
+                                        }
                                 ) {
-                                    AsyncImage(
-                                        model = post.mediaUrl ?: "",
-                                        contentDescription = "Post photo",
-                                        modifier = Modifier.matchParentSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
+                                    if (isMediaRevealed) {
+                                        AsyncImage(
+                                            model = post.mediaUrl,
+                                            contentDescription = "Post photo",
+                                            modifier = Modifier.matchParentSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Image(
+                                            painter = placeholderPainter,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .matchParentSize()
+                                                .blur(24.dp),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .matchParentSize()
+                                                .background(Color.Black.copy(alpha = 0.4f))
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.Visibility,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .align(Alignment.Center)
+                                        )
+                                    }
                                 }
                             }
 
@@ -908,38 +925,46 @@ fun FeedItem(
                                         .fillMaxWidth()
                                         .aspectRatio(16f / 9f)
                                         .clip(RoundedCornerShape(6.dp))
-                                        .then(
-                                            if (postViewModel.canPlayMedia()) {
-                                                Modifier.clickable {
-                                                    postViewModel.recordMediaPlay()
-                                                    showVideoDialog = true
-                                                }
-                                            } else {
-                                                Modifier
-                                                    .blur(16.dp)
-                                                    .clickable {
-                                                        Toast
-                                                            .makeText(context, "Free tier allows only 5 media views per day", Toast.LENGTH_SHORT)
-                                                            .show()
-                                                    }
+                                        .background(Color.Black)
+                                        .clickable {
+                                            if (!isMediaRevealed) {
+                                                isMediaRevealed = true
                                             }
-                                        )
+                                            showVideoDialog = true
+                                        }
                                 ) {
-                                    AsyncImage(
-                                        model = post.mediaThumb ?: post.mediaUrl,
-                                        contentDescription = "Video thumbnail",
-                                        modifier = Modifier.matchParentSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
+                                    if (isMediaRevealed) {
+                                        AsyncImage(
+                                            model = post.mediaThumb ?: post.mediaUrl,
+                                            contentDescription = "Video thumbnail",
+                                            modifier = Modifier.matchParentSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Image(
+                                            painter = placeholderPainter,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .matchParentSize()
+                                                .blur(24.dp),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .matchParentSize()
+                                                .background(Color.Black.copy(alpha = 0.4f))
+                                        )
+                                    }
                                     Icon(
                                         Icons.Default.PlayArrow,
                                         contentDescription = null,
+                                        tint = Color.White,
                                         modifier = Modifier
                                             .size(64.dp)
                                             .align(Alignment.Center)
                                     )
                                 }
-                                if (showVideoDialog) {
+                                if (showVideoDialog && isMediaRevealed) {
                                     TextureFullscreenVideoPlayer(
                                         uri = remember(post.mediaUrl) { post.mediaUrl!!.toUri() },
                                         onDismiss = { showVideoDialog = false }
@@ -959,34 +984,31 @@ fun FeedItem(
                                     ) {
                                         // wrap in Box so blur affects only the button
                                         Box {
-                                            val ms =  stringResource(R.string.free_tier_media_limit_msg)
                                             IconButton(
                                                 onClick = {
-                                                    if (!postViewModel.canPlayMedia()) {
-                                                        Toast
-                                                            .makeText(context, ms, Toast.LENGTH_SHORT)
-                                                            .show()
+                                                    if (!isMediaRevealed) {
+                                                        isMediaRevealed = true
+                                                    }
+                                                    if (isPlaying) {
+                                                        mediaPlayer?.pause()
+                                                        isPlaying = false
                                                     } else {
-                                                        postViewModel.recordMediaPlay()
-                                                        if (isPlaying) {
-                                                            mediaPlayer?.pause()
-                                                            isPlaying = false
-                                                        } else {
-                                                            playVoice(context, post.mediaUrl ?: "") { player ->
-                                                                mediaPlayer = player
-                                                                isPlaying = true
-                                                                mediaDuration = player.duration.toLong()
-                                                                mediaPlayer?.setOnCompletionListener {
-                                                                    isPlaying = false
-                                                                    playbackProgress = 0f
-                                                                }
+                                                        playVoice(context, post.mediaUrl ?: "") { player ->
+                                                            mediaPlayer = player
+                                                            isPlaying = true
+                                                            mediaDuration = player.duration.toLong()
+                                                            mediaPlayer?.setOnCompletionListener {
+                                                                isPlaying = false
+                                                                playbackProgress = 0f
                                                             }
                                                         }
                                                     }
                                                 },
-                                                modifier = Modifier.then(
-                                                    if (postViewModel.canPlayMedia()) Modifier else Modifier.blur(16.dp)
-                                                )
+                                                modifier = if (isMediaRevealed) {
+                                                    Modifier
+                                                } else {
+                                                    Modifier.blur(16.dp)
+                                                }
                                             ) {
                                                 Icon(
                                                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -994,6 +1016,21 @@ fun FeedItem(
                                                     tint = Color(0xFFFFDB00),
                                                     modifier = Modifier.size(70.dp)
                                                 )
+                                            }
+                                            if (!isMediaRevealed) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .matchParentSize()
+                                                        .background(Color.Black.copy(alpha = 0.4f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Visibility,
+                                                        contentDescription = null,
+                                                        tint = Color.White,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
                                             }
                                         }
 

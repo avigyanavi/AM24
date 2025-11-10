@@ -17,7 +17,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.Calendar
 
 enum class FeedSearchTagType { TAG, PLACE }
 
@@ -360,58 +359,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         pauseFeed()                       // keeps your existing behaviour
     }
 
-    /**
-     * Returns true if Plus/Premium, or still under the 5-views-per-day limit.
-     * Also auto-resets the counter the first time you call it each new day.
-     */
-    fun canPlayMedia(): Boolean {
-        val profile = _myProfile.value ?: return false
-        val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
-
-        if (profile.mediaViewsToday == null || profile.lastMediaResetDayOfYear == null) {
-            resetMediaQuota(profile.userId, today)
-            return true
-        }
-
-        // if a new day has rolled over, reset on the server:
-        if (profile.lastMediaResetDayOfYear != today) {
-            resetMediaQuota(profile.userId, today)
-            // after resetting we’re at 0, so free users can view up to DAILY_FREE_QUOTA
-            return true
-        }
-
-        if (profile.isPlus || profile.isPremium) {
-            return true
-        }
-
-        val mediaViewsToday = profile.mediaViewsToday ?: 0
-
-        return mediaViewsToday < DAILY_FREE_QUOTA
-    }
-
-    /** Call *after* a successful play to bump the counter in-DB (no-ops for premium). */
-    fun recordMediaPlay() {
-        val profile = _myProfile.value ?: return
-        if (profile.isPlus || profile.isPremium) return
-
-        // increment only the count; leave the “last reset” untouched
-        val newCount = (profile.mediaViewsToday ?: 0) + 1
-        db.getReference("users")
-            .child(profile.userId)
-            .child("mediaViewsToday")
-            .setValue(newCount)
-    }
-
-    /** Atomically do both: zero today’s count & stamp the day-of-year. */
-    private fun resetMediaQuota(userId: String, todayDayOfYear: Int) {
-        db.getReference("users")
-            .child(userId)
-            .updateChildren(mapOf(
-                "mediaViewsToday" to 0,
-                "lastMediaResetDayOfYear" to todayDayOfYear
-            ))
-    }
-
     private fun refreshSinglePost(postId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -465,10 +412,6 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val _filtersLoaded = MutableStateFlow(false)
     val filtersLoaded: StateFlow<Boolean> get() = _filtersLoaded
 
-    // 2) quota helpers
-    private val DAILY_FREE_QUOTA = 7
-    //
-    // 3) listen for changes under users/{uid}/savedPosts → true
     //
     private fun watchSavedPostIds(userId: String) {
         savedPostIdsRef = db.getReference("users")
