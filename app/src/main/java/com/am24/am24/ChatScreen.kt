@@ -141,9 +141,13 @@ private object RatingPromptSession {
 }
 
 @Composable
-fun ChatScreen(navController: NavController, otherUserId: String) {
-    val profileViewModel: ProfileViewModel = viewModel()
-    ChatScreenContent(navController, otherUserId, profileViewModel)
+fun ChatScreen(
+    navController: NavController,
+    otherUserId: String,
+    profileViewModel: ProfileViewModel,
+) {
+    val chatViewModel: ChatViewModel = viewModel()
+    ChatScreenContent(navController, otherUserId, profileViewModel, chatViewModel)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -152,7 +156,8 @@ fun ChatScreenContent(
     navController: NavController,
     otherUserId: String,
     profileViewModel: ProfileViewModel,
-) {
+    chatViewModel: ChatViewModel,
+    ) {
     var previewRefresh by remember { mutableStateOf(0) }
     var pendingEditUri by remember { mutableStateOf<Uri?>(null) }
     var pendingPhotoUri by remember { mutableStateOf<Uri?>(null) }
@@ -173,25 +178,53 @@ fun ChatScreenContent(
     var fullScreenTarget by remember { mutableStateOf<Message?>(null) }
     val database = FirebaseRefs.db
     val usersRef = database.getReference("users")
-    val chatId = getChatId(currentUserId, otherUserId)
-    val messagesRef = database.getReference("messages/$chatId")
+    val chatId = chatViewModel.chatIdentifier ?: getChatId(currentUserId, otherUserId)
+    val messagesRef = chatViewModel.messagesReference ?: database.getReference("messages/$chatId")
     val notificationsRef = database.getReference("notifications")
     val ratingsRef = database.getReference("ratings")
     val reportsRef = database.getReference("reports")
-    var isOtherUserTyping by remember { mutableStateOf(false) }
-    val typingRef = database.getReference("typing/$chatId/$otherUserId")
-    var averageRating by remember { mutableStateOf(0.0) }
-    var yourRating by rememberSaveable(otherUserId) { mutableStateOf(-1.0) }
-    var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
-    var otherUserProfile by remember { mutableStateOf<Profile?>(null) }
 
-    val privateAlbumSharedMe       = currentUserProfile?.allowExplicitPics  == true
-    val privateAlbumSharedPartner  = otherUserProfile ?.allowExplicitPics  == true
-    var deleteForever           = currentUserProfile?.deleteTimerOverride == true
-    val messages = remember { mutableStateListOf<Message>() }
+    val chatUiState by chatViewModel.uiState.collectAsState()
+    val isOtherUserTyping = chatUiState.isOtherUserTyping
+    val averageRating = chatUiState.averageRating
+    val yourRating = chatUiState.yourRating
+    val otherUserProfile = chatUiState.otherUserProfile
+    val messages = chatUiState.messages
+    val isLoadingProfiles = chatUiState.isLoadingProfiles
+    val isLoadingMessages = chatUiState.isLoadingMessages
+    val aiMatchResult = chatUiState.aiMatchResult
+
+    val currentUserProfileState by profileViewModel.currentUserProfile.collectAsState()
+    var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
+    LaunchedEffect(currentUserProfileState) {
+        currentUserProfile = currentUserProfileState
+    }
+    val privateAlbumSharedMe      = currentUserProfile?.allowExplicitPics == true
+    val privateAlbumSharedPartner = otherUserProfile?.allowExplicitPics == true
+    var deleteForever by remember { mutableStateOf(currentUserProfile?.deleteTimerOverride == true) }
+    LaunchedEffect(currentUserProfile) {
+        deleteForever = currentUserProfile?.deleteTimerOverride == true
+    }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(currentUserId, otherUserId) {
+        profileViewModel.fetchCurrentUserProfile()
+        chatViewModel.startSession(currentUserId, otherUserId)
+    }
+    var aiRequestLaunched by rememberSaveable(otherUserId) { mutableStateOf(false) }
+    LaunchedEffect(currentUserProfile, otherUserProfile, aiMatchResult) {
+        if (!aiRequestLaunched && aiMatchResult == null && currentUserProfile != null && otherUserProfile != null) {
+            aiRequestLaunched = true
+            runAiMatchCheck(
+                context = context,
+                coroutineScope = scope,
+                currentUserId = currentUserId,
+                currentUserProfile = currentUserProfile!!,
+                otherProfile = otherUserProfile
+            ) { result -> chatViewModel.updateAiMatch(result) }
+        }
+    }
     var messageText by remember { mutableStateOf("") }
     var showRating by remember { mutableStateOf(true) }
-    var aiMatchResult by remember { mutableStateOf<AiMatchCheckResult?>(null) }
 
     // decide *once* per session
     LaunchedEffect(Unit) {
@@ -219,11 +252,8 @@ fun ChatScreenContent(
     var placeSuggestionsExpanded by remember { mutableStateOf(false) }
     var isLoadingSuggestions by remember { mutableStateOf(false) }
     var isLoadingPlaces by remember { mutableStateOf(false) }
-    var isLoadingMessages by remember { mutableStateOf(true) }
-    var isLoadingProfiles by remember { mutableStateOf(true) }
     var isUploadingMedia by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     var isRecording by remember { mutableStateOf(false) }
     var recorder: MediaRecorder? by remember { mutableStateOf(null) }
     var recordFile: File? by remember { mutableStateOf(null) }
@@ -304,19 +334,6 @@ fun ChatScreenContent(
         } else {
             Log.d("ChatScreen", "Media preview cleared")
         }
-    }
-
-    DisposableEffect(typingRef) {
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                isOtherUserTyping = snapshot.getValue(Boolean::class.java) == true
-            }
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("ChatScreen", "Error reading typing status: ${error.message}")
-            }
-        }
-        typingRef.addValueEventListener(listener)
-        onDispose { typingRef.removeEventListener(listener) }
     }
 
     DisposableEffect(Unit) {
@@ -481,13 +498,13 @@ fun ChatScreenContent(
                         toUserId = otherUserId,
                         fromUserId = currentUserId,
                         fromUsername = currentUserProfile?.username ?: "",
-                        message = "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }}" +mensaj,
+                        message = "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }}" + mensaj,
                     )
                 } finally {
-                    selectedMediaUri  = null
+                    selectedMediaUri = null
                     selectedMediaType = null
-                    isUploadingMedia  = false
-                    isSendingMessage  = false
+                    isUploadingMedia = false
+                    isSendingMessage = false
                 }
             }
             return@mySend
@@ -509,7 +526,7 @@ fun ChatScreenContent(
                 message = vm
             )
             recordedVoiceUri = null
-            recordFile       = null
+            recordFile = null
             isSendingMessage = false
             return@mySend
         }
@@ -522,11 +539,11 @@ fun ChatScreenContent(
                 /* 3-C  Push to Firebase (your old code) */
                 val newId = messagesRef.push().key ?: return@launch
                 val msg = Message(
-                    id          = newId,
-                    senderId    = currentUserId,
-                    receiverId  = otherUserId,
-                    text        = messageText,
-                    timestamp   = System.currentTimeMillis()
+                    id = newId,
+                    senderId = currentUserId,
+                    receiverId = otherUserId,
+                    text = messageText,
+                    timestamp = System.currentTimeMillis()
                 )
                 messagesRef.child(newId).setValue(msg).addOnCompleteListener {
                     isSendingMessage = false
@@ -538,7 +555,7 @@ fun ChatScreenContent(
                     fromUsername = currentUserProfile?.username ?: "",
                     message = messageText
                 )
-                database.getReference("typing/$chatId/$currentUserId").setValue(false)
+                chatViewModel.setCurrentUserTyping(false)
                 messageText = ""
             }
             return@mySend
@@ -549,99 +566,6 @@ fun ChatScreenContent(
            ────────────────────────────────────────────────── */
         isSendingMessage = false
     }
-
-    val plsf = stringResource(R.string.profile_load_self_failed)
-    val plof = stringResource(R.string.profile_load_other_failed)
-
-    LaunchedEffect(Unit) {
-        isLoadingProfiles = true
-        usersRef.child(currentUserId).get().addOnSuccessListener { snapshot ->
-            currentUserProfile = snapshot.getValue(Profile::class.java)
-            isLoadingProfiles = false
-        }.addOnFailureListener {
-            Toast.makeText(context, plsf, Toast.LENGTH_SHORT).show()
-            isLoadingProfiles = false
-        }
-        usersRef.child(otherUserId).get().addOnSuccessListener { snapshot ->
-            val profile = snapshot.getValue(Profile::class.java)
-            if (profile != null) {
-                otherUserProfile = profile
-                averageRating = profile.averageRating
-            }
-            isLoadingProfiles = false
-        }.addOnFailureListener {
-            Toast.makeText(context, plof, Toast.LENGTH_SHORT).show()
-            isLoadingProfiles = false
-        }
-        fetchUserRating(ratingsRef, otherUserId) { rating -> yourRating = rating }
-        fetchAverageRating(ratingsRef, otherUserId) { avg -> averageRating = avg }
-        val aiRef = FirebaseRefs.db
-            .getReference("aiMatchCheck/$currentUserId/$otherUserId")
-        try {
-            val snap = aiRef.get().await()
-            val existing = snap.getValue(AiMatchCheckResult::class.java)
-            if (existing != null) {
-                aiMatchResult = existing
-            } else if (currentUserProfile != null && otherUserProfile != null) {
-                runAiMatchCheck(
-                    context = context,
-                    coroutineScope = scope,
-                    currentUserId = currentUserId,
-                    currentUserProfile = currentUserProfile!!,
-                    otherProfile = otherUserProfile!!
-                ) { result -> aiMatchResult = result }
-            }
-        } catch (e: Exception) {
-            Log.e("ChatScreen", "Error fetching AI result: ${e.message}")
-        }
-    }
-
-    DisposableEffect(messagesRef) {
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                isLoadingMessages = true
-                val newMessages = snapshot.children.mapNotNull { msgSnapshot ->
-                    // Skip the "participants" node
-                    if (msgSnapshot.key == "participants") return@mapNotNull null
-
-                    try {
-                        val map = msgSnapshot.value as? Map<String, Any> ?: return@mapNotNull null
-                        Message(
-                            id = map["id"] as? String ?: "",
-                            senderId = map["senderId"] as? String ?: "",
-                            receiverId = map["receiverId"] as? String ?: "",
-                            text = map["text"] as? String ?: "",
-                            timestamp = (map["timestamp"] as? Long) ?: System.currentTimeMillis(),
-                            read = map["read"] as? Boolean ?: false,
-                            mediaType = map["mediaType"] as? String,
-                            mediaUrl = map["mediaUrl"] as? String,
-                            processed = map["processed"] as? Boolean ?: false,
-                            isPost = map["isPost"] as? Boolean ?: false
-                        ).also { msg ->
-                            Log.d("ChatScreen", "Received message: id=${msg.id}, isPost=${msg.isPost}, mediaType=${msg.mediaType}, text=${msg.text}, mediaUrl=${msg.mediaUrl}")
-                            if (msg.text.isEmpty() && msg.mediaUrl == null) {
-                                Log.w("ChatScreen", "Blank message detected: id=${msg.id}, isPost=${msg.isPost}")
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.e("ChatScreen", "Error deserializing message ${msgSnapshot.key}: ${e.message}")
-                        null
-                    }
-                }
-                Log.d("ChatScreen", "Fetched ${newMessages.size} messages for chatId=$chatId")
-                messages.clear()
-                messages.addAll(newMessages)
-                isLoadingMessages = false
-            }
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("ChatScreen", "Error reading messages: ${error.message}")
-                isLoadingMessages = false
-            }
-        }
-        messagesRef.addValueEventListener(listener)
-        onDispose { messagesRef.removeEventListener(listener) }
-    }
-
     LaunchedEffect(messages) {
         messages.filter { !it.processed && it.senderId != currentUserId }.forEach { message ->
             postNotification(
@@ -662,8 +586,7 @@ fun ChatScreenContent(
                 if (oldestMessage != null) {
                     val elapsedTime = System.currentTimeMillis() - oldestMessage.timestamp
                     if (elapsedTime >= timer) {
-                        messagesRef.removeValue()
-                        messages.clear()
+                        chatViewModel.clearConversation()
                         deleteTimer = null
                     }
                 }
@@ -737,8 +660,6 @@ fun ChatScreenContent(
                     .orderByChild("senderId").equalTo(currentUserId)
                     .get().await().children.forEach { it.ref.removeValue() }
 
-                // ❹ Local UI tidy-up
-                messages.clear()
                 navController.popBackStack()
                 Toast.makeText(context, unmatchmsg, Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -1061,7 +982,13 @@ fun ChatScreenContent(
                         )
                     }
                     DropdownMenu(expanded = showClearChatMenu, onDismissRequest = { showClearChatMenu = false }) {
-                        DropdownMenuItem(text = { Text(chatclearonly) }, onClick = { showClearChatMenu = false; messagesRef.setValue(null); messages.clear() })
+                        DropdownMenuItem(
+                            text = { Text(chatclearonly) },
+                            onClick = {
+                                showClearChatMenu = false
+                                chatViewModel.clearConversation()
+                            }
+                        )
                     }
                     DropdownMenu(expanded = showDeleteTimerMenu, onDismissRequest = { showDeleteTimerMenu = false }) {
                         @Composable
@@ -1094,8 +1021,9 @@ fun ChatScreenContent(
                         StarSelector(
                             rating = if (yourRating >= 0) yourRating.toInt() else 0,
                             onSelect = { selected ->
-                                yourRating = selected.toDouble()
-                                updateUserRating(ratingsRef, usersRef, otherUserId, yourRating, context)
+                                val updatedRating = selected.toDouble()
+                                chatViewModel.updateYourRating(updatedRating)
+                                updateUserRating(ratingsRef, usersRef, otherUserId, updatedRating, context)
                                 if (currentUserProfile != null && otherUserProfile != null) {
                                     runAiMatchCheck(
                                         context = context,
@@ -1103,7 +1031,7 @@ fun ChatScreenContent(
                                         currentUserId = currentUserId,
                                         currentUserProfile = currentUserProfile!!,
                                         otherProfile = otherUserProfile!!
-                                    ) { result -> aiMatchResult = result }
+                                    ) { result -> chatViewModel.updateAiMatch(result) }
                                 }
                                 showRating = false          // hide once a rating is given
                             },
@@ -1345,8 +1273,7 @@ fun ChatScreenContent(
                     messageText = messageText,
                     onTextChange = { newText ->
                         messageText = newText
-                        database.getReference("typing/$chatId/$currentUserId")
-                            .setValue(newText.isNotEmpty())
+                        chatViewModel.setCurrentUserTyping(newText.isNotEmpty())
                     },
                     onSend = sendHandler,
                     sendEnabled = !isSendingMessage && !isUploadingMedia,
@@ -1722,7 +1649,6 @@ fun ChatScreenContent(
                                         // 5️⃣ Finally, update UI on the main thread:
                                         withContext(Dispatchers.Main) {
                                             showReportDialog = false
-                                            messages.clear()
                                             navController.popBackStack()
                                             Toast.makeText(context, userreported, Toast.LENGTH_SHORT).show()
                                         }

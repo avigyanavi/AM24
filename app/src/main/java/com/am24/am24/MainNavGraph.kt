@@ -338,7 +338,7 @@ fun MainNavGraph(
         composable("chat/{otherUserId}") { backStackEntry ->
             val otherUserId = backStackEntry.arguments?.getString("otherUserId")
             if (otherUserId != null) {
-                ChatScreen(navController, otherUserId)
+                ChatScreen(navController, otherUserId, profileViewModel)
             }
         }
         composable(
