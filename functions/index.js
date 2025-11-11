@@ -1735,6 +1735,76 @@ exports.cancelKupidxPlusSub = functions
     return { cancelled:true };
   });
 
+exports.searchUsernames = functions
+  .region("asia-south1")
+  .https.onCall(async (data, context) => {
+    const rawQuery = typeof data?.query === "string" ? data.query : "";
+    const normalized = rawQuery.trim();
+    if (normalized.length < 2) {
+      return { profiles: [] };
+    }
+
+    const lookupKeys = Array.from(new Set([normalized, normalized.toLowerCase()]))
+      .filter((value) => value && value.length >= 2)
+      .slice(0, 2);
+
+    const usernameEntries = new Map();
+
+    for (const key of lookupKeys) {
+      try {
+        const snapshot = await db
+          .ref("usernames")
+          .orderByKey()
+          .startAt(key)
+          .endAt(`${key}\uf8ff`)
+          .limitToFirst(25)
+          .get();
+
+        snapshot.forEach((child) => {
+          const username = child.key || "";
+          const userId = child.val();
+          if (!username || typeof userId !== "string") {
+            return;
+          }
+          if (!usernameEntries.has(userId)) {
+            usernameEntries.set(userId, { userId, username });
+          }
+        });
+      } catch (err) {
+        logger.error("Failed username lookup", { key, error: err?.message || err });
+      }
+    }
+
+    const limitedEntries = Array.from(usernameEntries.values()).slice(0, 25);
+
+    const profiles = await Promise.all(
+      limitedEntries.map(async ({ userId, username }) => {
+        try {
+          const snap = await db.ref("users").child(userId).get();
+          if (!snap.exists()) {
+            return null;
+          }
+          const profile = snap.val() || {};
+          return {
+            ...profile,
+            userId,
+            username: profile.username || username,
+          };
+        } catch (err) {
+          logger.error("Failed to load profile for username search", {
+            userId,
+            error: err?.message || err,
+          });
+          return null;
+        }
+      })
+    );
+
+    return {
+      profiles: profiles.filter(Boolean),
+    };
+  });
+
 exports.verifyKupidxSubscription = functions
   .region("asia-south1")
   .https.onCall(async (data, context) => {

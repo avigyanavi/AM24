@@ -1112,7 +1112,11 @@ private suspend fun fetchRandomUserForLottery(
     excludedIds: Set<String>,
     currentUserId: String
 ): Profile? {
-    val snap = usersRef.get().await()
+    val snap = usersRef
+        .orderByChild("lastActive")
+        .limitToLast(50)
+        .get()
+        .await()
 
     val list = snap.children.mapNotNull { child ->
         val uid = child.key ?: return@mapNotNull null
@@ -1126,7 +1130,7 @@ private suspend fun fetchRandomUserForLottery(
             return@mapNotNull null
         }
         UserDeletionCache.markActive(uid)
-        profile
+        if (profile.userId.isBlank()) profile.copy(userId = uid) else profile
     }
         .filter { it.userId != currentUserId && !excludedIds.contains(it.userId) }
         .filter { gender == "Both" || it.gender.toGenderCode() == gender.toGenderCode() }

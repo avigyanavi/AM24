@@ -40,30 +40,6 @@ object AccountDeletion {
                 }
             }
 
-            // Remove comments left by the user on other posts (including voice comments)
-            val allPostsSnap = postsRef.get().await()
-            for (post in allPostsSnap.children) {
-                val comments = post.child("comments")
-                for (comment in comments.children) {
-                    val commenterId = comment.child("userId").getValue(String::class.java)
-                    if (commenterId == uid) {
-                        val mediaUrl = comment.child("mediaUrl").getValue(String::class.java)
-                        if (!mediaUrl.isNullOrBlank()) {
-                            try {
-                                storage.getReferenceFromUrl(mediaUrl).delete().await()
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Failed to delete comment media: $mediaUrl", e)
-                            }
-                        }
-                        try {
-                            comment.ref.removeValue().await()
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to delete comment", e)
-                        }
-                    }
-                }
-            }
-
             // Remove matches and chats
             val matchesRef = db.getReference("matches")
             val userChatsRef = db.getReference("userChats")

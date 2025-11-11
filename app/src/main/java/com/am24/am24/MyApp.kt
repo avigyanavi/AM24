@@ -67,7 +67,7 @@ class MyApp : Application() {
         }
 
         // ───────── Realtime DB persistence ─────────
-        FirebaseRefs.warmUp()
+//        FirebaseRefs.warmUp()
 
         // ───────── Play Billing: INAPP packs + SUBS ─────────
         val packQuantities = listOf(5, 10, 20)

@@ -60,6 +60,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
 import java.util.Locale
+import com.google.firebase.functions.FirebaseFunctions
+import com.google.gson.Gson
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -236,7 +239,8 @@ class UsernameSearchViewModel : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    private var cachedProfiles: List<Profile>? = null
+    private val functions = FirebaseFunctions.getInstance("asia-south1")
+    private val gson = Gson()
 
     init {
         viewModelScope.launch {
@@ -282,10 +286,7 @@ class UsernameSearchViewModel : ViewModel() {
             profile.username.lowercase(Locale.getDefault()).contains(lower)
         }
 
-        val remoteProfiles = loadProfiles()
-        val remoteMatches = remoteProfiles.filter { profile ->
-            profile.username.lowercase(Locale.getDefault()).contains(lower)
-        }
+        val remoteMatches = fetchProfilesFromCloud(query)
 
         val combined = (cachedMatches + remoteMatches)
             .filter { it.userId.isNotBlank() && it.username.isNotBlank() }
@@ -299,17 +300,29 @@ class UsernameSearchViewModel : ViewModel() {
         return combined.take(30)
     }
 
-    private suspend fun loadProfiles(): List<Profile> {
-        val cached = cachedProfiles
-        if (cached != null) return cached
-
-        val snapshot = FirebaseRefs.db.getReference("users").get().await()
-        val profiles = snapshot.children.mapNotNull { child ->
-            val id = child.key ?: return@mapNotNull null
-            val profile = child.getValue(Profile::class.java) ?: return@mapNotNull null
-            if (profile.userId.isBlank()) profile.copy(userId = id) else profile
+    private suspend fun fetchProfilesFromCloud(query: String): List<Profile> {
+        return try {
+            val result = functions
+                .getHttpsCallable("searchUsernames")
+                .call(mapOf("query" to query))
+                .await()
+                .data as? Map<*, *>
+            val rawProfiles = result?.get("profiles") as? List<*> ?: emptyList<Any?>()
+            rawProfiles.mapNotNull { raw ->
+                val map = raw as? Map<*, *> ?: return@mapNotNull null
+                val json = gson.toJson(map)
+                val profile = gson.fromJson(json, Profile::class.java)
+                val resolvedId = map["userId"] as? String
+                val withId = if (profile.userId.isBlank() && !resolvedId.isNullOrBlank()) {
+                    profile.copy(userId = resolvedId)
+                } else {
+                    profile
+                }
+                if (withId.username.isBlank()) null else withId
+            }
+        } catch (e: Exception) {
+            Log.e("UsernameSearch", "searchUsernames callable failed", e)
+            throw e
         }
-        cachedProfiles = profiles
-        return profiles
     }
 }

@@ -94,6 +94,7 @@ dependencies {
     implementation("com.google.maps.android:android-maps-utils:2.3.0")
     implementation("com.android.billingclient:billing-ktx:8.0.0")
     implementation(libs.places)
+    implementation(libs.firebase.functions)
     implementation("com.android.installreferrer:installreferrer:2.2")
     // For Coil image loading
 
