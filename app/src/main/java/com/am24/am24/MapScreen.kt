@@ -122,7 +122,7 @@ data class MatchProfile(
     val photoUrl: String?
 )
 
-enum class SortMode { NEARBY, ACTIVE, FAR }
+enum class SortMode { NEARBY, ACTIVE, POPULAR }
 
 enum class Region { LA, SF_BAY, NONE }
 
@@ -147,7 +147,8 @@ data class NearbyUser(
     val randomDetail: String? = null,
     val loveLanguage: String = "",
     val socialCauses: List<String> = emptyList(),
-    val politics: String = ""
+    val politics: String = "",
+    val totalLikes: Int? = null
 )
 
 private data class GenderFilterOption(val canonicalValue: String, val labelRes: Int)
@@ -899,7 +900,7 @@ fun MapScreen(
                                 .fillMaxWidth()
                                 .padding(end = trailingActionsInset)
                         ) {
-                            if (sortMode == SortMode.ACTIVE) {
+                            if (sortMode == SortMode.ACTIVE || sortMode == SortMode.POPULAR) {
                                 LastActiveChip(
                                     hours = lastActiveHours,
                                     onChange = {
@@ -925,7 +926,7 @@ fun MapScreen(
                         val (sortIcon, sortLabelRes) = when (sortMode) {
                             SortMode.NEARBY -> Icons.Default.MyLocation to R.string.sort_nearby
                             SortMode.ACTIVE -> Icons.Default.Schedule to R.string.sort_last_active
-                            SortMode.FAR -> Icons.Default.Place to R.string.sort_farthest
+                            SortMode.POPULAR -> Icons.Default.Leaderboard to R.string.sort_popular
                         }
                         Surface(
                             shape = RoundedCornerShape(24.dp),
@@ -938,8 +939,8 @@ fun MapScreen(
                                 onClick = {
                                     sortMode = when (sortMode) {
                                         SortMode.NEARBY -> SortMode.ACTIVE
-                                        SortMode.ACTIVE -> SortMode.FAR
-                                        SortMode.FAR -> SortMode.NEARBY
+                                        SortMode.ACTIVE -> SortMode.POPULAR
+                                        SortMode.POPULAR -> SortMode.NEARBY
                                     }
                                     prefs.edit().putString("map_sort_mode", sortMode.name).apply()
                                     userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
@@ -2119,6 +2120,13 @@ private fun ProfileCard(
                         if (user.distanceMeters.isFinite()) {
                             append(" · ")
                             append(prettyDistance(user.distanceMeters, useMiles))
+                            append(" · ")
+                        }
+                        user.totalLikes?.let {
+                            if (it > 0) {
+                                append(" · ")
+                                append(prettyCount(user.totalLikes)); append(" likes")
+                            }
                         }
                     }
 
@@ -2383,12 +2391,20 @@ private fun NearbyCard(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = buildString {
-                        append(timeAgoShort(resources, user.lastActiveAt))
-                        if (user.distanceMeters.isFinite()) {
-                            append(" · "); append(prettyDistance(user.distanceMeters, useMiles))
+                                append(timeAgoShort(resources, user.lastActiveAt))
+                                if (user.distanceMeters.isFinite()) {
+                                    append(" · ")
+                                    append(prettyDistance(user.distanceMeters, useMiles))
+                                    append(" · ")
+                                    }
+                        user.totalLikes?.let {
+                            if (it > 0) {
+                                append(" · ")
+                                append(prettyCount(user.totalLikes)); append(" likes")
+                            }
                         }
-                    },
-                    color = Color(0xFFE0E0E0),
+                            },
+                    color = KupidxOrange,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -2398,6 +2414,18 @@ private fun NearbyCard(
     }
 }
 
+private fun prettyCount(n: Int?): String {
+    if (n != null) {
+        return when {
+            n >= 1_000_000 -> String.format(Locale.US, "%.1fm", n / 1_000_000.0).trimEnd('0').trimEnd('.')
+            n >= 1_000     -> String.format(Locale.US, "%.1fk", n / 1_000.0).trimEnd('0').trimEnd('.')
+            else           -> n.toString()
+        }
+    }
+    else {
+        return "0"
+    }
+}
 @Composable
 private fun RadiusChip(
     radiusKm: Double,                  // keep km internally for GeoFire

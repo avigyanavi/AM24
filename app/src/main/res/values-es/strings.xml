@@ -14,6 +14,7 @@
     <string name="settings_search_username_hint">Ingresa un nombre de usuario para ver el perfil de alguien.</string>
     <string name="settings_search_username_no_results">No se encontraron usuarios con ese nombre.</string>
     <string name="settings_search_username_premium_only">Solo Premium</string>
+    <string name="sort_popular">Popular</string>
     <string name="filter_label_age">Age %1$s</string>
     <string name="filter_label_gender">Gender: %1$s</string>
     <string name="filter_label_orientation">Orientation: %1$s</string>

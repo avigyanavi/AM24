@@ -92,6 +92,12 @@ let db     = databaseTargets[activeDatabaseIndex]?.db;
 
 const getUsersRef = () => db.ref('users');
 
+function toJson(snap) {
+  if (!snap || !snap.exists || !snap.exists()) return null;
+  const v = snap.val() || null;
+  return v ? { ...v, userId: snap.key } : null;
+}
+
 const AVAILABLE_DATABASE_NAMES = databaseTargets.map((target) => target.name);
 
 const FAILOVER_TIMEOUT_MS = 5_000;
@@ -226,6 +232,13 @@ function gatherStorageUrls(data = {}) {
   return Array.from(urls);
 }
 
+const ACTIVE_FEED_PATH = 'feedIndex/ACTIVE';
+const REVERSE_EPOCH = 9999999999999; // far future; invert current millis against this
+function makeActiveRankKey(ts) {
+  const t = Number(ts) || 0;
+  const inv = REVERSE_EPOCH - t;
+  return inv.toString().padStart(13, '0'); // keep fixed width for lexicographic sort
+}
 exports.cleanOrphanedStorage = functions
   .region("asia-south1")
   .runWith({ timeoutSeconds: 540, memory: "2GB" })
@@ -312,6 +325,194 @@ exports.cleanOrphanedStorage = functions
       return res.status(500).json({ error: err.message });
     }
   });
+
+exports.onLastActiveWrite = functions
+  .region('asia-south1')
+  .database.instance('kupidxdefault')           // match your default DB subdomain
+  .ref('/users/{uid}/lastActive')
+  .onWrite(async (change, ctx) => {
+    const uid = ctx.params.uid;
+
+    // If deleted/missing, remove any previous index row and exit.
+    if (!change.after.exists()) {
+      const oldKeySnap = await admin.database()
+        .ref(`${ACTIVE_FEED_PATH}/byUser/${uid}/key`).get();
+      const oldKey = oldKeySnap.val();
+      if (oldKey) {
+        const updates = {};
+        updates[`${ACTIVE_FEED_PATH}/list/${oldKey}`] = null;
+        updates[`${ACTIVE_FEED_PATH}/byUser/${uid}`] = null;
+        await admin.database().ref().update(updates);
+      }
+      return null;
+    }
+
+    const ts = Number(change.after.val()) || 0;
+    if (ts <= 0) return null;
+
+    const dbRoot = admin.database().ref();
+
+    // 1) remove previous key (if any)
+    const prevKeySnap = await dbRoot.child(`${ACTIVE_FEED_PATH}/byUser/${uid}/key`).get();
+    const prevKey = prevKeySnap.val();
+
+    // 2) write new row
+    const rankKey = makeActiveRankKey(ts);
+    const updates = {};
+    updates[`${ACTIVE_FEED_PATH}/list/${rankKey}`] = { uid, lastActive: ts };
+    updates[`${ACTIVE_FEED_PATH}/byUser/${uid}`]   = { key: rankKey, lastActive: ts };
+
+    // 3) delete old row atomically (if it differs)
+    if (prevKey && prevKey !== rankKey) {
+      updates[`${ACTIVE_FEED_PATH}/list/${prevKey}`] = null;
+    }
+
+    await dbRoot.update(updates);
+    return null;
+  });
+
+// ───────────────────────── Trim the global ACTIVE feed to a bounded size ───────────────────────
+exports.trimActiveFeed = functions
+   .region('asia-south1')
+   .pubsub.schedule('every 60 minutes')
+   .timeZone('Asia/Kolkata')
+   .onRun(async () => {
+    const KEEP = 20000; // keep newest 20k rows; tune as you grow
+    const listQuery = admin.database().ref(`${ACTIVE_FEED_PATH}/list`).orderByKey();
+    const snap = await listQuery.once('value');
+    if (!snap.exists()) return null;
+
+    // Keys are iterated in key order (ASC). Our inverted key makes ASC == NEWEST first.
+    const keys = [];
+    snap.forEach(child => { keys.push(child.key); });
+    if (keys.length <= KEEP) return null;
+
+    const toDelete = keys.slice(KEEP); // drop everything after KEEP
+    const updates = {};
+    toDelete.forEach(k => { updates[`${ACTIVE_FEED_PATH}/list/${k}`] = null; });
+
+    // Best-effort cleanup: remove byUser entries pointing to missing list keys.
+    const byUserSnap = await admin.database().ref(`${ACTIVE_FEED_PATH}/byUser`).once('value');
+    if (byUserSnap.exists()) {
+      byUserSnap.forEach(child => {
+        const v = child.val() || {};
+        const key = v.key;
+        if (key && !snap.child(key).exists()) {
+          updates[`${ACTIVE_FEED_PATH}/byUser/${child.key}`] = null;
+        }
+      });
+    }
+
+    if (Object.keys(updates).length) {
+      await admin.database().ref().update(updates);
+    }
+    return null;
+  });
+
+exports.rebuildActiveFeed = functions
+  .region('asia-south1')
+  .runWith({ timeoutSeconds: 540, memory: '1GB' })
+  .https.onRequest(async (_req, res) => {
+    try {
+      const cutoff = Date.now() - 30*24*60*60*1000; // only last 30 days
+      const usersSnap = await admin.database().ref('users')
+        .orderByChild('lastActive').startAt(cutoff).once('value');
+
+      const updates = {};
+      const byUser  = {};
+      usersSnap.forEach(u => {
+        const uid = u.key;
+        const ts  = Number(u.child('lastActive').val()) || 0;
+        if (!uid || ts <= 0) return;
+        const key = makeActiveRankKey(ts);
+        updates[`${ACTIVE_FEED_PATH}/list/${key}`] = { uid, lastActive: ts };
+        byUser[uid] = { key, lastActive: ts };
+      });
+      updates[`${ACTIVE_FEED_PATH}/byUser`] = byUser;
+
+      await admin.database().ref().update(updates);
+      res.status(200).send(`Rebuilt ACTIVE with ${Object.keys(byUser).length} rows`);
+    } catch (e) {
+      console.error('rebuildActiveFeed', e);
+      res.status(500).send(e.message || 'error');
+    }
+  });
+
+exports.refreshNearbyIndexes = functions
+  .region('asia-south1')
+  .pubsub.schedule('every 5 minutes')
+  .timeZone('Asia/Kolkata')
+  .onRun(async () => {
+    const db = admin.database();
+    const NOW = Date.now();
+    const ACTIVE_WINDOW_MS = 30 * 60 * 1000;
+    const MAX_PER_RUN = 400;
+    const CHUNK = 100;
+
+    const listSnap = await db.ref('feedIndex/ACTIVE/list')
+      .orderByKey()
+      .limitToFirst(2000)
+      .get();
+
+    const work = [];
+    listSnap.forEach(child => {
+      const row = child.val() || {};
+      if (NOW - (row.lastActive || 0) <= ACTIVE_WINDOW_MS) work.push(row.uid);
+    });
+
+    const uids = work.slice(0, MAX_PER_RUN);
+
+    for (let i = 0; i < uids.length; i += CHUNK) {
+      await Promise.all(uids.slice(i, i + CHUNK).map(buildNearbyIndexFor));
+    }
+    return null;
+  });
+
+async function buildNearbyIndexFor(uid) {
+  const db = admin.database();
+  const [locSnap, uSnap] = await Promise.all([
+    db.ref(`geoFireLocations/${uid}/l`).get(),
+    db.ref(`users/${uid}`).get()
+  ]);
+
+  const center = locSnap.val();
+  const u = uSnap.val() || {};
+  if (!Array.isArray(center) || center.length !== 2) return;
+  if (u.isPrivate === true) return;
+  if (u.allowLocationForMatches === false) return;
+
+  const maxKm = Math.min(Number(u.datingDistancePreference) || 30, 65);
+  const limit = 200;
+
+  const { geohashQueryBounds, distanceBetween } = require('geofire-common');
+  const bounds = geohashQueryBounds(center, maxKm);
+
+  const snaps = await Promise.all(bounds.map(([s, e]) =>
+    db.ref('geoFireLocations').orderByChild('g').startAt(s).endAt(e).get()
+  ));
+
+  const seen = new Set(), pairs = [];
+  snaps.forEach(s => s.forEach(c => {
+    const other = c.key;
+    if (other === uid || seen.has(other)) return;
+    seen.add(other);
+    const loc = c.child('l').val();
+    if (Array.isArray(loc) && loc.length === 2) {
+      const dKm = distanceBetween([loc[0], loc[1]], center);
+      if (dKm <= maxKm) pairs.push({ id: other, distM: Math.round(dKm * 1000) });
+    }
+  }));
+
+  pairs.sort((a,b) => a.distM - b.distM);
+  const top = pairs.slice(0, limit);
+
+  const base = db.ref(`userFeedIndex/${uid}/NEARBY`);
+  const updates = {};
+  top.forEach((p,i) => {
+    updates[String(i).padStart(5,'0')] = { uid: p.id, distanceM: p.distM };
+  });
+  await base.set(updates);   // overwrite atomically
+}
 
 exports.activateEntryFeePlusUsers = functions
   .region('asia-south1')

@@ -22,6 +22,12 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import java.util.concurrent.TimeUnit
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.tasks.Task
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -94,6 +100,7 @@ class NearbyViewModel : ViewModel() {
     private var _hasLoadedExcludes = false
     private var pendingFetches = 0
     private var geoQueryCompleted = false
+    private var lastIndexKey: String? = null   // pagination anchor for server index modes
 
     private fun resetRefreshTracking() {
         pendingFetches = 0
@@ -122,6 +129,26 @@ class NearbyViewModel : ViewModel() {
         }
     }
 
+    private fun likesCountFrom(snapshot: DataSnapshot, p: Profile): Int {
+        // Handle both possible casings and fallbacks
+        val upper = snapshot.child("UsersWhoLikeMe")
+        val lower = snapshot.child("usersWhoLikeMe")
+
+        val countFromMap =
+            when {
+                upper.exists() -> upper.childrenCount.toInt()
+                lower.exists() -> lower.childrenCount.toInt()
+                else -> null
+            }
+
+        return countFromMap
+            ?: when (val m = p.UsersWhoLikeMe) { // if your Profile may deserialize a map field
+                is Map<*, *> -> m.size
+                is Collection<*> -> m.size
+                else -> (p.numberOfUsersWhoSwiped ?: 0L).toInt()
+            }
+    }
+
     val nearbyUsers: Flow<List<NearbyUser>> = snapshotFlow {
         NearbyUiState(
             people = people.toList(),
@@ -140,7 +167,8 @@ class NearbyViewModel : ViewModel() {
         if (orientationFilter.isNotBlank()) {
             list = list.filter { canonicalOrientation(it.sexualOrientation) == orientationFilter }
         }
-        if (state.sortMode == SortMode.ACTIVE) {
+        // Time window for ACTIVE and POPULAR (e.g., last X hours/days)
+        if (state.sortMode == SortMode.ACTIVE || state.sortMode == SortMode.POPULAR) {
             val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(state.lastActiveHours.toLong())
             list = list.filter { it.lastActiveAt >= cutoff }
         }
@@ -151,10 +179,15 @@ class NearbyViewModel : ViewModel() {
                 tierComparator.thenBy { it.distanceMeters }
             )
             SortMode.ACTIVE -> list.sortedWith(
-                tierComparator.thenByDescending { it.lastActiveAt }
+                tierComparator
+                    .thenByDescending { it.lastActiveAt }
+                    .thenBy { it.distanceMeters } // nice secondary for stable UI
             )
-            SortMode.FAR -> list.sortedWith(
-                tierComparator.thenByDescending { it.distanceMeters }
+            SortMode.POPULAR -> list.sortedWith(
+                tierComparator
+                    .thenByDescending { it.totalLikes ?: 0 } // main: popularity
+                    .thenBy { it.distanceMeters }            // tie-breaker 1
+                    .thenByDescending { it.lastActiveAt }    // tie-breaker 2
             )
         }
     }.flowOn(Dispatchers.Default)
@@ -179,7 +212,7 @@ class NearbyViewModel : ViewModel() {
     private val cacheTimestamps = mutableMapOf<String, Long>()
     private val cacheTtlMs = 5 * 60 * 1000L
     private val onlineThresholdMs = TimeUnit.MINUTES.toMillis(5)
-
+    private val refreshWatchdogMs = 8000L
     internal fun isUserOnline(now: Long, lastActiveAt: Long): Boolean {
         return now - lastActiveAt < onlineThresholdMs
     }
@@ -224,29 +257,49 @@ class NearbyViewModel : ViewModel() {
         geoQuery?.removeAllListeners()
         geoQuery = null
         resetRefreshTracking()
+        // Watchdog: never let the spinner spin forever
+        viewModelScope.launch {
+            delay(refreshWatchdogMs)
+            if (isRefreshing && !geoQueryCompleted && pendingFetches == 0) {
+                markQueryCompleted() // safely flips isRefreshing=false
+            }
+        }
+
         people.clear()
         hasLoadedFirstResult = false
 
-        if (currentSortMode == SortMode.ACTIVE) {
-            markFetchStarted()
-            viewModelScope.launch {
-                try {
-                    val users = fetchActiveUsers(
-                        currentUserId = userId,
-                        center = center,
-                        geoFireDatabaseRef = geoFireDatabaseRef,
-                        limit = currentLimit
-                    )
-                    people.addAll(users)
-                    markFirstResultIfNeeded()
-                } catch (e: Exception) {
-                    Log.e("MapScreenVM", "Active users fetch failed: ${e.message}", e)
-                } finally {
-                    markFetchFinished()
-                    markQueryCompleted()
-                }
-            }
-            return
+        // Prefer prebuilt index (order-only, no filters). Fallback to old path if missing.
+        val indexPath = when (currentSortMode) {
+                SortMode.NEARBY -> "userFeedIndex/$userId/NEARBY"
+                SortMode.ACTIVE -> "feedIndex/ACTIVE/list"
+                else -> null
+        }
+
+        if (indexPath != null) {
+                 markFetchStarted()
+                 viewModelScope.launch {
+                      try {
+                           val rows = fetchFeedPage(
+                                   uid = userId,
+                                   mode = currentSortMode,
+                                   startAfterKey = if (forceRefresh) null else lastIndexKey,
+                                   pageSize = currentLimit
+                                   )
+                            // remember pagination anchor (last key we saw)
+                           lastIndexKey = rows.lastOrNull()?.key
+                           val users = hydrateProfiles(rows, center)
+                           people.addAll(users)
+                           markFirstResultIfNeeded()
+                           markQueryCompleted()
+                           return@launch
+                      } catch (e: Exception) {
+                           Log.w("MapScreenVM", "Index path missing or failed ($indexPath): ${e.message}")
+                           // fall through to legacy behaviour below
+                      } finally {
+                           markFetchFinished()
+                      }
+                 }
+        // If index attempt returns/throws quickly we’ll still have fallbacks below.
         }
 
         previousResults?.values
@@ -265,16 +318,38 @@ class NearbyViewModel : ViewModel() {
             }
 
         val limit = currentLimit
-        // Always run the NEARBY GeoFire query (People tab dataset),
-        // and let the UI's toggle handle last-active filtering/sorting.
+        // LEGACY FALLBACKS (used only if index isn’t present or failed):
+        if (currentSortMode == SortMode.ACTIVE) {
+            markFetchStarted()
+                 viewModelScope.launch {
+                         try {
+                                 val users = fetchActiveUsers(
+                                         currentUserId = userId,
+                                         center = center,
+                                         geoFireDatabaseRef = geoFireDatabaseRef,
+                                         limit = limit
+                                        )
+                                 people.addAll(users)
+                                 markFirstResultIfNeeded()
+                         } catch (e: Exception) {
+                             Log.e("MapScreenVM", "Active users fetch failed: ${e.message}", e)
+                         } finally {
+                             markFetchFinished()
+                             markQueryCompleted()
+                         }
+                 }
+            return
+        }
+
+        // NEARBY legacy path (GeoFire live radius)
         geoQuery = observeNearbyUsers(
-            currentUserId = userId,
-            center = center,
-            radiusKm = radiusKm,
-            geoFireDatabaseRef = geoFireDatabaseRef,
-            limit = limit,
-            onEnterOrMove = { if (it.userId !in excludedUserIds) upsert(people, it) },
-            onExit = { uid -> people.removeAll { it.userId == uid } }
+              currentUserId = userId,
+              center = center,
+              radiusKm = radiusKm,
+              geoFireDatabaseRef = geoFireDatabaseRef,
+              limit = limit,
+              onEnterOrMove = { if (it.userId !in excludedUserIds) upsert(people, it) },
+              onExit = { uid -> people.removeAll { it.userId == uid } }
         )
     }
 
@@ -323,7 +398,6 @@ class NearbyViewModel : ViewModel() {
             previousResults = prev
         )
     }
-
 
     /**
      * GeoFire listener that IGNORES visibility/matches and only honors radius/exclusions.
@@ -413,7 +487,7 @@ class NearbyViewModel : ViewModel() {
                         return@launch
                     }
                     val age = calculateAge(p.dob)
-                    if (isPlus && !matchesFilters(p, age)) {
+                    if (!matchesFilters(p, age)) {
                         onExit(uid)
                         return@launch
                     }
@@ -441,6 +515,7 @@ class NearbyViewModel : ViewModel() {
                     val rolesForCard = if (p.showRolesOnProfile) p.roles else emptyList()
                     val tribesForCard = if (p.showTribesOnProfile) p.tribes else emptyList()
                     val kinksForCard = if (p.showKinksOnProfile) p.kinks else emptyList()
+                    val totalLikes = likesCountFrom(snapshot, p)
 
                     val user = NearbyUser(
                         userId = uid,
@@ -463,7 +538,8 @@ class NearbyViewModel : ViewModel() {
                         randomDetail = randomDetail,
                         loveLanguage = p.loveLanguage,
                         socialCauses = p.socialCauses,
-                        politics = p.politics
+                        politics = p.politics,
+                        totalLikes = totalLikes
                     )
                     userCache[uid] = user
                     cacheTimestamps[uid] = now
@@ -536,7 +612,7 @@ class NearbyViewModel : ViewModel() {
                                 val username = usernameCandidate?.takeIf { it.isNotBlank() } ?: continue
 
                                 val age = calculateAge(profile.dob)
-                                if (isPlus && !matchesFilters(profile, age)) continue
+                                if (!matchesFilters(profile, age)) continue
 
                                 val lastActive = child.child("lastActive").getValue(Long::class.java) ?: profile.lastActive
                                 val online = isUserOnline(now, lastActive)
@@ -565,8 +641,9 @@ class NearbyViewModel : ViewModel() {
                                 val rolesForCard = if (profile.showRolesOnProfile) profile.roles else emptyList()
                                 val tribesForCard = if (profile.showTribesOnProfile) profile.tribes else emptyList()
                                 val kinksForCard = if (profile.showKinksOnProfile) profile.kinks else emptyList()
+                            val totalLikes = likesCountFrom(child, profile)
 
-                                val user = NearbyUser(
+                            val user = NearbyUser(
                                         userId = uid,
                                         username = username,
                                         age = age,
@@ -587,7 +664,8 @@ class NearbyViewModel : ViewModel() {
                                         randomDetail = randomDetail,
                                         loveLanguage = profile.loveLanguage,
                                         socialCauses = profile.socialCauses,
-                                        politics = profile.politics
+                                        politics = profile.politics,
+                                        totalLikes = totalLikes
                                             )
 
                                 results += user
@@ -596,6 +674,130 @@ class NearbyViewModel : ViewModel() {
                             }
                         results
                     }
+    }
+
+    // -------- Server index helpers (order-only; filters stay client-side) --------
+    data class FeedRow(val uid: String, val distanceM: Int? = null, val key: String)
+
+    private suspend fun fetchFeedPage(
+        uid: String,
+        mode: SortMode,
+        startAfterKey: String?,
+        pageSize: Int
+    ): List<FeedRow> = withContext(Dispatchers.IO) {
+        val path = when (mode) {
+            SortMode.NEARBY -> "userFeedIndex/$uid/NEARBY"
+            SortMode.ACTIVE -> "feedIndex/ACTIVE/list"
+            else -> return@withContext emptyList()
+        }
+        val ref = FirebaseRefs.db.getReference(path)
+        val q = if (startAfterKey == null) {
+            ref.limitToFirst(pageSize)
+        } else {
+            ref.orderByKey().startAfter(startAfterKey).limitToFirst(pageSize)
+        }
+        val snap = q.get().await()
+        snap.children.map { c ->
+            val otherUid = c.child("uid").getValue(String::class.java) ?: (c.key ?: "")
+            val dist = c.child("distanceM").getValue(Int::class.java)
+            FeedRow(uid = otherUid, distanceM = dist, key = c.key ?: otherUid)
+        }
+    }
+
+    private suspend fun hydrateProfiles(
+        rows: List<FeedRow>,
+        center: LatLng?
+    ): List<NearbyUser> = withContext(Dispatchers.Default) {
+        val now = System.currentTimeMillis()
+
+        // Build tasks for user nodes
+        val tasks: List<com.google.android.gms.tasks.Task<DataSnapshot>> =
+            rows.map { FirebaseRefs.db.getReference("users").child(it.uid).get() }
+
+        // Await all tasks concurrently
+        // ⬇️ Make types explicit so inference doesn’t fail
+        val ds: List<DataSnapshot> = coroutineScope {
+            val deferreds: List<Deferred<DataSnapshot>> =
+                tasks.map { task: Task<DataSnapshot> ->
+                    async<DataSnapshot>(Dispatchers.IO) { task.await() }
+                }
+            deferreds.awaitAll()
+        }
+
+        val results = mutableListOf<NearbyUser>()
+
+        for ((idx, child) in ds.withIndex()) {
+            val uid = child.key ?: continue
+            if (uid in excludedUserIds) continue
+            if (UserDeletionCache.isDeleted(FirebaseRefs.db, uid, child)) continue
+
+            val p = child.getValue(Profile::class.java) ?: continue
+            if (p.isPrivate) continue
+
+            val usernameCandidate = resolveUsername(child, p, uid) ?: p.name.takeIf { it.isNotBlank() }
+            val username = usernameCandidate?.takeIf { it.isNotBlank() } ?: continue
+
+            val age = calculateAge(p.dob)
+            // ⛔️ Client-side filtering only now — remove this:
+            // if (!matchesFilters(p, age)) continue
+
+            val lastActive = child.child("lastActive").getValue(Long::class.java) ?: p.lastActive
+            val online = isUserOnline(now, lastActive)
+
+            val latLng = profileLatLng(p)
+            val distM: Double =
+                rows.getOrNull(idx)?.distanceM?.toDouble()
+                    ?: (if (center != null && latLng != null)
+                        distanceMeters(center, latLng)
+                    else Double.POSITIVE_INFINITY)
+
+            val compat = currentProfile?.let { cp ->
+                val ageCompat = ageCompatibilityScore(calculateAge(cp.dob), age)
+                val zodiacCompat = zodiacCompatibilityScore(cp.zodiac ?: "", p.zodiac ?: "")
+                (((ageCompat + zodiacCompat) / 2.0) * 100).roundToInt()
+            }
+
+            val detailCandidates = buildList {
+                add(p.bio); add(p.jobRole); add(p.work); add(p.college); add(p.religion); add(p.community)
+                if (p.allowLocationPublic) add(p.hometown)
+            }.filter { it.isNotBlank() }
+            val randomDetail = detailCandidates.randomOrNull()
+
+            val rolesForCard = if (p.showRolesOnProfile) p.roles else emptyList()
+            val tribesForCard = if (p.showTribesOnProfile) p.tribes else emptyList()
+            val kinksForCard = if (p.showKinksOnProfile) p.kinks else emptyList()
+            val totalLikes = likesCountFrom(child, p)
+
+            val user = NearbyUser(
+                userId = uid,
+                username = username,
+                age = age,
+                gender = canonicalGender(p.gender),
+                photoUrl = p.profilepicUrl,
+                lastActiveAt = lastActive,
+                isOnline = online,
+                latLng = latLng,
+                distanceMeters = distM,
+                isPremium = p.isPremium,
+                isPlus = p.isPlus,
+                interests = p.interests,
+                roles = rolesForCard,
+                tribes = tribesForCard,
+                kinks = kinksForCard,
+                sexualOrientation = p.sexualOrientation,
+                compatibilityPct = compat,
+                randomDetail = randomDetail,
+                loveLanguage = p.loveLanguage,
+                socialCauses = p.socialCauses,
+                politics = p.politics,
+                totalLikes = totalLikes
+            )
+
+            results += user
+            userCache[uid] = user
+            cacheTimestamps[uid] = now
+        }
+        results
     }
 
     private suspend fun resolveUsername(

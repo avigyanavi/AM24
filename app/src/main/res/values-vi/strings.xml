@@ -6530,6 +6530,7 @@
     <string name="settings_search_username_hint">Nhập tên người dùng để xem trước hồ sơ của ai đó.</string>
     <string name="settings_search_username_no_results">Không tìm thấy người dùng với tên đó.</string>
     <string name="settings_search_username_premium_only">Chỉ dành cho Premium</string>
+    <string name="sort_popular">Phổ biến</string>
     <string name="unmatch_success">Bạn đã hủy ghép với người này.</string>
     <string name="unmatch_failed">Hủy ghép thất bại. Vui lòng thử lại.</string>
     <string name="dm_likes_label">Lượt thích</string>
