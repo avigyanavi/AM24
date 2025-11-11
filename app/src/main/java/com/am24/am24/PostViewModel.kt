@@ -179,13 +179,74 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun performFeedSearch() {
+        val query = _feedSearchQuery.value.trim()
+        if (query.isBlank()) {
+            _feedSearchResults.value = FeedSearchResults()
+            _isFeedSearchMode.value = false
+            _isFeedSearchLoading.value = false
+            setSearchQuery("")
+            return
+        }
+
+        _feedSearchSelectedTab.value = 0
+        setSearchQuery(query)
+
+        // Enter search mode immediately so the UI can render the results scaffold
+        _isFeedSearchMode.value = true
         _feedSearchResults.value = FeedSearchResults()
-        _isFeedSearchMode.value = false
-        _isFeedSearchLoading.value = false
+        _isFeedSearchLoading.value = true
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val users = searchUsersByQuery(query)
+                val posts = computePostsForSearch(query)
+                val tags = computeTagsForQuery(query)
+
+                withContext(Dispatchers.Main) {
+                    _feedSearchResults.value = FeedSearchResults(
+                        users = users,
+                        posts = posts,
+                        tags = tags
+                    )
+                    _isFeedSearchLoading.value = false
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "performFeedSearch failed: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    _feedSearchResults.value = FeedSearchResults()
+                    _isFeedSearchLoading.value = false
+                }
+            }
+        }
     }
 
     fun setFeedSearchSelectedTab(index: Int) {
         _feedSearchSelectedTab.value = index
+    }
+
+    private suspend fun searchUsersByQuery(query: String): List<Profile> {
+        return try {
+            val cachedMatches = _userProfiles.value.values.filter { profile ->
+                profile.username.contains(query, ignoreCase = true) ||
+                        profile.name.contains(query, ignoreCase = true)
+            }
+
+            val snapshot = FirebaseRefs.db.getReference("users").get().await()
+            val remoteMatches = snapshot.children.mapNotNull { it.getValue(Profile::class.java) }
+                .filter { profile ->
+                    profile.username.contains(query, ignoreCase = true) ||
+                            profile.name.contains(query, ignoreCase = true) ||
+                            profile.userTags.any { tag -> tag.contains(query, ignoreCase = true) }
+                }
+
+            (cachedMatches + remoteMatches)
+                .distinctBy { it.userId }
+                .sortedBy { it.username.lowercase() }
+                .take(40)
+        } catch (e: Exception) {
+            Log.e(TAG, "searchUsersByQuery failed: ${e.message}", e)
+            emptyList()
+        }
     }
 
     private fun computePostsForSearch(query: String): List<Post> {

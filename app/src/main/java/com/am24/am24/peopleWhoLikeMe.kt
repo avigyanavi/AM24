@@ -270,7 +270,7 @@ fun PeopleWhoLikeMeScreen(
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
-                                            text = "Likes: ${profile.numberOfUsersWhoSwiped.toInt()}",
+                                            text = "Total likes: ${profile.UsersWhoLikeMe.size}",
                                             color = Color.White,
                                             style = MaterialTheme.typography.bodySmall
                                         )

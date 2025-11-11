@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 data class MapBootstrapState(
@@ -349,6 +350,9 @@ class NearbyViewModel : ViewModel() {
                     reachedLimit = true
                     query.removeAllListeners()
                     markQueryCompleted()
+                    if (!hasLoadedFirstResult) {
+                               hasLoadedFirstResult = true
+                           }
                 }
                 return
             }
@@ -482,10 +486,16 @@ class NearbyViewModel : ViewModel() {
             override fun onKeyEntered(key: String, location: GeoLocation) = buildUser(key, location)
             override fun onKeyExited(key: String) = onExit(key)
             override fun onKeyMoved(key: String, location: GeoLocation) = buildUser(key, location)
-            override fun onGeoQueryReady() { isRefreshing = false }
+            override fun onGeoQueryReady() {
+                markQueryCompleted()
+                if (!hasLoadedFirstResult) {
+                            hasLoadedFirstResult = true
+                        }
+            }
             override fun onGeoQueryError(error: DatabaseError) {
                 Log.e("MapScreenVM", "GeoQuery error: ${error.message}")
                 isRefreshing = false
+                markQueryCompleted()
             }
         })
         return query
@@ -497,93 +507,95 @@ class NearbyViewModel : ViewModel() {
         geoFireDatabaseRef: DatabaseReference,
         limit: Int,
     ): List<NearbyUser> {
-        val now = System.currentTimeMillis()
-        val fetchCount = (limit * 4).coerceAtLeast(limit + 10)
-        val snapshot = FirebaseRefs.db.getReference("users")
-            .orderByChild("lastActive")
-            .limitToLast(fetchCount)
-            .get()
-            .await()
+                val now = System.currentTimeMillis()
+                val fetchCount = (limit * 4).coerceAtLeast(limit + 10)
+                val snapshot = FirebaseRefs.db.getReference("users")
+                    .orderByChild("lastActive")
+                    .limitToLast(fetchCount)
+                    .get()
+                    .await()
 
-        val results = mutableListOf<NearbyUser>()
-        val seen = mutableSetOf<String>()
+                return withContext(Dispatchers.Default) {
+                        val results = mutableListOf<NearbyUser>()
+                        val seen = mutableSetOf<String>()
 
-        val children = snapshot.children.toList().asReversed()
-        for (child in children) {
-            if (results.size >= limit) break
-            val uid = child.key ?: continue
-            if (!seen.add(uid)) continue
-            if (uid == currentUserId) continue
-            if (uid in excludedUserIds) continue
-            if (UserDeletionCache.isDeleted(FirebaseRefs.db, uid, child)) continue
+                        val children = snapshot.children.toList().asReversed()
+                        for (child in children) {
+                                if (results.size >= limit) break
+                                val uid = child.key ?: continue
+                                if (!seen.add(uid)) continue
+                                if (uid == currentUserId) continue
+                                if (uid in excludedUserIds) continue
+                                if (UserDeletionCache.isDeleted(FirebaseRefs.db, uid, child)) continue
 
-            val profile = child.getValue(Profile::class.java) ?: continue
-            if (profile.isPrivate) continue
+                                val profile = child.getValue(Profile::class.java) ?: continue
+                                if (profile.isPrivate) continue
 
-            val usernameCandidate = resolveUsername(child, profile, uid)
-                ?: profile.name.takeIf { it.isNotBlank() }
-            val username = usernameCandidate?.takeIf { it.isNotBlank() } ?: continue
+                                val usernameCandidate = resolveUsername(child, profile, uid)
+                                    ?: profile.name.takeIf { it.isNotBlank() }
+                                val username = usernameCandidate?.takeIf { it.isNotBlank() } ?: continue
 
-            val age = calculateAge(profile.dob)
-            if (isPlus && !matchesFilters(profile, age)) continue
+                                val age = calculateAge(profile.dob)
+                                if (isPlus && !matchesFilters(profile, age)) continue
 
-            val lastActive = child.child("lastActive").getValue(Long::class.java) ?: profile.lastActive
-            val online = isUserOnline(now, lastActive)
+                                val lastActive = child.child("lastActive").getValue(Long::class.java) ?: profile.lastActive
+                                val online = isUserOnline(now, lastActive)
 
-            val latLng = profileLatLng(profile) ?: fetchGeoLatLng(uid, geoFireDatabaseRef)
-            val distM = latLng?.let { distanceMeters(center, it) } ?: Double.POSITIVE_INFINITY
+                                // IO (geo read) stays suspend, but surrounding list/compat/distance math is on Default
+                                val latLng = profileLatLng(profile) ?: fetchGeoLatLng(uid, geoFireDatabaseRef)
+                                val distM = latLng?.let { distanceMeters(center, it) } ?: Double.POSITIVE_INFINITY
 
-            val compat = currentProfile?.let { cp ->
-                val ageCompat = ageCompatibilityScore(calculateAge(cp.dob), age)
-                val zodiacCompat = zodiacCompatibilityScore(cp.zodiac ?: "", profile.zodiac ?: "")
-                (((ageCompat + zodiacCompat) / 2.0) * 100).roundToInt()
-            }
+                                val compat = currentProfile?.let { cp ->
+                                        val ageCompat = ageCompatibilityScore(calculateAge(cp.dob), age)
+                                        val zodiacCompat = zodiacCompatibilityScore(cp.zodiac ?: "", profile.zodiac ?: "")
+                                        (((ageCompat + zodiacCompat) / 2.0) * 100).roundToInt()
+                                    }
 
-            val detailCandidates = buildList {
-                add(profile.bio)
-                add(profile.jobRole)
-                add(profile.work)
-                add(profile.college)
-                add(profile.religion)
-                add(profile.community)
-                if (profile.allowLocationPublic) add(profile.hometown)
-            }.filter { it.isNotBlank() }
-            val randomDetail = detailCandidates.randomOrNull()
+                                val detailCandidates = buildList {
+                                        add(profile.bio)
+                                        add(profile.jobRole)
+                                        add(profile.work)
+                                        add(profile.college)
+                                        add(profile.religion)
+                                        add(profile.community)
+                                        if (profile.allowLocationPublic) add(profile.hometown)
+                                    }.filter { it.isNotBlank() }
+                                val randomDetail = detailCandidates.randomOrNull()
 
-            val rolesForCard = if (profile.showRolesOnProfile) profile.roles else emptyList()
-            val tribesForCard = if (profile.showTribesOnProfile) profile.tribes else emptyList()
-            val kinksForCard = if (profile.showKinksOnProfile) profile.kinks else emptyList()
+                                val rolesForCard = if (profile.showRolesOnProfile) profile.roles else emptyList()
+                                val tribesForCard = if (profile.showTribesOnProfile) profile.tribes else emptyList()
+                                val kinksForCard = if (profile.showKinksOnProfile) profile.kinks else emptyList()
 
-            val user = NearbyUser(
-                userId = uid,
-                username = username,
-                age = age,
-                gender = canonicalGender(profile.gender),
-                photoUrl = profile.profilepicUrl,
-                lastActiveAt = lastActive,
-                isOnline = online,
-                latLng = latLng,
-                distanceMeters = distM,
-                isPremium = profile.isPremium,
-                isPlus = profile.isPlus,
-                interests = profile.interests,
-                roles = rolesForCard,
-                tribes = tribesForCard,
-                kinks = kinksForCard,
-                sexualOrientation = profile.sexualOrientation,
-                compatibilityPct = compat,
-                randomDetail = randomDetail,
-                loveLanguage = profile.loveLanguage,
-                socialCauses = profile.socialCauses,
-                politics = profile.politics
-            )
+                                val user = NearbyUser(
+                                        userId = uid,
+                                        username = username,
+                                        age = age,
+                                        gender = canonicalGender(profile.gender),
+                                        photoUrl = profile.profilepicUrl,
+                                        lastActiveAt = lastActive,
+                                        isOnline = online,
+                                        latLng = latLng,
+                                        distanceMeters = distM,
+                                        isPremium = profile.isPremium,
+                                        isPlus = profile.isPlus,
+                                        interests = profile.interests,
+                                        roles = rolesForCard,
+                                        tribes = tribesForCard,
+                                        kinks = kinksForCard,
+                                        sexualOrientation = profile.sexualOrientation,
+                                        compatibilityPct = compat,
+                                        randomDetail = randomDetail,
+                                        loveLanguage = profile.loveLanguage,
+                                        socialCauses = profile.socialCauses,
+                                        politics = profile.politics
+                                            )
 
-            results += user
-            userCache[uid] = user
-            cacheTimestamps[uid] = now
-        }
-
-        return results
+                                results += user
+                               userCache[uid] = user
+                                cacheTimestamps[uid] = now
+                            }
+                        results
+                    }
     }
 
     private suspend fun resolveUsername(

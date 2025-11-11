@@ -1959,7 +1959,9 @@ private fun ProfileCard(
     val showCheck = swipeOffset > 0f
     val showClose = swipeOffset < 0f
     LaunchedEffect(currentIndex) {
-        scope.launch { listState.animateScrollToItem(currentIndex) }
+        if (photos.size > 1) {
+                   scope.launch { listState.animateScrollToItem(currentIndex) }
+               }
     }
 
     Box(
