@@ -1,5 +1,4 @@
 // HomeScreen.kt - Part 1
-
 @file:OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 
 package com.am24.am24

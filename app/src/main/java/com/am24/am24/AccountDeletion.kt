@@ -4,6 +4,7 @@ import android.util.Log
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 
@@ -106,7 +107,10 @@ object AccountDeletion {
             } catch (_: Exception) {}
 
             // Delete auth account
-            user.delete().await()
+            FirebaseFunctions.getInstance("asia-southeast1")
+                .getHttpsCallable("forceDeleteAccount")
+                .call()
+                .await()
         } catch (e: Exception) {
             Log.e(TAG, "deleteAccount failed: ${e.message}", e)
             throw e

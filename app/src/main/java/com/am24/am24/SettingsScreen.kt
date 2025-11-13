@@ -199,40 +199,43 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
     ) {
         if (!sessionReady) return@LaunchedEffect
         val profile = currentProfile ?: return@LaunchedEffect
+                // ───────── REWRITTEN: clear, independent checks for Plus/Premium ─────────
+                val now = System.currentTimeMillis()
 
-        val now = System.currentTimeMillis()
-        val entryFeePaidExpiry = entryFeePaidAtValue
-            .takeIf { it > 0L }
-            ?.let { it + TimeUnit.DAYS.toMillis(30) }
-        val nextRenewalActive = nextRenewalValue?.takeIf { it > now }
-        val activeEntryFeeExpiry = listOfNotNull(
-            entryFeePaidExpiry?.takeIf { entryFeePaidFlag && it > now },
-            nextRenewalActive
-        ).maxOrNull()
-        val activeLoginPlusExpiry = loginPlusExpiryValue.takeIf { it > now }
-        val entryFeeActive = entryFeePaidFlag && (
-                loginPlusExpiryValue > now ||
-                        activeEntryFeeExpiry != null ||
-                        nextRenewalActive != null
-                )
-        val plusExpired = (isPlusFlag || entryFeePaidFlag) && !entryFeeActive && !isPremiumFlag
+                // (A) one-time entry fee → 30-day window
+                val entryFeePaidExpiry = entryFeePaidAtValue
+                    .takeIf { it > 0L }
+                    ?.let { it + TimeUnit.DAYS.toMillis(30) }
+                val entryFeeActive   = entryFeePaidFlag && (entryFeePaidExpiry != null && entryFeePaidExpiry > now)
 
-        premiumTier = when {
-            isPremiumFlag -> "Premium"
-            isPlusFlag && !plusExpired -> "Plus"
-            entryFeeActive -> "Plus"
-            else -> "Free"
-        }
-        val offerActive = entryFeeOfferExpiryValue.takeIf { it > now }
+                // (B) login-granted Plus (free trial / promo)
+                val loginPlusActive  = loginPlusExpiryValue > now
 
-        loginPlusExpiry = if (plusExpired) 0L else loginPlusExpiryValue
-        expiry = when {
-            activeEntryFeeExpiry != null -> DateFormat.getDateInstance().format(Date(activeEntryFeeExpiry))
-            !subscriptionIdValue.isNullOrBlank() -> "Never"
-            nextRenewalActive != null -> DateFormat.getDateInstance().format(Date(nextRenewalActive))
-            activeLoginPlusExpiry != null -> DateFormat.getDateInstance().format(Date(activeLoginPlusExpiry))
-            else -> ctx.getString(R.string.na)
-        }
+                // (C) billed subscription has a next renewal in the future
+                val nextRenewalActive = nextRenewalValue?.takeIf { it > now }
+                val subscriptionActive = nextRenewalActive != null
+
+                // Final tier: Premium wins; else any Plus route wins; else Free.
+                val plusActive = loginPlusActive || entryFeeActive || subscriptionActive
+                premiumTier = when {
+                        isPremiumFlag -> "Premium"
+                        plusActive    -> "Plus"
+                        else          -> "Free"
+                    }
+
+                // Persist login-plus countdown only when it’s actually active
+                loginPlusExpiry = if (loginPlusActive) loginPlusExpiryValue else 0L
+
+                // Pick the *latest* relevant expiry to show
+                val chosenExpiry = listOfNotNull(
+                        entryFeePaidExpiry?.takeIf { it > now },
+                        loginPlusExpiryValue.takeIf { it > now },
+                        nextRenewalActive
+                            ).maxOrNull()
+                expiry = chosenExpiry?.let { DateFormat.getDateInstance().format(Date(it)) }
+                    ?: if (!subscriptionIdValue.isNullOrBlank()) "Never" else ctx.getString(R.string.na)
+
+                val offerActive = entryFeeOfferExpiryValue.takeIf { it > now }
 
         subscriptionId = subscriptionIdValue
         subscriptionStatus = subscriptionStatusValue
@@ -905,7 +908,7 @@ private fun AccountCard(uid: String) {
                 },
                 trailingContent = {
                     val trimmedUsername = username.trim()
-                    val enabled = trimmedUsername.isNotBlank() && unameStatus == "ok"
+                    val enabled = trimmedUsername.isNotBlank() && unameStatus == "✅"
                     TextButton(
                         onClick = {
                             editingUname = false

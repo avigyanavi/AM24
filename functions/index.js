@@ -468,6 +468,14 @@ exports.refreshNearbyIndexes = functions
     return null;
   });
 
+exports.forceDeleteAccount = functions.region('asia-southeast1').https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Sign in required');
+  const uid = context.auth.uid;
+  await admin.auth().deleteUser(uid);
+  await admin.auth().revokeRefreshTokens(uid);  // optional
+  return { ok: true };
+});
+
 async function buildNearbyIndexFor(uid) {
   const db = admin.database();
   const [locSnap, uSnap] = await Promise.all([

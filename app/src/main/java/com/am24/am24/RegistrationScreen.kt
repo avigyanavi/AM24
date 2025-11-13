@@ -500,12 +500,9 @@ private fun tryRegister(
                     .addOnSuccessListener {
                         val uid = auth.currentUser!!.uid
                         // 2) Check for a username in the DB
-                        db.child(uid).child("username").get()
+                        db.child("users").child(uid).child("username").get()
                             .addOnSuccessListener { snap ->
                                 if (!snap.exists()) {
-                                    // 🗑️  Incomplete!  Wipe it:
-//                                    cleanupIncompleteUser(auth, FirebaseDatabase.getInstance("https://kupidxdefault.asia-southeast1.firebasedatabase.app/"),
-//                                        storage)
                                     // after it’s deleted, create the new one:
                                     createFreshAccount(typedEmail, typedPassword, onSuccess, onError)
                                 } else {
@@ -528,8 +525,6 @@ private fun tryRegister(
             onError("Error checking sign-in methods: ${e.message}")
         }
 }
-
-
 
 /**
  * Wipes out any half-baked Firebase user data (RTDB, GeoFire, Storage)
@@ -2493,6 +2488,18 @@ suspend fun saveProfileToFirebase(
         val preservedMonetizationFields: Map<String, Any> = runCatching {
         val snapshot = userRef.get().await()
             val preserved = mutableMapOf<String, Any>()
+            snapshot.child("isPlus").getValue(Boolean::class.java)?.let {
+                preserved["isPlus"] = it
+            }
+            snapshot.child("isPremium").getValue(Boolean::class.java)?.let {
+                preserved["isPremium"] = it
+            }
+            snapshot.child("premiumExpiryDate").getValue(Long::class.java)?.let {
+                preserved["premiumExpiryDate"] = it
+            }
+            snapshot.child("nextRenewal").getValue(Long::class.java)?.let {
+                preserved["nextRenewal"] = it
+            }
             snapshot.child("entryFeeOfferExpiry").getValue(Long::class.java)?.let {
                 preserved["entryFeeOfferExpiry"] = it
             }
@@ -2651,6 +2658,9 @@ suspend fun saveProfileToFirebase(
         userRef.setValue(profile).await()
         if (preservedMonetizationFields.isNotEmpty()) {
             userRef.updateChildren(preservedMonetizationFields).await()
+        }
+        if (preservedUpdates.isNotEmpty()) {
+            userRef.updateChildren(preservedUpdates).await()
         }
         entryFeeOfferExpiryDeadline?.let { expiry ->
             userRef.child("entryFeeOfferExpiry").setValue(expiry).await()

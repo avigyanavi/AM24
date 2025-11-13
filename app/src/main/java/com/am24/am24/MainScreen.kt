@@ -30,10 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.animation.core.*
 import androidx.compose.ui.Alignment.Companion.Center
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -583,29 +580,13 @@ fun TopNavBar(
                         )
                     }
 
-                    // Create Post with a subtle pulsing animation
-                    val infiniteTransition = rememberInfiniteTransition()
-                    val scale by infiniteTransition.animateFloat(
-                        initialValue = 1f,
-                        targetValue = 1.2f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(durationMillis = 600, easing = LinearEasing),
-                            repeatMode = RepeatMode.Reverse
-                        )
-                    )
                     IconButton(
-                                onClick = { navController.navigate("create_post") },
-                        modifier = Modifier
-                            .graphicsLayer(
-                                scaleX = scale,
-                                scaleY = scale,
-                                transformOrigin = TransformOrigin.Center
-                            )
+                        onClick = { navController.navigate("create_post") }
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = stringResource(R.string.cd_create_post),
-                            tint = Color.White,
+                            tint = KupidxOrange,
                             modifier = Modifier.size(28.dp)
                         )
                     }
