@@ -120,12 +120,27 @@ fun HomeScreen(
     // Wait for filters to load.
     val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
     val isInitialFeedLoading by postViewModel.isInitialFeedLoading.collectAsState()
-    if (!filtersLoaded || isInitialFeedLoading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(color = Color(0xFFFF6F00))
+    val isLoadingState = !filtersLoaded || isInitialFeedLoading
+    var showLoadingFallback by remember { mutableStateOf(false) }
+    LaunchedEffect(isLoadingState) {
+        if (isLoadingState) {
+            showLoadingFallback = false
+            delay(5000)
+            showLoadingFallback = true
+        } else {
+            showLoadingFallback = false
+        }
+    }
+    if (isLoadingState) {
+        if (!showLoadingFallback) {
+            HomeScreenLoadingSkeleton(modifier = modifier)
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFFFF6F00))
+            }
         }
     } else {
         // Once loaded, collect posts and profiles.
@@ -170,6 +185,64 @@ fun HomeScreen(
             onSortOptionChanged = { newSortOption -> postViewModel.setSortOption(newSortOption) },
             listState = rememberLazyListState() // Pass listState for scroll control
         )
+    }
+}
+
+@Composable
+private fun HomeScreenLoadingSkeleton(modifier: Modifier = Modifier) {
+    val shimmer = PlaceholderHighlight.shimmer()
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        items(5) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color(0xFF1F1F1F))
+                    .padding(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .placeholder(
+                            visible = true,
+                            color = Color(0xFF2A2A2A),
+                            highlight = shimmer
+                        )
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .height(18.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .placeholder(
+                            visible = true,
+                            color = Color(0xFF2A2A2A),
+                            highlight = shimmer
+                        )
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth(0.4f)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .placeholder(
+                            visible = true,
+                            color = Color(0xFF2A2A2A),
+                            highlight = shimmer
+                        )
+                )
+            }
+        }
     }
 }
 
@@ -1355,7 +1428,7 @@ fun FeedItem(
                                             Toast.makeText(context, msg2, Toast.LENGTH_SHORT).show()
                                             showReportDialog = false
                                         } catch (e: Exception) {
-                                            Toast.makeText(context, "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            if (e is CancellationException) throw e
                                         }
                                     }
                                 },
@@ -1693,11 +1766,7 @@ fun CommentsDialog(
                     Log.e("VoiceComment", "Recording error: ${e.message}")
                     withContext(Dispatchers.Main) {
                         isRecording = false
-                        Toast.makeText(
-                            context,
-                            "Recording failed: ${e.message}",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        if (e is CancellationException) throw e
                     }
                     withContext(Dispatchers.IO) {
                         recorder?.release()
@@ -1726,6 +1795,7 @@ fun CommentsDialog(
                 }
             } catch (e: Exception) {
                 Log.e("VoiceComment", "Stop recording error: ${e.message}")
+                if (e is CancellationException) throw e
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Recording failed: ${e.message}", Toast.LENGTH_SHORT).show()
                 }

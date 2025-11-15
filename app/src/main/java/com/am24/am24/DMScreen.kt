@@ -348,13 +348,6 @@ fun DMScreenContent(
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             Log.e("DMScreen", "Failed to load matches", e)
-            Toast.makeText(
-                context,
-                context.getString(R.string.toast_error_generic, e.message ?: ""),
-                Toast.LENGTH_SHORT
-            ).show()
-            matchedUsers.clear()
-            nonInitiatedMatches.clear()
         } finally {
             isLoadingMatches = false
         }

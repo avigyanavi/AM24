@@ -19,7 +19,9 @@ import android.widget.Toast
 import androidx.lifecycle.asFlow
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.detectTapGestures
+import com.google.accompanist.placeholder.PlaceholderHighlight
+import com.google.accompanist.placeholder.material.placeholder
+import com.google.accompanist.placeholder.material.shimmer
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -103,6 +105,7 @@ import androidx.compose.ui.semantics.semantics
 import android.content.res.Resources
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.cancellation.CancellationException
 
 /* ======================================================================================= */
 /*  Theme bits                                                                             */
@@ -189,6 +192,7 @@ suspend fun getLatLngFromPlaceId(placeId: String, context: android.content.Conte
         latLngCache[placeId] = latLng
         latLng
     } catch (e: Exception) {
+        if (e is CancellationException) throw e
         Log.e("MapScreen", "Failed to fetch LatLng for placeId: $placeId", e)
         latLngCache[placeId] = null
         null
@@ -202,6 +206,7 @@ suspend fun getPlaceNameFromPlaceId(placeId: String, context: android.content.Co
         val response = placesClient.fetchPlace(request).await()
         response.place.name
     } catch (e: Exception) {
+        if (e is CancellationException) throw e
         Log.e("MapScreen", "Failed to fetch name for placeId: $placeId", e)
         null
     }
@@ -376,8 +381,8 @@ fun MapScreen(
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
         val desiredSortMode = when (selectedTab) {
-            0 -> SortMode.ACTIVE
-            1 -> SortMode.NEARBY
+            0 -> SortMode.NEARBY
+            1 -> SortMode.ACTIVE
             else -> null
         }
 
@@ -801,6 +806,7 @@ fun MapScreen(
                 resolvedPairs.forEach { (pid, ll) -> ll?.let { clusterLatLngs[pid] = it; heatPoints += it } }
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e("MapScreen", "Check-in load failed: ${e.message}", e)
         }
     }
@@ -850,6 +856,7 @@ fun MapScreen(
                         val canShow = if (isMatch) (allowForMatches || allowPublic) else allowPublic
                         user.userId to canShow
                     } catch (e: Exception) {
+                        if (e is CancellationException) throw e
                         Log.w("MapScreen", "Failed to resolve map visibility for ${user.userId}", e)
                         user.userId to false
                     }
@@ -892,6 +899,7 @@ fun MapScreen(
                             photoUrl = profile.profilepicUrl
                         )
                     } catch (e: Exception) {
+                        if (e is CancellationException) throw e
                         Log.w("MapScreen", "Failed to load match profile $uid", e)
                         null
                     }

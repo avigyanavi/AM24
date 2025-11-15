@@ -51,6 +51,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
+import kotlin.coroutines.cancellation.CancellationException
 
 
 /* ───────────────────────────────────────────────  small helpers ── */
@@ -664,7 +665,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                                     Toast.makeText(ctx, "Feedback sent", Toast.LENGTH_SHORT).show()
                                     showFeedbackDialog = false
                                 } catch (e: Exception) {
-                                    Toast.makeText(ctx, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                    if (e is CancellationException) throw e
                                 } finally {
                                     working = false
                                     feedbackText = ""
@@ -697,7 +698,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                                 clearExcludedUsers(uid)
                                 Toast.makeText(ctx, "Swipe exclusions cleared", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
-                                Toast.makeText(ctx, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                if (e is CancellationException) throw e
                             }
                         }
                     }) {
@@ -731,7 +732,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                                     ctx.startActivity(Intent(ctx, LandingActivity::class.java))
                                     (ctx as? ComponentActivity)?.finish()
                                 } catch (e: Exception) {
-                                    Toast.makeText(ctx, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                    if (e is CancellationException) throw e
                                 } finally {
                                     working = false
                                     showDeleteDialog = false
@@ -949,7 +950,7 @@ private fun AccountCard(uid: String) {
                                     FirebaseAuth.getInstance().currentUser?.sendEmailVerification()?.await()
                                     Toast.makeText(ctx, R.string.email_verification_sent, Toast.LENGTH_LONG).show()
                                 } catch (e: Exception) {
-                                    Toast.makeText(ctx, e.localizedMessage ?: "Error", Toast.LENGTH_LONG).show()
+                                    if (e is CancellationException) throw e
                                 } finally {
                                     isSendingEmail = false
                                 }
@@ -983,7 +984,7 @@ private fun AccountCard(uid: String) {
                                     Toast.makeText(ctx, R.string.email_not_verified_yet, Toast.LENGTH_LONG).show()
                                 }
                             } catch (e: Exception) {
-                                Toast.makeText(ctx, e.localizedMessage ?: "Error", Toast.LENGTH_LONG).show()
+                                if (e is CancellationException) throw e
                             }
                         }
                     }) { Text(stringResource(R.string.ive_verified), color = KupidxOrange) }
@@ -1061,7 +1062,7 @@ private fun AccountCard(uid: String) {
                                 Toast.makeText(ctx, R.string.password_updated, Toast.LENGTH_SHORT).show()
                                 showPassDialog = false
                             } catch (e: Exception) {
-                                Toast.makeText(ctx, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                if (e is CancellationException) throw e
                             } finally {
                                 working = false
                                 oldPass = ""; newPass = ""; confirm = ""
@@ -1275,6 +1276,7 @@ private fun BlockedUsersCard(
                             .await()
                         userId to (snap.getValue(String::class.java) ?: userId)
                     } catch (e: Exception) {
+                        if (e is CancellationException) throw e
                         Log.e("SettingsScreen", "Failed to load username for $userId", e)
                         userId to userId
                     }
