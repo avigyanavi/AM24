@@ -66,7 +66,7 @@ fun LeaderboardScreen(
     var ageRange by remember { mutableStateOf(18f..100f) }
     // existing composite slider in percent 0–100:
     var minComposite by remember { mutableStateOf(0f) }
-
+    var minSwipeRights by remember { mutableStateOf(0f) }
     // collapse/expand filters
     var filtersExpanded by remember { mutableStateOf(false) }
 
@@ -97,6 +97,9 @@ fun LeaderboardScreen(
     }
     LaunchedEffect(minComposite, leaderboardVm) {
         leaderboardVm?.setMinCompositePct(minComposite.toDouble())
+    }
+    LaunchedEffect(minSwipeRights, leaderboardVm) {
+        leaderboardVm?.setMinSwipeRights(minSwipeRights.roundToInt())
     }
 
     Scaffold(
@@ -166,7 +169,9 @@ fun LeaderboardScreen(
                                 ageRange = ageRange,
                                 onAgeRangeChange = { ageRange = it },
                                 minComposite = minComposite,
-                                onMinCompositeChange = { minComposite = it }
+                                onMinCompositeChange = { minComposite = it },
+                                minSwipeRights = minSwipeRights,
+                                onMinSwipeRightsChange = { minSwipeRights = it }
                             )
                         }
                     }
@@ -226,7 +231,9 @@ fun LeaderboardFilters(
     ageRange: ClosedFloatingPointRange<Float>,
     onAgeRangeChange: (ClosedFloatingPointRange<Float>) -> Unit,
     minComposite: Float,
-    onMinCompositeChange: (Float) -> Unit
+    onMinCompositeChange: (Float) -> Unit,
+    minSwipeRights: Float,
+    onMinSwipeRightsChange: (Float) -> Unit
 ) {
     Column(Modifier.padding(16.dp)) {
         // 1️⃣ Gender chips
@@ -466,6 +473,21 @@ fun LeaderboardFilters(
             colors = SliderDefaults.colors(
                 thumbColor = Color(0xFFFF6000),
                 activeTrackColor = Color(0xFFFF6000),
+                inactiveTrackColor = Color.Gray
+            )
+        )
+        Spacer(Modifier.height(16.dp))
+
+        Text("Min likes: ${minSwipeRights.roundToInt()}", color = Color.White)
+        Slider(
+            value = minSwipeRights,
+            onValueChange = onMinSwipeRightsChange,
+            valueRange = 0f..200f,
+            modifier = Modifier.fillMaxWidth(),
+            steps = 19,
+            colors = SliderDefaults.colors(
+                thumbColor = Color(0xFFFF6F00),
+                activeTrackColor = Color(0xFFFF6F00),
                 inactiveTrackColor = Color.Gray
             )
         )

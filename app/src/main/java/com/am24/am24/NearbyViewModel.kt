@@ -13,7 +13,8 @@ import com.firebase.geofire.GeoQuery
 import com.firebase.geofire.GeoQueryEventListener
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.database.*
-import com.am24.am24.calculateAge
+import kotlin.math.max
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
@@ -28,6 +29,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -74,7 +78,6 @@ class NearbyViewModel : ViewModel() {
     var excludedUserIds by mutableStateOf<Set<String>>(emptySet())
     var isPlus by mutableStateOf(false)
     var isPremium by mutableStateOf(false)
-    var isRefreshing by mutableStateOf(false)
     var currentProfile: Profile? = null
     var mapBootstrapState by mutableStateOf<MapBootstrapState?>(null)
         private set
@@ -90,42 +93,43 @@ class NearbyViewModel : ViewModel() {
             }
         }
     var currentLimit by mutableStateOf(10)
-    var hasAttemptedInitialLoad by mutableStateOf(false)
-        private set
+    private val _hasAttemptedInitialLoad = MutableStateFlow(false)
+    val hasAttemptedInitialLoad: StateFlow<Boolean> = _hasAttemptedInitialLoad.asStateFlow()
 
-    var hasLoadedFirstResult by mutableStateOf(false)
-        private set
+    private val _hasLoadedFirstResult = MutableStateFlow(false)
+    val hasLoadedFirstResult: StateFlow<Boolean> = _hasLoadedFirstResult.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     private var lastQueryKey: NearbyQueryKey? = null
     private var _hasLoadedExcludes = false
-    private var pendingFetches = 0
-    private var geoQueryCompleted = false
+    private val pendingFetches = AtomicInteger(0)
+    @Volatile private var geoQueryCompleted = false
     private var lastIndexKey: String? = null   // pagination anchor for server index modes
 
     private fun resetRefreshTracking() {
-        pendingFetches = 0
+        pendingFetches.set(0)
         geoQueryCompleted = false
-        isRefreshing = true
+        _isRefreshing.value = true
     }
 
     private fun markFetchStarted() {
-        pendingFetches += 1
-        isRefreshing = true
+        pendingFetches.incrementAndGet()
+        _isRefreshing.value = true
     }
 
     private fun markFetchFinished() {
-        if (pendingFetches > 0) {
-            pendingFetches -= 1
-        }
-        if (pendingFetches == 0 && geoQueryCompleted) {
-            isRefreshing = false
+        val remaining = pendingFetches.updateAndGet { current -> max(0, current - 1) }
+        if (remaining == 0 && geoQueryCompleted) {
+            _isRefreshing.value = false
         }
     }
 
     private fun markQueryCompleted() {
         geoQueryCompleted = true
-        if (pendingFetches == 0) {
-            isRefreshing = false
+        if (pendingFetches.get() == 0) {
+            _isRefreshing.value = false
         }
     }
 
@@ -228,7 +232,7 @@ class NearbyViewModel : ViewModel() {
         forceRefresh: Boolean = false,
         previousResults: Map<String, NearbyUser>? = null
     ) {
-        hasAttemptedInitialLoad = true
+        _hasAttemptedInitialLoad.value = true
         val filtersSnapshot = datingFilters
         val currentSortMode = sortMode
         val newKey = NearbyQueryKey(
@@ -245,9 +249,9 @@ class NearbyViewModel : ViewModel() {
                 people.addAll(previousResults.values)
                 markFirstResultIfNeeded()
             }
-            pendingFetches = 0
+            pendingFetches.set(0)
             geoQueryCompleted = true
-            isRefreshing = false
+            _isRefreshing.value = false
             return
         }
         lastQueryKey = newKey
@@ -260,13 +264,13 @@ class NearbyViewModel : ViewModel() {
         // Watchdog: never let the spinner spin forever
         viewModelScope.launch {
             delay(refreshWatchdogMs)
-            if (isRefreshing && !geoQueryCompleted && pendingFetches == 0) {
+            if (_isRefreshing.value && !geoQueryCompleted && pendingFetches.get() == 0) {
                 markQueryCompleted() // safely flips isRefreshing=false
             }
         }
 
         people.clear()
-        hasLoadedFirstResult = false
+        _hasLoadedFirstResult.value = false
 
         // Prefer prebuilt index (order-only, no filters). Fallback to old path if missing.
         val indexPath = when (currentSortMode) {
@@ -343,13 +347,23 @@ class NearbyViewModel : ViewModel() {
 
         // NEARBY legacy path (GeoFire live radius)
         geoQuery = observeNearbyUsers(
-              currentUserId = userId,
-              center = center,
-              radiusKm = radiusKm,
-              geoFireDatabaseRef = geoFireDatabaseRef,
-              limit = limit,
-              onEnterOrMove = { if (it.userId !in excludedUserIds) upsert(people, it) },
-              onExit = { uid -> people.removeAll { it.userId == uid } }
+            currentUserId = userId,
+            center = center,
+            radiusKm = radiusKm,
+            geoFireDatabaseRef = geoFireDatabaseRef,
+            limit = limit,
+            onEnterOrMove = { user ->
+                viewModelScope.launch(Dispatchers.Main.immediate) {
+                    if (user.userId !in excludedUserIds) {
+                        upsert(people, user)
+                    }
+                }
+            },
+            onExit = { uid ->
+                viewModelScope.launch(Dispatchers.Main.immediate) {
+                    people.removeAll { it.userId == uid }
+                }
+            }
         )
     }
 
@@ -375,8 +389,8 @@ class NearbyViewModel : ViewModel() {
         }
     }
     private fun markFirstResultIfNeeded() {
-        if (!hasLoadedFirstResult && people.isNotEmpty()) {
-            hasLoadedFirstResult = true
+        if (!_hasLoadedFirstResult.value && people.isNotEmpty()) {
+            _hasLoadedFirstResult.value = true
         }
     }
 
@@ -386,7 +400,7 @@ class NearbyViewModel : ViewModel() {
         center: LatLng,
         geoFireDatabaseRef: DatabaseReference
     ) {
-        hasAttemptedInitialLoad = true
+        _hasAttemptedInitialLoad.value = true
 
         val prev = people.associateBy { it.userId }
         currentLimit += increment
@@ -424,9 +438,9 @@ class NearbyViewModel : ViewModel() {
                     reachedLimit = true
                     query.removeAllListeners()
                     markQueryCompleted()
-                    if (!hasLoadedFirstResult) {
-                               hasLoadedFirstResult = true
-                           }
+                    if (!_hasLoadedFirstResult.value) {
+                        _hasLoadedFirstResult.value = true
+                    }
                 }
                 return
             }
@@ -564,13 +578,13 @@ class NearbyViewModel : ViewModel() {
             override fun onKeyMoved(key: String, location: GeoLocation) = buildUser(key, location)
             override fun onGeoQueryReady() {
                 markQueryCompleted()
-                if (!hasLoadedFirstResult) {
-                            hasLoadedFirstResult = true
-                        }
+                if (!_hasLoadedFirstResult.value) {
+                    _hasLoadedFirstResult.value = true
+                }
             }
             override fun onGeoQueryError(error: DatabaseError) {
                 Log.e("MapScreenVM", "GeoQuery error: ${error.message}")
-                isRefreshing = false
+                _isRefreshing.value = false
                 markQueryCompleted()
             }
         })

@@ -6,6 +6,7 @@
 
 package com.am24.am24
 
+import DatingViewModel
 import android.Manifest
 import android.annotation.SuppressLint
 import com.am24.am24.SexualOrientation
@@ -88,7 +89,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.*
-
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.gson.Gson
@@ -251,6 +252,10 @@ fun MapScreen(
     val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val gson = remember { Gson() }
     val scope = rememberCoroutineScope()
+    val datingViewModel: DatingViewModel = viewModel()
+    val dmBootstrap by datingViewModel.dmBootstrap.collectAsState()
+    val complimentQueue = remember { mutableStateListOf<ComplimentWithProfile>() }
+    val database = remember { FirebaseRefs.db }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val useMiles = remember { !CountryUtil.usesKilometers(ctx) } // decide unit once
@@ -297,6 +302,13 @@ fun MapScreen(
     val entryFeeOfferExpiryFlow by profileViewModel.entryFeeOfferExpiry.collectAsState()
     val entryFeeOfferSeenFlow by profileViewModel.entryFeeOfferSeen.collectAsState()
     val nextRenewalFlow by profileViewModel.nextRenewal.collectAsState()
+    val isRefreshing by nearbyViewModel.isRefreshing.collectAsState()
+    val hasAttemptedInitialLoad by nearbyViewModel.hasAttemptedInitialLoad.collectAsState()
+    val hasLoadedFirstResult by nearbyViewModel.hasLoadedFirstResult.collectAsState()
+    LaunchedEffect(dmBootstrap) {
+        complimentQueue.clear()
+        dmBootstrap?.compliments?.let { complimentQueue.addAll(it) }
+    }
     val activeFilterLabels = remember(datingFilters, ctx) {
         val labels = mutableListOf<String>()
 
@@ -653,11 +665,11 @@ fun MapScreen(
     }
 
     // listen for nearby users (grid)
+// AFTER
     LaunchedEffect(userLatLng, isPlus, isPremium) {
         val me = userLatLng ?: return@LaunchedEffect
-        nearbyViewModel.refreshNearbyUsers(userId, me, geoFireDatabaseRef)
         snapshotFlow { radiusKm }
-            .drop(1)
+            .drop(1)           // only react to *changes* in radius
             .debounce(300)
             .collectLatest {
                 val previous = nearbyViewModel.people.associateBy { it.userId }
@@ -980,7 +992,15 @@ fun MapScreen(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
-        Column(Modifier.padding(padding)) {
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
 
             if (!(isPremium) && selectedTab == 2) {
                 selectedTab = 0
@@ -1046,12 +1066,12 @@ fun MapScreen(
                         }
                         LaunchedEffect(
                             sortedPeople.isEmpty(),
-                            nearbyViewModel.isRefreshing,
+                            isRefreshing,
                             userLatLng,
                             autoPagedNearby
                         ) {
                             val location = userLatLng
-                            if (sortedPeople.isEmpty() && !nearbyViewModel.isRefreshing && !autoPagedNearby && location != null) {
+                            if (sortedPeople.isEmpty() && !isRefreshing && !autoPagedNearby && location != null) {
                                 autoPagedNearby = true
                                 nearbyViewModel.loadNextPage(25, userId, location, geoFireDatabaseRef)
                             }
@@ -1059,7 +1079,7 @@ fun MapScreen(
                                 autoPagedNearby = false
                             }
                         }
-                        val refreshState = rememberSwipeRefreshState(nearbyViewModel.isRefreshing)
+                        val refreshState = rememberSwipeRefreshState(isRefreshing)
                         SwipeRefresh(
                             state = refreshState,
                             onRefresh = {
@@ -1069,10 +1089,10 @@ fun MapScreen(
                             PeopleGrid(
                                 users = sortedPeople,
                                 isLoading =
-                                    !nearbyViewModel.hasLoadedFirstResult && (
+                                    !hasLoadedFirstResult && (
                                             userLatLng == null ||
-                                                    !nearbyViewModel.hasAttemptedInitialLoad ||
-                                                    nearbyViewModel.isRefreshing
+                                                    !hasAttemptedInitialLoad ||
+                                                    isRefreshing
                                             ),
                                 onClick = {
                                     if (swipesLoaded && remainingSwipes <= 0) {
@@ -1121,12 +1141,12 @@ fun MapScreen(
                         }
                         LaunchedEffect(
                             sortedPeople.isEmpty(),
-                            nearbyViewModel.isRefreshing,
+                            isRefreshing,
                             userLatLng,
                             autoPagedCards
                         ) {
                             val location = userLatLng
-                            if (sortedPeople.isEmpty() && !nearbyViewModel.isRefreshing && !autoPagedCards && location != null) {
+                            if (sortedPeople.isEmpty() && !isRefreshing && !autoPagedCards && location != null) {
                                 autoPagedCards = true
                                 nearbyViewModel.loadNextPage(10, userId, location, geoFireDatabaseRef)
                             }
@@ -1136,8 +1156,8 @@ fun MapScreen(
                         }
                         CardsList(
                             users = sortedPeople,
-                            isLoading = nearbyViewModel.isRefreshing || userLatLng == null ||
-                                    !nearbyViewModel.hasAttemptedInitialLoad,
+                            isLoading = isRefreshing || userLatLng == null ||
+                                    !hasAttemptedInitialLoad,
                             useMiles = useMiles,          // <-- pass through
                             onLike = { user ->
                                 if (swipesLoaded && remainingSwipes <= 0) {
@@ -1807,6 +1827,35 @@ fun MapScreen(
             }
         )
     }
+        val complimentItems = complimentQueue.toList()
+        if (complimentItems.isNotEmpty()) {
+            ComplimentPopupStack(
+                items = complimentItems,
+                modifier = Modifier
+                    .padding(16.dp),
+                onAccept = { item ->
+                    createMatch(database, userId, item.profile.userId)
+                    val updates = mapOf(
+                        "compliments/${item.profile.userId}/$userId" to null,
+                        "complimentsReceived/$userId/${item.profile.userId}" to null
+                    )
+                    complimentQueue.remove(item)
+                    database.reference.updateChildren(updates)
+                },
+                onReject = { item ->
+                    val updates = mapOf(
+                        "compliments/${item.profile.userId}/$userId" to null,
+                        "complimentsReceived/$userId/${item.profile.userId}" to null
+                    )
+                    complimentQueue.remove(item)
+                    database.reference.updateChildren(updates)
+                },
+                onOpenProfile = { item ->
+                    navController.navigate("previewUserProfile/${item.profile.userId}")
+                }
+            )
+        }
+        }
 }
 
 /* ======================================================================================= */
@@ -2120,7 +2169,6 @@ private fun ProfileCard(
                         if (user.distanceMeters.isFinite()) {
                             append(" · ")
                             append(prettyDistance(user.distanceMeters, useMiles))
-                            append(" · ")
                         }
                         user.totalLikes?.let {
                             if (it > 0) {
@@ -2395,7 +2443,6 @@ private fun NearbyCard(
                                 if (user.distanceMeters.isFinite()) {
                                     append(" · ")
                                     append(prettyDistance(user.distanceMeters, useMiles))
-                                    append(" · ")
                                     }
                         user.totalLikes?.let {
                             if (it > 0) {

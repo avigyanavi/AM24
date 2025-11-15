@@ -744,7 +744,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshPosts() {
         Log.d(TAG, "Refreshing posts...")
         clearAllFilters()
-        _isInitialFeedLoading.value = _currentUserId.value != null
+        val shouldShowLoading = _currentUserId.value != null && _rawPosts.value.isEmpty()
+        _isInitialFeedLoading.value = shouldShowLoading
         oldestLoadedTimestamp = null
         _hasMorePosts.value = true
         _isLoadingMore.value = false

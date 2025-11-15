@@ -33,6 +33,8 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
     private val _minAgeFilter     = MutableStateFlow(18)
     private val _maxAgeFilter     = MutableStateFlow(30)
     private val _minCompositePct  = MutableStateFlow(0.0)
+    private val _minSwipeRights   = MutableStateFlow(0)
+
     val allProfiles: StateFlow<List<Profile>> = _allProfiles
 
 
@@ -48,6 +50,7 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
         _maxAgeFilter.value = max
     }
     fun setMinCompositePct(p: Double)    { _minCompositePct.value  = p }
+    fun setMinSwipeRights(value: Int)    { _minSwipeRights.value   = value }
 
     // combine string filters
     private val stringFilters = combine(
@@ -66,8 +69,10 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
 }
     // combine numeric filters
     private val numericFilters = combine(
-        _minAgeFilter, _maxAgeFilter, _minCompositePct
-    ) { minAge, maxAge, minPct -> NumericFilters(minAge, maxAge, minPct) }
+        _minAgeFilter, _maxAgeFilter, _minCompositePct, _minSwipeRights
+    ) { minAge, maxAge, minPct, minLikes ->
+        NumericFilters(minAge, maxAge, minPct, minLikes)
+    }
 
     /**
      * Exposed leaderboard: applies filters then returns sorted list.
@@ -117,6 +122,7 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
         list = list.filter { it.age in nf.minAge..nf.maxAge }
         // composite score filter
         list = list.filter { it.compositeScorePct >= nf.minCompositePct }
+        list = list.filter { it.numberOfSwipeRights >= nf.minSwipeRights }
 
         // final sort by composite score
         list.sortedByDescending { it.compositeScore }
@@ -164,5 +170,6 @@ private data class Filters(
 private data class NumericFilters(
     val minAge: Int,
     val maxAge: Int,
-    val minCompositePct: Double
+    val minCompositePct: Double,
+    val minSwipeRights: Int
 )

@@ -2,11 +2,16 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.am24.am24.ComplimentWithProfile
+import com.am24.am24.DmBootstrap
 import com.am24.am24.ExclusionEventBus
 import com.am24.am24.FirebaseRefs
+import com.am24.am24.MatchSummary
+import com.am24.am24.Message
 import com.am24.am24.Notification
 import com.am24.am24.Profile
 import com.am24.am24.ProfileViewModel
+import com.am24.am24.UserDeletionCache
 import com.am24.am24.calculateDistance
 import com.am24.am24.handleSwipeRight
 import com.firebase.geofire.GeoFire
@@ -98,13 +103,19 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             }
             updateBoostedUsers(me)
             startComplimentsListener(me)
+            viewModelScope.launch { refreshDmBootstrap(me, force = true) }
             refreshFilteredProfiles()
         }
     }
 
-    // ─── NEW: track compliments sent *to* me ─────────────
-    private val _complimentsReceived = MutableStateFlow<Map<String, ComplimentData>>(emptyMap()) // ← NEW
-    val complimentsReceived: StateFlow<Map<String, ComplimentData>> get() = _complimentsReceived // ← NEW
+    // ─── Compliments / DM bootstrap ─────────────
+    private val _complimentsReceived = MutableStateFlow<Map<String, ComplimentData>>(emptyMap())
+    val complimentsReceived: StateFlow<Map<String, ComplimentData>> get() = _complimentsReceived
+
+    private val _dmBootstrap = MutableStateFlow<DmBootstrap?>(null)
+    val dmBootstrap: StateFlow<DmBootstrap?> = _dmBootstrap.asStateFlow()
+
+    private var lastDmBootstrapFetch = 0L
 
     // ── NEW: track which user is currently on top of the swipe‐deck ──
     private val _currentSwipeUserId = MutableStateFlow<String?>(null)
@@ -249,6 +260,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                     fromId to ComplimentData(text = text, timestamp = ts)
                 }
                 _complimentsReceived.value = map
+                refreshDmBootstrap(uid)
             }
             override fun onCancelled(error: DatabaseError) {
                 Log.e(TAG, "compliments listener cancelled: ${error.message}")
@@ -267,6 +279,93 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         complimentsReceivedRef = null
     }
 
+    private fun refreshDmBootstrap(uid: String, force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!force && now - lastDmBootstrapFetch < 2_000) return
+        lastDmBootstrapFetch = now
+        viewModelScope.launch(Dispatchers.IO) {
+            fetchDmBootstrap(uid)
+        }
+    }
+
+    private suspend fun fetchDmBootstrap(uid: String) {
+        runCatching {
+            val payload = hashMapOf(
+                "limitMatches" to 30,
+                "limitCompliments" to 15
+            )
+            val callable = functions.getHttpsCallable("fetchDmBootstrap").apply {
+                setTimeout(60, TimeUnit.SECONDS)
+            }
+            val data = callable.call(payload).await().data as? Map<*, *> ?: return
+            val compliments = (data["compliments"] as? List<*>)
+                ?.mapNotNull { it.toComplimentWithProfile() }
+                ?: emptyList()
+            val matches = (data["matches"] as? List<*>)
+                ?.mapNotNull { it.toMatchSummary() }
+                ?: emptyList()
+            val likedCount = (data["likedCount"] as? Number)?.toInt() ?: 0
+            _dmBootstrap.value = DmBootstrap(compliments, matches, likedCount)
+        }.onFailure { err ->
+            Log.w(TAG, "fetchDmBootstrap failed: ${err.message}")
+            val fallbackCompliments = fetchComplimentsFallback(uid)
+            _dmBootstrap.value = DmBootstrap(compliments = fallbackCompliments)
+        }
+    }
+
+    private suspend fun fetchComplimentsFallback(uid: String): List<ComplimentWithProfile> = withContext(Dispatchers.IO) {
+        val compliments = _complimentsReceived.value
+        if (compliments.isEmpty()) return@withContext emptyList<ComplimentWithProfile>()
+        compliments.mapNotNull { (senderId, compliment) ->
+            runCatching {
+                val snap = usersRef.child(senderId).get().await()
+                if (UserDeletionCache.isDeleted(FirebaseRefs.db, senderId, snap)) return@mapNotNull null
+                val profile = snap.getValue(Profile::class.java) ?: return@mapNotNull null
+                if (profile.username.isBlank()) {
+                    UserDeletionCache.markDeleted(senderId)
+                    return@mapNotNull null
+                }
+                UserDeletionCache.markActive(senderId)
+                ComplimentWithProfile(profile, compliment)
+            }.getOrNull()
+        }.sortedByDescending { it.compliment.timestamp }
+    }
+
+    private fun Any?.toComplimentWithProfile(): ComplimentWithProfile? {
+        val map = this as? Map<*, *> ?: return null
+        val profileMap = map["profile"] as? Map<*, *> ?: return null
+        val complimentMap = map["compliment"] as? Map<*, *> ?: return null
+        val profile = profileMap.toProfile()
+        val compliment = ComplimentData(
+            text = complimentMap["text"] as? String ?: "",
+            voiceUrl = complimentMap["voiceUrl"] as? String,
+            timestamp = (complimentMap["timestamp"] as? Number)?.toLong() ?: 0L
+        )
+        return ComplimentWithProfile(profile, compliment)
+    }
+
+    private fun Any?.toMatchSummary(): MatchSummary? {
+        val map = this as? Map<*, *> ?: return null
+        val profileMap = map["profile"] as? Map<*, *> ?: return null
+        val profile = profileMap.toProfile()
+        val hasUnread = map["hasUnread"] as? Boolean ?: false
+        val messageMap = map["lastMessage"] as? Map<*, *>
+        val message = messageMap?.toMessage()
+        return MatchSummary(profile, message, hasUnread)
+    }
+
+    private fun Map<*, *>.toMessage(): Message = Message(
+        id = this["id"] as? String ?: "",
+        senderId = this["senderId"] as? String ?: "",
+        receiverId = this["receiverId"] as? String ?: "",
+        text = this["text"] as? String ?: "",
+        timestamp = (this["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+        read = this["read"] as? Boolean ?: false,
+        mediaType = this["mediaType"] as? String,
+        mediaUrl = this["mediaUrl"] as? String,
+        processed = this["processed"] as? Boolean ?: false,
+        isPost = this["isPost"] as? Boolean ?: false
+    )
 
     // ── COUNTRY-ONLY REFRESH ────────────────────────────────────────────────
     private val refreshMutex = Mutex()

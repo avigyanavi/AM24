@@ -91,6 +91,25 @@ let activeDatabaseIndex = 0;
 let db     = databaseTargets[activeDatabaseIndex]?.db;
 
 const getUsersRef = () => db.ref('users');
+const getChatId = (uid1, uid2) => (uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`);
+
+function snapshotToMessage(child) {
+  if (!child || typeof child.val !== 'function') return null;
+  const val = child.val() || {};
+  if (typeof val !== 'object') return null;
+  return {
+    id: val.id || child.key || '',
+    senderId: val.senderId || '',
+    receiverId: val.receiverId || '',
+    text: val.text || '',
+    timestamp: Number(val.timestamp) || Date.now(),
+    read: Boolean(val.read),
+    mediaType: val.mediaType || null,
+    mediaUrl: val.mediaUrl || null,
+    processed: Boolean(val.processed),
+    isPost: Boolean(val.isPost),
+  };
+}
 
 function toJson(snap) {
   if (!snap || !snap.exists || !snap.exists()) return null;
@@ -1106,6 +1125,177 @@ exports.chatSuggestions = functions
         .set("Access-Control-Allow-Origin", "*")
         .status(500)
         .send(err.message || "internal error");
+    }
+  });
+
+exports.fetchChatBootstrap = functions
+  .region("asia-south1")
+  .https.onCall(async (data, context) => {
+    const uid = context.auth?.uid;
+    if (!uid) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const otherUidRaw = typeof data?.otherUid === 'string' ? data.otherUid.trim() : '';
+    if (!otherUidRaw) {
+      throw new functions.https.HttpsError('invalid-argument', 'otherUid is required');
+    }
+
+    if (otherUidRaw === uid) {
+      return { profile: null, messages: [] };
+    }
+
+    const rawLimit = Number(data?.limit ?? 50);
+    const limit = Number.isFinite(rawLimit)
+      ? Math.min(Math.max(Math.floor(rawLimit), 1), 200)
+      : 50;
+
+    const chatId = getChatId(uid, otherUidRaw);
+
+    try {
+      const [profileSnap, messagesSnap] = await Promise.all([
+        getUsersRef().child(otherUidRaw).get(),
+        db.ref(`messages/${chatId}`)
+          .orderByChild('timestamp')
+          .limitToLast(limit)
+          .get(),
+      ]);
+
+      const profile = toJson(profileSnap);
+      const messages = [];
+      if (messagesSnap && typeof messagesSnap.forEach === 'function') {
+        messagesSnap.forEach((child) => {
+          if (child.key === 'participants') return;
+          const msg = snapshotToMessage(child);
+          if (msg) messages.push(msg);
+        });
+        messages.sort((a, b) => a.timestamp - b.timestamp);
+      }
+
+      return { profile, messages };
+    } catch (err) {
+      functions.logger.error('fetchChatBootstrap failed', err);
+      throw new functions.https.HttpsError('internal', err?.message || 'Failed to load chat');
+    }
+  });
+
+exports.fetchDmBootstrap = functions
+  .region("asia-south1")
+  .https.onCall(async (data, context) => {
+    const uid = context.auth?.uid;
+    if (!uid) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const clamp = (value, min, max, fallback) => {
+      const num = Number(value);
+      if (!Number.isFinite(num)) return fallback;
+      return Math.min(Math.max(Math.floor(num), min), max);
+    };
+
+    const limitMatches = clamp(data?.limitMatches, 1, 50, 30);
+    const limitCompliments = clamp(data?.limitCompliments, 1, 50, 15);
+
+    try {
+      const [matchesSnap, likesSnap, complimentsSnap] = await Promise.all([
+        db.ref(`matches/${uid}`).get(),
+        db.ref(`likesReceived/${uid}`).get(),
+        db.ref(`complimentsReceived/${uid}`).get(),
+      ]);
+
+      const matchesVal = matchesSnap.val() || {};
+      const likesVal = likesSnap.val() || {};
+
+      const matchIds = Object.keys(matchesVal).slice(0, limitMatches);
+      const likeIds = Object.keys(likesVal);
+      const likedCount = likeIds.filter((id) => !matchIds.includes(id)).length;
+
+      const usersRef = getUsersRef();
+
+      const matchSummaries = await Promise.all(
+        matchIds.map(async (matchId) => {
+          try {
+            const profileSnap = await usersRef.child(matchId).get();
+            const profile = toJson(profileSnap);
+            if (!profile || !profile.username) return null;
+
+            const chatId = getChatId(uid, matchId);
+            const messageSnap = await db
+              .ref(`messages/${chatId}`)
+              .orderByChild('timestamp')
+              .limitToLast(1)
+              .get();
+
+            let lastMessage = null;
+            let hasUnread = false;
+
+            if (messageSnap && typeof messageSnap.forEach === 'function') {
+              messageSnap.forEach((child) => {
+                if (child.key === 'participants') return;
+                const msg = snapshotToMessage(child);
+                if (msg) {
+                  lastMessage = msg;
+                  if (msg.senderId !== uid && !msg.read) {
+                    hasUnread = true;
+                  }
+                }
+              });
+            }
+
+            return { profile, lastMessage, hasUnread };
+          } catch (err) {
+            functions.logger.warn('Failed to assemble match summary', { matchId, error: err?.message });
+            return null;
+          }
+        })
+      );
+
+      const complimentEntries = [];
+      if (complimentsSnap && typeof complimentsSnap.forEach === 'function') {
+        complimentsSnap.forEach((child) => {
+          const senderId = child.key;
+          if (!senderId) return;
+          const val = child.val() || {};
+          complimentEntries.push({
+            senderId,
+            text: val.text || '',
+            timestamp: Number(val.timestamp) || 0,
+            voiceUrl: val.voiceUrl || null,
+          });
+        });
+      }
+
+      complimentEntries.sort((a, b) => b.timestamp - a.timestamp);
+
+      const complimentPayload = await Promise.all(
+        complimentEntries.slice(0, limitCompliments).map(async (entry) => {
+          try {
+            const snap = await usersRef.child(entry.senderId).get();
+            const profile = toJson(snap);
+            if (!profile || !profile.username) return null;
+            return {
+              profile,
+              compliment: {
+                text: entry.text,
+                timestamp: entry.timestamp,
+                voiceUrl: entry.voiceUrl,
+              },
+            };
+          } catch (err) {
+            functions.logger.warn('Failed to load compliment sender', { senderId: entry.senderId, error: err?.message });
+            return null;
+          }
+        })
+      );
+
+      return {
+        matches: matchSummaries.filter(Boolean),
+        likedCount,
+        compliments: complimentPayload.filter(Boolean),
+      };
+    } catch (err) {
+      functions.logger.error('fetchDmBootstrap failed', err);
+      throw new functions.https.HttpsError('internal', err?.message || 'Failed to load DM bootstrap');
     }
   });
 

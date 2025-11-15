@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.functions.FirebaseFunctions
+import java.util.concurrent.TimeUnit
+import com.google.gson.Gson
 
 data class ChatUiState(
     val otherUserProfile: Profile? = null,
@@ -35,6 +38,8 @@ class ChatViewModel : ViewModel() {
     private val database: FirebaseDatabase = FirebaseRefs.db
     private val usersRef: DatabaseReference = database.getReference("users")
     private val ratingsRef: DatabaseReference = database.getReference("ratings")
+    private val functions = FirebaseFunctions.getInstance("asia-south1")
+    private val gson = Gson()
 
     private var messagesRef: DatabaseReference? = null
     private var typingRef: DatabaseReference? = null
@@ -61,7 +66,7 @@ class ChatViewModel : ViewModel() {
         messagesRef = database.getReference("messages/$chatPath")
         typingRef = database.getReference("typing/$chatPath/$otherUid")
 
-        loadOtherUserProfile(otherUid)
+        fetchChatBootstrap(currentUid, otherUid)
         observeMessages()
         observeTyping()
         fetchRatings(otherUid)
@@ -96,8 +101,45 @@ class ChatViewModel : ViewModel() {
         messagesRef?.setValue(null)?.addOnCompleteListener { onComplete?.invoke() }
     }
 
-    private fun loadOtherUserProfile(otherUid: String) {
-        _uiState.update { it.copy(isLoadingProfiles = true) }
+    private fun fetchChatBootstrap(currentUid: String, otherUid: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val payload = hashMapOf(
+                    "otherUid" to otherUid,
+                    "limit" to 50
+                )
+                val callable = functions.getHttpsCallable("fetchChatBootstrap").apply {
+                    setTimeout(30, TimeUnit.SECONDS)
+                }
+                val data = callable.call(payload).await().data as? Map<*, *>
+                if (data == null) {
+                    loadOtherUserProfileFallback(otherUid)
+                    _uiState.update { it.copy(isLoadingProfiles = false, isLoadingMessages = false) }
+                    return@launch
+                }
+                val profile = (data["profile"] as? Map<*, *>)?.toProfile()
+                val messages = (data["messages"] as? List<*>)
+                    ?.mapNotNull { (it as? Map<*, *>)?.toMessage() }
+                    ?: emptyList()
+
+                _uiState.update { state ->
+                    state.copy(
+                        otherUserProfile = profile ?: state.otherUserProfile,
+                        messages = if (messages.isNotEmpty()) messages else state.messages,
+                        isLoadingProfiles = false,
+                        isLoadingMessages = false,
+                        averageRating = profile?.averageRating ?: state.averageRating
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "fetchChatBootstrap failed: ${e.message}", e)
+                _uiState.update { it.copy(isLoadingProfiles = false, isLoadingMessages = false) }
+                loadOtherUserProfileFallback(otherUid)
+            }
+        }
+    }
+
+    private fun loadOtherUserProfileFallback(otherUid: String) {
         usersRef.child(otherUid).get()
             .addOnSuccessListener { snapshot ->
                 val profile = snapshot.getValue(Profile::class.java)
@@ -199,6 +241,21 @@ class ChatViewModel : ViewModel() {
             }
         }
     }
+    private fun Map<*, *>.toProfile(): Profile =
+        gson.fromJson(gson.toJson(this), Profile::class.java)
+
+    private fun Map<*, *>.toMessage(): Message = Message(
+        id = this["id"] as? String ?: "",
+        senderId = this["senderId"] as? String ?: "",
+        receiverId = this["receiverId"] as? String ?: "",
+        text = this["text"] as? String ?: "",
+        timestamp = (this["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+        read = this["read"] as? Boolean ?: false,
+        mediaType = this["mediaType"] as? String,
+        mediaUrl = this["mediaUrl"] as? String,
+        processed = this["processed"] as? Boolean ?: false,
+        isPost = this["isPost"] as? Boolean ?: false
+    )
 
     private fun clearListeners() {
         messagesListener?.let { listener -> messagesRef?.removeEventListener(listener) }
