@@ -246,7 +246,7 @@ class NearbyViewModel : ViewModel() {
 
         if (!forceRefresh && newKey == lastQueryKey) {
             if (previousResults != null && people.isEmpty()) {
-                people.addAll(previousResults.values)
+                previousResults.values.forEach { upsert(people, it) }
                 markFirstResultIfNeeded()
             }
             pendingFetches.set(0)
@@ -292,7 +292,7 @@ class NearbyViewModel : ViewModel() {
                             // remember pagination anchor (last key we saw)
                            lastIndexKey = rows.lastOrNull()?.key
                            val users = hydrateProfiles(rows, center)
-                           people.addAll(users)
+                           users.forEach { upsert(people, it) }
                            markFirstResultIfNeeded()
                            markQueryCompleted()
                            return@launch
@@ -315,8 +315,7 @@ class NearbyViewModel : ViewModel() {
                 val loc = prev.latLng!!
                 val distM = distanceMeters(center, loc)
                 val updated = prev.copy(distanceMeters = distM)
-                people.add(updated)
-                markFirstResultIfNeeded()
+                upsert(people, updated)
                 userCache[prev.userId] = updated
                 cacheTimestamps[prev.userId] = System.currentTimeMillis()
             }
@@ -333,7 +332,7 @@ class NearbyViewModel : ViewModel() {
                                          geoFireDatabaseRef = geoFireDatabaseRef,
                                          limit = limit
                                         )
-                                 people.addAll(users)
+                                 users.forEach { upsert(people, it) }
                                  markFirstResultIfNeeded()
                          } catch (e: Exception) {
                              Log.e("MapScreenVM", "Active users fetch failed: ${e.message}", e)
@@ -480,6 +479,10 @@ class NearbyViewModel : ViewModel() {
                         }
                         return@launch
                     }
+                    if (!isValidUserSnapshot(uid, snapshot)) {
+                        onExit(uid)
+                        return@launch
+                    }
                     if (UserDeletionCache.isDeleted(FirebaseRefs.db, uid, snapshot)) {
                         onExit(uid)
                         return@launch
@@ -613,6 +616,7 @@ class NearbyViewModel : ViewModel() {
                         for (child in children) {
                                 if (results.size >= limit) break
                                 val uid = child.key ?: continue
+                                if (!isValidUserSnapshot(uid, child)) continue
                                 if (!seen.add(uid)) continue
                                 if (uid == currentUserId) continue
                                 if (uid in excludedUserIds) continue
@@ -711,11 +715,17 @@ class NearbyViewModel : ViewModel() {
             ref.orderByKey().startAfter(startAfterKey).limitToFirst(pageSize)
         }
         val snap = q.get().await()
-        snap.children.map { c ->
-            val otherUid = c.child("uid").getValue(String::class.java) ?: (c.key ?: "")
+        val seen = LinkedHashSet<String>()
+        val rows = mutableListOf<FeedRow>()
+        for (c in snap.children) {
+            val otherUid = c.child("uid").getValue(String::class.java)?.takeIf { it.isNotBlank() }
+                ?: (c.key ?: "")
+            if (otherUid.isBlank()) continue
+            if (!seen.add(otherUid)) continue
             val dist = c.child("distanceM").getValue(Int::class.java)
-            FeedRow(uid = otherUid, distanceM = dist, key = c.key ?: otherUid)
+            rows += FeedRow(uid = otherUid, distanceM = dist, key = c.key ?: otherUid)
         }
+        rows
     }
 
     private suspend fun hydrateProfiles(
@@ -739,9 +749,14 @@ class NearbyViewModel : ViewModel() {
         }
 
         val results = mutableListOf<NearbyUser>()
+        val seenUids = mutableSetOf<String>()
 
         for ((idx, child) in ds.withIndex()) {
-            val uid = child.key ?: continue
+            val expectedUid = rows.getOrNull(idx)?.uid
+            val uid = child.key ?: expectedUid ?: continue
+            if (expectedUid != null && expectedUid != uid) continue
+            if (!seenUids.add(uid)) continue
+            if (!isValidUserSnapshot(uid, child)) continue
             if (uid in excludedUserIds) continue
             if (UserDeletionCache.isDeleted(FirebaseRefs.db, uid, child)) continue
 
@@ -860,6 +875,12 @@ class NearbyViewModel : ViewModel() {
         if (!lat.isFinite() || !lng.isFinite()) return null
         if (abs(lat) < 0.0001 && abs(lng) < 0.0001) return null
         return LatLng(lat, lng)
+    }
+
+    private fun isValidUserSnapshot(uid: String, snapshot: DataSnapshot): Boolean {
+        if (!snapshot.exists()) return false
+        if (snapshot.key != uid) return false
+        return snapshot.childrenCount > 7L
     }
 
     private fun upsert(list: MutableList<NearbyUser>, item: NearbyUser) {
