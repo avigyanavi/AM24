@@ -9,7 +9,7 @@ package com.am24.am24
 import DatingViewModel
 import android.Manifest
 import android.annotation.SuppressLint
-import com.am24.am24.SexualOrientation
+import kotlin.coroutines.resume
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -102,6 +102,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import android.content.res.Resources
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 /* ======================================================================================= */
 /*  Theme bits                                                                             */
@@ -628,18 +629,39 @@ fun MapScreen(
     /* ---------------- Effects ---------------- */
 
     // fetch user location + set region
-    LaunchedEffect(userId) {
-        locationManager.getUserLocationFromGeoFire(userId) { lat, lng ->
-            userLatLng = lat?.let { LatLng(it, lng ?: 0.0) }
-            userLatLng?.let {
-                camera.position = CameraPosition.fromLatLngZoom(it, 15f)
-                region = detectRegion(it)
-            } ?: run {
-                val kol = LatLng(22.5726, 88.3639)
-                userLatLng = kol
-                region = detectRegion(kol)
-                camera.position = CameraPosition.fromLatLngZoom(kol, 14f)
+    LaunchedEffect(userId, currentUserProfile?.latitude, currentUserProfile?.longitude) {
+        if (userId.isBlank()) return@LaunchedEffect
+
+        val geoFireLocation = suspendCancellableCoroutine<LatLng?> { cont ->
+            locationManager.getUserLocationFromGeoFire(userId) { lat, lng ->
+                if (cont.isActive) {
+                    cont.resume(
+                        if (lat != null && lng != null) LatLng(lat, lng) else null
+                    )
+                }
             }
+        }
+        val profileLocation = currentUserProfile?.let { profile ->
+            val lat = profile.latitude
+            val lng = profile.longitude
+            if (!lat.isFinite() || !lng.isFinite()) {
+                null
+            } else if (abs(lat) < 0.0001 && abs(lng) < 0.0001) {
+                null
+            } else {
+                LatLng(lat, lng)
+            }
+        }
+
+        val resolved = geoFireLocation ?: profileLocation ?: userLatLng
+        if (resolved != null) {
+            userLatLng = resolved
+            region = detectRegion(resolved)
+            val targetZoom = if (geoFireLocation != null) 15f else camera.position.zoom.takeIf { it > 0f } ?: 10f
+            camera.position = CameraPosition.fromLatLngZoom(resolved, targetZoom)
+        } else if (userLatLng == null) {
+            val defaultCenter = LatLng(20.0, 0.0)
+            camera.position = CameraPosition.fromLatLngZoom(defaultCenter, 2.5f)
         }
     }
 

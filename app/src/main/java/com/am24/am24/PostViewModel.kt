@@ -122,6 +122,13 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 _matchedUsers.value = matches
             }
         }
+        viewModelScope.launch {
+            _postsLoaded.collect { loaded ->
+                if (loaded) {
+                    _isInitialFeedLoading.value = false
+                }
+            }
+        }
     }
 
     private val _postFlow = MutableStateFlow<Post?>(null)
