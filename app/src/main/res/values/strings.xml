@@ -467,7 +467,7 @@
     <string name="sent_message">Sent: %s</string>
     <string name="seen_status">✔✔ Seen</string>
     <string name="delivered_status">✔ Delivered</string>
-    <string name="your_rating">Your Rating: %s</string>
+    <string name="your_rating">Your Rating: %1$s</string>
     <string name="scroll_to_top">Scroll to Top</string>
     <string name="cd_country_filter">Browse by country</string>
     <string name="clear_country_filter">Clear country filter</string>

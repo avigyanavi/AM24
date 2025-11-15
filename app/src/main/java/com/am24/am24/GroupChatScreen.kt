@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -21,9 +22,13 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import java.text.SimpleDateFormat
-import java.util.*
+import com.google.accompanist.placeholder.PlaceholderHighlight
+import com.google.accompanist.placeholder.material.placeholder
+import com.google.accompanist.placeholder.material.shimmer
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * Simple group‑chat screen that stores messages under
@@ -49,7 +54,6 @@ fun GroupChatScreen(
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val database      = FirebaseRefs.db
     val usersRef      = database.getReference("users")
-    val scope = rememberCoroutineScope()
     val messagesRef   = database.getReference("messages").child(groupId)
 
     /* ---------- current user profile ---------- */
@@ -77,12 +81,16 @@ fun GroupChatScreen(
     /* ---------- local UI state ---------- */
     val messages = remember { mutableStateListOf<GroupChatMessage>() }
     var messageText by remember { mutableStateOf("") }
+    var isMessagesLoading by remember { mutableStateOf(true) }
 
     /* ---------- real‑time listener ---------- */
     DisposableEffect(groupId) {
+        val processingJob = SupervisorJob()
+        val processingScope = CoroutineScope(Dispatchers.Main.immediate + processingJob)
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                scope.launch {
+                if (!processingJob.isActive) return
+                processingScope.launch {
                     try {
                         val newList = snapshot.children.mapNotNull { it.getValue(GroupChatMessage::class.java) }
                         val filtered = newList.filter { message ->
@@ -98,13 +106,24 @@ fun GroupChatScreen(
                         messages.addAll(filtered.sortedBy { it.timestamp })
                     } catch (_: Exception) {
                         messages.clear()
+                    } finally {
+                        isMessagesLoading = false
                     }
                 }
             }
-            override fun onCancelled(error: DatabaseError) {}
+            override fun onCancelled(error: DatabaseError) {
+                if (!processingJob.isActive) return
+                processingScope.launch {
+                    messages.clear()
+                    isMessagesLoading = false
+                }
+            }
         }
         messagesRef.addValueEventListener(listener)
-        onDispose { messagesRef.removeEventListener(listener) }
+        onDispose {
+            messagesRef.removeEventListener(listener)
+            processingJob.cancel()
+        }
     }
 
     Scaffold(
@@ -131,15 +150,38 @@ fun GroupChatScreen(
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = 8.dp),
-                verticalArrangement = Arrangement.Bottom
+                verticalArrangement = if (messages.isNotEmpty()) Arrangement.Bottom else Arrangement.Top
             ) {
-                items(messages) { msg ->
-                    GroupMessageBubble(
-                        message = msg,
-                        navController = navController,
-                        currentUserId = currentUserId,
-                        matches = matches
-                    )
+                when {
+                    isMessagesLoading -> {
+                        items(6) { index ->
+                            GroupMessageSkeleton(isCurrentUser = index % 2 == 0)
+                        }
+                    }
+
+                    messages.isEmpty() -> {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No messages yet", color = Color.Gray, fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    else -> {
+                        items(messages) { msg ->
+                            GroupMessageBubble(
+                                message = msg,
+                                navController = navController,
+                                currentUserId = currentUserId,
+                                matches = matches
+                            )
+                        }
+                    }
                 }
             }
 
@@ -245,6 +287,39 @@ fun GroupMessageBubble(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun GroupMessageSkeleton(isCurrentUser: Boolean) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
+    ) {
+        Box(
+            modifier = Modifier
+                .height(12.dp)
+                .width(90.dp)
+                .placeholder(
+                    visible = true,
+                    color = Color.DarkGray,
+                    highlight = PlaceholderHighlight.shimmer()
+                )
+        )
+        Spacer(Modifier.height(6.dp))
+        Box(
+            modifier = Modifier
+                .defaultMinSize(minHeight = 48.dp)
+                .fillMaxWidth(0.7f)
+                .clip(RoundedCornerShape(16.dp))
+                .placeholder(
+                    visible = true,
+                    color = Color.DarkGray,
+                    highlight = PlaceholderHighlight.shimmer()
+                )
+        )
     }
 }
 

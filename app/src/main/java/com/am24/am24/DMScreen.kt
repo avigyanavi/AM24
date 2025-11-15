@@ -53,7 +53,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.snapshotFlow
 import java.util.Calendar
-import kotlin.random.Random
+import com.google.accompanist.placeholder.PlaceholderHighlight
+import com.google.accompanist.placeholder.material.placeholder
+import com.google.accompanist.placeholder.material.shimmer
 import androidx.compose.ui.res.pluralStringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.tasks.await
@@ -111,6 +113,7 @@ fun DMScreenContent(
     var profileToUnmatch by remember { mutableStateOf<Profile?>(null) }
     var showSmartMatchDialog by remember { mutableStateOf(false) }
     var selectedSmartMatchGender by remember { mutableStateOf("Both") }
+    var isLoadingMatches by remember { mutableStateOf(true) }
 
     LaunchedEffect(currentUserId) {
         profileViewModel.fetchCurrentUserProfile()
@@ -212,6 +215,7 @@ fun DMScreenContent(
             val fromCurrentUser = summary.lastMessage?.senderId == currentUserId
             lastMessages[summary.profile.userId] = Triple(previewText, fromCurrentUser, !summary.hasUnread)
         }
+        isLoadingMatches = false
     }
 
     DisposableEffect(currentUserId) {
@@ -271,6 +275,7 @@ fun DMScreenContent(
     LaunchedEffect(currentUserId) {
         if (currentUserId.isBlank()) return@LaunchedEffect
         try {
+            isLoadingMatches = true
             val snapshot = matchesRef.get().await()
             val userIdsToFetch = snapshot.children.mapNotNull { it.key }
             val fetchedProfiles = fetchProfiles(usersRef, userIdsToFetch)
@@ -348,6 +353,8 @@ fun DMScreenContent(
             ).show()
             matchedUsers.clear()
             nonInitiatedMatches.clear()
+        } finally {
+            isLoadingMatches = false
         }
     }
 
@@ -447,76 +454,80 @@ fun DMScreenContent(
                 textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
             )
 
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.dm_likes_label),
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(end = 6.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(Color.DarkGray)
-                        .clickable {
-                        // 🔸 Always attempt the sweep once, even if not Plus
-                                                        if (!calledSweepOnce) {
-                                                        calledSweepOnce = true
-                                                        try {
-                                                                val data = hashMapOf("source" to "peopleWhoLikedMe_chip")
-                                                                FirebaseFunctions.getInstance("asia-south1")
-                                                                .getHttpsCallable("loginEntitlementSweep")
-                                                                    .call(data)
-                                                                    .addOnSuccessListener {
-                                                                            Log.d("DMScreen", "loginEntitlementSweep ok")
-                                                                        }
-                                                                    .addOnFailureListener { e ->
-                                                                            Log.w("DMScreen", "loginEntitlementSweep failed", e)
-                                                                        }
-                                                            } catch (e: Exception) {
-                                                               Log.w("DMScreen", "loginEntitlementSweep invoke error", e)
-                                                            }
-                                                    }
-                                                        if (isPremiumUser) {
-                                                        navController.navigate("peopleWhoLikedMe")
-                                                    } else {
-                                                        Toast.makeText(
-                                                                context,
-                                                                context.getString(R.string.dm_upgrade_plus_see_likes),
-                                                                Toast.LENGTH_SHORT
-                                                                    ).show()
-                                                    }
-                                                },
-                    contentAlignment = Alignment.Center
+            if (isLoadingMatches) {
+                DMMiniProfileSkeletonRow()
+            } else {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "+$likedCount",
+                        text = stringResource(R.string.dm_likes_label),
                         color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(end = 6.dp)
                     )
-                }
-                Spacer(Modifier.width(6.dp))
-                nonInitiatedMatches
-                    .forEach { profile ->
-                        AIOrProfileImage(
-                            profile,
-                            Modifier
-                                .size(60.dp)
-                                .clip(CircleShape)
-                                .background(Color.Gray)
-                                .clickable { navController.navigate("chat/${profile.userId}") }
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(Color.DarkGray)
+                            .clickable {
+                                // 🔸 Always attempt the sweep once, even if not Plus
+                                if (!calledSweepOnce) {
+                                    calledSweepOnce = true
+                                    try {
+                                        val data = hashMapOf("source" to "peopleWhoLikedMe_chip")
+                                        FirebaseFunctions.getInstance("asia-south1")
+                                            .getHttpsCallable("loginEntitlementSweep")
+                                            .call(data)
+                                            .addOnSuccessListener {
+                                                Log.d("DMScreen", "loginEntitlementSweep ok")
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.w("DMScreen", "loginEntitlementSweep failed", e)
+                                            }
+                                    } catch (e: Exception) {
+                                        Log.w("DMScreen", "loginEntitlementSweep invoke error", e)
+                                    }
+                                }
+                                if (isPremiumUser) {
+                                    navController.navigate("peopleWhoLikedMe")
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.dm_upgrade_plus_see_likes),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "+$likedCount",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp
                         )
-                        Spacer(Modifier.width(6.dp))
                     }
+                    Spacer(Modifier.width(6.dp))
+                    nonInitiatedMatches
+                        .forEach { profile ->
+                            AIOrProfileImage(
+                                profile,
+                                Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Gray)
+                                    .clickable { navController.navigate("chat/${profile.userId}") }
+                            )
+                            Spacer(Modifier.width(6.dp))
+                        }
+                }
             }
 
             val displayedUsers = matchedUsers
@@ -526,7 +537,9 @@ fun DMScreenContent(
 
             val hasAnyContent = displayedUsers.isNotEmpty() || complimentItems.isNotEmpty()
 
-            if (!hasAnyContent) {
+            if (isLoadingMatches) {
+                DMUserCardSkeletonList()
+            } else if (!hasAnyContent) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(stringResource(R.string.dm_no_matches), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
@@ -735,6 +748,7 @@ fun DMScreenContent(
             )
         }
 
+        if (!isLoadingMatches) {
             FloatingActionButton(
                 onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
                 containerColor = Color(0xFFFF4500),
@@ -742,6 +756,141 @@ fun DMScreenContent(
             ) {
                 Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.content_scroll_to_top), tint = Color.White)
             }
+        }
+    }
+}
+
+
+@Composable
+private fun DMUserCardSkeletonList(count: Int = 4) {
+    val listState = rememberLazyListState()
+    LazyColumn(
+        state = listState,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkGrayBackground)
+            .padding(12.dp)
+            .visibleScrollbar(listState),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(count) {
+            DMUserCardSkeleton()
+        }
+    }
+}
+
+@Composable
+private fun DMUserCardSkeleton() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .background(DarkGrayBackground)
+            .border(BorderStroke(2.dp, Color.DarkGray), shape = RoundedCornerShape(8.dp))
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .size(70.dp)
+                        .clip(CircleShape)
+                        .placeholder(
+                            visible = true,
+                            color = Color.DarkGray,
+                            highlight = PlaceholderHighlight.shimmer()
+                        )
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Box(
+                        Modifier
+                            .height(20.dp)
+                            .fillMaxWidth(0.5f)
+                            .placeholder(
+                                visible = true,
+                                color = Color.DarkGray,
+                                highlight = PlaceholderHighlight.shimmer()
+                            )
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Box(
+                        Modifier
+                            .height(12.dp)
+                            .fillMaxWidth(0.8f)
+                            .placeholder(
+                                visible = true,
+                                color = Color.DarkGray,
+                                highlight = PlaceholderHighlight.shimmer()
+                            )
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Box(
+                        Modifier
+                            .height(10.dp)
+                            .fillMaxWidth()
+                            .placeholder(
+                                visible = true,
+                                color = Color.DarkGray,
+                                highlight = PlaceholderHighlight.shimmer()
+                            )
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                repeat(2) {
+                    Box(
+                        Modifier
+                            .height(20.dp)
+                            .width(60.dp)
+                            .placeholder(
+                                visible = true,
+                                color = Color.DarkGray,
+                                highlight = PlaceholderHighlight.shimmer()
+                            )
+                    )
+                    Spacer(Modifier.width(12.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DMMiniProfileSkeletonRow(placeholders: Int = 4) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier
+                .height(12.dp)
+                .width(80.dp)
+                .placeholder(
+                    visible = true,
+                    color = Color.DarkGray,
+                    highlight = PlaceholderHighlight.shimmer()
+                )
+        )
+        Spacer(Modifier.width(6.dp))
+        repeat(placeholders) {
+            Box(
+                Modifier
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .placeholder(
+                        visible = true,
+                        color = Color.DarkGray,
+                        highlight = PlaceholderHighlight.shimmer()
+                    )
+            )
+            Spacer(Modifier.width(6.dp))
+        }
     }
 }
 
