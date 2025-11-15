@@ -58,13 +58,14 @@ import com.google.accompanist.placeholder.material.placeholder
 import com.google.accompanist.placeholder.material.shimmer
 import androidx.compose.ui.res.pluralStringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.tasks.await
 import java.text.Normalizer
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.tasks.await
 import com.google.firebase.functions.FirebaseFunctions
+import com.am24.am24.FirebaseRefs
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.tasks.await
 
 private fun canonicalLocationId(name: String): String {
     val normalized = Normalizer.normalize(name, Normalizer.Form.NFD)
@@ -345,6 +346,7 @@ fun DMScreenContent(
                 }
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Log.e("DMScreen", "Failed to load matches", e)
             Toast.makeText(
                 context,
@@ -1085,6 +1087,7 @@ private suspend fun fetchNonInitiatedConversations(
                 val snapshot = messagesRootRef.child(chatId).limitToFirst(1).get().await()
                 if (!snapshot.exists()) profile else null
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Log.e("DMScreen", "Failed to inspect conversation for ${profile.userId}", e)
                 null
             }
@@ -1103,17 +1106,27 @@ private suspend fun fetchProfiles(
         async {
             try {
                 val snapshot = usersRef.child(id).get().await()
+                if (!snapshot.exists()) {
+                    UserDeletionCache.markDeleted(id)
+                    return@async null
+                }
                 if (UserDeletionCache.isDeleted(FirebaseRefs.db, id, snapshot)) {
                     return@async null
                 }
-                val profile = snapshot.getValue(Profile::class.java)
-                if (profile != null && profile.username.isNullOrBlank()) {
+                val rawProfile = snapshot.getValue(Profile::class.java) ?: return@async null
+                val profile = if (rawProfile.userId.isBlank()) {
+                    rawProfile.copy(userId = id)
+                } else {
+                    rawProfile
+                }
+                if (profile.username.isBlank()) {
                     UserDeletionCache.markDeleted(id)
                     return@async null
                 }
                 UserDeletionCache.markActive(id)
                 profile
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Log.e("DMScreen", "Failed to fetch profile for $id", e)
                 null
             }

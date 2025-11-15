@@ -25,11 +25,15 @@ import com.google.firebase.database.*
 import com.google.accompanist.placeholder.PlaceholderHighlight
 import com.google.accompanist.placeholder.material.placeholder
 import com.google.accompanist.placeholder.material.shimmer
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 /**
  * Simple group‑chat screen that stores messages under
  *   messages/{groupId}
@@ -43,6 +47,14 @@ data class GroupChatMessage(
     val text: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )
+
+private const val SKELETON_FAILSAFE_DELAY_MS = 5_000L
+
+private sealed interface ValidationResult {
+    data class Valid(val message: GroupChatMessage) : ValidationResult
+    data class Invalid(val messageId: String) : ValidationResult
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +94,14 @@ fun GroupChatScreen(
     val messages = remember { mutableStateListOf<GroupChatMessage>() }
     var messageText by remember { mutableStateOf("") }
     var isMessagesLoading by remember { mutableStateOf(true) }
+    LaunchedEffect(isMessagesLoading, messages.size) {
+        if (isMessagesLoading && messages.isEmpty()) {
+            delay(SKELETON_FAILSAFE_DELAY_MS)
+            if (isMessagesLoading && messages.isEmpty()) {
+                isMessagesLoading = false
+            }
+        }
+    }
 
     /* ---------- real‑time listener ---------- */
     DisposableEffect(groupId) {
@@ -93,17 +113,50 @@ fun GroupChatScreen(
                 processingScope.launch {
                     try {
                         val newList = snapshot.children.mapNotNull { it.getValue(GroupChatMessage::class.java) }
-                        val filtered = newList.filter { message ->
-                            val senderId = message.senderId
-                            if (senderId.isBlank()) return@filter false
-                            val deleted = UserDeletionCache.isDeleted(database, senderId)
-                            if (!deleted) {
-                                UserDeletionCache.markActive(senderId)
+                        val validated = coroutineScope {
+                            newList.map { message ->
+                                async {
+                                    val senderId = message.senderId.trim()
+                                    if (senderId.isBlank()) {
+                                        ValidationResult.Invalid(message.id)
+                                    } else {
+                                        try {
+                                            if (UserDeletionCache.isDeleted(database, senderId)) {
+                                                UserDeletionCache.markDeleted(senderId)
+                                                ValidationResult.Invalid(message.id)
+                                            } else {
+                                                UserDeletionCache.markActive(senderId)
+                                                ValidationResult.Valid(message)
+                                            }
+                                        } catch (ce: CancellationException) {
+                                            throw ce
+                                        } catch (_: Exception) {
+                                            ValidationResult.Valid(message)
+                                        }
+                                    }
+                                }
+                            }.awaitAll()
+                        }
+
+                        val validMessages = mutableListOf<GroupChatMessage>()
+                        val staleMessageIds = mutableListOf<String>()
+
+                        validated.forEach { result ->
+                            when (result) {
+                                is ValidationResult.Valid -> validMessages += result.message
+                                is ValidationResult.Invalid -> if (result.messageId.isNotBlank()) {
+                                    staleMessageIds += result.messageId
+                                }
                             }
-                            !deleted
                         }
                         messages.clear()
-                        messages.addAll(filtered.sortedBy { it.timestamp })
+                        messages.addAll(validMessages.sortedBy { it.timestamp })
+
+                        staleMessageIds.distinct().forEach { id ->
+                            messagesRef.child(id).removeValue()
+                        }
+                    } catch (ce: CancellationException) {
+                        throw ce
                     } catch (_: Exception) {
                         messages.clear()
                     } finally {
