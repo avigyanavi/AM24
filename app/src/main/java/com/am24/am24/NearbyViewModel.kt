@@ -36,6 +36,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
+import kotlinx.coroutines.Job
+
 
 data class MapBootstrapState(
     val isPlus: Boolean,
@@ -107,6 +109,8 @@ class NearbyViewModel : ViewModel() {
     private val pendingFetches = AtomicInteger(0)
     @Volatile private var geoQueryCompleted = false
     private var lastIndexKey: String? = null   // pagination anchor for server index modes
+    private var firstResultTimeoutJob: Job? = null
+    private val firstResultFallbackMs = 5_000L
 
     private fun resetRefreshTracking() {
         pendingFetches.set(0)
@@ -128,11 +132,40 @@ class NearbyViewModel : ViewModel() {
 
     private fun markQueryCompleted() {
         geoQueryCompleted = true
+        if (!_hasLoadedFirstResult.value) {
+            _hasLoadedFirstResult.value = true
+            cancelFirstResultTimeout()
+        }
+        if (!_hasLoadedFirstResult.value) {
+            _hasLoadedFirstResult.value = true
+        }
         if (pendingFetches.get() == 0) {
             _isRefreshing.value = false
         }
     }
 
+    private fun scheduleFirstResultTimeout() {
+        firstResultTimeoutJob?.cancel()
+        var jobRef: Job? = null
+        jobRef = viewModelScope.launch {
+            try {
+                delay(firstResultFallbackMs)
+                if (!_hasLoadedFirstResult.value) {
+                    _hasLoadedFirstResult.value = true
+                }
+            } finally {
+                if (firstResultTimeoutJob === jobRef) {
+                    firstResultTimeoutJob = null
+                }
+            }
+        }
+        firstResultTimeoutJob = jobRef
+    }
+
+    private fun cancelFirstResultTimeout() {
+        firstResultTimeoutJob?.cancel()
+        firstResultTimeoutJob = null
+    }
     private fun likesCountFrom(snapshot: DataSnapshot, p: Profile): Int {
         // Handle both possible casings and fallbacks
         val upper = snapshot.child("UsersWhoLikeMe")
@@ -271,6 +304,7 @@ class NearbyViewModel : ViewModel() {
 
         people.clear()
         _hasLoadedFirstResult.value = false
+        scheduleFirstResultTimeout()
 
         // Prefer prebuilt index (order-only, no filters). Fallback to old path if missing.
         val indexPath = when (currentSortMode) {
@@ -390,6 +424,7 @@ class NearbyViewModel : ViewModel() {
     private fun markFirstResultIfNeeded() {
         if (!_hasLoadedFirstResult.value && people.isNotEmpty()) {
             _hasLoadedFirstResult.value = true
+            scheduleFirstResultTimeout()
         }
     }
 
@@ -439,6 +474,7 @@ class NearbyViewModel : ViewModel() {
                     markQueryCompleted()
                     if (!_hasLoadedFirstResult.value) {
                         _hasLoadedFirstResult.value = true
+                        cancelFirstResultTimeout()
                     }
                 }
                 return
@@ -583,6 +619,7 @@ class NearbyViewModel : ViewModel() {
                 markQueryCompleted()
                 if (!_hasLoadedFirstResult.value) {
                     _hasLoadedFirstResult.value = true
+                    cancelFirstResultTimeout()
                 }
             }
             override fun onGeoQueryError(error: DatabaseError) {

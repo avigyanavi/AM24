@@ -92,8 +92,6 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.*
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.gson.Gson
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
@@ -268,8 +266,14 @@ fun MapScreen(
     val userRef = remember(userId) { FirebaseRefs.db.getReference("users").child(userId) }
     var userCountry by remember { mutableStateOf<String?>(null) }
     val isLocationGranted =
-        ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(
+            ctx,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(
+                    ctx,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
 
     val mapVisibility = remember { mutableStateMapOf<String, Boolean>() } // uid -> allowed on map
 
@@ -354,7 +358,10 @@ fun MapScreen(
         }
 
         if (datingFilters.tribes.isNotEmpty()) {
-            labels += ctx.getString(R.string.filter_label_tribes, datingFilters.tribes.joinToString())
+            labels += ctx.getString(
+                R.string.filter_label_tribes,
+                datingFilters.tribes.joinToString()
+            )
         }
 
         if (datingFilters.kinks.isNotEmpty()) {
@@ -392,9 +399,19 @@ fun MapScreen(
         }
         userLatLng?.let { ll ->
             if (selectedTab == 0 && nearbyViewModel.currentLimit < 25) {
-                nearbyViewModel.loadNextPage(25 - nearbyViewModel.currentLimit, userId, ll, geoFireDatabaseRef)
+                nearbyViewModel.loadNextPage(
+                    25 - nearbyViewModel.currentLimit,
+                    userId,
+                    ll,
+                    geoFireDatabaseRef
+                )
             } else if (selectedTab == 1 && nearbyViewModel.currentLimit < 10) {
-                nearbyViewModel.loadNextPage(10 - nearbyViewModel.currentLimit, userId, ll, geoFireDatabaseRef)
+                nearbyViewModel.loadNextPage(
+                    10 - nearbyViewModel.currentLimit,
+                    userId,
+                    ll,
+                    geoFireDatabaseRef
+                )
             }
         }
     }
@@ -420,19 +437,25 @@ fun MapScreen(
         if (isPremium) {
             val hasShownDialog = prefs.getBoolean(HAS_SHOWN_LOCATION_DIALOG, false)
             if (!hasShownLocationDialogThisSession && !hasShownDialog) {
-                navController.currentBackStackEntry?.savedStateHandle?.set("showLocationPrefDialog", true)
+                navController.currentBackStackEntry?.savedStateHandle?.set(
+                    "showLocationPrefDialog",
+                    true
+                )
                 hasShownLocationDialogThisSession = true
                 prefs.edit().putBoolean(HAS_SHOWN_LOCATION_DIALOG, true).apply()
             }
         }
-        sortMode = prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
+        sortMode =
+            prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
         radiusKm = prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble()
         lastActiveHours = prefs.getFloat("map_last_active_hours", 48f).toDouble()
     }
     LaunchedEffect(isPlus || isPremium) {
         if (isPlus || isPremium) {
             prefs.getString("map_dating_filters", null)?.let {
-                runCatching { nearbyViewModel.datingFilters = gson.fromJson(it, DatingFilterSettings::class.java)
+                runCatching {
+                    nearbyViewModel.datingFilters =
+                        gson.fromJson(it, DatingFilterSettings::class.java)
                 }
             }
         }
@@ -461,7 +484,8 @@ fun MapScreen(
         val profile = currentUserProfile ?: return@LaunchedEffect
         val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
         val cached = nearbyViewModel.mapBootstrapState
-        val needsBootstrapRefresh = cached == null || cached.swipesDayOfYear != today || nearbyViewModel.currentProfile == null
+        val needsBootstrapRefresh =
+            cached == null || cached.swipesDayOfYear != today || nearbyViewModel.currentProfile == null
         if (!needsBootstrapRefresh) {
             if (!nearbyViewModel.hasLoadedExcludes()) {
                 nearbyViewModel.setExcluded(fetchExcludedUsers(userId))
@@ -531,6 +555,7 @@ fun MapScreen(
                     omegleInvite = null
                 }
             }
+
             override fun onCancelled(error: DatabaseError) {}
         }
         ref.addValueEventListener(listener)
@@ -598,36 +623,120 @@ fun MapScreen(
         TagItem(ctx.getString(R.string.tag_food_courts), "food_courts")
     )
     val laQuickTags = if (isUserInLA) listOf(
-        TagItem(ctx.getString(R.string.la_tag_dtla_rooftops_label), ctx.getString(R.string.la_tag_dtla_rooftops_query)),
-        TagItem(ctx.getString(R.string.la_tag_ktown_bbq_label), ctx.getString(R.string.la_tag_ktown_bbq_query)),
-        TagItem(ctx.getString(R.string.la_tag_beach_sunset_label), ctx.getString(R.string.la_tag_beach_sunset_query)),
-        TagItem(ctx.getString(R.string.la_tag_runyon_hikes_label), ctx.getString(R.string.la_tag_runyon_hikes_query)),
-        TagItem(ctx.getString(R.string.la_tag_live_music_label), ctx.getString(R.string.la_tag_live_music_query)),
-        TagItem(ctx.getString(R.string.la_tag_brunch_westside_label), ctx.getString(R.string.la_tag_brunch_westside_query)),
-        TagItem(ctx.getString(R.string.la_tag_arts_district_label), ctx.getString(R.string.la_tag_arts_district_query)),
-        TagItem(ctx.getString(R.string.la_tag_museums_label), ctx.getString(R.string.la_tag_museums_query)),
-        TagItem(ctx.getString(R.string.la_tag_malibu_beaches_label), ctx.getString(R.string.la_tag_malibu_beaches_query)),
-        TagItem(ctx.getString(R.string.la_tag_dockweiler_bonfire_label), ctx.getString(R.string.la_tag_dockweiler_bonfire_query)),
-        TagItem(ctx.getString(R.string.la_tag_surf_rental_label), ctx.getString(R.string.la_tag_surf_rental_query)),
-        TagItem(ctx.getString(R.string.la_tag_manhattan_volleyball_label), ctx.getString(R.string.la_tag_manhattan_volleyball_query)),
-        TagItem(ctx.getString(R.string.la_tag_speakeasy_label), ctx.getString(R.string.la_tag_speakeasy_query)),
-        TagItem(ctx.getString(R.string.la_tag_karaoke_ktown_label), ctx.getString(R.string.la_tag_karaoke_ktown_query)),
-        TagItem(ctx.getString(R.string.la_tag_comedy_label), ctx.getString(R.string.la_tag_comedy_query)),
-        TagItem(ctx.getString(R.string.la_tag_food_trucks_label), ctx.getString(R.string.la_tag_food_trucks_query))
+        TagItem(
+            ctx.getString(R.string.la_tag_dtla_rooftops_label),
+            ctx.getString(R.string.la_tag_dtla_rooftops_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_ktown_bbq_label),
+            ctx.getString(R.string.la_tag_ktown_bbq_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_beach_sunset_label),
+            ctx.getString(R.string.la_tag_beach_sunset_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_runyon_hikes_label),
+            ctx.getString(R.string.la_tag_runyon_hikes_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_live_music_label),
+            ctx.getString(R.string.la_tag_live_music_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_brunch_westside_label),
+            ctx.getString(R.string.la_tag_brunch_westside_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_arts_district_label),
+            ctx.getString(R.string.la_tag_arts_district_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_museums_label),
+            ctx.getString(R.string.la_tag_museums_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_malibu_beaches_label),
+            ctx.getString(R.string.la_tag_malibu_beaches_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_dockweiler_bonfire_label),
+            ctx.getString(R.string.la_tag_dockweiler_bonfire_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_surf_rental_label),
+            ctx.getString(R.string.la_tag_surf_rental_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_manhattan_volleyball_label),
+            ctx.getString(R.string.la_tag_manhattan_volleyball_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_speakeasy_label),
+            ctx.getString(R.string.la_tag_speakeasy_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_karaoke_ktown_label),
+            ctx.getString(R.string.la_tag_karaoke_ktown_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_comedy_label),
+            ctx.getString(R.string.la_tag_comedy_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.la_tag_food_trucks_label),
+            ctx.getString(R.string.la_tag_food_trucks_query)
+        )
     ) else emptyList()
     val bayQuickTags = if (isUserInBay) listOf(
-        TagItem(ctx.getString(R.string.ba_tag_ocean_beach_sunset_label), ctx.getString(R.string.ba_tag_ocean_beach_sunset_query)),
-        TagItem(ctx.getString(R.string.ba_tag_gg_viewpoints_label), ctx.getString(R.string.ba_tag_gg_viewpoints_query)),
-        TagItem(ctx.getString(R.string.ba_tag_mission_tacos_label), ctx.getString(R.string.ba_tag_mission_tacos_query)),
-        TagItem(ctx.getString(R.string.ba_tag_north_beach_pizza_label), ctx.getString(R.string.ba_tag_north_beach_pizza_query)),
-        TagItem(ctx.getString(R.string.ba_tag_soma_coffee_label), ctx.getString(R.string.ba_tag_soma_coffee_query)),
-        TagItem(ctx.getString(R.string.ba_tag_marin_hikes_label), ctx.getString(R.string.ba_tag_marin_hikes_query)),
-        TagItem(ctx.getString(R.string.ba_tag_napa_wineries_label), ctx.getString(R.string.ba_tag_napa_wineries_query)),
-        TagItem(ctx.getString(R.string.ba_tag_berkeley_bookstores_label), ctx.getString(R.string.ba_tag_berkeley_bookstores_query)),
-        TagItem(ctx.getString(R.string.ba_tag_paloalto_coffee_label), ctx.getString(R.string.ba_tag_paloalto_coffee_query)),
-        TagItem(ctx.getString(R.string.ba_tag_oakland_music_label), ctx.getString(R.string.ba_tag_oakland_music_query)),
-        TagItem(ctx.getString(R.string.ba_tag_ferry_market_label), ctx.getString(R.string.ba_tag_ferry_market_query)),
-        TagItem(ctx.getString(R.string.ba_tag_sf_museums_label), ctx.getString(R.string.ba_tag_sf_museums_query))
+        TagItem(
+            ctx.getString(R.string.ba_tag_ocean_beach_sunset_label),
+            ctx.getString(R.string.ba_tag_ocean_beach_sunset_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.ba_tag_gg_viewpoints_label),
+            ctx.getString(R.string.ba_tag_gg_viewpoints_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.ba_tag_mission_tacos_label),
+            ctx.getString(R.string.ba_tag_mission_tacos_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.ba_tag_north_beach_pizza_label),
+            ctx.getString(R.string.ba_tag_north_beach_pizza_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.ba_tag_soma_coffee_label),
+            ctx.getString(R.string.ba_tag_soma_coffee_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.ba_tag_marin_hikes_label),
+            ctx.getString(R.string.ba_tag_marin_hikes_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.ba_tag_napa_wineries_label),
+            ctx.getString(R.string.ba_tag_napa_wineries_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.ba_tag_berkeley_bookstores_label),
+            ctx.getString(R.string.ba_tag_berkeley_bookstores_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.ba_tag_paloalto_coffee_label),
+            ctx.getString(R.string.ba_tag_paloalto_coffee_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.ba_tag_oakland_music_label),
+            ctx.getString(R.string.ba_tag_oakland_music_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.ba_tag_ferry_market_label),
+            ctx.getString(R.string.ba_tag_ferry_market_query)
+        ),
+        TagItem(
+            ctx.getString(R.string.ba_tag_sf_museums_label),
+            ctx.getString(R.string.ba_tag_sf_museums_query)
+        )
     ) else emptyList()
     val quickTags = laQuickTags + bayQuickTags + baseQuickTags
 
@@ -662,7 +771,8 @@ fun MapScreen(
         if (resolved != null) {
             userLatLng = resolved
             region = detectRegion(resolved)
-            val targetZoom = if (geoFireLocation != null) 15f else camera.position.zoom.takeIf { it > 0f } ?: 10f
+            val targetZoom =
+                if (geoFireLocation != null) 15f else camera.position.zoom.takeIf { it > 0f } ?: 10f
             camera.position = CameraPosition.fromLatLngZoom(resolved, targetZoom)
         } else if (userLatLng == null) {
             val defaultCenter = LatLng(20.0, 0.0)
@@ -684,6 +794,7 @@ fun MapScreen(
                     )
                     isLoadingMatches = false
                 }
+
                 override fun onCancelled(err: DatabaseError) {
                     Toast.makeText(ctx, err.message, Toast.LENGTH_LONG).show()
                     isLoadingMatches = false
@@ -732,7 +843,10 @@ fun MapScreen(
                             nearbyViewModel.refreshNearbyUsers(userId, loc, geoFireDatabaseRef)
                         }
                     }
-                    navController.currentBackStackEntry?.savedStateHandle?.set("mapCountryChanged", false)
+                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                        "mapCountryChanged",
+                        false
+                    )
                 }
             }
     }
@@ -762,8 +876,9 @@ fun MapScreen(
             val profileCache = mutableMapOf<String, Profile?>()
 
             snap.children.forEach { postSnap ->
-                val postId   = postSnap.key ?: return@forEach
-                val authorId = postSnap.child("userId").getValue(String::class.java) ?: return@forEach
+                val postId = postSnap.key ?: return@forEach
+                val authorId =
+                    postSnap.child("userId").getValue(String::class.java) ?: return@forEach
 
                 // Load profile once per author to check location visibility toggles
                 var profile = profileCache[authorId]
@@ -778,9 +893,10 @@ fun MapScreen(
                     (isMatch && it.allowLocationForMatches) || (!isMatch && it.allowLocationPublic)
                 } ?: false
                 if (!allowed) return@forEach
-                val ci      = postSnap.child("checkIn")
+                val ci = postSnap.child("checkIn")
                 val placeId = ci.child("placeId").getValue(String::class.java) ?: return@forEach
-                val placeNm = ci.child("name").getValue(String::class.java) ?: ctx.getString(R.string.unknown_place)
+                val placeNm = ci.child("name").getValue(String::class.java)
+                    ?: ctx.getString(R.string.unknown_place)
 
                 nameCache[placeId] = placeNm
                 grouped.getOrPut(placeId) { mutableListOf() }.add(postId)
@@ -802,8 +918,14 @@ fun MapScreen(
 
             val toResolve = grouped.keys.filter { !clusterLatLngs.containsKey(it) }
             if (toResolve.isNotEmpty()) {
-                val resolvedPairs = toResolve.map { pid -> async { pid to getLatLngFromPlaceId(pid, ctx) } }.awaitAll()
-                resolvedPairs.forEach { (pid, ll) -> ll?.let { clusterLatLngs[pid] = it; heatPoints += it } }
+                val resolvedPairs =
+                    toResolve.map { pid -> async { pid to getLatLngFromPlaceId(pid, ctx) } }
+                        .awaitAll()
+                resolvedPairs.forEach { (pid, ll) ->
+                    ll?.let {
+                        clusterLatLngs[pid] = it; heatPoints += it
+                    }
+                }
             }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
@@ -934,91 +1056,98 @@ fun MapScreen(
 
     Scaffold(
         topBar = {
-                TopAppBar(
-                    title = {
-                        val trailingActionsInset = 6.dp
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(end = trailingActionsInset)
-                        ) {
-                            if (sortMode == SortMode.ACTIVE || sortMode == SortMode.POPULAR) {
-                                LastActiveChip(
-                                    hours = lastActiveHours,
-                                    onChange = {
-                                        lastActiveHours = it
-                                        prefs.edit().putFloat("map_last_active_hours", it.toFloat()).apply()
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            } else {
-                                RadiusChip(
-                                    radiusKm = radiusKm,
-                                    onChange = {
-                                        radiusKm = it
-                                        prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
-                                    },
-                                    useMiles = useMiles,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    },
-                    actions = {
-                        val (sortIcon, sortLabelRes) = when (sortMode) {
-                            SortMode.NEARBY -> Icons.Default.MyLocation to R.string.sort_nearby
-                            SortMode.ACTIVE -> Icons.Default.Schedule to R.string.sort_last_active
-                            SortMode.POPULAR -> Icons.Default.Leaderboard to R.string.sort_popular
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(24.dp),
-                            color = KupidxOrange.copy(alpha = 0.12f),
-                            border = BorderStroke(1.dp, KupidxOrange.copy(alpha = 0.7f)),
-                            tonalElevation = 0.dp,
-                            shadowElevation = 0.dp
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    sortMode = when (sortMode) {
-                                        SortMode.NEARBY -> SortMode.ACTIVE
-                                        SortMode.ACTIVE -> SortMode.POPULAR
-                                        SortMode.POPULAR -> SortMode.NEARBY
-                                    }
-                                    prefs.edit().putString("map_sort_mode", sortMode.name).apply()
-                                    userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
+            TopAppBar(
+                title = {
+                    val trailingActionsInset = 6.dp
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(end = trailingActionsInset)
+                    ) {
+                        if (sortMode == SortMode.ACTIVE || sortMode == SortMode.POPULAR) {
+                            LastActiveChip(
+                                hours = lastActiveHours,
+                                onChange = {
+                                    lastActiveHours = it
+                                    prefs.edit().putFloat("map_last_active_hours", it.toFloat())
+                                        .apply()
                                 },
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = Color.Transparent,
-                                    contentColor = KupidxOrange
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = sortIcon,
-                                    contentDescription = stringResource(sortLabelRes)
-                                )
-                            }
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        } else {
+                            RadiusChip(
+                                radiusKm = radiusKm,
+                                onChange = {
+                                    radiusKm = it
+                                    prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
+                                },
+                                useMiles = useMiles,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
-                        Box {
-                            IconButton(onClick = { showOverflowMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = null)
-                            }
-                            DropdownMenu(
-                                expanded = showOverflowMenu,
-                                onDismissRequest = { showOverflowMenu = false },
-                                modifier = Modifier.widthIn(max = 280.dp)
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.filters)) },
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        showFiltersDialog = true
-                                    }
-                                )
-                            }
+                    }
+                },
+                actions = {
+                    val (sortIcon, sortLabelRes) = when (sortMode) {
+                        SortMode.NEARBY -> Icons.Default.MyLocation to R.string.sort_nearby
+                        SortMode.ACTIVE -> Icons.Default.Schedule to R.string.sort_last_active
+                        SortMode.POPULAR -> Icons.Default.Leaderboard to R.string.sort_popular
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = KupidxOrange.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, KupidxOrange.copy(alpha = 0.7f)),
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp
+                    ) {
+                        IconButton(
+                            onClick = {
+                                sortMode = when (sortMode) {
+                                    SortMode.NEARBY -> SortMode.ACTIVE
+                                    SortMode.ACTIVE -> SortMode.POPULAR
+                                    SortMode.POPULAR -> SortMode.NEARBY
+                                }
+                                prefs.edit().putString("map_sort_mode", sortMode.name).apply()
+                                userLatLng?.let {
+                                    nearbyViewModel.refreshNearbyUsers(
+                                        userId,
+                                        it,
+                                        geoFireDatabaseRef
+                                    )
+                                }
+                            },
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = Color.Transparent,
+                                contentColor = KupidxOrange
+                            )
+                        ) {
+                            Icon(
+                                imageVector = sortIcon,
+                                contentDescription = stringResource(sortLabelRes)
+                            )
                         }
-                    },
-                    windowInsets = WindowInsets(0, 0, 0, 0)
-                )
+                    }
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = null)
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false },
+                            modifier = Modifier.widthIn(max = 280.dp)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.filters)) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    showFiltersDialog = true
+                                }
+                            )
+                        }
+                    }
+                },
+                windowInsets = WindowInsets(0, 0, 0, 0)
+            )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
@@ -1032,90 +1161,88 @@ fun MapScreen(
                     .fillMaxSize()
             ) {
 
-            if (!(isPremium) && selectedTab == 2) {
-                selectedTab = 0
-            }
-
-            // Tabs: People | Cards | Map (Map only for Plus/Premium)
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = Color.Transparent,
-                contentColor = KupidxOrange,
-                indicator = { tabPositions ->
-                    TabRowDefaults.Indicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                        color = KupidxOrange
-                    )
+                if (!(isPremium) && selectedTab == 2) {
+                    selectedTab = 0
                 }
-            ) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    selectedContentColor = KupidxOrange,
-                    unselectedContentColor = Color.Gray,
-                    text = { Text(stringResource(R.string.tab_people)) }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    selectedContentColor = KupidxOrange,
-                    unselectedContentColor = Color.Gray,
-                    text = { Text(stringResource(R.string.tab_cards)) }
-                )
-                if (isPremium) {
+
+                // Tabs: People | Cards | Map (Map only for Plus/Premium)
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = Color.Transparent,
+                    contentColor = KupidxOrange,
+                    indicator = { tabPositions ->
+                        TabRowDefaults.Indicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                            color = KupidxOrange
+                        )
+                    }
+                ) {
                     Tab(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
                         selectedContentColor = KupidxOrange,
                         unselectedContentColor = Color.Gray,
-                        text = { Text(stringResource(R.string.tab_map)) }
+                        text = { Text(stringResource(R.string.tab_people)) }
+                    )
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        selectedContentColor = KupidxOrange,
+                        unselectedContentColor = Color.Gray,
+                        text = { Text(stringResource(R.string.tab_cards)) }
+                    )
+                    if (isPremium) {
+                        Tab(
+                            selected = selectedTab == 2,
+                            onClick = { selectedTab = 2 },
+                            selectedContentColor = KupidxOrange,
+                            unselectedContentColor = Color.Gray,
+                            text = { Text(stringResource(R.string.tab_map)) }
+                        )
+                    }
+                }
+
+                if (activeFilterLabels.isNotEmpty()) {
+                    Text(
+                        text = ctx.getString(
+                            R.string.filters_active_prefix,
+                            activeFilterLabels.joinToString()
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = KupidxOrange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
-            }
 
-            if (activeFilterLabels.isNotEmpty()) {
-                Text(
-                    text = ctx.getString(
-                        R.string.filters_active_prefix,
-                        activeFilterLabels.joinToString()
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = KupidxOrange,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            when (selectedTab) {
-                /* ======================= PEOPLE TAB (grid + mini map) ======================= */
-                0 -> {
-                    Box(Modifier.fillMaxSize()) {
-                        DisposableEffect(Unit) {
-                            onDispose { autoPagedNearby = false }
-                        }
-                        LaunchedEffect(
-                            sortedPeople.isEmpty(),
-                            isRefreshing,
-                            userLatLng,
-                            autoPagedNearby
-                        ) {
-                            val location = userLatLng
-                            if (sortedPeople.isEmpty() && !isRefreshing && !autoPagedNearby && location != null) {
-                                autoPagedNearby = true
-                                nearbyViewModel.loadNextPage(25, userId, location, geoFireDatabaseRef)
+                when (selectedTab) {
+                    /* ======================= PEOPLE TAB (grid + mini map) ======================= */
+                    0 -> {
+                        Box(Modifier.fillMaxSize()) {
+                            DisposableEffect(Unit) {
+                                onDispose { autoPagedNearby = false }
                             }
-                            if (sortedPeople.isNotEmpty()) {
-                                autoPagedNearby = false
+                            LaunchedEffect(
+                                sortedPeople.isEmpty(),
+                                isRefreshing,
+                                userLatLng,
+                                autoPagedNearby
+                            ) {
+                                val location = userLatLng
+                                if (sortedPeople.isEmpty() && !isRefreshing && !autoPagedNearby && location != null) {
+                                    autoPagedNearby = true
+                                    nearbyViewModel.loadNextPage(
+                                        25,
+                                        userId,
+                                        location,
+                                        geoFireDatabaseRef
+                                    )
+                                }
+                                if (sortedPeople.isNotEmpty()) {
+                                    autoPagedNearby = false
+                                }
                             }
-                        }
-                        val refreshState = rememberSwipeRefreshState(isRefreshing)
-                        SwipeRefresh(
-                            state = refreshState,
-                            onRefresh = {
-                                userLatLng?.let { nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef) }
-                            }
-                        ) {
                             PeopleGrid(
                                 users = sortedPeople,
                                 isLoading =
@@ -1135,7 +1262,8 @@ fun MapScreen(
                                 onRemove = { uid ->
                                     scope.launch {
                                         nearbyViewModel.addExcluded(uid)
-                                        FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid").setValue(true)
+                                        FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid")
+                                            .setValue(true)
                                     }
                                 },
                                 onBlock = { uid ->
@@ -1154,288 +1282,224 @@ fun MapScreen(
                                         ).show()
                                     } else {
                                         userLatLng?.let {
-                                            nearbyViewModel.loadNextPage(25, userId, it, geoFireDatabaseRef)
+                                            nearbyViewModel.loadNextPage(
+                                                25,
+                                                userId,
+                                                it,
+                                                geoFireDatabaseRef
+                                            )
                                         }
                                     }
                                 }
                             )
                         }
                     }
-                }
 
-                /* ======================= CARDS TAB ======================= */
-                1 -> {
-                    Box(Modifier.fillMaxSize()) {
-                        DisposableEffect(Unit) {
-                            onDispose { autoPagedCards = false }
-                        }
-                        LaunchedEffect(
-                            sortedPeople.isEmpty(),
-                            isRefreshing,
-                            userLatLng,
-                            autoPagedCards
-                        ) {
-                            val location = userLatLng
-                            if (sortedPeople.isEmpty() && !isRefreshing && !autoPagedCards && location != null) {
-                                autoPagedCards = true
-                                nearbyViewModel.loadNextPage(10, userId, location, geoFireDatabaseRef)
+                    /* ======================= CARDS TAB ======================= */
+                    1 -> {
+                        Box(Modifier.fillMaxSize()) {
+                            DisposableEffect(Unit) {
+                                onDispose { autoPagedCards = false }
                             }
-                            if (sortedPeople.isNotEmpty()) {
-                                autoPagedCards = false
-                            }
-                        }
-                        CardsList(
-                            users = sortedPeople,
-                            isLoading = isRefreshing || userLatLng == null ||
-                                    !hasAttemptedInitialLoad,
-                            useMiles = useMiles,          // <-- pass through
-                            onLike = { user ->
-                                if (swipesLoaded && remainingSwipes <= 0) {
-                                    showSwipeLimitOverlay = true
-                                } else {
-                                    handleSwipeRight(userId, user.userId, profileViewModel)
-                                    nearbyViewModel.addExcluded(user.userId)
-                                    if (swipesLoaded) {
-                                        remainingSwipes--
-                                        updateSwipesInFirebase(remainingSwipes)
-                                    }
-                                }
-                            },
-                            onDislike = { user ->
-                                if (swipesLoaded && remainingSwipes <= 0) {
-                                    showSwipeLimitOverlay = true
-                                } else {
-                                    handleSwipeLeft(userId, user.userId)
-                                    nearbyViewModel.addExcluded(user.userId)
-                                    if (swipesLoaded) {
-                                        remainingSwipes--
-                                        updateSwipesInFirebase(remainingSwipes)
-                                    }
-                                }
-                            },
-                            onCardClick = { user ->
-                                if (swipesLoaded && remainingSwipes <= 0) {
-                                    showSwipeLimitOverlay = true
-                                } else {
-                                    navController.navigate("previewUserProfile/${user.userId}")
-                                }
-                            },
-                            onRemove = { uid ->
-                                scope.launch {
-                                    nearbyViewModel.addExcluded(uid)
-                                    FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid")
-                                        .setValue(true)
-                                }
-                            },
-                            onBlock = { uid ->
-                                scope.launch {
-                                    FirebaseRefs.db.getReference("blocks/$userId/$uid")
-                                        .setValue(true)
-                                    nearbyViewModel.addExcluded(uid)
-                                }
-                            },
-                            onNextPage = {
-                                if (sortedPeople.isNotEmpty()) {
-                                    Toast.makeText(
-                                        ctx,
-                                        R.string.toast_swipe_existing_cards_first,
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                } else {
-                                    userLatLng?.let {
-                                        nearbyViewModel.loadNextPage(
-                                            10,
-                                            userId,
-                                            it,
-                                            geoFireDatabaseRef
-                                        )
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-
-                /* ======================= MAP TAB (old map restored) ======================= */
-                2 -> {
-                    Box(Modifier.fillMaxSize()) {
-                        Column(Modifier.fillMaxSize()) {
-
-                            // SEARCH + TAG ROW
-                            val listState = rememberLazyListState()
-                            LazyRow(
-                                state = listState,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            LaunchedEffect(
+                                sortedPeople.isEmpty(),
+                                isRefreshing,
+                                userLatLng,
+                                autoPagedCards
                             ) {
-                                item {
-                                    if (showSearchBar) {
-                                        Box(
-                                            Modifier
-                                                .height(36.dp)
-                                                .background(Color.White, RoundedCornerShape(18.dp))
-                                                .padding(
-                                                    start = 12.dp,
-                                                    end = 40.dp,
-                                                    top = 8.dp,
-                                                    bottom = 8.dp
+                                val location = userLatLng
+                                if (sortedPeople.isEmpty() && !isRefreshing && !autoPagedCards && location != null) {
+                                    autoPagedCards = true
+                                    nearbyViewModel.loadNextPage(
+                                        10,
+                                        userId,
+                                        location,
+                                        geoFireDatabaseRef
+                                    )
+                                }
+                                if (sortedPeople.isNotEmpty()) {
+                                    autoPagedCards = false
+                                }
+                            }
+                            CardsList(
+                                users = sortedPeople,
+                                isLoading = isRefreshing || userLatLng == null ||
+                                        !hasAttemptedInitialLoad,
+                                useMiles = useMiles,          // <-- pass through
+                                onLike = { user ->
+                                    if (swipesLoaded && remainingSwipes <= 0) {
+                                        showSwipeLimitOverlay = true
+                                    } else {
+                                        handleSwipeRight(userId, user.userId, profileViewModel)
+                                        nearbyViewModel.addExcluded(user.userId)
+                                        if (swipesLoaded) {
+                                            remainingSwipes--
+                                            updateSwipesInFirebase(remainingSwipes)
+                                        }
+                                    }
+                                },
+                                onDislike = { user ->
+                                    if (swipesLoaded && remainingSwipes <= 0) {
+                                        showSwipeLimitOverlay = true
+                                    } else {
+                                        handleSwipeLeft(userId, user.userId)
+                                        nearbyViewModel.addExcluded(user.userId)
+                                        if (swipesLoaded) {
+                                            remainingSwipes--
+                                            updateSwipesInFirebase(remainingSwipes)
+                                        }
+                                    }
+                                },
+                                onCardClick = { user ->
+                                    if (swipesLoaded && remainingSwipes <= 0) {
+                                        showSwipeLimitOverlay = true
+                                    } else {
+                                        navController.navigate("previewUserProfile/${user.userId}")
+                                    }
+                                },
+                                onRemove = { uid ->
+                                    scope.launch {
+                                        nearbyViewModel.addExcluded(uid)
+                                        FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid")
+                                            .setValue(true)
+                                    }
+                                },
+                                onBlock = { uid ->
+                                    scope.launch {
+                                        FirebaseRefs.db.getReference("blocks/$userId/$uid")
+                                            .setValue(true)
+                                        nearbyViewModel.addExcluded(uid)
+                                    }
+                                },
+                                onNextPage = {
+                                    if (sortedPeople.isNotEmpty()) {
+                                        Toast.makeText(
+                                            ctx,
+                                            R.string.toast_swipe_existing_cards_first,
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        userLatLng?.let {
+                                            nearbyViewModel.loadNextPage(
+                                                10,
+                                                userId,
+                                                it,
+                                                geoFireDatabaseRef
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    /* ======================= MAP TAB (old map restored) ======================= */
+                    2 -> {
+                        Box(Modifier.fillMaxSize()) {
+                            Column(Modifier.fillMaxSize()) {
+
+                                // SEARCH + TAG ROW
+                                val listState = rememberLazyListState()
+                                LazyRow(
+                                    state = listState,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    item {
+                                        if (showSearchBar) {
+                                            Box(
+                                                Modifier
+                                                    .height(36.dp)
+                                                    .background(
+                                                        Color.White,
+                                                        RoundedCornerShape(18.dp)
+                                                    )
+                                                    .padding(
+                                                        start = 12.dp,
+                                                        end = 40.dp,
+                                                        top = 8.dp,
+                                                        bottom = 8.dp
+                                                    )
+                                            ) {
+                                                TextField(
+                                                    value = searchQuery,
+                                                    onValueChange = { searchQuery = it },
+                                                    singleLine = true,
+                                                    textStyle = LocalTextStyle.current.copy(
+                                                        color = Color.Black,
+                                                        fontSize = 14.sp
+                                                    ),
+                                                    keyboardOptions = KeyboardOptions.Default.copy(
+                                                        imeAction = ImeAction.Search
+                                                    ),
+                                                    keyboardActions = KeyboardActions(
+                                                        onSearch = {
+                                                            scope.launch {
+                                                                isLoadingSearch = true
+                                                                runSearch(searchQuery)
+                                                                isLoadingSearch = false
+                                                            }
+                                                        },
+                                                    ),
+                                                    colors = TextFieldDefaults.colors(
+                                                        focusedIndicatorColor = Color.Transparent,
+                                                        unfocusedIndicatorColor = Color.Transparent,
+                                                        disabledIndicatorColor = Color.Transparent,
+                                                        focusedContainerColor = Color.Transparent,
+                                                        unfocusedContainerColor = Color.Transparent,
+                                                        disabledContainerColor = Color.Transparent,
+                                                        cursorColor = KupidxOrange
+                                                    )
                                                 )
-                                        ) {
-                                            TextField(
-                                                value = searchQuery,
-                                                onValueChange = { searchQuery = it },
-                                                singleLine = true,
-                                                textStyle = LocalTextStyle.current.copy(
-                                                    color = Color.Black,
-                                                    fontSize = 14.sp
-                                                ),
-                                                keyboardOptions = KeyboardOptions.Default.copy(
-                                                    imeAction = ImeAction.Search
-                                                ),
-                                                keyboardActions = KeyboardActions(
-                                                    onSearch = {
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    if (searchQuery.isNotBlank()) {
                                                         scope.launch {
                                                             isLoadingSearch = true
                                                             runSearch(searchQuery)
                                                             isLoadingSearch = false
                                                         }
-                                                    },
-                                                ),
-                                                colors = TextFieldDefaults.colors(
-                                                    focusedIndicatorColor = Color.Transparent,
-                                                    unfocusedIndicatorColor = Color.Transparent,
-                                                    disabledIndicatorColor = Color.Transparent,
-                                                    focusedContainerColor = Color.Transparent,
-                                                    unfocusedContainerColor = Color.Transparent,
-                                                    disabledContainerColor = Color.Transparent,
-                                                    cursorColor = KupidxOrange
-                                                )
-                                            )
-                                        }
-                                        IconButton(
-                                            onClick = {
-                                                if (searchQuery.isNotBlank()) {
-                                                    scope.launch {
-                                                        isLoadingSearch = true
-                                                        runSearch(searchQuery)
-                                                        isLoadingSearch = false
+                                                    } else {
+                                                        keyboardController?.hide()
+                                                        focusManager.clearFocus(force = true)
+                                                        showSearchBar = false
                                                     }
-                                                } else {
-                                                    keyboardController?.hide()
-                                                    focusManager.clearFocus(force = true)
-                                                    showSearchBar = false
-                                                }
-                                            },
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                                .offset((-36).dp)
-                                        ) {
-                                            Icon(
-                                                if (searchQuery.isNotBlank()) Icons.Default.Search else Icons.Default.Close,
-                                                contentDescription = null,
-                                                tint = if (searchQuery.isNotBlank()) KupidxOrange else Color.Gray
-                                            )
-                                        }
-                                    } else {
-                                        IconButton(
-                                            onClick = { showSearchBar = true },
-                                            modifier = Modifier.size(36.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Search,
-                                                contentDescription = null,
-                                                tint = if (isDarkTheme) Color.White else KupidxOrange
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                }
-                                items(quickTags) { tag ->
-                                    Box(
-                                        Modifier
-                                            .padding(end = 6.dp)
-                                            .background(Color.Black, RoundedCornerShape(4.dp))
-                                            .border(
-                                                BorderStroke(1.dp, KupidxOrange),
-                                                RoundedCornerShape(4.dp)
-                                            )
-                                            .clickable(enabled = !isLoadingQuickSearch) {
-                                                scope.launch {
-                                                    loadingTag = tag.label
-                                                    isLoadingQuickSearch = true
-                                                    searchQuery = tag.query
-                                                    runSearch(tag.query)
-                                                    isLoadingQuickSearch = false
-                                                    loadingTag = null
-                                                }
+                                                },
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .offset((-36).dp)
+                                            ) {
+                                                Icon(
+                                                    if (searchQuery.isNotBlank()) Icons.Default.Search else Icons.Default.Close,
+                                                    contentDescription = null,
+                                                    tint = if (searchQuery.isNotBlank()) KupidxOrange else Color.Gray
+                                                )
                                             }
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        if (isLoadingQuickSearch && tag.label == loadingTag) {
-                                            CircularProgressIndicator(
-                                                strokeWidth = 1.dp,
-                                                modifier = Modifier.size(12.dp),
-                                                color = Color.White
-                                            )
                                         } else {
-                                            Text(
-                                                tag.label,
-                                                color = Color.LightGray,
-                                                fontSize = 10.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+                                            IconButton(
+                                                onClick = { showSearchBar = true },
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Search,
+                                                    contentDescription = null,
+                                                    tint = if (isDarkTheme) Color.White else KupidxOrange
+                                                )
+                                            }
                                         }
+                                        Spacer(modifier = Modifier.width(8.dp))
                                     }
-                                }
-                            }
-
-                            if (isUserInLA) {
-                                val laCollections = listOf(
-                                    TagItem(
-                                        ctx.getString(R.string.la_col_date_westside_label),
-                                        ctx.getString(R.string.la_col_date_westside_query)
-                                    ),
-                                    TagItem(
-                                        ctx.getString(R.string.la_col_beach_day_label),
-                                        ctx.getString(R.string.la_col_beach_day_query)
-                                    ),
-                                    TagItem(
-                                        ctx.getString(R.string.la_col_studio_city_night_label),
-                                        ctx.getString(R.string.la_col_studio_city_night_query)
-                                    ),
-                                    TagItem(
-                                        ctx.getString(R.string.la_col_views_griffith_hollywood_label),
-                                        ctx.getString(R.string.la_col_views_griffith_hollywood_query)
-                                    ),
-                                    TagItem(
-                                        ctx.getString(R.string.la_col_weho_label),
-                                        ctx.getString(R.string.la_col_weho_query)
-                                    ),
-                                    TagItem(
-                                        ctx.getString(R.string.la_col_little_tokyo_label),
-                                        ctx.getString(R.string.la_col_little_tokyo_query)
-                                    )
-                                )
-                                LazyRow(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    items(laCollections) { tag ->
+                                    items(quickTags) { tag ->
                                         Box(
                                             Modifier
                                                 .padding(end = 6.dp)
-                                                .background(
-                                                    Color(0xFF121212),
-                                                    RoundedCornerShape(16.dp)
-                                                )
+                                                .background(Color.Black, RoundedCornerShape(4.dp))
                                                 .border(
                                                     BorderStroke(1.dp, KupidxOrange),
-                                                    RoundedCornerShape(16.dp)
+                                                    RoundedCornerShape(4.dp)
                                                 )
                                                 .clickable(enabled = !isLoadingQuickSearch) {
                                                     scope.launch {
@@ -1447,316 +1511,400 @@ fun MapScreen(
                                                         loadingTag = null
                                                     }
                                                 }
-                                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
                                         ) {
-                                            Text(
-                                                tag.label,
-                                                color = Color.White,
-                                                fontSize = 12.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+                                            if (isLoadingQuickSearch && tag.label == loadingTag) {
+                                                CircularProgressIndicator(
+                                                    strokeWidth = 1.dp,
+                                                    modifier = Modifier.size(12.dp),
+                                                    color = Color.White
+                                                )
+                                            } else {
+                                                Text(
+                                                    tag.label,
+                                                    color = Color.LightGray,
+                                                    fontSize = 10.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            if (isUserInBay) {
-                                val baCollections = listOf(
-                                    TagItem(
-                                        ctx.getString(R.string.ba_col_date_sf_label),
-                                        ctx.getString(R.string.ba_col_date_sf_query)
-                                    ),
-                                    TagItem(
-                                        ctx.getString(R.string.ba_col_ocean_beach_evening_label),
-                                        ctx.getString(R.string.ba_col_ocean_beach_evening_query)
-                                    ),
-                                    TagItem(
-                                        ctx.getString(R.string.ba_col_south_bay_night_label),
-                                        ctx.getString(R.string.ba_col_south_bay_night_query)
-                                    ),
-                                    TagItem(
-                                        ctx.getString(R.string.ba_col_wine_day_napa_label),
-                                        ctx.getString(R.string.ba_col_wine_day_napa_query)
-                                    ),
-                                    TagItem(
-                                        ctx.getString(R.string.ba_col_berkeley_vintage_label),
-                                        ctx.getString(R.string.ba_col_berkeley_vintage_query)
-                                    ),
-                                    TagItem(
-                                        ctx.getString(R.string.ba_col_marin_headlands_label),
-                                        ctx.getString(R.string.ba_col_marin_headlands_query)
+                                if (isUserInLA) {
+                                    val laCollections = listOf(
+                                        TagItem(
+                                            ctx.getString(R.string.la_col_date_westside_label),
+                                            ctx.getString(R.string.la_col_date_westside_query)
+                                        ),
+                                        TagItem(
+                                            ctx.getString(R.string.la_col_beach_day_label),
+                                            ctx.getString(R.string.la_col_beach_day_query)
+                                        ),
+                                        TagItem(
+                                            ctx.getString(R.string.la_col_studio_city_night_label),
+                                            ctx.getString(R.string.la_col_studio_city_night_query)
+                                        ),
+                                        TagItem(
+                                            ctx.getString(R.string.la_col_views_griffith_hollywood_label),
+                                            ctx.getString(R.string.la_col_views_griffith_hollywood_query)
+                                        ),
+                                        TagItem(
+                                            ctx.getString(R.string.la_col_weho_label),
+                                            ctx.getString(R.string.la_col_weho_query)
+                                        ),
+                                        TagItem(
+                                            ctx.getString(R.string.la_col_little_tokyo_label),
+                                            ctx.getString(R.string.la_col_little_tokyo_query)
+                                        )
                                     )
-                                )
-                                LazyRow(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    items(baCollections) { tag ->
-                                        Box(
-                                            Modifier
-                                                .padding(end = 6.dp)
-                                                .background(
-                                                    Color(0xFF121212),
-                                                    RoundedCornerShape(16.dp)
-                                                )
-                                                .border(
-                                                    BorderStroke(1.dp, KupidxOrange),
-                                                    RoundedCornerShape(16.dp)
-                                                )
-                                                .clickable(enabled = !isLoadingQuickSearch) {
-                                                    scope.launch {
-                                                        loadingTag = tag.label
-                                                        isLoadingQuickSearch = true
-                                                        searchQuery = tag.query
-                                                        runSearch(tag.query)
-                                                        isLoadingQuickSearch = false
-                                                        loadingTag = null
+                                    LazyRow(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        items(laCollections) { tag ->
+                                            Box(
+                                                Modifier
+                                                    .padding(end = 6.dp)
+                                                    .background(
+                                                        Color(0xFF121212),
+                                                        RoundedCornerShape(16.dp)
+                                                    )
+                                                    .border(
+                                                        BorderStroke(1.dp, KupidxOrange),
+                                                        RoundedCornerShape(16.dp)
+                                                    )
+                                                    .clickable(enabled = !isLoadingQuickSearch) {
+                                                        scope.launch {
+                                                            loadingTag = tag.label
+                                                            isLoadingQuickSearch = true
+                                                            searchQuery = tag.query
+                                                            runSearch(tag.query)
+                                                            isLoadingQuickSearch = false
+                                                            loadingTag = null
+                                                        }
                                                     }
-                                                }
-                                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                                        ) {
-                                            Text(
-                                                tag.label,
-                                                color = Color.White,
-                                                fontSize = 12.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+                                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                                            ) {
+                                                Text(
+                                                    tag.label,
+                                                    color = Color.White,
+                                                    fontSize = 12.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            // ---------- MAP BOX ----------
-                            Box(Modifier.weight(1f)) {
-                                val heatProvider = remember(heatPoints.size) {
-                                    if (heatPoints.isNotEmpty()) {
-                                        HeatmapTileProvider.Builder()
-                                            .data(heatPoints)
-                                            .radius(40)
-                                            .opacity(0.65)
-                                            .build()
-                                    } else null
-                                }
-                                val heatState = rememberTileOverlayState()
-
-                                GoogleMap(
-                                    cameraPositionState = camera,
-                                    modifier = Modifier.fillMaxSize(),
-                                    properties = MapProperties(
-                                        isMyLocationEnabled = isLocationGranted,
-                                        isTrafficEnabled = isUserInLA || isUserInBay
-                                    ),
-                                    uiSettings = MapUiSettings(
-                                        zoomControlsEnabled = true,
-                                        myLocationButtonEnabled = isLocationGranted,
-                                        mapToolbarEnabled = false
+                                if (isUserInBay) {
+                                    val baCollections = listOf(
+                                        TagItem(
+                                            ctx.getString(R.string.ba_col_date_sf_label),
+                                            ctx.getString(R.string.ba_col_date_sf_query)
+                                        ),
+                                        TagItem(
+                                            ctx.getString(R.string.ba_col_ocean_beach_evening_label),
+                                            ctx.getString(R.string.ba_col_ocean_beach_evening_query)
+                                        ),
+                                        TagItem(
+                                            ctx.getString(R.string.ba_col_south_bay_night_label),
+                                            ctx.getString(R.string.ba_col_south_bay_night_query)
+                                        ),
+                                        TagItem(
+                                            ctx.getString(R.string.ba_col_wine_day_napa_label),
+                                            ctx.getString(R.string.ba_col_wine_day_napa_query)
+                                        ),
+                                        TagItem(
+                                            ctx.getString(R.string.ba_col_berkeley_vintage_label),
+                                            ctx.getString(R.string.ba_col_berkeley_vintage_query)
+                                        ),
+                                        TagItem(
+                                            ctx.getString(R.string.ba_col_marin_headlands_label),
+                                            ctx.getString(R.string.ba_col_marin_headlands_query)
+                                        )
                                     )
-                                ) {
-                                    // People markers (neutral)
-                                    val visibleMapPeople = sortedPeople.filter { u ->
-                                        u.latLng != null && (mapVisibility[u.userId] == true)
-                                    }
-                                    visibleMapPeople.forEach { u ->
-                                        val ll = u.latLng!!
-                                        Marker(
-                                            state = MarkerState(ll),
-                                            title = u.username,
-                                            onClick = {
-                                                onProfileMarkerClicked(u.userId)
-                                                true
-                                            }
-                                        )
-                                    }
-
-                                    // Match markers (blue) — click shows profile popup
-                                    matchMarkers.forEach { m ->
-                                        Marker(
-                                            state = MarkerState(m.position),
-                                            title = m.userId,
-                                            icon = BitmapDescriptorFactory.defaultMarker(
-                                                BitmapDescriptorFactory.HUE_BLUE
-                                            ),
-                                            onClick = {
-                                                FirebaseRefs.db.getReference("users")
-                                                    .child(m.userId)
-                                                    .get().addOnSuccessListener { snap ->
-                                                        snap.getValue(Profile::class.java)
-                                                            ?.let { p ->
-                                                                if (matchUids.contains(p.userId) && p.allowLocationForMatches) {
-                                                                    selectedProfile = p
-                                                                }
-                                                            }
+                                    LazyRow(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        items(baCollections) { tag ->
+                                            Box(
+                                                Modifier
+                                                    .padding(end = 6.dp)
+                                                    .background(
+                                                        Color(0xFF121212),
+                                                        RoundedCornerShape(16.dp)
+                                                    )
+                                                    .border(
+                                                        BorderStroke(1.dp, KupidxOrange),
+                                                        RoundedCornerShape(16.dp)
+                                                    )
+                                                    .clickable(enabled = !isLoadingQuickSearch) {
+                                                        scope.launch {
+                                                            loadingTag = tag.label
+                                                            isLoadingQuickSearch = true
+                                                            searchQuery = tag.query
+                                                            runSearch(tag.query)
+                                                            isLoadingQuickSearch = false
+                                                            loadingTag = null
+                                                        }
                                                     }
-                                                true
+                                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                                            ) {
+                                                Text(
+                                                    tag.label,
+                                                    color = Color.White,
+                                                    fontSize = 12.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
                                             }
-                                        )
+                                        }
                                     }
+                                }
 
-                                    // Search results markers
-                                    searchResults.forEach { p ->
-                                        Marker(
-                                            state = MarkerState(p.latLng),
-                                            title = p.name,
-                                            onClick = { selectedPlace = p; true }
-                                        )
+                                // ---------- MAP BOX ----------
+                                Box(Modifier.weight(1f)) {
+                                    val heatProvider = remember(heatPoints.size) {
+                                        if (heatPoints.isNotEmpty()) {
+                                            HeatmapTileProvider.Builder()
+                                                .data(heatPoints)
+                                                .radius(40)
+                                                .opacity(0.65)
+                                                .build()
+                                        } else null
                                     }
+                                    val heatState = rememberTileOverlayState()
 
-                                    // Heatmap overlay
-                                    heatProvider?.let {
-                                        TileOverlay(
-                                            tileProvider = it,
-                                            state = heatState
+                                    GoogleMap(
+                                        cameraPositionState = camera,
+                                        modifier = Modifier.fillMaxSize(),
+                                        properties = MapProperties(
+                                            isMyLocationEnabled = isLocationGranted,
+                                            isTrafficEnabled = isUserInLA || isUserInBay
+                                        ),
+                                        uiSettings = MapUiSettings(
+                                            zoomControlsEnabled = true,
+                                            myLocationButtonEnabled = isLocationGranted,
+                                            mapToolbarEnabled = false
                                         )
-                                    }
-
-                                    // Invisible cluster pins (tap → feed)
-                                    clusters.forEach { cluster ->
-                                        clusterLatLngs[cluster.placeId]?.let { latLng ->
+                                    ) {
+                                        // People markers (neutral)
+                                        val visibleMapPeople = sortedPeople.filter { u ->
+                                            u.latLng != null && (mapVisibility[u.userId] == true)
+                                        }
+                                        visibleMapPeople.forEach { u ->
+                                            val ll = u.latLng!!
                                             Marker(
-                                                state = MarkerState(latLng),
-                                                icon = BitmapDescriptorFactory.defaultMarker(
-                                                    BitmapDescriptorFactory.HUE_RED
-                                                ),
-                                                alpha = 0f,
+                                                state = MarkerState(ll),
+                                                title = u.username,
                                                 onClick = {
-                                                    navController.navigate("checkinFeed/${cluster.placeId}")
+                                                    onProfileMarkerClicked(u.userId)
                                                     true
                                                 }
                                             )
                                         }
-                                    }
-                                }
 
-                                // Directional arrows toward matches
-                                userLatLng?.let { me ->
-                                    DirectionalArrowsOverlay(
-                                        userLocation = me,
-                                        matchLocations = matchMarkers.map { it.position },
-                                        modifier = Modifier.fillMaxSize()
-                                    ) { loc ->
-                                        scope.launch {
-                                            camera.animate(
-                                                CameraUpdateFactory.newLatLngZoom(
-                                                    loc,
-                                                    18f
-                                                ), 500
+                                        // Match markers (blue) — click shows profile popup
+                                        matchMarkers.forEach { m ->
+                                            Marker(
+                                                state = MarkerState(m.position),
+                                                title = m.userId,
+                                                icon = BitmapDescriptorFactory.defaultMarker(
+                                                    BitmapDescriptorFactory.HUE_BLUE
+                                                ),
+                                                onClick = {
+                                                    FirebaseRefs.db.getReference("users")
+                                                        .child(m.userId)
+                                                        .get().addOnSuccessListener { snap ->
+                                                            snap.getValue(Profile::class.java)
+                                                                ?.let { p ->
+                                                                    if (matchUids.contains(p.userId) && p.allowLocationForMatches) {
+                                                                        selectedProfile = p
+                                                                    }
+                                                                }
+                                                        }
+                                                    true
+                                                }
                                             )
                                         }
-                                    }
-                                }
 
-                                // Place details popup
-                                selectedPlace?.let { place ->
-                                    PlaceDetailsPopup(
-                                        placeId = place.placeId,
-                                        name = place.name,
-                                        onDismiss = { selectedPlace = null },
-                                        onSendToMatch = {
-                                            placeToSend = place
-                                            showSendOverlay = true
+                                        // Search results markers
+                                        searchResults.forEach { p ->
+                                            Marker(
+                                                state = MarkerState(p.latLng),
+                                                title = p.name,
+                                                onClick = { selectedPlace = p; true }
+                                            )
                                         }
-                                    )
-                                }
 
-                                // Profile popup (from match marker)
-                                selectedProfile?.let { prof ->
-                                    Box(
-                                        Modifier
-                                            .fillMaxSize()
-                                            .background(Color.Black.copy(alpha = .3f)),
-                                        Alignment.Center
-                                    ) {
-                                        UserProfilePopup(
-                                            profile = prof,
-                                            onProfileClick = { navigateToProfile = it },
-                                            onCloseClick = { selectedProfile = null }
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                                        // Heatmap overlay
+                                        heatProvider?.let {
+                                            TileOverlay(
+                                                tileProvider = it,
+                                                state = heatState
+                                            )
+                                        }
 
-                        // Controls row: leaderboard, zoom, gender filter
-                        Row(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(start = 8.dp, bottom = 32.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            FloatingActionButton(
-                                onClick = { showLeaderboard = true },
-                                containerColor = KupidxOrange,
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    Icons.Outlined.Leaderboard,
-                                    contentDescription = "Leaderboard",
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            FloatingActionButton(
-                                onClick = {
-                                    val points = sortedPeople.mapNotNull { it.latLng } + listOfNotNull(userLatLng)
-                                    if (points.isNotEmpty()) {
-                                        val builder = LatLngBounds.builder()
-                                        points.forEach { builder.include(it) }
-                                        val bounds = try { builder.build() } catch (e: Exception) { null }
-                                        bounds?.let {
-                                            scope.launch {
-                                                camera.animate(
-                                                    CameraUpdateFactory.newLatLngBounds(it, 80)
+                                        // Invisible cluster pins (tap → feed)
+                                        clusters.forEach { cluster ->
+                                            clusterLatLngs[cluster.placeId]?.let { latLng ->
+                                                Marker(
+                                                    state = MarkerState(latLng),
+                                                    icon = BitmapDescriptorFactory.defaultMarker(
+                                                        BitmapDescriptorFactory.HUE_RED
+                                                    ),
+                                                    alpha = 0f,
+                                                    onClick = {
+                                                        navController.navigate("checkinFeed/${cluster.placeId}")
+                                                        true
+                                                    }
                                                 )
                                             }
                                         }
                                     }
-                        },
-                        containerColor = Color.Black,
-                        modifier = Modifier.size(40.dp)
-                        ) {
-                        Icon(
-                            Icons.Default.ZoomOutMap,
-                            contentDescription = "Zoom to results",
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    }
 
-                        // Leaderboard overlay
-                        if (showLeaderboard) {
-                            val leaderboardEntries = remember(clusters) {
-                                clusters.sortedByDescending { it.postIds.size }
-                                    .map {
-                                        LeaderboardEntry(
-                                            it.placeId,
-                                            it.placeName,
-                                            it.postIds.size
+                                    // Directional arrows toward matches
+                                    userLatLng?.let { me ->
+                                        DirectionalArrowsOverlay(
+                                            userLocation = me,
+                                            matchLocations = matchMarkers.map { it.position },
+                                            modifier = Modifier.fillMaxSize()
+                                        ) { loc ->
+                                            scope.launch {
+                                                camera.animate(
+                                                    CameraUpdateFactory.newLatLngZoom(
+                                                        loc,
+                                                        18f
+                                                    ), 500
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Place details popup
+                                    selectedPlace?.let { place ->
+                                        PlaceDetailsPopup(
+                                            placeId = place.placeId,
+                                            name = place.name,
+                                            onDismiss = { selectedPlace = null },
+                                            onSendToMatch = {
+                                                placeToSend = place
+                                                showSendOverlay = true
+                                            }
                                         )
                                     }
-                            }
-                            LeaderboardOverlay(
-                                entries = leaderboardEntries,
-                                onDismiss = { showLeaderboard = false },
-                                onEntryClick = { entry ->
-                                    showLeaderboard = false
-                                    clusterLatLngs[entry.placeId]?.let { ll ->
-                                        scope.launch {
-                                            camera.animate(
-                                                CameraUpdateFactory.newLatLngZoom(
-                                                    ll,
-                                                    18f
-                                                )
+
+                                    // Profile popup (from match marker)
+                                    selectedProfile?.let { prof ->
+                                        Box(
+                                            Modifier
+                                                .fillMaxSize()
+                                                .background(Color.Black.copy(alpha = .3f)),
+                                            Alignment.Center
+                                        ) {
+                                            UserProfilePopup(
+                                                profile = prof,
+                                                onProfileClick = { navigateToProfile = it },
+                                                onCloseClick = { selectedProfile = null }
                                             )
                                         }
                                     }
-                                    navController.navigate("checkinFeed/${entry.placeId}")
                                 }
-                            )
+                            }
+
+                            // Controls row: leaderboard, zoom, gender filter
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(start = 8.dp, bottom = 32.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                FloatingActionButton(
+                                    onClick = { showLeaderboard = true },
+                                    containerColor = KupidxOrange,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Leaderboard,
+                                        contentDescription = "Leaderboard",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                FloatingActionButton(
+                                    onClick = {
+                                        val points =
+                                            sortedPeople.mapNotNull { it.latLng } + listOfNotNull(
+                                                userLatLng
+                                            )
+                                        if (points.isNotEmpty()) {
+                                            val builder = LatLngBounds.builder()
+                                            points.forEach { builder.include(it) }
+                                            val bounds = try {
+                                                builder.build()
+                                            } catch (e: Exception) {
+                                                null
+                                            }
+                                            bounds?.let {
+                                                scope.launch {
+                                                    camera.animate(
+                                                        CameraUpdateFactory.newLatLngBounds(it, 80)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    },
+                                    containerColor = Color.Black,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.ZoomOutMap,
+                                        contentDescription = "Zoom to results",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            // Leaderboard overlay
+                            if (showLeaderboard) {
+                                val leaderboardEntries = remember(clusters) {
+                                    clusters.sortedByDescending { it.postIds.size }
+                                        .map {
+                                            LeaderboardEntry(
+                                                it.placeId,
+                                                it.placeName,
+                                                it.postIds.size
+                                            )
+                                        }
+                                }
+                                LeaderboardOverlay(
+                                    entries = leaderboardEntries,
+                                    onDismiss = { showLeaderboard = false },
+                                    onEntryClick = { entry ->
+                                        showLeaderboard = false
+                                        clusterLatLngs[entry.placeId]?.let { ll ->
+                                            scope.launch {
+                                                camera.animate(
+                                                    CameraUpdateFactory.newLatLngZoom(
+                                                        ll,
+                                                        18f
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        navController.navigate("checkinFeed/${entry.placeId}")
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -1797,7 +1945,8 @@ fun MapScreen(
             onDismiss = { showSendOverlay = false },
             onSend = { match ->
                 placeToSend?.let { pl ->
-                    val msg = "Check out this place: ${pl.name}. Directions: https://maps.google.com/?q=place_id:${pl.placeId}"
+                    val msg =
+                        "Check out this place: ${pl.name}. Directions: https://maps.google.com/?q=place_id:${pl.placeId}"
                     val chatId = getChatId2(userId, match.userId)
                     val ref = FirebaseRefs.db.getReference("messages/$chatId")
                     sendMessage2(userId, match.userId, chatId, msg, ref)
@@ -1817,17 +1966,19 @@ fun MapScreen(
                 TextButton(onClick = {
                     val match = omegleInvite!!
                     val ref = FirebaseRefs.db.reference
-                    ref.child("omegleChats").child(match.chatId).child("status").setValue("accepted")
+                    ref.child("omegleChats").child(match.chatId).child("status")
+                        .setValue("accepted")
                     ref.child("omegleInvites").child(userId).child(match.chatId).removeValue()
                     navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
                     omegleInvite = null
                 }) { Text(stringResource(R.string.join_chat), color = KupidxOrange) }
-                            },
+            },
             dismissButton = {
                 TextButton(onClick = {
                     omegleInvite?.let { match ->
                         val ref = FirebaseRefs.db.reference
-                        ref.child("omegleChats").child(match.chatId).child("status").setValue("rejected")
+                        ref.child("omegleChats").child(match.chatId).child("status")
+                            .setValue("rejected")
                         ref.child("omegleInvites").child(userId).child(match.chatId).removeValue()
                     }
                     omegleInvite = null
@@ -1852,40 +2003,45 @@ fun MapScreen(
                     .putString("map_orientation_filter", filters.orientation)
                     .apply()
                 userLatLng?.let {
-                    nearbyViewModel.refreshNearbyUsers(userId, it, geoFireDatabaseRef, forceRefresh = true)
+                    nearbyViewModel.refreshNearbyUsers(
+                        userId,
+                        it,
+                        geoFireDatabaseRef,
+                        forceRefresh = true
+                    )
                 }
             }
         )
     }
-        val complimentItems = complimentQueue.toList()
-        if (complimentItems.isNotEmpty()) {
-            ComplimentPopupStack(
-                items = complimentItems,
-                modifier = Modifier
-                    .padding(16.dp),
-                onAccept = { item ->
-                    createMatch(database, userId, item.profile.userId)
-                    val updates = mapOf(
-                        "compliments/${item.profile.userId}/$userId" to null,
-                        "complimentsReceived/$userId/${item.profile.userId}" to null
-                    )
-                    complimentQueue.remove(item)
-                    database.reference.updateChildren(updates)
-                },
-                onReject = { item ->
-                    val updates = mapOf(
-                        "compliments/${item.profile.userId}/$userId" to null,
-                        "complimentsReceived/$userId/${item.profile.userId}" to null
-                    )
-                    complimentQueue.remove(item)
-                    database.reference.updateChildren(updates)
-                },
-                onOpenProfile = { item ->
-                    navController.navigate("previewUserProfile/${item.profile.userId}")
-                }
-            )
-        }
-        }
+    val complimentItems = complimentQueue.toList()
+    if (complimentItems.isNotEmpty()) {
+        ComplimentPopupStack(
+            items = complimentItems,
+            modifier = Modifier
+                .padding(16.dp),
+            onAccept = { item ->
+                createMatch(database, userId, item.profile.userId)
+                val updates = mapOf(
+                    "compliments/${item.profile.userId}/$userId" to null,
+                    "complimentsReceived/$userId/${item.profile.userId}" to null
+                )
+                complimentQueue.remove(item)
+                database.reference.updateChildren(updates)
+            },
+            onReject = { item ->
+                val updates = mapOf(
+                    "compliments/${item.profile.userId}/$userId" to null,
+                    "complimentsReceived/$userId/${item.profile.userId}" to null
+                )
+                complimentQueue.remove(item)
+                database.reference.updateChildren(updates)
+            },
+            onOpenProfile = { item ->
+                navController.navigate("previewUserProfile/${item.profile.userId}")
+            }
+        )
+    }
+
 }
 
 /* ======================================================================================= */
@@ -1946,55 +2102,99 @@ private fun CardsList(
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        if (users.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(color = KupidxOrange)
-                    } else {
+        when {
+            isLoading -> {
+                items(3) {
+                    CardsListPlaceholderItem()
+                }
+            }
+
+            users.isEmpty() -> {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
                     }
                 }
             }
-        } else {
-            itemsIndexed(
-                items = users,
-                key = { index, user ->
-                    buildString {
-                        append(
-                            user.userId.ifBlank {
-                                user.username.ifBlank { "user" }
-                            }
-                        )
-                        append("_")
-                        append(index)
+            else -> {
+                itemsIndexed(
+                    items = users,
+                    key = { index, user ->
+                        buildString {
+                            append(
+                                user.userId.ifBlank {
+                                    user.username.ifBlank { "user" }
+                                }
+                            )
+                            append("_")
+                            append(index)
+                        }
                     }
+                ) { _, user ->
+                    ProfileCard(
+                        user = user,
+                        useMiles = useMiles,    // <---
+                        onLike = { onLike(user) },
+                        onDislike = { onDislike(user) },
+                        onClick = { onCardClick(user) },
+                        onRemove = { onRemove(user.userId) },
+                        onBlock = { onBlock(user.userId) }
+                    )
                 }
-            ) { _, user ->
-                ProfileCard(
-                    user = user,
-                    useMiles = useMiles,    // <---
-                    onLike = { onLike(user) },
-                    onDislike = { onDislike(user) },
-                    onClick = { onCardClick(user) },
-                    onRemove = { onRemove(user.userId) },
-                    onBlock = { onBlock(user.userId) }
-                )
             }
         }
-        item {
-            Button(
-                onClick = onNextPage,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(stringResource(R.string.next_page))
+        if (!isLoading || users.isNotEmpty()) {
+            item {
+                Button(
+                    onClick = onNextPage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(stringResource(R.string.next_page))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CardsListPlaceholderItem() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(3f / 4f)
+                .clip(RoundedCornerShape(24.dp))
+                .placeholder(
+                    visible = true,
+                    color = Color(0xFF2A2A2A),
+                    highlight = PlaceholderHighlight.shimmer()
+                )
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            repeat(2) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .placeholder(
+                            visible = true,
+                            color = Color(0xFF2A2A2A),
+                            highlight = PlaceholderHighlight.shimmer()
+                        )
+                )
             }
         }
     }
@@ -2318,57 +2518,82 @@ private fun PeopleGrid(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        if (users.isEmpty()) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 32.dp),
-                    contentAlignment = Alignment.Center
+        when {
+            isLoading -> {
+                items(
+                    count = 6,
+                    span = { GridItemSpan(1) }
                 ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(color = KupidxOrange)
-                    } else {
+                    PeopleGridPlaceholderCard()
+                }
+            }
+
+            users.isEmpty() -> {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(stringResource(R.string.no_one_nearby_yet), color = Color.Gray)
                     }
                 }
             }
-        } else {
-            itemsIndexed(
-                users,
-                key = { index, item ->
-                    buildString {
-                        append(
-                            item.userId.ifBlank {
-                                item.username.ifBlank { "user" }
-                            }
-                        )
-                        append("_")
-                        append(index)
-                    }
-                },
-                span = { _, _ -> GridItemSpan(1) }
-            ) { _, item ->
-                NearbyCard(
-                    user = item,
-                    onClick = { onClick(item) },
-                    useMiles = useMiles,
-                    onRemove = { onRemove(item.userId) },
-                    onBlock = { onBlock(item.userId) }
-                )
+            else -> {
+                itemsIndexed(
+                    users,
+                    key = { index, item ->
+                        buildString {
+                            append(
+                                item.userId.ifBlank {
+                                    item.username.ifBlank { "user" }
+                                }
+                            )
+                            append("_")
+                            append(index)
+                        }
+                    },
+                    span = { _, _ -> GridItemSpan(1) }
+                ) { _, item ->
+                    NearbyCard(
+                        user = item,
+                        onClick = { onClick(item) },
+                        useMiles = useMiles,
+                        onRemove = { onRemove(item.userId) },
+                        onBlock = { onBlock(item.userId) }
+                    )
+                }
             }
         }
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Button(
-                onClick = onNextPage,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(stringResource(R.string.next_page))
+        if (!isLoading || users.isNotEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Button(
+                    onClick = onNextPage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(stringResource(R.string.next_page))
+                }
             }
         }
     }
+}
+
+@Composable
+private fun PeopleGridPlaceholderCard() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(3f / 4f)
+            .clip(RoundedCornerShape(12.dp))
+            .placeholder(
+                visible = true,
+                color = Color(0xFF2A2A2A),
+                highlight = PlaceholderHighlight.shimmer()
+            )
+    )
 }
 
 @Composable
