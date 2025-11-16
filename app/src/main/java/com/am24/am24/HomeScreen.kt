@@ -288,12 +288,12 @@ fun HomeScreenContent(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = Color.Black,
+        containerColor = MaterialTheme.colorScheme.background,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.background)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
@@ -330,7 +330,7 @@ fun HomeScreenContent(
             } else {
                 TabRow(
                     selectedTabIndex = selectedTab,
-                    containerColor = Color.Black,
+                    containerColor = MaterialTheme.colorScheme.background,
                     contentColor = Color.White,          // label colour
                     indicator = {},                   // we’ll draw our own border
                     divider = {}               // we’ll draw our own border
@@ -351,7 +351,7 @@ fun HomeScreenContent(
                                 )
                                 .background(
                                     if (isSelected) Color(0xFF2B2B2B) /* dark-grey */
-                                    else Color.Black,
+                                    else MaterialTheme.colorScheme.background,
                                     RoundedCornerShape(12.dp)
                                 )
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -435,7 +435,7 @@ fun FeedSection(
             state = listState, // Use the passed listState
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.background)
                 .visibleScrollbar(listState)
         ) {
             if (isPosting) {
@@ -805,7 +805,7 @@ fun FeedItem(
                         modifier = Modifier
                             .size(if (screenWidth < 360.dp) avatarSizes.comment else avatarSizes.feed)
                             .clip(CircleShape)
-                            .background(Color.Gray)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                     )
                     Spacer(modifier = Modifier.width(dynamicPadding))
                     Column {
@@ -956,7 +956,7 @@ fun FeedItem(
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(Color.Black)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
                                         .clickable {
                                             if (!isMediaRevealed) {
                                                 isMediaRevealed = true
@@ -968,7 +968,10 @@ fun FeedItem(
                                             model = post.mediaUrl,
                                             contentDescription = "Post photo",
                                             modifier = Modifier.matchParentSize(),
-                                            contentScale = ContentScale.Crop
+                                            contentScale = ContentScale.Crop,
+                                            placeholder = placeholderPainter,
+                                            error = placeholderPainter,
+                                            fallback = placeholderPainter
                                         )
                                     } else {
                                         Image(
@@ -2311,7 +2314,7 @@ fun FeedSearchResultsTabs(
     Column {
         TabRow(
             selectedTabIndex = selectedTab,
-            containerColor = Color.Black,
+            containerColor = MaterialTheme.colorScheme.background,
             contentColor = Color.White,
             indicator = {}
         ) {
@@ -2327,7 +2330,7 @@ fun FeedSearchResultsTabs(
                             RoundedCornerShape(12.dp)
                         )
                         .background(
-                            if (isSelected) Color(0xFF2B2B2B) else Color.Black,
+                            if (isSelected) Color(0xFF2B2B2B) else MaterialTheme.colorScheme.background,
                             RoundedCornerShape(12.dp)
                         )
                         .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -2398,7 +2401,7 @@ private fun FeedSearchUserResults(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         if (profiles.isEmpty()) {
             item {
@@ -2483,7 +2486,7 @@ private fun FeedSearchTagResults(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         if (tags.isEmpty()) {
             item {
