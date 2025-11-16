@@ -482,7 +482,8 @@ object BillingManager : PurchasesUpdatedListener {
         val updates = mutableMapOf<String, Any>(
             "isPlus" to plus,
             "isPremium" to premium,
-        )
+            "priority" to premium,
+            )
 
         if (plus || premium) {
             updates["swipesInfo/remainingSwipes"] =

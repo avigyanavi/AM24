@@ -111,6 +111,7 @@ class NearbyViewModel : ViewModel() {
     private var lastIndexKey: String? = null   // pagination anchor for server index modes
     private var firstResultTimeoutJob: Job? = null
     private val firstResultFallbackMs = 5_000L
+    private val staleProfileThresholdMs = TimeUnit.DAYS.toMillis(7)
 
     private fun resetRefreshTracking() {
         pendingFetches.set(0)
@@ -252,6 +253,18 @@ class NearbyViewModel : ViewModel() {
     private val refreshWatchdogMs = 8000L
     internal fun isUserOnline(now: Long, lastActiveAt: Long): Boolean {
         return now - lastActiveAt < onlineThresholdMs
+    }
+
+    private fun normalizeLastActive(raw: Long?): Long? {
+        raw ?: return null
+        if (raw <= 0) return null
+        // Firebase timestamps should be in millis. If seconds slip through, upscale them.
+        return if (raw < 10_000_000_000L) raw * 1000 else raw
+    }
+
+    private fun recentLastActive(now: Long, raw: Long?): Long? {
+        val normalized = normalizeLastActive(raw) ?: return null
+        return if (now - normalized <= staleProfileThresholdMs) normalized else null
     }
     /**
      * Refresh the People tab:
@@ -667,7 +680,8 @@ class NearbyViewModel : ViewModel() {
                                 val age = calculateAge(profile.dob)
                                 if (!matchesFilters(profile, age)) continue
 
-                                val lastActive = child.child("lastActive").getValue(Long::class.java) ?: profile.lastActive
+                                val lastActiveRaw = child.child("lastActive").getValue(Long::class.java) ?: profile.lastActive
+                                val lastActive = recentLastActive(now, lastActiveRaw) ?: continue
                                 val online = isUserOnline(now, lastActive)
 
                                 // IO (geo read) stays suspend, but surrounding list/compat/distance math is on Default
@@ -756,6 +770,7 @@ class NearbyViewModel : ViewModel() {
             val otherUid = c.child("uid").getValue(String::class.java)?.takeIf { it.isNotBlank() }
                 ?: (c.key ?: "")
             if (otherUid.isBlank()) continue
+            if (otherUid == uid) continue
             if (!seen.add(otherUid)) continue
             val dist = c.child("distanceM").getValue(Int::class.java)
             rows += FeedRow(uid = otherUid, distanceM = dist, key = c.key ?: otherUid)
@@ -804,8 +819,10 @@ class NearbyViewModel : ViewModel() {
             val age = calculateAge(p.dob)
             // ⛔️ Client-side filtering only now — remove this:
             // if (!matchesFilters(p, age)) continue
+            if (!matchesFilters(p, age)) continue
 
-            val lastActive = child.child("lastActive").getValue(Long::class.java) ?: p.lastActive
+            val lastActiveRaw = child.child("lastActive").getValue(Long::class.java) ?: p.lastActive
+            val lastActive = recentLastActive(now, lastActiveRaw) ?: continue
             val online = isUserOnline(now, lastActive)
 
             val latLng = profileLatLng(p)

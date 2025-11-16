@@ -437,58 +437,18 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         me: String,
         limit: Int
     ): List<Profile> = withContext(Dispatchers.IO) {
-        // Try Cloud Function first
-        runCatching {
-            val payload = hashMapOf(
-                "uid" to me,
-            )
-            val callable = functions.getHttpsCallable("getGlobalPremiumUsers").apply {
-                setTimeout(60, TimeUnit.SECONDS)
-            }
-            @Suppress("UNCHECKED_CAST")
-            val data = callable.call(payload).await().data as? Map<*, *> ?: return@withContext emptyList()
-            val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
-            list.mapNotNull { (it as? Map<*, *>)?.toProfile() }
-        }.getOrElse { e ->
-            Log.w(TAG, "getGlobalPremiumUsers fallback due to: ${e.message}")
-            fetchGlobalPremiumUsersFallback(me, limit)
+        val payload = hashMapOf(
+            "uid" to me,
+        )
+        val callable = functions.getHttpsCallable("getGlobalPremiumUsers").apply {
+            setTimeout(60, TimeUnit.SECONDS)
         }
-    }
-
-    private suspend fun fetchGlobalPremiumUsersFallback(
-        me: String,
-        limit: Int
-    ): List<Profile> {
-        return try {
-            val cutoff = System.currentTimeMillis() - 7L * 24L * 60L * 60L * 1000L
-
-            val snap = usersRef
-                .orderByChild("lastActive")
-                .startAt(cutoff.toDouble())
-                .get()
-                .await()
-
-            val all = snap.children.mapNotNull { child ->
-                val map = child.value as? Map<*, *> ?: return@mapNotNull null
-                val lastActive = normalizeLastActive(map["lastActive"])
-                if (lastActive == null || lastActive < cutoff) return@mapNotNull null
-
-                val p = map.toProfile().copy(lastActive = lastActive)
-                if (p.userId.isBlank()) {
-                    try { p.copy(userId = child.key ?: "") } catch (_: Throwable) { null }
-                } else p
-            }
-
-            val paid = all.filter { it.isPremium || it.isPlus }
-            val prem = paid.filter { it.isPremium }
-            val plus = paid.filter { !it.isPremium && it.isPlus }
-            (prem + plus)
-                .filter { it.userId != me && it.userId.isNotBlank() }
-                .take(limit)
-        } catch (e: Exception) {
-            Log.e(TAG, "fallback global premium query failed: ${e.message}", e)
-            emptyList()
-        }
+        @Suppress("UNCHECKED_CAST")
+        val data = callable.call(payload).await().data as? Map<*, *> ?: return@withContext emptyList()
+        val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
+        list
+            .mapNotNull { (it as? Map<*, *>)?.toProfile() }
+            .filter { it.priority }
     }
 
 

@@ -1475,7 +1475,7 @@ exports.getNearbyProfiles = functions
         const lastActive = normalizeLastActive(p.lastActive);
         return (
           Number.isFinite(lastActive) &&
-          lastActive >= cutoff &&
+          lastActive <= cutoff &&
           normalizeCountry(p.country) === normalizeCountry(myCountry)
         );
       });
@@ -1576,7 +1576,7 @@ exports.getGlobalPremiumUsers = functions
 
     const snap = await getUsersRef()
       .orderByChild('lastActive')
-      .startAt(cutoff)
+      .endAt(cutoff)
       .get();
 
     const profiles = [];
@@ -1584,18 +1584,18 @@ exports.getGlobalPremiumUsers = functions
     if (s.key === uid) return; // exclude caller
       const u = s.val();
       const lastActive = normalizeLastActive(u?.lastActive);
-      if ((u?.isPremium || u?.isPlus) && Number.isFinite(lastActive) && lastActive >= cutoff) {
+      if (u?.priority && Number.isFinite(lastActive) && lastActive >= cutoff) {
               // include the UID so the app can map it back
         profiles.push({ userId: s.key, ...u, lastActive });
       }
     });
 
     profiles.sort((a, b) => {
-       const tierA = a.isPremium ? 2 : 1;
-       const tierB = b.isPremium ? 2 : 1;
-       if (tierA !== tierB) return tierB - tierA; // Premium first
-        return a.userId.localeCompare(b.userId);
-       });
+      const tierA = a.priority ? 1 : 0;
+      const tierB = b.priority ? 1 : 0;
+      if (tierA !== tierB) return tierB - tierA; // priority first
+      return a.userId.localeCompare(b.userId);
+    });
 
      return { profiles };
    });
