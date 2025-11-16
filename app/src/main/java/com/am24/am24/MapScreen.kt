@@ -282,7 +282,7 @@ fun MapScreen(
     var sortMode by nearbyViewModel::sortMode
     var radiusKm by nearbyViewModel::radiusKm
     var lastActiveHours by nearbyViewModel::lastActiveHours
-    var selectedTab by rememberSaveable { mutableStateOf(1) } // 0: People, 1: Cards, 2: Map
+    var selectedTab by rememberSaveable { mutableStateOf(0) } // 0: People, 1: Cards, 2: Map
     var datingFilters by nearbyViewModel::datingFilters
     val defaultDatingFilters = remember { DatingFilterSettings() }
     var showOverflowMenu by remember { mutableStateOf(false) }
@@ -388,8 +388,8 @@ fun MapScreen(
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
         val desiredSortMode = when (selectedTab) {
-            0 -> SortMode.NEARBY
-            1 -> SortMode.ACTIVE
+            0 -> SortMode.ACTIVE
+            1 -> SortMode.NEARBY
             else -> null
         }
 
@@ -2706,11 +2706,24 @@ private fun NearbyCard(
                             }
                         }
                             },
-                    color = KupidxOrange,
+                    color = Color.White,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (user.roles.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        user.roles.take(3).forEach { role ->
+                            if (role.isNotBlank()) {
+                                TagBox(role)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

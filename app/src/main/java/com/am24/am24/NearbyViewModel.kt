@@ -435,15 +435,13 @@ class NearbyViewModel : ViewModel() {
         geoFireDatabaseRef: DatabaseReference
     ) {
         _hasAttemptedInitialLoad.value = true
-
-        val prev = people.associateBy { it.userId }
         currentLimit += increment
         refreshNearbyUsers(
             userId = userId,
             center = center,
             geoFireDatabaseRef = geoFireDatabaseRef,
-            forceRefresh = false,
-            previousResults = prev
+            forceRefresh = true,
+            previousResults =  emptyMap()
         )
     }
 

@@ -76,9 +76,7 @@ import coil.request.ImageRequest
 import com.am24.am24.util.TextureFullscreenVideoPlayer
 import kotlinx.coroutines.CancellationException
 import androidx.compose.runtime.saveable.rememberSaveable
-import com.am24.am24.ui.theme.LocalThreadsAvatarSizes
-import com.am24.am24.ui.theme.LocalThreadsIconSizes
-import com.am24.am24.ui.theme.LocalThreadsSpacing
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,7 +88,6 @@ fun HomeScreen(
 ) {
     // Get the current user ID from FirebaseAuth.
     val userId = FirebaseAuth.getInstance().currentUser?.uid
-    val spacing = LocalThreadsSpacing.current
 
     // Immediately update the PostViewModel with the current user ID.
     LaunchedEffect(userId) {
@@ -277,7 +274,9 @@ fun HomeScreenContent(
     onSortOptionChanged: (String) -> Unit,
     listState: LazyListState // Added listState parameter
 ) {
-    val spacing = LocalThreadsSpacing.current
+    val profileViewModel: ProfileViewModel = viewModel()
+    val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
+    val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
     val focusManager = LocalFocusManager.current
     val feedTabs = listOf("everyone", "matches")
     var selectedTab by remember {                   // keeps UI and VM in sync
@@ -299,7 +298,7 @@ fun HomeScreenContent(
                     indication = null
                 ) { focusManager.clearFocus() }
         ) {
-            Spacer(modifier = Modifier.height(spacing.sm))
+            Spacer(modifier = Modifier.height(8.dp))
 
             if (isSearchBarVisible) {
                 CustomSearchBar(
@@ -307,7 +306,7 @@ fun HomeScreenContent(
                     onQueryChange = onSearchQueryChanged,
                     onSearch = onSearchRequest
                 )
-                Spacer(modifier = Modifier.height(spacing.lg))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             if (isSearchMode) {
@@ -595,7 +594,7 @@ fun FeedSection(
                             Spacer(modifier = Modifier.height(12.dp))
                             CircularProgressIndicator(
                                 strokeWidth = 2.dp,
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(20.dp),
                                 color = Color(0xFFFF6F00)
                             )
                         }
@@ -610,11 +609,7 @@ fun FeedSection(
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = stringResource(R.string.no_more_older_posts),
-                            color = Color.Gray,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        Text(text = stringResource(R.string.no_more_older_posts), color = Color.Gray, fontSize = 12.sp)
                     }
                 }
             }
@@ -648,9 +643,6 @@ fun FeedItem(
     var mediaDuration by remember { mutableStateOf(0L) }
 
     val hapticFeedback = LocalHapticFeedback.current
-    val spacing = LocalThreadsSpacing.current
-    val iconSizes = LocalThreadsIconSizes.current
-    val avatarSizes = LocalThreadsAvatarSizes.current
 
     // Animation states
     var showUpvoteAnimation by remember { mutableStateOf(false) }
@@ -741,14 +733,15 @@ fun FeedItem(
     }
 
 
-    val authorTextStyle = when {
-        screenWidth < 360.dp -> MaterialTheme.typography.bodyMedium
-        else -> MaterialTheme.typography.titleSmall
+    val dynamicFontSize = when {
+        screenWidth < 360.dp -> 14.sp
+        screenWidth < 600.dp -> 16.sp // Reduced font size
+        else -> 14.sp
     }
     val dynamicPadding = when {
-        screenWidth < 360.dp -> spacing.xs
-        screenWidth < 600.dp -> spacing.sm
-        else -> spacing.md
+        screenWidth < 360.dp -> 4.dp   // Reduced padding
+        screenWidth < 600.dp -> 6.dp
+        else -> 8.dp
     }
 
     var showCommentsDialog by remember { mutableStateOf(false) }
@@ -774,7 +767,7 @@ fun FeedItem(
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
-                .shadow(2.dp, RoundedCornerShape(2.dp))
+                .shadow(4.dp, RoundedCornerShape(2.dp))
                 .then(gestureDetector),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
         ) {
@@ -803,7 +796,7 @@ fun FeedItem(
                         placeholder = placeholder,
                         error = placeholder,
                         modifier = Modifier
-                            .size(if (screenWidth < 360.dp) avatarSizes.comment else avatarSizes.feed)
+                            .size(if (screenWidth < 360.dp) 32.dp else 40.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     )
@@ -814,7 +807,7 @@ fun FeedItem(
                                 text = authorName,
                                 color = Color.White,
                                 fontWeight = FontWeight.Light,
-                                style = authorTextStyle
+                                fontSize = dynamicFontSize
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                         }
@@ -836,7 +829,7 @@ fun FeedItem(
                     Text(
                         text  = formatRelativeTime(post.getTimestampLong()),
                         color = Color(0xFFB0B0B0),               // light‑grey
-                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 8.sp,
                         modifier = Modifier.padding(end = 2.dp)
                     )
 
@@ -922,7 +915,8 @@ fun FeedItem(
                     Text(
                         text = displayText,
                         color = Color.White,
-                        style = MaterialTheme.typography.bodyLarge,
+                        fontSize = 20.sp,
+                        lineHeight = 20.sp,
                         overflow = TextOverflow.Clip,
                         textAlign = TextAlign.Start,
                         modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 8.dp, end = 8.dp)
@@ -933,7 +927,7 @@ fun FeedItem(
                         Text(
                             text = stringResource(R.string.see_more),
                             color = Color.LightGray,
-                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
                             modifier = Modifier
                                 .clickable { isExpanded = true }
                                 .padding(start = 8.dp, bottom = 4.dp)
@@ -992,7 +986,7 @@ fun FeedItem(
                                             contentDescription = null,
                                             tint = Color.White,
                                             modifier = Modifier
-                                                .size(36.dp)
+                                                .size(48.dp)
                                                 .align(Alignment.Center)
                                         )
                                     }
@@ -1041,7 +1035,7 @@ fun FeedItem(
                                         contentDescription = null,
                                         tint = Color.White,
                                         modifier = Modifier
-                                            .size(48.dp)
+                                            .size(64.dp)
                                             .align(Alignment.Center)
                                     )
                                 }
@@ -1095,7 +1089,7 @@ fun FeedItem(
                                                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                                     contentDescription = "Play/Pause",
                                                     tint = Color(0xFFFFDB00),
-                                                    modifier = Modifier.size(46.dp)
+                                                    modifier = Modifier.size(70.dp)
                                                 )
                                             }
                                             if (!isMediaRevealed) {
@@ -1109,7 +1103,7 @@ fun FeedItem(
                                                         imageVector = Icons.Default.Visibility,
                                                         contentDescription = null,
                                                         tint = Color.White,
-                                                        modifier = Modifier.size(18.dp)
+                                                        modifier = Modifier.size(24.dp)
                                                     )
                                                 }
                                             }

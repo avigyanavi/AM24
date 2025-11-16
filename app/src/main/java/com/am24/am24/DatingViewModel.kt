@@ -43,6 +43,20 @@ private val gson = com.google.gson.Gson()
 private fun Map<*, *>.toProfile(): Profile =
     gson.fromJson(gson.toJson(this), Profile::class.java)
 
+private fun normalizeLastActive(raw: Any?): Long? {
+    val numeric = when (raw) {
+        is Number -> raw.toLong()
+        is String -> raw.toLongOrNull()
+        else -> null
+    } ?: return null
+    if (numeric <= 0) return null
+
+    // Firebase Realtime Database writes timestamps in milliseconds (e.g., 1752518783622).
+    // If a seconds-based value slips in, upscale it to keep the one-week cutoff accurate.
+    return if (numeric < 10_000_000_000L) numeric * 1000 else numeric
+}
+
+
 // ─── NEW: data class for holding incoming compliment ───
 data class ComplimentData(
     val text: String = "",
@@ -446,7 +460,8 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         limit: Int
     ): List<Profile> {
         return try {
-            val cutoff = System.currentTimeMillis() - 30L * 24L * 60L * 60L * 1000L
+            val cutoff = System.currentTimeMillis() - 7L * 24L * 60L * 60L * 1000L
+
             val snap = usersRef
                 .orderByChild("lastActive")
                 .startAt(cutoff.toDouble())
@@ -455,11 +470,13 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
             val all = snap.children.mapNotNull { child ->
                 val map = child.value as? Map<*, *> ?: return@mapNotNull null
-                val p = map.toProfile()
-                val withId = if (p.userId.isBlank()) {
+                val lastActive = normalizeLastActive(map["lastActive"])
+                if (lastActive == null || lastActive < cutoff) return@mapNotNull null
+
+                val p = map.toProfile().copy(lastActive = lastActive)
+                if (p.userId.isBlank()) {
                     try { p.copy(userId = child.key ?: "") } catch (_: Throwable) { null }
                 } else p
-                withId
             }
 
             val paid = all.filter { it.isPremium || it.isPlus }

@@ -1334,6 +1334,14 @@ const COUNTRY_WHITELIST = new Set([
   'Austria'
 ]);
 
+function normalizeLastActive(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  // Convert seconds-based stamps to milliseconds; Firebase RTDB stores ms by default (e.g., 1752518783622)
+  const ms = n < 10_000_000_000 ? n * 1000 : n;
+  return ms;
+}
+
 exports.getNearbyProfiles = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 120, memory: '1GB' })
@@ -1351,7 +1359,7 @@ exports.getNearbyProfiles = functions
 
     const myLoc     = locSnap.val();
     const myCountry = countrySnap.val() || null;
-    const cutoff    = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const cutoff    = Date.now() - 7 * 24 * 60 * 60 * 1000;   // drop users inactive for ≥1 week
 
     const distLimit = Number(maxDistance);
     const useDist   =
@@ -1462,19 +1470,19 @@ exports.getNearbyProfiles = functions
 
     const profiles = profileSnaps
       .map(s => (s.val() ? { ...s.val(), userId: s.key } : null))
-      .filter(p =>
-                    p &&
-                    p.lastActive >= cutoff &&
-                    normalizeCountry(p.country) === normalizeCountry(myCountry)
-                  );
+      .filter((p) => {
+        if (!p) return false;
+        const lastActive = normalizeLastActive(p.lastActive);
+        return (
+          Number.isFinite(lastActive) &&
+          lastActive >= cutoff &&
+          normalizeCountry(p.country) === normalizeCountry(myCountry)
+        );
+      });
+
 
     return { profiles };
   });
-
-
-function getByPath(obj, path) {
-  return path.split(".").reduce((o, k) => (o && o[k] !== undefined ? o[k] : undefined), obj);
-}
 
 exports.getMexicoUserCoords1 = functions
   .region("asia-south1")
@@ -1564,7 +1572,7 @@ exports.getGlobalPremiumUsers = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 60, memory: '256MB' })
   .https.onCall(async ({ uid }) => {
-    const cutoff = now() - 30 * 24 * 60 * 60 * 1000; // 30 days
+    const cutoff = now() - 7 * 24 * 60 * 60 * 1000; // 7 days – exclude users inactive for ≥1 week
 
     const snap = await getUsersRef()
       .orderByChild('lastActive')
@@ -1575,9 +1583,10 @@ exports.getGlobalPremiumUsers = functions
     snap.forEach(s => {
     if (s.key === uid) return; // exclude caller
       const u = s.val();
-      if (u?.isPremium || u?.isPlus) {
-        // include the UID so the app can map it back
-        profiles.push({ userId: s.key, ...u });
+      const lastActive = normalizeLastActive(u?.lastActive);
+      if ((u?.isPremium || u?.isPlus) && Number.isFinite(lastActive) && lastActive >= cutoff) {
+              // include the UID so the app can map it back
+        profiles.push({ userId: s.key, ...u, lastActive });
       }
     });
 
