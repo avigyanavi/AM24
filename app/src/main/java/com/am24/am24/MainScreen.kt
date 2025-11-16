@@ -29,7 +29,8 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.am24.am24.ui.theme.LocalThreadsIconSizes
+import com.am24.am24.ui.theme.LocalThreadsSpacing
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
@@ -54,6 +55,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
         BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
     )
+    val spacing = LocalThreadsSpacing.current
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -155,7 +157,7 @@ fun MainScreen(navController: NavHostController, onLogout: () -> Unit, postViewM
             }
         }
     ) { innerPadding ->
-        val paddingValues = if (showBottomBar) innerPadding else PaddingValues(0.dp)
+        val paddingValues = if (showBottomBar) innerPadding else PaddingValues(spacing.xs)
         MainNavGraph(
             navController = navController,
             modifier = Modifier.padding(paddingValues),
@@ -274,20 +276,22 @@ fun TopNavBar(
         ?.any { it.route == "omegleUsers" } == true
     val isAdmin by profileViewModel.isAdmin.collectAsState()
     val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()
+    val spacing = LocalThreadsSpacing.current
+    val iconSizes = LocalThreadsIconSizes.current
 
     TopAppBar(
-        modifier = Modifier.shadow(16.dp),
+        modifier = Modifier.shadow(spacing.lg),
         title = {
 //            Text(stringResource(R.string.app_name), color = Color(0xFFFF6F00))
         },
         navigationIcon = {
             Box(
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(iconSizes.xl + spacing.xs)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.kupidx_logo1),
                     contentDescription = stringResource(R.string.logo_kupidx_desc),
-                    modifier = Modifier.size(56.dp)
+                    modifier = Modifier.size(iconSizes.xl + spacing.md)
                 )
             }
         },
@@ -314,7 +318,8 @@ fun TopNavBar(
                     Icon(
                         imageVector = Icons.Default.Casino,
                         contentDescription = stringResource(R.string.cd_omegle),
-                        tint = if (showOnlineUsers) KupidxOrange else Color.White
+                        tint = if (showOnlineUsers) KupidxOrange else Color.White,
+                        modifier = Modifier.size(iconSizes.lg)
                     )
                 }
             }
@@ -452,7 +457,7 @@ fun TopNavBar(
 //                                else -> Color(0x66FFFFFF)
                                 else -> Color.White
                             },
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(iconSizes.lg)
                         )
                     }
 
@@ -541,7 +546,7 @@ fun TopNavBar(
                         Text(
                             selectedCity,
                             color = Color(0xFFFF6F00),
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(horizontal = 6.dp)
                         )
                     }
@@ -554,7 +559,7 @@ fun TopNavBar(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = stringResource(R.string.cd_location_settings),
                             tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(iconSizes.lg)
                         )
                     }
                 }
@@ -576,7 +581,7 @@ fun TopNavBar(
                                 stringResource(R.string.cd_search_feed)
                             },
                             tint = if (isFeedSearchVisible) KupidxOrange else Color.White,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(iconSizes.lg)
                         )
                     }
 
@@ -587,7 +592,7 @@ fun TopNavBar(
                             imageVector = Icons.Default.Add,
                             contentDescription = stringResource(R.string.cd_create_post),
                             tint = KupidxOrange,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(iconSizes.lg + spacing.xs)
                         )
                     }
                 }
@@ -603,14 +608,14 @@ fun TopNavBar(
                 }) {
                     Box(
                         modifier = Modifier
-                            .size(24.dp),
+                            .size(iconSizes.lg),
                         contentAlignment = Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "User Settings",
                             tint = if (isUserSettings) Color(0xFFFF6F00) else Color.White,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(iconSizes.lg)
                         )
                     }
                 }
@@ -622,7 +627,7 @@ fun TopNavBar(
                         imageVector = Icons.Default.BookmarkBorder,
                         contentDescription = "Saved Posts",
                         tint = Color.White,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(iconSizes.lg)
                     )
                 }
             }
@@ -641,23 +646,23 @@ fun TopNavBar(
                             if (unreadCount > 0) {
                                 Badge(
                                     containerColor = Color.Red,
-                                    modifier = Modifier.size(15.dp)
+                                    modifier = Modifier.size(iconSizes.sm + spacing.xxs)
                                 ) {
                                     Text(
                                         text = unreadCount.toString(),
                                         color = Color.White,
-                                        fontSize = 10.sp
+                                        style = MaterialTheme.typography.labelSmall
                                     )
                                 }
                             }
                         },
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(iconSizes.lg)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Notifications,
                             contentDescription = "Notifications",
                             tint = if (isNotificationsSelected) Color(0xFFFF6F00) else Color.White,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(iconSizes.lg)
                         )
                     }
                 }
@@ -688,11 +693,13 @@ fun BottomNavigationBar(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
+    val spacing = LocalThreadsSpacing.current
+    val iconSizes = LocalThreadsIconSizes.current
 
     NavigationBar(
         containerColor = Color.Black,
-        tonalElevation = 16.dp,
-        modifier = Modifier.shadow(16.dp)
+        tonalElevation = spacing.lg,
+        modifier = Modifier.shadow(spacing.lg)
     ) {
         items.forEach { item ->
             val selected = when (item.route) {
@@ -735,14 +742,14 @@ fun BottomNavigationBar(
                         imageVector = item.icon,
                         contentDescription = item.label,
                         tint = if (selected) Color(0xFFFF6F00) else Color.White,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(iconSizes.md)
                     )
                 },
                 label = {
                     Text(
                         text = item.label,
                         color = if (selected) Color(0xFFFF6F00) else Color.White,
-                        fontSize = 10.sp
+                        style = MaterialTheme.typography.labelSmall
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(

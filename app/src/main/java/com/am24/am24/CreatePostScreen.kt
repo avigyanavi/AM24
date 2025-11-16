@@ -54,6 +54,7 @@ import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -202,7 +203,7 @@ fun PostTypeButton(
         enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp),
+            .height(48.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = if (enabled) Color(0xFFFFA500) else Color(0xFF888888)
         ),
@@ -213,7 +214,7 @@ fun PostTypeButton(
             imageVector = icon,
             contentDescription = label,
             tint = if (enabled) Color.White else Color.LightGray,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
 
@@ -221,7 +222,7 @@ fun PostTypeButton(
         Text(
             text = label,
             color = if (enabled) Color.White else Color.LightGray,
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyMedium
         )
 
         // If disabled, show a small lock icon at the end
@@ -231,7 +232,7 @@ fun PostTypeButton(
                 imageVector = Icons.Default.Lock,
                 contentDescription = "Locked",
                 tint = Color.LightGray,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
     }
@@ -266,6 +267,7 @@ fun TextPostComposable(
     var contentText by remember { mutableStateOf("") }
     var userTags by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
+    val bodyFontSize = MaterialTheme.typography.bodyMedium.fontSize.value.roundToInt()
 
     /* ───── check-in state ───── */
     var placeQuery by remember { mutableStateOf("") }
@@ -311,7 +313,7 @@ fun TextPostComposable(
                         CircularProgressIndicator(
                             modifier = Modifier
                                 .padding(end = 16.dp)
-                                .size(24.dp),
+                                .size(20.dp),
                             color = Color(0xFFFF4500),
                             strokeWidth = 2.dp
                         )
@@ -366,7 +368,7 @@ fun TextPostComposable(
                                         )
                                     },
                                     fontFamily = "Default", // Default font family since it's removed
-                                    fontSize = 14, // Default font size since it's removed
+                                    fontSize = bodyFontSize,
                                     onSuccess = {
                                         coroutineScope.launch {
                                             withContext(Dispatchers.Main) {
@@ -418,10 +420,16 @@ fun TextPostComposable(
                     OutlinedTextField(
                         value = contentText,
                         onValueChange = { contentText = it },
-                        label = { Text(stringResource(R.string.whats_on_your_mind), color = Color.Gray) },
+                        label = {
+                            Text(
+                                stringResource(R.string.whats_on_your_mind),
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp),
+                            .height(160.dp),
                         keyboardOptions = KeyboardOptions.Default.copy(
                             keyboardType = KeyboardType.Text
                         ),
@@ -437,7 +445,13 @@ fun TextPostComposable(
                 item {
                     OutlinedTextField(
                         value = userTags, onValueChange = { userTags = it },
-                        label = { Text(stringResource(R.string.add_tags_comma_separated), color = Color.Gray) },
+                        label = {
+                            Text(
+                                stringResource(R.string.add_tags_comma_separated),
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         colors = otfColors()
                     )
@@ -448,7 +462,7 @@ fun TextPostComposable(
                 item {
                     Text(
                         text = stringResource(R.string.add_location_optional),
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = Color.LightGray
                     )
                 }
@@ -464,15 +478,26 @@ fun TextPostComposable(
                             onValueChange = {
                                 placeQuery = it; selectedPlace = null    // reset chip on typing
                             },
-                            label = { Text("Search place") },
+                            label = {
+                                Text(
+                                    "Search place",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
+                                )
+                            },
                             singleLine = true,
                             trailingIcon = {
                                 if (searching)
                                     CircularProgressIndicator(
                                         strokeWidth = 2.dp,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
-                                else Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
+                                else Icon(
+                                    Icons.Default.Search,
+                                    null,
+                                    tint = Color(0xFFFFA500),
+                                    modifier = Modifier.size(18.dp)
+                                )
                             },
                             colors = otfColors(),
                             modifier = Modifier
@@ -494,7 +519,11 @@ fun TextPostComposable(
                                 DropdownMenuItem(
                                     text = {
                                         Column {
-                                            Text(res.name, color = Color.Black)
+                                            Text(
+                                                res.name,
+                                                color = Color.Black,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
                                             if (res.address.isNotBlank())
                                                 Text(
                                                     res.address,
@@ -527,7 +556,13 @@ fun TextPostComposable(
                         Spacer(Modifier.height(6.dp))
                         AssistChip(
                             onClick = { selectedPlace = null },
-                            label = { Text("✓ ${it.name}") },
+                            label = {
+                                Text(
+                                    "✓ ${it.name}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
+                                )
+                            },
                             leadingIcon = { Icon(Icons.Default.Place, null) }
                         )
                     }
@@ -621,7 +656,7 @@ fun ImagePostComposable(
                         CircularProgressIndicator(
                             modifier = Modifier
                                 .padding(end = 16.dp)
-                                .size(24.dp),
+                                .size(20.dp),
                             color = Color(0xFFFF4500),
                             strokeWidth = 2.dp
                         )
@@ -762,7 +797,13 @@ fun ImagePostComposable(
             item {
                 OutlinedTextField(
                     value = caption, onValueChange = { caption = it },
-                    label  = { Text("Caption", color = Color.Gray) },
+                    label  = {
+                        Text(
+                            "Caption",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = otfColors()
                 )
@@ -771,7 +812,13 @@ fun ImagePostComposable(
             item {
                 OutlinedTextField(
                     value = userTags, onValueChange = { userTags = it },
-                    label  = { Text(stringResource(R.string.add_tags_comma_separated), color = Color.Gray) },
+                    label  = {
+                        Text(
+                            stringResource(R.string.add_tags_comma_separated),
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = otfColors()
                 )
@@ -782,7 +829,7 @@ fun ImagePostComposable(
             item {
                 Text(
                     text = stringResource(R.string.add_location_optional),
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Color.LightGray
                 )
             }
@@ -800,11 +847,17 @@ fun ImagePostComposable(
                             placeQuery = it
                             selectedPlace = null                 // clear chip when typing again
                         },
-                        label = { Text("Search place") },
+                        label = {
+                            Text(
+                                "Search place",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                        },
                         singleLine = true,
                         trailingIcon = {
                             if (searching)
-                                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
                             else Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
                         },
                         colors = otfColors(),
@@ -825,11 +878,18 @@ fun ImagePostComposable(
                             DropdownMenuItem(
                                 text = {
                                     Column {
-                                        Text(res.name, color = Color.Black)
-                                        if (res.address.isNotBlank())
-                                            Text(res.address,
+                                        Text(
+                                            res.name,
+                                            color = Color.Black,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        if (res.address.isNotBlank()) {
+                                            Text(
+                                                res.address,
                                                 color = Color.DarkGray,
-                                                style = MaterialTheme.typography.bodySmall)
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
                                     }
                                 },
                                 leadingIcon = {
@@ -852,7 +912,13 @@ fun ImagePostComposable(
                     Spacer(Modifier.height(6.dp))
                     AssistChip(
                         onClick = { selectedPlace = null },
-                        label = { Text("✓ ${it.name}") },
+                        label = {
+                            Text(
+                                "✓ ${it.name}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                        },
                         leadingIcon = { Icon(Icons.Default.Place, null) }
                     )
                 }
@@ -985,7 +1051,7 @@ fun VideoPostComposable(
                         CircularProgressIndicator(
                             modifier = Modifier
                                 .padding(end = 16.dp)
-                                .size(24.dp),
+                                .size(20.dp),
                             color = Color(0xFFFF4500),
                             strokeWidth = 2.dp
                         )
@@ -1126,7 +1192,13 @@ fun VideoPostComposable(
             item {
                 OutlinedTextField(
                     value = caption, onValueChange = { caption = it },
-                    label  = { Text("Caption", color = Color.Gray) },
+                    label  = {
+                        Text(
+                            "Caption",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = otfColors()
                 )
@@ -1135,7 +1207,13 @@ fun VideoPostComposable(
             item {
                 OutlinedTextField(
                     value = userTags, onValueChange = { userTags = it },
-                    label  = { Text(stringResource(R.string.add_tags_comma_separated), color = Color.Gray) },
+                    label  = {
+                        Text(
+                            stringResource(R.string.add_tags_comma_separated),
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = otfColors()
                 )
@@ -1146,7 +1224,7 @@ fun VideoPostComposable(
             item {
                 Text(
                     text = stringResource(R.string.add_location_optional),
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Color.LightGray
                 )
             }
@@ -1163,11 +1241,17 @@ fun VideoPostComposable(
                             placeQuery    = it
                             selectedPlace = null     // clear chip when typing again
                         },
-                        label = { Text("Search place") },
+                        label = {
+                            Text(
+                                "Search place",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                        },
                         singleLine = true,
                         trailingIcon = {
                             if (searching)
-                                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
                             else Icon(Icons.Default.Search, null, tint = Color(0xFFFFA500))
                         },
                         colors = otfColors(),
@@ -1187,11 +1271,18 @@ fun VideoPostComposable(
                             DropdownMenuItem(
                                 text = {
                                     Column {
-                                        Text(res.name, color = Color.Black)
-                                        if (res.address.isNotBlank())
-                                            Text(res.address,
+                                        Text(
+                                            res.name,
+                                            color = Color.Black,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        if (res.address.isNotBlank()) {
+                                            Text(
+                                                res.address,
                                                 color = Color.DarkGray,
-                                                style = MaterialTheme.typography.bodySmall)
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
                                     }
                                 },
                                 leadingIcon = { Icon(Icons.Default.Place, null, tint = Color(0xFFFFA500)) },
@@ -1212,7 +1303,13 @@ fun VideoPostComposable(
                     Spacer(Modifier.height(6.dp))
                     AssistChip(
                         onClick = { selectedPlace = null },
-                        label    = { Text("✓ ${it.name}") },
+                        label    = {
+                            Text(
+                                "✓ ${it.name}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                        },
                         leadingIcon = { Icon(Icons.Default.Place, null) }
                     )
                 }

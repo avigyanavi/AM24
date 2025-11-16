@@ -45,6 +45,7 @@ import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.tasks.await
 import com.am24.am24.billing.BillingScreen
 import com.am24.am24.safePopBackStack
+import com.am24.am24.ui.theme.LocalThreadsSpacing
 
 // Initialize GeoFire instance globally
 val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
@@ -58,6 +59,7 @@ fun MainNavGraph(
     locationManager: LocationManager
 ) {
     var userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    val spacing = LocalThreadsSpacing.current
 
     // Read in the current user's matches from Firebase
     val matchesSet = remember { mutableStateListOf<String>() }
@@ -100,7 +102,7 @@ fun MainNavGraph(
     NavHost(
         navController = navController,
         startDestination = "map",
-        modifier = modifier
+        modifier = modifier.padding(horizontal = spacing.screenEdge / 2)
     ) {
         composable("dms") {
             DMScreen(

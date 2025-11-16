@@ -943,6 +943,23 @@ class NearbyViewModel : ViewModel() {
             val userOrientation = canonicalOrientation(p.sexualOrientation)
             if (userOrientation != targetOrientation) return false
         }
+        val targetCity = f.city.trim()
+        if (targetCity.isNotBlank() && !targetCity.equals("All", ignoreCase = true)) {
+            val userCity = (p.city.ifBlank { p.customCity ?: "" }).trim()
+            if (!targetCity.equals(userCity, ignoreCase = true)) return false
+        }
+        if (f.localities.isNotEmpty()) {
+            val selectedLocalities = f.localities.map { it.trim().lowercase(Locale.ROOT) }
+            val userLocality = (p.hometown.ifBlank { p.customHometown ?: "" })
+                .trim()
+                .lowercase(Locale.ROOT)
+            if (userLocality.isBlank() || userLocality !in selectedLocalities) return false
+        }
+        if (f.ethnicity.isNotBlank()) {
+            val userEthnicity = p.ethnicity.trim().lowercase(Locale.ROOT)
+            val targetEthnicity = f.ethnicity.trim().lowercase(Locale.ROOT)
+            if (userEthnicity != targetEthnicity) return false
+        }
         if (f.roles.isNotEmpty()) {
             val canon = f.roles.map { canonicalRole(it) }
             if (p.roles.none { canonicalRole(it) in canon }) return false
