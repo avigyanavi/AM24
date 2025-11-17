@@ -422,13 +422,9 @@ fun MapScreen(
             sortMode = mode
         }
         when (selectedTab) {
-            0 -> if (nearbyViewModel.currentLimit < 25) {
-                nearbyViewModel.currentLimit = 25
-            }
+            0 -> nearbyViewModel.currentLimit = 25
 
-            1, 2 -> if (nearbyViewModel.currentLimit < 10) {
-                nearbyViewModel.currentLimit = 10
-            }
+            1, 2 -> nearbyViewModel.currentLimit = 10
         }
     }
     val bootstrapState = nearbyViewModel.mapBootstrapState
@@ -829,6 +825,7 @@ fun MapScreen(
             .collectLatest {
                 if (sortMode != SortMode.NEARBY) return@collectLatest
                 val previous = tabResultsCache[SortMode.NEARBY]?.associateBy { it.userId }
+                nearbyViewModel.resetPagination(SortMode.NEARBY)
                 nearbyViewModel.refreshNearbyUsers(
                     userId,
                     me,
@@ -847,6 +844,7 @@ fun MapScreen(
             .collectLatest {
                 if (sortMode != SortMode.ACTIVE) return@collectLatest
                 val previous = tabResultsCache[SortMode.ACTIVE]?.associateBy { it.userId }
+                nearbyViewModel.resetPagination(SortMode.ACTIVE)
                 nearbyViewModel.refreshNearbyUsers(
                     userId,
                     me,
@@ -878,6 +876,7 @@ fun MapScreen(
                     locationManager.getUserLocationFromGeoFire(userId) { lat, lng ->
                         userLatLng = lat?.let { LatLng(it, lng ?: 0.0) }
                         userLatLng?.let { loc ->
+                            nearbyViewModel.resetPagination()
                             nearbyViewModel.refreshNearbyUsers(userId, loc, geoFireDatabaseRef)
                         }
                     }
@@ -2039,6 +2038,7 @@ fun MapScreen(
                 }
                 nearbyViewModel.currentLimit = defaultLimit
                 tabResultsCache.clear()
+                nearbyViewModel.resetPagination()
                 nearbyViewModel.datingFilters = filters
                 prefs.edit()
                     .putString("map_dating_filters", gson.toJson(filters))

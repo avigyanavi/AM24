@@ -32,7 +32,8 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlinx.coroutines.Job
-
+import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 
 data class MapBootstrapState(
     val isPlus: Boolean,
@@ -87,6 +88,7 @@ class NearbyViewModel : ViewModel() {
                 _datingFilters = value
                 invalidateCache()
                 lastQueryKey = null
+                resetPagination()
             }
         }
     var currentLimit by mutableStateOf(10)
@@ -107,6 +109,8 @@ class NearbyViewModel : ViewModel() {
     private var firstResultTimeoutJob: Job? = null
     private val firstResultFallbackMs = 5_000L
     private val staleProfileThresholdMs = TimeUnit.DAYS.toMillis(7)
+    private val pagedUserIds = ConcurrentHashMap<SortMode, MutableSet<String>>()
+    private val latestPageUserIds = ConcurrentHashMap<SortMode, Set<String>>()
 
     private fun resetRefreshTracking() {
         pendingFetches.set(0)
@@ -126,7 +130,7 @@ class NearbyViewModel : ViewModel() {
         }
     }
 
-    private fun markQueryCompleted() {
+    private fun markQueryCompleted(mode: SortMode) {
         geoQueryCompleted = true
         if (!_hasLoadedFirstResult.value) {
             _hasLoadedFirstResult.value = true
@@ -139,6 +143,7 @@ class NearbyViewModel : ViewModel() {
             _isRefreshing.value = false
             lastRefreshMs = System.currentTimeMillis()
         }
+        captureLatestPageSnapshot(mode)
     }
 
     private fun scheduleFirstResultTimeout() {
@@ -308,7 +313,7 @@ class NearbyViewModel : ViewModel() {
             }
             val cached = userCache.values
                 .filter { now - it.lastActiveAt <= staleProfileThresholdMs }
-                .filter { it.userId !in excludedUserIds }
+                .filter { !shouldSkipUser(it.userId, currentSortMode) }
                 .map { cachedUser ->
                     val updatedDistance = cachedUser.latLng?.let { distanceMeters(center, it) }
                     cachedUser.copy(
@@ -334,7 +339,7 @@ class NearbyViewModel : ViewModel() {
         viewModelScope.launch {
             delay(refreshWatchdogMs)
             if (_isRefreshing.value && !geoQueryCompleted && pendingFetches.get() == 0) {
-                markQueryCompleted() // safely flips isRefreshing=false
+                markQueryCompleted(currentSortMode) // safely flips isRefreshing=false
             }
         }
 
@@ -353,7 +358,8 @@ class NearbyViewModel : ViewModel() {
                             currentUserId = userId,
                             center = center,
                             geoFireDatabaseRef = geoFireDatabaseRef,
-                            limit = limit
+                            limit = limit,
+                            mode = currentSortMode
                         )
                         users.forEach { upsert(people, it) }
                         markFirstResultIfNeeded()
@@ -361,7 +367,7 @@ class NearbyViewModel : ViewModel() {
                         Log.e("MapScreenVM", "Active users fetch failed: ${e.message}", e)
                     } finally {
                         markFetchFinished()
-                        markQueryCompleted()
+                        markQueryCompleted(currentSortMode)
                     }
                 }
                 return
@@ -369,7 +375,7 @@ class NearbyViewModel : ViewModel() {
             SortMode.NEARBY -> {
                 previousResults?.values
                     ?.filter { prev ->
-                        prev.userId !in excludedUserIds && prev.latLng != null &&
+                        !shouldSkipUser(prev.userId, currentSortMode) && prev.latLng != null &&
                                 distanceMeters(center, prev.latLng!!) <= radiusKm * 1000
                     }
                     ?.forEach { prev ->
@@ -387,9 +393,10 @@ class NearbyViewModel : ViewModel() {
                     radiusKm = radiusKm,
                     geoFireDatabaseRef = geoFireDatabaseRef,
                     limit = limit,
+                    mode = currentSortMode,
                     onEnterOrMove = { user ->
                         viewModelScope.launch(Dispatchers.Main.immediate) {
-                            if (user.userId !in excludedUserIds) {
+                            if (!shouldSkipUser(user.userId, currentSortMode)) {
                                 upsert(people, user)
                             }
                         }
@@ -433,6 +440,37 @@ class NearbyViewModel : ViewModel() {
         }
     }
 
+    private fun captureLatestPageSnapshot(mode: SortMode) {
+        viewModelScope.launch(Dispatchers.Main.immediate) {
+            latestPageUserIds[mode] = people.map { it.userId }.toSet()
+        }
+    }
+
+    private fun markPageConsumed(mode: SortMode) {
+        val consumed = latestPageUserIds[mode].orEmpty()
+        if (consumed.isNotEmpty()) {
+            val bucket = pagedUserIds.getOrPut(mode) {
+                Collections.newSetFromMap(ConcurrentHashMap())
+            }
+            bucket.addAll(consumed)
+        }
+    }
+
+    private fun shouldSkipUser(uid: String, mode: SortMode): Boolean {
+        if (uid in excludedUserIds) return true
+        return pagedUserIds[mode]?.contains(uid) == true
+    }
+
+    fun resetPagination(mode: SortMode? = null) {
+        if (mode == null) {
+            pagedUserIds.clear()
+            latestPageUserIds.clear()
+            return
+        }
+        pagedUserIds.remove(mode)
+        latestPageUserIds.remove(mode)
+    }
+
     fun loadNextPage(
         increment: Int,
         userId: String,
@@ -440,7 +478,9 @@ class NearbyViewModel : ViewModel() {
         geoFireDatabaseRef: DatabaseReference
     ) {
         _hasAttemptedInitialLoad.value = true
-        currentLimit += increment
+        val mode = sortMode
+        markPageConsumed(mode)
+        currentLimit = increment
         refreshNearbyUsers(
             userId = userId,
             center = center,
@@ -459,6 +499,7 @@ class NearbyViewModel : ViewModel() {
         radiusKm: Double,
         geoFireDatabaseRef: DatabaseReference,
         limit: Int,
+        mode: SortMode,
         onEnterOrMove: (NearbyUser) -> Unit,
         onExit: (String) -> Unit
     ): GeoQuery {
@@ -474,7 +515,7 @@ class NearbyViewModel : ViewModel() {
                 if (!reachedLimit) {
                     reachedLimit = true
                     query.removeAllListeners()
-                    markQueryCompleted()
+                    markQueryCompleted(mode)
                     if (!_hasLoadedFirstResult.value) {
                         _hasLoadedFirstResult.value = true
                         cancelFirstResultTimeout()
@@ -483,7 +524,7 @@ class NearbyViewModel : ViewModel() {
                 return
             }
             if (uid == currentUserId) return
-            if (uid in excludedUserIds) return
+            if (shouldSkipUser(uid, mode)) return
             val now = System.currentTimeMillis()
             val latLng = if (loc != null) LatLng(loc.latitude, loc.longitude) else null
             val distM = if (latLng != null) distanceMeters(center, latLng) else Double.POSITIVE_INFINITY
@@ -504,7 +545,7 @@ class NearbyViewModel : ViewModel() {
                 if (people.size >= limit) {
                     reachedLimit = true
                     query.removeAllListeners()
-                    markQueryCompleted()
+                    markQueryCompleted(mode)
                 }
                 return
             } else if (!cachedFresh && cached != null) {
@@ -520,7 +561,7 @@ class NearbyViewModel : ViewModel() {
                         if (!reachedLimit) {
                             reachedLimit = true
                             query.removeAllListeners()
-                            markQueryCompleted()
+                            markQueryCompleted(mode)
                         }
                         return@launch
                     }
@@ -619,7 +660,7 @@ class NearbyViewModel : ViewModel() {
                     if (people.size >= limit) {
                         reachedLimit = true
                         query.removeAllListeners()
-                        markQueryCompleted()
+                        markQueryCompleted(mode)
                     }
                 } catch (err: Exception) {
                     Log.e("MapScreenVM", "User fetch cancelled $uid: ${err.message}")
@@ -635,7 +676,7 @@ class NearbyViewModel : ViewModel() {
             override fun onKeyExited(key: String) = onExit(key)
             override fun onKeyMoved(key: String, location: GeoLocation) = buildUser(key, location)
             override fun onGeoQueryReady() {
-                markQueryCompleted()
+                markQueryCompleted(mode)
                 if (!_hasLoadedFirstResult.value) {
                     _hasLoadedFirstResult.value = true
                     cancelFirstResultTimeout()
@@ -644,7 +685,7 @@ class NearbyViewModel : ViewModel() {
             override fun onGeoQueryError(error: DatabaseError) {
                 Log.e("MapScreenVM", "GeoQuery error: ${error.message}")
                 _isRefreshing.value = false
-                markQueryCompleted()
+                markQueryCompleted(mode)
             }
         })
         return query
@@ -655,7 +696,8 @@ class NearbyViewModel : ViewModel() {
         center: LatLng,
         geoFireDatabaseRef: DatabaseReference,
         limit: Int,
-    ): List<NearbyUser> {
+        mode: SortMode,
+        ): List<NearbyUser> {
                 val now = System.currentTimeMillis()
                 val fetchCount = (limit * 4).coerceAtLeast(limit + 10)
                 val snapshot = FirebaseRefs.db.getReference("users")
@@ -675,7 +717,7 @@ class NearbyViewModel : ViewModel() {
                                 if (!isValidUserSnapshot(uid, child)) continue
                                 if (!seen.add(uid)) continue
                                 if (uid == currentUserId) continue
-                                if (uid in excludedUserIds) continue
+                                if (shouldSkipUser(uid, mode)) continue
                                 if (UserDeletionCache.isDeleted(FirebaseRefs.db, uid, child)) continue
 
                                 val profile = child.getValue(Profile::class.java) ?: continue

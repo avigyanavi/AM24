@@ -207,10 +207,11 @@ fun DMScreenContent(
         complimentQueue.addAll(bootstrap.compliments)
 
         likedCount = bootstrap.likedCount
-        likesInitialized = true
+        var seededMatches = false
 
         if (bootstrap.matches.isNotEmpty() && matchedUsers.isEmpty()) {
             matchedUsers.addAll(bootstrap.matches.map { it.profile })
+            seededMatches = true
         }
         bootstrap.matches.forEach { summary ->
             val previewText = summary.lastMessage?.text?.let { text ->
@@ -219,8 +220,10 @@ fun DMScreenContent(
             val fromCurrentUser = summary.lastMessage?.senderId == currentUserId
             lastMessages[summary.profile.userId] = Triple(previewText, fromCurrentUser, !summary.hasUnread)
         }
-        isLoadingMatches = false
-        matchesInitialized = true
+        if (seededMatches) {
+            isLoadingMatches = false
+            matchesInitialized = true
+        }
     }
 
     DisposableEffect(currentUserId) {
