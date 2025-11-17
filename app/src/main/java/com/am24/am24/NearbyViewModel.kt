@@ -193,13 +193,15 @@ class NearbyViewModel : ViewModel() {
             )
     }.map { state ->
         var list: List<NearbyUser> = state.people
-        val genderFilter = canonicalGender(state.genderFilter)
-        if (genderFilter.isNotBlank()) {
-            list = list.filter { matchesCanonicalGender(it.gender, genderFilter) }
-        }
-        val orientationFilter = canonicalOrientation(state.orientationFilter)
-        if (orientationFilter.isNotBlank()) {
-            list = list.filter { canonicalOrientation(it.sexualOrientation) == orientationFilter }
+        if (state.sortMode == SortMode.NEARBY) {
+            val genderFilter = canonicalGender(state.genderFilter)
+            if (genderFilter.isNotBlank()) {
+                list = list.filter { matchesCanonicalGender(it.gender, genderFilter) }
+            }
+            val orientationFilter = canonicalOrientation(state.orientationFilter)
+            if (orientationFilter.isNotBlank()) {
+                list = list.filter { canonicalOrientation(it.sexualOrientation) == orientationFilter }
+            }
         }
         // Time window for ACTIVE mode (e.g., last X hours/days)
         if (state.sortMode == SortMode.ACTIVE) {
@@ -564,7 +566,10 @@ class NearbyViewModel : ViewModel() {
                     val online = isUserOnline(now, lastActive)
 
                     val compat = currentProfile?.let { cp ->
-                        val ageCompat = ageCompatibilityScore(calculateAge(cp.dob), age)
+                        val viewerAge = calculateAge(cp.dob)
+                        val targetAge = age
+                        if (viewerAge == null || targetAge == null) return@let null
+                        val ageCompat = ageCompatibilityScore(viewerAge, targetAge)
                         val zodiacCompat = zodiacCompatibilityScore(cp.zodiac ?: "", p.zodiac ?: "")
                         (((ageCompat + zodiacCompat) / 2.0) * 100).roundToInt()
                     }
@@ -681,7 +686,6 @@ class NearbyViewModel : ViewModel() {
                                 val username = usernameCandidate?.takeIf { it.isNotBlank() } ?: continue
 
                                 val age = calculateAge(profile.dob)
-                                if (!matchesFilters(profile, age)) continue
 
                                 val lastActiveRaw = child.child("lastActive").getValue(Long::class.java) ?: profile.lastActive
                                 val lastActive = recentLastActive(now, lastActiveRaw) ?: continue
@@ -692,7 +696,10 @@ class NearbyViewModel : ViewModel() {
                                 val distM = latLng?.let { distanceMeters(center, it) } ?: Double.POSITIVE_INFINITY
 
                                 val compat = currentProfile?.let { cp ->
-                                        val ageCompat = ageCompatibilityScore(calculateAge(cp.dob), age)
+                                        val viewerAge = calculateAge(cp.dob)
+                                        val targetAge = age
+                                        if (viewerAge == null || targetAge == null) return@let null
+                                        val ageCompat = ageCompatibilityScore(viewerAge, targetAge)
                                         val zodiacCompat = zodiacCompatibilityScore(cp.zodiac ?: "", profile.zodiac ?: "")
                                         (((ageCompat + zodiacCompat) / 2.0) * 100).roundToInt()
                                     }
@@ -810,9 +817,11 @@ class NearbyViewModel : ViewModel() {
         }
     }
 
-    private fun matchesFilters(p: Profile, age: Int): Boolean {
+    private fun matchesFilters(p: Profile, age: Int?): Boolean {
+
         val f = datingFilters
-        if (age < f.ageStart || age > f.ageEnd) return false
+        val validAge = age ?: return false
+        if (validAge < f.ageStart || validAge > f.ageEnd) return false
         val targetGender = canonicalGender(f.gender)
         if (targetGender.isNotBlank()) {
             val userGender = canonicalGender(p.gender)

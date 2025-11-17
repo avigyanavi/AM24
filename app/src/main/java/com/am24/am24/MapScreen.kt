@@ -120,7 +120,7 @@ data class MarkerData(val userId: String, val position: LatLng)
 data class MatchProfile(
     val userId: String,
     val name: String,
-    val age: Int,
+    val age: Int?,
     val hometown: String,
     val photoUrl: String?
 )
@@ -132,7 +132,7 @@ enum class Region { LA, SF_BAY, NONE }
 data class NearbyUser(
     val userId: String,
     val username: String,
-    val age: Int,
+    val age: Int?,
     val gender: String = "",
     val photoUrl: String?,
     val lastActiveAt: Long,
@@ -420,7 +420,6 @@ fun MapScreen(
 
         desiredSortMode?.takeIf { it != sortMode }?.let { mode ->
             sortMode = mode
-            prefs.edit().putString("map_sort_mode", mode.name).apply()
         }
         when (selectedTab) {
             0 -> if (nearbyViewModel.currentLimit < 25) {
@@ -462,9 +461,9 @@ fun MapScreen(
                 prefs.edit().putBoolean(HAS_SHOWN_LOCATION_DIALOG, true).apply()
             }
         }
-        sortMode = prefs.getString("map_sort_mode", null)?.let { stored ->
-            SortMode.values().firstOrNull { it.name == stored }
-        } ?: SortMode.NEARBY
+    }
+
+    LaunchedEffect(Unit) {
         radiusKm = prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble()
         lastActiveHours = prefs.getFloat("map_last_active_hours", 48f).toDouble()
     }
@@ -1274,10 +1273,11 @@ fun MapScreen(
                             PeopleGrid(
                                 users = peopleTabUsers,
                                 isLoading =
-                                    !hasLoadedFirstResult && (
-                                            userLatLng == null ||
-                                                    !hasAttemptedInitialLoad ||
-                                                    isRefreshing
+                                    peopleTabUsers.isEmpty() && (
+                                            !hasLoadedFirstResult ||
+                                                    isRefreshing ||
+                                                    userLatLng == null ||
+                                                    !hasAttemptedInitialLoad
                                             ),
                                 onClick = {
                                     if (swipesLoaded && remainingSwipes <= 0) {
@@ -1352,8 +1352,13 @@ fun MapScreen(
                             }
                             CardsList(
                                 users = cardsTabUsers,
-                                isLoading = isRefreshing || userLatLng == null ||
-                                        !hasAttemptedInitialLoad,
+                                isLoading =
+                                    cardsTabUsers.isEmpty() && (
+                                            !hasLoadedFirstResult ||
+                                                    isRefreshing ||
+                                                    userLatLng == null ||
+                                                    !hasAttemptedInitialLoad
+                                            ),
                                 useMiles = useMiles,          // <-- pass through
                                 onLike = { user ->
                                     if (swipesLoaded && remainingSwipes <= 0) {
@@ -2376,8 +2381,9 @@ private fun ProfileCard(
                             }
                             Spacer(Modifier.height(4.dp))
                         }
+                        val header = user.age?.let { "${user.username}, $it" } ?: user.username
                         FilmText(
-                            text = "${user.username}, ${user.age}",
+                            text = header,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -2707,8 +2713,9 @@ private fun NearbyCard(
                     .padding(8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    val usernameAndAge = user.age?.let { "${user.username} · $it" } ?: user.username
                     Text(
-                        text = "${user.username} · ${user.age}",
+                        text = usernameAndAge,
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
@@ -3015,7 +3022,9 @@ fun MatchesListOverlay(
                             Spacer(Modifier.width(8.dp))
                             Column {
                                 Text(match.name, fontWeight = FontWeight.Bold)
-                                Text(stringResource(R.string.match_age, match.age))
+                                match.age?.let {
+                                    Text(stringResource(R.string.match_age, it))
+                                }
                                 Text(stringResource(R.string.match_from, match.hometown))
 
                             }
@@ -3185,14 +3194,15 @@ private fun distanceMeters(a: LatLng, b: LatLng): Double {
     return 2 * R * kotlin.math.asin(kotlin.math.min(1.0, kotlin.math.sqrt(h)))
 }
 
-fun calculateAge(dob: String): Int {
+fun calculateAge(dob: String?): Int? {
+    if (dob.isNullOrBlank()) return null
     val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val birthDate = try { sdf.parse(dob) } catch (_: Exception) { return 0 }
     val birthCalendar = Calendar.getInstance().apply { time = birthDate }
     val today = Calendar.getInstance()
     var age = today.get(Calendar.YEAR) - birthCalendar.get(Calendar.YEAR)
     if (today.get(Calendar.DAY_OF_YEAR) < birthCalendar.get(Calendar.DAY_OF_YEAR)) age--
-    return age
+    return age.takeIf { it in 16..100 }
 }
 
 fun loadUserLocationAndMatches(

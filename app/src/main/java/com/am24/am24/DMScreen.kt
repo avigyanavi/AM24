@@ -66,6 +66,7 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.am24.am24.FirebaseRefs
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.Job
 
 private fun canonicalLocationId(name: String): String {
     val normalized = Normalizer.normalize(name, Normalizer.Form.NFD)
@@ -246,12 +247,114 @@ fun DMScreenContent(
 
     val focusManager = LocalFocusManager.current
 
-    DisposableEffect(Unit) {
+    val messageListeners = remember { mutableMapOf<String, ValueEventListener>() }
+    var matchesLoadJob by remember { mutableStateOf<Job?>(null) }
+
+    fun prefetchProfileImages(profiles: List<Profile>) {
+        profiles.forEach { profile ->
+            val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
+            url?.let {
+                if (prefetchedUrls.value.add(it)) {
+                    val pathKey = Uri.parse(it).path
+                    val request = ImageRequest.Builder(context)
+                        .data(it)
+                        .diskCacheKey(pathKey)
+                        .memoryCacheKey(pathKey)
+                        .crossfade(true)
+                        .build()
+                    context.imageLoader.enqueue(request)
+                }
+            }
+        }
+    }
+
+    fun attachMessageListenersForProfiles(profiles: List<Profile>) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val activeChatIds = mutableSetOf<String>()
+        val activeProfileIds = profiles.map { it.userId }.toSet()
+        lastMessages.keys.retainAll(activeProfileIds)
+        profiles.forEach { profile ->
+            val chatId = getChatId(uid, profile.userId)
+            activeChatIds.add(chatId)
+            messageListeners[chatId]?.let { old ->
+                messagesRootRef.child(chatId).removeEventListener(old)
+            }
+            val listener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (!snapshot.exists()) {
+                        lastMessages[profile.userId] = Triple("", false, true)
+                        Log.d("DMScreen", "No messages for ${profile.userId}")
+                        return
+                    }
+                    for (msgSnap in snapshot.children) {
+                        val text = msgSnap.child("text").getValue(String::class.java) ?: ""
+                        val senderId = msgSnap.child("senderId").getValue(String::class.java) ?: ""
+                        val read = msgSnap.child("read").getValue(Boolean::class.java) ?: false
+                        val fromCurrentUser = (senderId == uid)
+                        val displayText = if (text.length > 30) "${text.take(30)}..." else text
+                        lastMessages[profile.userId] = Triple(displayText, fromCurrentUser, read)
+                        Log.d("DMScreen", "Last message for ${profile.userId}: $displayText")
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("DMScreen", "Failed to fetch last message for ${profile.userId}: ${error.message}")
+                }
+            }
+            messagesRootRef.child(chatId)
+                .orderByChild("timestamp")
+                .limitToLast(1)
+                .addValueEventListener(listener)
+            messageListeners[chatId] = listener
+        }
+        val staleChatIds = messageListeners.keys - activeChatIds
+        staleChatIds.forEach { chatId ->
+            messageListeners.remove(chatId)?.let { listener ->
+                messagesRootRef.child(chatId).removeEventListener(listener)
+            }
+        }
+    }
+
+    fun refreshMatches(userIds: List<String>) {
+        matchesLoadJob?.cancel()
+        matchesLoadJob = coroutineScope.launch {
+            try {
+                isLoadingMatches = true
+                if (userIds.isEmpty()) {
+                    matchedUsers.clear()
+                    nonInitiatedMatches.clear()
+                    attachMessageListenersForProfiles(emptyList())
+                    return@launch
+                }
+                val fetchedProfiles = fetchProfiles(usersRef, userIds)
+                matchedUsers.clear()
+                matchedUsers.addAll(fetchedProfiles)
+
+                val nonInitiated = fetchNonInitiatedConversations(
+                    fetchedProfiles,
+                    messagesRootRef,
+                    currentUserId
+                )
+                nonInitiatedMatches.clear()
+                nonInitiatedMatches.addAll(nonInitiated)
+                prefetchProfileImages(fetchedProfiles)
+                attachMessageListenersForProfiles(fetchedProfiles)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Log.e("DMScreen", "Failed to refresh matches", e)
+            } finally {
+                isLoadingMatches = false
+            }
+        }
+    }
+
+    DisposableEffect(currentUserId) {
         val matchesListener = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
                 matchIds.clear()
                 s.children.forEach { it.key?.let(matchIds::add) }
                 recomputeLiked()
+                refreshMatches(matchIds.toList())
             }
             override fun onCancelled(error: DatabaseError) {}
         }
@@ -266,90 +369,9 @@ fun DMScreenContent(
         matchesRef.addValueEventListener(matchesListener)
         likesRef.addValueEventListener(likesListener)
         onDispose {
+            matchesLoadJob?.cancel()
             matchesRef.removeEventListener(matchesListener)
             likesRef.removeEventListener(likesListener)
-        }
-    }
-
-    val messageListeners = remember { mutableMapOf<String, ValueEventListener>() }
-
-    LaunchedEffect(currentUserId) {
-        if (currentUserId.isBlank()) return@LaunchedEffect
-        try {
-            isLoadingMatches = true
-            val snapshot = matchesRef.get().await()
-            val userIdsToFetch = snapshot.children.mapNotNull { it.key }
-            val fetchedProfiles = fetchProfiles(usersRef, userIdsToFetch)
-            matchedUsers.clear()
-            matchedUsers.addAll(fetchedProfiles)
-
-            val nonInitiated = fetchNonInitiatedConversations(fetchedProfiles, messagesRootRef, currentUserId)
-            nonInitiatedMatches.clear()
-            nonInitiatedMatches.addAll(nonInitiated)
-
-            matchedUsers.forEach { profile ->
-                val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
-                url?.let {
-                    if (prefetchedUrls.value.add(it)) {
-                        val pathKey = Uri.parse(it).path
-                        val request = ImageRequest.Builder(context)
-                            .data(it)
-                            .diskCacheKey(pathKey)
-                            .memoryCacheKey(pathKey)
-                            .crossfade(true)
-                            .build()
-                        context.imageLoader.enqueue(request)
-                    }
-                }
-            }
-
-            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
-            val activeChatIds = mutableSetOf<String>()
-            matchedUsers.forEach { profile ->
-                val chatId = getChatId(uid, profile.userId)
-                activeChatIds.add(chatId)
-                messageListeners[chatId]?.let { old ->
-                    messagesRootRef.child(chatId).removeEventListener(old)
-                }
-                val listener = object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        if (!snapshot.exists()) {
-                            lastMessages[profile.userId] = Triple("", false, true)
-                            Log.d("DMScreen", "No messages for ${profile.userId}")
-                            return
-                        }
-                        for (msgSnap in snapshot.children) {
-                            val text = msgSnap.child("text").getValue(String::class.java) ?: ""
-                            val senderId = msgSnap.child("senderId").getValue(String::class.java) ?: ""
-                            val read = msgSnap.child("read").getValue(Boolean::class.java) ?: false
-                            val fromCurrentUser = (senderId == uid)
-                            val displayText = if (text.length > 30) "${text.take(30)}..." else text
-                            lastMessages[profile.userId] = Triple(displayText, fromCurrentUser, read)
-                            Log.d("DMScreen", "Last message for ${profile.userId}: $displayText")
-                        }
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {
-                        Log.e("DMScreen", "Failed to fetch last message for ${profile.userId}: ${error.message}")
-                    }
-                }
-                messagesRootRef.child(chatId)
-                    .orderByChild("timestamp")
-                    .limitToLast(1)
-                    .addValueEventListener(listener)
-                messageListeners[chatId] = listener
-            }
-            val staleChatIds = messageListeners.keys - activeChatIds
-            staleChatIds.forEach { chatId ->
-                messageListeners.remove(chatId)?.let { listener ->
-                    messagesRootRef.child(chatId).removeEventListener(listener)
-                }
-            }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Log.e("DMScreen", "Failed to load matches", e)
-        } finally {
-            isLoadingMatches = false
         }
     }
 
@@ -928,7 +950,7 @@ fun DMUserCard(
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    val age = profile.dob?.let { calculateAge(it) } ?: ""
+                    val age = calculateAge(profile.dob)?.toString().orEmpty()
                     val localeInfo = if (profile.hometown.isNotBlank()) {
                         "${profile.hometown}, ${profile.jobRole}, ${stringResource(R.string.age_format, age)}"
                     } else {

@@ -327,8 +327,9 @@ fun PhotoWithTwoOverlays(
                 Alignment.CenterVertically
             ) {
                 val displayName = profile.name.ifBlank { profile.username }
+                val nameAndAge = age?.let { "$displayName, $it" } ?: displayName
                 androidx.compose.material.Text(
-                    text = if (age > 0) "$displayName, $age" else displayName,
+                    text = nameAndAge,
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,

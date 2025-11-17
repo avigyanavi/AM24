@@ -849,7 +849,7 @@ fun PhotoCarouselWithOverlay(
                         // 3) your name/age text, but horizontally scrollable
                         val displayName = profile.name.ifBlank { profile.username }
                         Text(
-                            text = if (age > 0) "$displayName, $age" else displayName,
+                            text = age?.let { "$displayName, $it" } ?: displayName,
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
                             color = Color.White,
