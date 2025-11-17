@@ -276,9 +276,22 @@ fun MapScreen(
                 ) == PackageManager.PERMISSION_GRANTED
 
     val mapVisibility = remember { mutableStateMapOf<String, Boolean>() } // uid -> allowed on map
+    val tabResultsCache = remember { mutableStateMapOf<SortMode, List<NearbyUser>>() }
+    fun removeUserFromCaches(uid: String) {
+        SortMode.values().forEach { mode ->
+            tabResultsCache[mode]?.let { current ->
+                val updated = current.filterNot { it.userId == uid }
+                if (updated.size != current.size) {
+                    tabResultsCache[mode] = updated
+                }
+            }
+        }
+    }
 
     /* ---------------- People / grid state ---------------- */
     var userLatLng by remember { mutableStateOf<LatLng?>(null) }
+    var lastCachedLocation by remember { mutableStateOf<LatLng?>(null) }
+
     var sortMode by nearbyViewModel::sortMode
     var radiusKm by nearbyViewModel::radiusKm
     var lastActiveHours by nearbyViewModel::lastActiveHours
@@ -300,7 +313,7 @@ fun MapScreen(
     var entryFeeOfferExpiry by remember { mutableStateOf(0L) }
     var entryFeeOfferSeen by remember { mutableStateOf(false) }
     var nextRenewal by remember { mutableStateOf(0L) }
-    var autoPagedNearby by remember { mutableStateOf(false) }
+    var autoPagedPeople by remember { mutableStateOf(false) }
     var autoPagedCards by remember { mutableStateOf(false) }
     val sessionReady by SessionDataRepository.sessionReady.collectAsState(initial = false)
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
@@ -385,11 +398,23 @@ fun MapScreen(
         profileViewModel.fetchCurrentUserProfile()
     }
 
+    LaunchedEffect(userLatLng) {
+        val current = userLatLng
+        if (current == null) {
+            lastCachedLocation = null
+            tabResultsCache.clear()
+        } else if (lastCachedLocation != current) {
+            lastCachedLocation = current
+            tabResultsCache.clear()
+        }
+    }
+
     LaunchedEffect(selectedTab) {
         navController.currentBackStackEntry?.savedStateHandle?.set("mapSelectedTab", selectedTab)
         val desiredSortMode = when (selectedTab) {
             0 -> SortMode.ACTIVE
             1 -> SortMode.NEARBY
+            2 -> SortMode.NEARBY
             else -> null
         }
 
@@ -397,21 +422,13 @@ fun MapScreen(
             sortMode = mode
             prefs.edit().putString("map_sort_mode", mode.name).apply()
         }
-        userLatLng?.let { ll ->
-            if (selectedTab == 0 && nearbyViewModel.currentLimit < 25) {
-                nearbyViewModel.loadNextPage(
-                    25 - nearbyViewModel.currentLimit,
-                    userId,
-                    ll,
-                    geoFireDatabaseRef
-                )
-            } else if (selectedTab == 1 && nearbyViewModel.currentLimit < 10) {
-                nearbyViewModel.loadNextPage(
-                    10 - nearbyViewModel.currentLimit,
-                    userId,
-                    ll,
-                    geoFireDatabaseRef
-                )
+        when (selectedTab) {
+            0 -> if (nearbyViewModel.currentLimit < 25) {
+                nearbyViewModel.currentLimit = 25
+            }
+
+            1, 2 -> if (nearbyViewModel.currentLimit < 10) {
+                nearbyViewModel.currentLimit = 10
             }
         }
     }
@@ -805,17 +822,37 @@ fun MapScreen(
 
     // listen for nearby users (grid)
 // AFTER
-    LaunchedEffect(userLatLng, isPlus, isPremium) {
+    LaunchedEffect(userLatLng) {
         val me = userLatLng ?: return@LaunchedEffect
         snapshotFlow { radiusKm }
             .drop(1)           // only react to *changes* in radius
             .debounce(300)
             .collectLatest {
-                val previous = nearbyViewModel.people.associateBy { it.userId }
+                if (sortMode != SortMode.NEARBY) return@collectLatest
+                val previous = tabResultsCache[SortMode.NEARBY]?.associateBy { it.userId }
                 nearbyViewModel.refreshNearbyUsers(
                     userId,
                     me,
                     geoFireDatabaseRef,
+                    forceRefresh = true,
+                    previousResults = previous
+                )
+            }
+    }
+
+    LaunchedEffect(userLatLng) {
+        val me = userLatLng ?: return@LaunchedEffect
+        snapshotFlow { lastActiveHours }
+            .drop(1)
+            .debounce(300)
+            .collectLatest {
+                if (sortMode != SortMode.ACTIVE) return@collectLatest
+                val previous = tabResultsCache[SortMode.ACTIVE]?.associateBy { it.userId }
+                nearbyViewModel.refreshNearbyUsers(
+                    userId,
+                    me,
+                    geoFireDatabaseRef,
+                    forceRefresh = true,
                     previousResults = previous
                 )
             }
@@ -828,6 +865,7 @@ fun MapScreen(
             ?.asFlow()
             ?.collect { uid ->
                 nearbyViewModel.addExcluded(uid)
+                removeUserFromCaches(uid)
             }
     }
 
@@ -856,6 +894,7 @@ fun MapScreen(
     LaunchedEffect(Unit) {
         ExclusionEventBus.events.collect { uid ->
             nearbyViewModel.addExcluded(uid)
+            removeUserFromCaches(uid)
         }
     }
 
@@ -946,6 +985,20 @@ fun MapScreen(
     // filtering + sorting (wrapped in remember)
     val sortedPeople by nearbyViewModel.nearbyUsers.collectAsState(emptyList())
 
+    LaunchedEffect(sortMode, sortedPeople) {
+        tabResultsCache[sortMode] = sortedPeople
+    }
+
+    val peopleTabUsers = if (sortMode == SortMode.ACTIVE) {
+        sortedPeople
+    } else {
+        tabResultsCache[SortMode.ACTIVE].orEmpty()
+    }
+    val cardsTabUsers = if (sortMode == SortMode.NEARBY) {
+        sortedPeople
+    } else {
+        tabResultsCache[SortMode.NEARBY].orEmpty()
+    }
 
     LaunchedEffect(selectedTab, sortedPeople, matchUids) {
         if (selectedTab != 2) return@LaunchedEffect
@@ -1096,40 +1149,12 @@ fun MapScreen(
                         SortMode.NEARBY -> Icons.Default.MyLocation to R.string.sort_nearby
                         SortMode.ACTIVE -> Icons.Default.Schedule to R.string.sort_last_active
                     }
-                    Surface(
-                        shape = RoundedCornerShape(24.dp),
-                        color = KupidxOrange.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, KupidxOrange.copy(alpha = 0.7f)),
-                        tonalElevation = 0.dp,
-                        shadowElevation = 0.dp
-                    ) {
-                        IconButton(
-                            onClick = {
-                                sortMode = if (sortMode == SortMode.NEARBY) {
-                                    SortMode.ACTIVE
-                                } else {
-                                    SortMode.NEARBY
-                                    }
-                                prefs.edit().putString("map_sort_mode", sortMode.name).apply()
-                                userLatLng?.let {
-                                    nearbyViewModel.refreshNearbyUsers(
-                                        userId,
-                                        it,
-                                        geoFireDatabaseRef
-                                    )
-                                }
-                            },
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = Color.Transparent,
-                                contentColor = KupidxOrange
-                            )
-                        ) {
-                            Icon(
-                                imageVector = sortIcon,
-                                contentDescription = stringResource(sortLabelRes)
-                            )
-                        }
-                    }
+                    Icon(
+                        imageVector = sortIcon,
+                        contentDescription = stringResource(sortLabelRes),
+                        tint = KupidxOrange,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
                     Box {
                         IconButton(onClick = { showOverflowMenu = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = null)
@@ -1224,17 +1249,17 @@ fun MapScreen(
                     0 -> {
                         Box(Modifier.fillMaxSize()) {
                             DisposableEffect(Unit) {
-                                onDispose { autoPagedNearby = false }
+                                onDispose { autoPagedPeople = false }
                             }
                             LaunchedEffect(
-                                sortedPeople.isEmpty(),
+                                peopleTabUsers.isEmpty(),
                                 isRefreshing,
                                 userLatLng,
-                                autoPagedNearby
+                                autoPagedPeople
                             ) {
                                 val location = userLatLng
-                                if (sortedPeople.isEmpty() && !isRefreshing && !autoPagedNearby && location != null) {
-                                    autoPagedNearby = true
+                                if (peopleTabUsers.isEmpty() && !isRefreshing && !autoPagedPeople && location != null) {
+                                    autoPagedPeople = true
                                     nearbyViewModel.loadNextPage(
                                         25,
                                         userId,
@@ -1242,12 +1267,12 @@ fun MapScreen(
                                         geoFireDatabaseRef
                                     )
                                 }
-                                if (sortedPeople.isNotEmpty()) {
-                                    autoPagedNearby = false
+                                if (peopleTabUsers.isNotEmpty()) {
+                                    autoPagedPeople = false
                                 }
                             }
                             PeopleGrid(
-                                users = sortedPeople,
+                                users = peopleTabUsers,
                                 isLoading =
                                     !hasLoadedFirstResult && (
                                             userLatLng == null ||
@@ -1268,6 +1293,7 @@ fun MapScreen(
                                         FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid")
                                             .setValue(true)
                                     }
+                                    removeUserFromCaches(uid)
                                 },
                                 onBlock = { uid ->
                                     scope.launch {
@@ -1275,9 +1301,10 @@ fun MapScreen(
                                             .setValue(true)
                                         nearbyViewModel.addExcluded(uid)
                                     }
+                                    removeUserFromCaches(uid)
                                 },
                                 onNextPage = {
-                                    if (sortedPeople.isNotEmpty()) {
+                                    if (peopleTabUsers.isNotEmpty()) {
                                         Toast.makeText(
                                             ctx,
                                             R.string.toast_swipe_existing_nearby_first,
@@ -1305,14 +1332,13 @@ fun MapScreen(
                                 onDispose { autoPagedCards = false }
                             }
                             LaunchedEffect(
-                                sortedPeople.isEmpty(),
+                                cardsTabUsers.isEmpty(),
                                 isRefreshing,
                                 userLatLng,
                                 autoPagedCards
                             ) {
                                 val location = userLatLng
-                                if (sortedPeople.isEmpty() && !isRefreshing && !autoPagedCards && location != null) {
-                                    autoPagedCards = true
+                                if (cardsTabUsers.isEmpty() && !isRefreshing && !autoPagedCards && location != null) {                                    autoPagedCards = true
                                     nearbyViewModel.loadNextPage(
                                         10,
                                         userId,
@@ -1320,12 +1346,12 @@ fun MapScreen(
                                         geoFireDatabaseRef
                                     )
                                 }
-                                if (sortedPeople.isNotEmpty()) {
+                                if (cardsTabUsers.isNotEmpty()) {
                                     autoPagedCards = false
                                 }
                             }
                             CardsList(
-                                users = sortedPeople,
+                                users = cardsTabUsers,
                                 isLoading = isRefreshing || userLatLng == null ||
                                         !hasAttemptedInitialLoad,
                                 useMiles = useMiles,          // <-- pass through
@@ -1335,6 +1361,7 @@ fun MapScreen(
                                     } else {
                                         handleSwipeRight(userId, user.userId, profileViewModel)
                                         nearbyViewModel.addExcluded(user.userId)
+                                        removeUserFromCaches(user.userId)
                                         if (swipesLoaded) {
                                             remainingSwipes--
                                             updateSwipesInFirebase(remainingSwipes)
@@ -1347,6 +1374,7 @@ fun MapScreen(
                                     } else {
                                         handleSwipeLeft(userId, user.userId)
                                         nearbyViewModel.addExcluded(user.userId)
+                                        removeUserFromCaches(user.userId)
                                         if (swipesLoaded) {
                                             remainingSwipes--
                                             updateSwipesInFirebase(remainingSwipes)
@@ -1366,6 +1394,7 @@ fun MapScreen(
                                         FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid")
                                             .setValue(true)
                                     }
+                                    removeUserFromCaches(uid)
                                 },
                                 onBlock = { uid ->
                                     scope.launch {
@@ -1373,9 +1402,10 @@ fun MapScreen(
                                             .setValue(true)
                                         nearbyViewModel.addExcluded(uid)
                                     }
+                                    removeUserFromCaches(uid)
                                 },
                                 onNextPage = {
-                                    if (sortedPeople.isNotEmpty()) {
+                                    if (cardsTabUsers.isNotEmpty()) {
                                         Toast.makeText(
                                             ctx,
                                             R.string.toast_swipe_existing_cards_first,
@@ -2000,6 +2030,7 @@ fun MapScreen(
                     else -> 25
                 }
                 nearbyViewModel.currentLimit = defaultLimit
+                tabResultsCache.clear()
                 nearbyViewModel.datingFilters = filters
                 prefs.edit()
                     .putString("map_dating_filters", gson.toJson(filters))
