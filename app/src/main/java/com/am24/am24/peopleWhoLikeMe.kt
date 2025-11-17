@@ -120,7 +120,32 @@ fun PeopleWhoLikeMeScreen(
         }
 
         val sortedProfiles = withContext(Dispatchers.IO) {
-            val fetched = ProfileCache.getProfiles(likesMap.keys)
+            val activeLikeIds = mutableListOf<String>()
+            likesMap.keys.forEach { userId ->
+                if (userId.isBlank()) return@forEach
+
+                val isDeleted = runCatching {
+                    UserDeletionCache.isDeleted(FirebaseRefs.db, userId)
+                }.getOrElse { false }
+
+                if (isDeleted) {
+                    runCatching {
+                        FirebaseRefs.db
+                            .getReference("likesReceived/$currentUserId/$userId")
+                            .removeValue()
+                            .await()
+                    }
+                    UserDeletionCache.markDeleted(userId)
+                } else {
+                    activeLikeIds += userId
+                }
+            }
+
+            if (activeLikeIds.isEmpty()) {
+                return@withContext emptyList()
+            }
+
+            val fetched = ProfileCache.getProfiles(activeLikeIds)
             val keepers = mutableListOf<Profile>()
             fetched.forEach { (userId, profile) ->
                 if (profile.username.isBlank()) {
