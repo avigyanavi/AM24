@@ -125,7 +125,7 @@ data class MatchProfile(
     val photoUrl: String?
 )
 
-enum class SortMode { NEARBY, ACTIVE, POPULAR }
+enum class SortMode { NEARBY, ACTIVE }
 
 enum class Region { LA, SF_BAY, NONE }
 
@@ -445,8 +445,9 @@ fun MapScreen(
                 prefs.edit().putBoolean(HAS_SHOWN_LOCATION_DIALOG, true).apply()
             }
         }
-        sortMode =
-            prefs.getString("map_sort_mode", null)?.let { SortMode.valueOf(it) } ?: SortMode.NEARBY
+        sortMode = prefs.getString("map_sort_mode", null)?.let { stored ->
+            SortMode.values().firstOrNull { it.name == stored }
+        } ?: SortMode.NEARBY
         radiusKm = prefs.getFloat("map_radius_km", radiusKmDefault.toFloat()).toDouble()
         lastActiveHours = prefs.getFloat("map_last_active_hours", 48f).toDouble()
     }
@@ -1076,11 +1077,6 @@ fun MapScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
-                            SortMode.POPULAR -> {
-                                PopularChip(
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
                             SortMode.NEARBY -> {
                                 RadiusChip(
                                     radiusKm = radiusKm,
@@ -1099,7 +1095,6 @@ fun MapScreen(
                     val (sortIcon, sortLabelRes) = when (sortMode) {
                         SortMode.NEARBY -> Icons.Default.MyLocation to R.string.sort_nearby
                         SortMode.ACTIVE -> Icons.Default.Schedule to R.string.sort_last_active
-                        SortMode.POPULAR -> Icons.Default.Leaderboard to R.string.sort_popular
                     }
                     Surface(
                         shape = RoundedCornerShape(24.dp),
@@ -1110,11 +1105,11 @@ fun MapScreen(
                     ) {
                         IconButton(
                             onClick = {
-                                sortMode = when (sortMode) {
-                                    SortMode.NEARBY -> SortMode.POPULAR
-                                    SortMode.POPULAR -> SortMode.ACTIVE
-                                    SortMode.ACTIVE -> SortMode.NEARBY
-                                }
+                                sortMode = if (sortMode == SortMode.NEARBY) {
+                                    SortMode.ACTIVE
+                                } else {
+                                    SortMode.NEARBY
+                                    }
                                 prefs.edit().putString("map_sort_mode", sortMode.name).apply()
                                 userLatLng?.let {
                                     nearbyViewModel.refreshNearbyUsers(
@@ -2853,37 +2848,6 @@ private fun LastActiveChip(
         }
     }
 }
-
-@Composable
-private fun PopularChip(
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
-        color = KupidxOrange.copy(alpha = 0.12f),
-        contentColor = KupidxOrange,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        border = BorderStroke(1.dp, KupidxOrange.copy(alpha = 0.7f))
-    ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Default.Leaderboard, contentDescription = null, tint = KupidxOrange)
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = stringResource(R.string.sort_popular),
-                color = KupidxOrange,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
 
 @Composable
 private fun LockedChip(
