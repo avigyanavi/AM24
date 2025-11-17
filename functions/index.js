@@ -508,7 +508,7 @@ async function buildNearbyIndexFor(uid) {
   if (u.isPrivate === true) return;
   if (u.allowLocationForMatches === false) return;
 
-  const maxKm = Math.min(Number(u.datingDistancePreference) || 30, 65);
+  const maxKm = Math.min(Number(u.datingDistancePreference) || 30);
   const limit = 200;
 
   const { geohashQueryBounds, distanceBetween } = require('geofire-common');
@@ -1364,7 +1364,7 @@ exports.getNearbyProfiles = functions
     const distLimit = Number(maxDistance);
     const useDist   =
       Array.isArray(myLoc) && myLoc.length === 2 &&
-      Number.isFinite(distLimit) && distLimit <= 65;   // 65-km rule
+      Number.isFinite(distLimit);   // 65-km rule
 
     /* ── STEP 1: collect candidate UIDs ──────────────────────────── */
     let candidateIds = [];

@@ -69,8 +69,8 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         private const val BOOST_DURATION_MS = 1 * 60 * 60 * 1000L
 
         /* NEW ── sentinel to mean “don’t filter by distance / Worldwide” */
-        const val WORLDWIDE_DISTANCE = 101
-        const val INDIA_MAX_DISTANCE = 65
+        const val WORLDWIDE_DISTANCE = 3000
+        const val INDIA_MAX_DISTANCE = 5000
     }
 
     private val TAG = "DatingViewModel"
@@ -133,8 +133,6 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
     // ── NEW: track which user is currently on top of the swipe‐deck ──
     private val _currentSwipeUserId = MutableStateFlow<String?>(null)
-    /** The userId of the profile card currently “on deck” */
-    val currentSwipeUserId: StateFlow<String?> = _currentSwipeUserId
 
     /** update the ID of the profile currently shown on top of the deck  */
     fun setCurrentSwipeUserId(userId: String?) {
@@ -437,18 +435,18 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         me: String,
         limit: Int
     ): List<Profile> = withContext(Dispatchers.IO) {
-        val payload = hashMapOf(
-            "uid" to me,
-        )
-        val callable = functions.getHttpsCallable("getGlobalPremiumUsers").apply {
-            setTimeout(60, TimeUnit.SECONDS)
+        val snap = usersRef
+            .orderByChild("priority")
+            .equalTo(true)
+            .limitToFirst(limit)
+            .get()
+            .await()
+
+        snap.children.mapNotNull { child ->
+            val profile = child.getValue(Profile::class.java) ?: return@mapNotNull null
+            profile.userId = profile.userId.ifBlank { child.key.orEmpty() }
+            if (profile.priority) profile else null
         }
-        @Suppress("UNCHECKED_CAST")
-        val data = callable.call(payload).await().data as? Map<*, *> ?: return@withContext emptyList()
-        val list = data["profiles"] as? List<*> ?: return@withContext emptyList()
-        list
-            .mapNotNull { (it as? Map<*, *>)?.toProfile() }
-            .filter { it.priority }
     }
 
 

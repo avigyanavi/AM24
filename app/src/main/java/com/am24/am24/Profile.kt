@@ -35,7 +35,7 @@ data class Profile(
     // Keep this: what the user is interested in (Men, Women, etc.)
     val interestedIn: List<String> = emptyList(),
     val preferredLanguage: String = "",
-    val userId: String = "",
+    var userId: String = "",
     val username: String = "",  // Unique username (e.g., MS1)
     val name: String = "",
     val dob: String = "",  // Date of birth for age calculation
