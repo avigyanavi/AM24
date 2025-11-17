@@ -1246,6 +1246,15 @@ fun MapScreen(
                 when (selectedTab) {
                     /* ======================= PEOPLE TAB (grid + mini map) ======================= */
                     0 -> {
+                        val activeResultsCached = tabResultsCache.containsKey(SortMode.ACTIVE)
+                        val peopleTabLoading =
+                            peopleTabUsers.isEmpty() && (
+                                    !activeResultsCached ||
+                                            !hasLoadedFirstResult ||
+                                            isRefreshing ||
+                                            userLatLng == null ||
+                                            !hasAttemptedInitialLoad
+                                    )
                         Box(Modifier.fillMaxSize()) {
                             DisposableEffect(Unit) {
                                 onDispose { autoPagedPeople = false }
@@ -1272,13 +1281,7 @@ fun MapScreen(
                             }
                             PeopleGrid(
                                 users = peopleTabUsers,
-                                isLoading =
-                                    peopleTabUsers.isEmpty() && (
-                                            !hasLoadedFirstResult ||
-                                                    isRefreshing ||
-                                                    userLatLng == null ||
-                                                    !hasAttemptedInitialLoad
-                                            ),
+                                isLoading = peopleTabLoading,
                                 onClick = {
                                     if (swipesLoaded && remainingSwipes <= 0) {
                                         showSwipeLimitOverlay = true

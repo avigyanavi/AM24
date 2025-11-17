@@ -116,7 +116,8 @@ fun DMScreenContent(
     var showSmartMatchDialog by remember { mutableStateOf(false) }
     var selectedSmartMatchGender by remember { mutableStateOf("Both") }
     var isLoadingMatches by remember { mutableStateOf(true) }
-
+    var matchesInitialized by remember { mutableStateOf(false) }
+    var likesInitialized by remember { mutableStateOf(false) }
     LaunchedEffect(currentUserId) {
         profileViewModel.fetchCurrentUserProfile()
     }
@@ -206,6 +207,7 @@ fun DMScreenContent(
         complimentQueue.addAll(bootstrap.compliments)
 
         likedCount = bootstrap.likedCount
+        likesInitialized = true
 
         if (bootstrap.matches.isNotEmpty() && matchedUsers.isEmpty()) {
             matchedUsers.addAll(bootstrap.matches.map { it.profile })
@@ -218,6 +220,7 @@ fun DMScreenContent(
             lastMessages[summary.profile.userId] = Triple(previewText, fromCurrentUser, !summary.hasUnread)
         }
         isLoadingMatches = false
+        matchesInitialized = true
     }
 
     DisposableEffect(currentUserId) {
@@ -344,6 +347,7 @@ fun DMScreenContent(
                 Log.e("DMScreen", "Failed to refresh matches", e)
             } finally {
                 isLoadingMatches = false
+                matchesInitialized = true
             }
         }
     }
@@ -363,6 +367,7 @@ fun DMScreenContent(
                 likeIds.clear()
                 s.children.forEach { it.key?.let(likeIds::add) }
                 recomputeLiked()
+                likesInitialized = true
             }
             override fun onCancelled(error: DatabaseError) {}
         }
@@ -471,7 +476,8 @@ fun DMScreenContent(
                 textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
             )
 
-            if (isLoadingMatches) {
+            val showHeaderSkeleton = isLoadingMatches || !matchesInitialized || !likesInitialized
+            if (showHeaderSkeleton) {
                 DMMiniProfileSkeletonRow()
             } else {
                 Row(
@@ -548,19 +554,12 @@ fun DMScreenContent(
             }
 
             val displayedUsers = matchedUsers
-            val complimentItems = complimentQueue.filter { cp ->
-                !matchIds.contains(cp.profile.userId) && !blockedIds.contains(cp.profile.userId)
-            }
 
-            val hasAnyContent = displayedUsers.isNotEmpty() || complimentItems.isNotEmpty()
-
-            if (isLoadingMatches) {
+            val showListSkeleton = isLoadingMatches || !matchesInitialized
+            if (showListSkeleton) {
                 DMUserCardSkeletonList()
-            } else if (!hasAnyContent) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.dm_no_matches), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            } else {
+            }
+            else {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
@@ -765,7 +764,7 @@ fun DMScreenContent(
             )
         }
 
-        if (!isLoadingMatches) {
+        if (matchesInitialized && !isLoadingMatches) {
             FloatingActionButton(
                 onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
                 containerColor = Color(0xFFFF4500),
