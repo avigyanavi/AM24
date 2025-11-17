@@ -44,7 +44,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.Lifecycle
-import com.am24.am24.KupidxOrange
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.am24.am24.ui.theme.AppTheme
 import com.am24.am24.ui.theme.DarkGrayBackground
 import com.facebook.*
@@ -278,9 +281,11 @@ class LandingActivity : ComponentActivity() {
 
     private fun signInWithFacebook() {
         isSigningIn = true
-        LoginManager.getInstance().logOut()   // let user pick account
-        LoginManager.getInstance()
-            .logInWithReadPermissions(this, listOf("email", "public_profile"))
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                runCatching { LoginManager.getInstance().logOut() }   // let user pick account
+                    .onFailure { Log.w("LandingActivity", "Failed to pre-clear Facebook session", it) }
+            }
 
         LoginManager.getInstance()
             .registerCallback(callbackManager, object : FacebookCallback<LoginResult> {
@@ -298,6 +303,10 @@ class LandingActivity : ComponentActivity() {
                     isSigningIn = false
                 }
             })
+
+            LoginManager.getInstance()
+                .logInWithReadPermissions(this@LandingActivity, listOf("email", "public_profile"))
+        }
     }
 
     private fun handleFacebookAccessToken(token: AccessToken) {
