@@ -1064,26 +1064,34 @@ fun MapScreen(
                             .fillMaxWidth()
                             .padding(end = trailingActionsInset)
                     ) {
-                        if (sortMode == SortMode.ACTIVE || sortMode == SortMode.POPULAR) {
-                            LastActiveChip(
-                                hours = lastActiveHours,
-                                onChange = {
-                                    lastActiveHours = it
-                                    prefs.edit().putFloat("map_last_active_hours", it.toFloat())
-                                        .apply()
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        } else {
-                            RadiusChip(
-                                radiusKm = radiusKm,
-                                onChange = {
-                                    radiusKm = it
-                                    prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
-                                },
-                                useMiles = useMiles,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                        when (sortMode) {
+                            SortMode.ACTIVE -> {
+                                LastActiveChip(
+                                    hours = lastActiveHours,
+                                    onChange = {
+                                        lastActiveHours = it
+                                        prefs.edit().putFloat("map_last_active_hours", it.toFloat())
+                                            .apply()
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                            SortMode.POPULAR -> {
+                                PopularChip(
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                            SortMode.NEARBY -> {
+                                RadiusChip(
+                                    radiusKm = radiusKm,
+                                    onChange = {
+                                        radiusKm = it
+                                        prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
+                                    },
+                                    useMiles = useMiles,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     }
                 },
@@ -1103,9 +1111,9 @@ fun MapScreen(
                         IconButton(
                             onClick = {
                                 sortMode = when (sortMode) {
-                                    SortMode.NEARBY -> SortMode.ACTIVE
-                                    SortMode.ACTIVE -> SortMode.POPULAR
-                                    SortMode.POPULAR -> SortMode.NEARBY
+                                    SortMode.NEARBY -> SortMode.POPULAR
+                                    SortMode.POPULAR -> SortMode.ACTIVE
+                                    SortMode.ACTIVE -> SortMode.NEARBY
                                 }
                                 prefs.edit().putString("map_sort_mode", sortMode.name).apply()
                                 userLatLng?.let {
@@ -2845,6 +2853,37 @@ private fun LastActiveChip(
         }
     }
 }
+
+@Composable
+private fun PopularChip(
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        color = KupidxOrange.copy(alpha = 0.12f),
+        contentColor = KupidxOrange,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = BorderStroke(1.dp, KupidxOrange.copy(alpha = 0.7f))
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Leaderboard, contentDescription = null, tint = KupidxOrange)
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = stringResource(R.string.sort_popular),
+                color = KupidxOrange,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
 
 @Composable
 private fun LockedChip(
