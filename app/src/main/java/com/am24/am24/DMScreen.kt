@@ -98,14 +98,16 @@ fun DMScreenContent(
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
     val database = remember { FirebaseRefs.db }
-    val matchesRef = remember(currentUserId) { database.getReference("matches/$currentUserId") }
-    val likesRef = remember(currentUserId) { database.getReference("likesReceived/$currentUserId") }
     val usersRef = remember { database.getReference("users") }
     val messagesRootRef = remember { database.getReference("messages") }
     val ratingsRef = remember { database.getReference("ratings") }
     val datingViewModel: DatingViewModel = viewModel()
     val dmBootstrap by datingViewModel.dmBootstrap.collectAsState()
     val sessionReady by SessionDataRepository.sessionReady.collectAsState(initial = false)
+    val matchIds by SessionDataRepository.matchIds.collectAsState()
+    val blockedIds by SessionDataRepository.blockedUserIds.collectAsState()
+    val likesMap by SessionDataRepository.likesReceived.collectAsState()
+    val likedCount by SessionDataRepository.likedCount.collectAsState(initial = 0)
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
 
     var showRatingOverlay by remember { mutableStateOf(false) }
@@ -186,7 +188,6 @@ fun DMScreenContent(
 
 
     var searchQuery by remember { mutableStateOf("") }
-    var likedCount by remember { mutableStateOf(0) }
     val matchedUsers = remember { mutableStateListOf<Profile>() }
     val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
     val lastMessages = remember { mutableStateMapOf<String, Triple<String, Boolean, Boolean>>() }
@@ -194,10 +195,7 @@ fun DMScreenContent(
     val complimentProfiles = remember { mutableStateListOf<ComplimentWithProfile>() }
     val complimentQueue = remember { mutableStateListOf<ComplimentWithProfile>() }
     var calledSweepOnce by remember { mutableStateOf(false) }
-    val functions = remember { FirebaseFunctions.getInstance("asia-south1") }
-    // — new: grab your blocks
-    val blockedRef = database.getReference("blocks/$currentUserId")
-    val blockedIds = remember { mutableStateListOf<String>() }
+    var matchesLoadJob by remember { mutableStateOf<Job?>(null) }
 
     LaunchedEffect(dmBootstrap) {
         val bootstrap = dmBootstrap ?: return@LaunchedEffect
@@ -206,7 +204,6 @@ fun DMScreenContent(
         complimentQueue.clear()
         complimentQueue.addAll(bootstrap.compliments)
 
-        likedCount = bootstrap.likedCount
         var seededMatches = false
 
         if (bootstrap.matches.isNotEmpty() && matchedUsers.isEmpty()) {
@@ -225,36 +222,13 @@ fun DMScreenContent(
             matchesInitialized = true
         }
     }
-
-    DisposableEffect(currentUserId) {
-        val listener = object : ValueEventListener {
-            override fun onDataChange(s: DataSnapshot) {
-                blockedIds.clear()
-                s.children.mapNotNull { it.key }
-                    .also(blockedIds::addAll)
-            }
-            override fun onCancelled(e: DatabaseError) {}
-        }
-        blockedRef.addListenerForSingleValueEvent(listener)
-        onDispose { blockedRef.removeEventListener(listener) }
-    }
-
-    val matchIds = remember { mutableStateListOf<String>() }
-    val likeIds = remember { mutableStateListOf<String>() }
-    fun recomputeLiked() {
-        likedCount = likeIds.count { id ->
-            // only count if NOT matched *and* NOT blocked
-            !matchIds.contains(id) &&
-                    !blockedIds.contains(id)
-        }
-    }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
     val focusManager = LocalFocusManager.current
 
     val messageListeners = remember { mutableMapOf<String, ValueEventListener>() }
-    var matchesLoadJob by remember { mutableStateOf<Job?>(null) }
+
 
     fun prefetchProfileImages(profiles: List<Profile>) {
         profiles.forEach { profile ->
@@ -355,33 +329,21 @@ fun DMScreenContent(
         }
     }
 
+    LaunchedEffect(matchIds) {
+        refreshMatches(matchIds.toList())
+    }
+
+    LaunchedEffect(likesMap) {
+        likesInitialized = true
+    }
+
     DisposableEffect(currentUserId) {
-        val matchesListener = object : ValueEventListener {
-            override fun onDataChange(s: DataSnapshot) {
-                matchIds.clear()
-                s.children.forEach { it.key?.let(matchIds::add) }
-                recomputeLiked()
-                refreshMatches(matchIds.toList())
-            }
-            override fun onCancelled(error: DatabaseError) {}
-        }
-        val likesListener = object : ValueEventListener {
-            override fun onDataChange(s: DataSnapshot) {
-                likeIds.clear()
-                s.children.forEach { it.key?.let(likeIds::add) }
-                recomputeLiked()
-                likesInitialized = true
-            }
-            override fun onCancelled(error: DatabaseError) {}
-        }
-        matchesRef.addValueEventListener(matchesListener)
-        likesRef.addValueEventListener(likesListener)
         onDispose {
             matchesLoadJob?.cancel()
-            matchesRef.removeEventListener(matchesListener)
-            likesRef.removeEventListener(likesListener)
+            matchesLoadJob = null
         }
     }
+
 
     DisposableEffect(Unit) {
         onDispose {
@@ -1200,8 +1162,8 @@ private suspend fun handleSmartMatch(
     gender: String,
     database: FirebaseDatabase,
     usersRef: DatabaseReference,
-    matchIds: List<String>,
-    blockedIds: List<String>,
+    matchIds: Collection<String>,
+    blockedIds: Collection<String>,
     context: android.content.Context
 ) {
     val week = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR)

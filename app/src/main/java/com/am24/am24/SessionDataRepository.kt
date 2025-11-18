@@ -41,6 +41,12 @@ object SessionDataRepository {
     private val _likesReceived = MutableStateFlow<Map<String, Long>>(emptyMap())
     val likesReceived: StateFlow<Map<String, Long>> = _likesReceived
 
+    private val _unmatchedLikeIds = MutableStateFlow<Set<String>>(emptySet())
+    val unmatchedLikeIds: StateFlow<Set<String>> = _unmatchedLikeIds
+
+    private val _likedCount = MutableStateFlow(0)
+    val likedCount: StateFlow<Int> = _likedCount
+
     private val _sessionReady = MutableStateFlow(false)
     val sessionReady: StateFlow<Boolean> = _sessionReady
 
@@ -79,8 +85,11 @@ object SessionDataRepository {
         _blockedUserIds.value = emptySet()
         _matchIds.value = emptySet()
         _likesReceived.value = emptyMap()
+        _unmatchedLikeIds.value = emptySet()
+        _likedCount.value = 0
         _sessionReady.value = false
         ProfileCache.clear()
+        UserSummaryCache.clear()
     }
 
     private fun attachUserListener(userId: String) {
@@ -115,6 +124,7 @@ object SessionDataRepository {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val ids = snapshot.children.mapNotNull { it.key }.toSet()
                 _blockedUserIds.value = ids
+                recomputeLikeDerivedState()
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -131,6 +141,7 @@ object SessionDataRepository {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val ids = snapshot.children.mapNotNull { it.key }.toSet()
                 _matchIds.value = ids
+                recomputeLikeDerivedState()
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -152,6 +163,7 @@ object SessionDataRepository {
                     child.key!! to timestamp
                 }
                 _likesReceived.value = likes
+                recomputeLikeDerivedState()
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -160,5 +172,21 @@ object SessionDataRepository {
         }
         ref.addValueEventListener(listener)
         listeners += ref to listener
+    }
+
+    private fun recomputeLikeDerivedState() {
+        val likes = _likesReceived.value.keys
+        if (likes.isEmpty()) {
+            _unmatchedLikeIds.value = emptySet()
+            _likedCount.value = 0
+            return
+        }
+        val blocked = _blockedUserIds.value
+        val matches = _matchIds.value
+        val filtered = likes.filterNot { id ->
+            blocked.contains(id) || matches.contains(id)
+        }.toSet()
+        _unmatchedLikeIds.value = filtered
+        _likedCount.value = filtered.size
     }
 }

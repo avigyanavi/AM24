@@ -55,8 +55,7 @@ fun PeopleWhoLikeMeScreen(
     val subscriptionStatus by profileViewModel.subscriptionStatus.collectAsState()
     val nextRenewal by profileViewModel.nextRenewal.collectAsState()
 
-
-    val likedUsers = remember { mutableStateListOf<Profile>() }
+    val likedUsers = remember { mutableStateListOf<UserSummary>() }
 
     LaunchedEffect(Unit) {
         if (currentUserId.isNotBlank()) {
@@ -142,30 +141,27 @@ fun PeopleWhoLikeMeScreen(
             }
 
             if (activeLikeIds.isEmpty()) {
-                return@withContext emptyList()
+                return@withContext emptyList<UserSummary>()
             }
 
-            val fetched = ProfileCache.getProfiles(activeLikeIds)
-            val keepers = mutableListOf<Profile>()
-            fetched.forEach { (userId, profile) ->
-                if (profile.username.isBlank()) {
+            val fetched = UserSummaryCache.getSummaries(activeLikeIds)
+            val keepers = mutableListOf<UserSummary>()
+            fetched.forEach { (userId, summary) ->
+                if (summary.username.isBlank()) {
                     runCatching {
                         FirebaseRefs.db.getReference("likesReceived/$currentUserId/$userId").removeValue().await()
                     }
                     UserDeletionCache.markDeleted(userId)
                 } else {
                     UserDeletionCache.markActive(userId)
-                    if (!matchIds.contains(userId) &&
-                        !blockedIds.contains(userId) &&
-                        !profile.matches.contains(currentUserId)
-                    ) {
-                        keepers += profile
+                    if (!matchIds.contains(userId) && !blockedIds.contains(userId)) {
+                        keepers += summary
                     }
                 }
             }
             keepers.sortedWith(
-                compareByDescending<Profile> { profile ->
-                    profile.UsersWhoLikeMe.size
+                compareByDescending<UserSummary> { profile ->
+                    profile.likesReceivedCount
                 }.thenByDescending { profile ->
                     likesMap[profile.userId] ?: 0L
                 }
@@ -283,7 +279,7 @@ fun PeopleWhoLikeMeScreen(
                                     Spacer(modifier = Modifier.width(16.dp))
 
                                     Column {
-                                        val displayName = profile.name.ifBlank { profile.username }
+                                        val displayName = profile.displayName
                                         Text(
                                             text = displayName,
                                             color = Color.White,
@@ -295,7 +291,7 @@ fun PeopleWhoLikeMeScreen(
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
-                                            text = "Total likes: ${profile.UsersWhoLikeMe.size}",
+                                            text = "Total likes: ${profile.likesReceivedCount}",
                                             color = Color.White,
                                             style = MaterialTheme.typography.bodySmall
                                         )
