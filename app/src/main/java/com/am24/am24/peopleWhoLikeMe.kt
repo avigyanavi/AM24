@@ -34,8 +34,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun PeopleWhoLikeMeScreen(
     navController: NavController,
-    profileViewModel: ProfileViewModel = viewModel(),
-    currentUserId: String = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    profileViewModel: ProfileViewModel,
+    currentUserId: String
 ) {
     val context = LocalContext.current
     var isLoading by remember { mutableStateOf(true) }

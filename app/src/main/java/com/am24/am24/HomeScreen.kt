@@ -88,7 +88,8 @@ fun HomeScreen(
 ) {
     // Get the current user ID from FirebaseAuth.
     val userId = FirebaseAuth.getInstance().currentUser?.uid
-
+    val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
+    val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
     // Immediately update the PostViewModel with the current user ID.
     LaunchedEffect(userId) {
         postViewModel.setCurrentUserId(userId)
@@ -183,7 +184,9 @@ fun HomeScreen(
             userProfile = userProfile,
             sortOption = filterSettings.sortOption,
             onSortOptionChanged = { newSortOption -> postViewModel.setSortOption(newSortOption) },
-            listState = rememberLazyListState() // Pass listState for scroll control
+            listState = rememberLazyListState(), // Pass listState for scroll control
+            isPremium = isPremium,           // NEW
+            isPlus = isPlus                  // NEW
         )
     }
 }
@@ -272,11 +275,10 @@ fun HomeScreenContent(
     userProfile: Profile?,
     sortOption: String,
     onSortOptionChanged: (String) -> Unit,
-    listState: LazyListState // Added listState parameter
+    listState: LazyListState, // Added listState parameter
+    isPremium: Boolean,              // NEW
+    isPlus: Boolean                  // NEW
 ) {
-    val profileViewModel: ProfileViewModel = viewModel()
-    val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
-    val isPlus    by profileViewModel.isPlus   .collectAsState(initial = false)
     val focusManager = LocalFocusManager.current
     val feedTabs = listOf("everyone", "matches")
     var selectedTab by remember {                   // keeps UI and VM in sync

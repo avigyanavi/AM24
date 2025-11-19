@@ -46,6 +46,7 @@ fun PreviewUserProfileScreen(
     geoFire          : GeoFire,
     profileViewModel : ProfileViewModel   = viewModel(),
     postViewModel    : PostViewModel      = viewModel(),   // re-use for posts inside the card
+    datingViewModel  : DatingViewModel,   // NEW: pass this in
 ) {
     var profile      by remember { mutableStateOf<Profile?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -55,7 +56,6 @@ fun PreviewUserProfileScreen(
     val showComplimentAnim = remember { mutableStateOf(false) }
     val showLikeAnim       = remember { mutableStateOf(false) }
 
-    val datingViewModel: DatingViewModel = viewModel()
     val deckProfiles by datingViewModel.displayingProfiles.collectAsState()
     val isDeckLoading by datingViewModel.isLoading.collectAsState()
     val cardQueue = remember { mutableStateListOf<Profile>() }
@@ -166,14 +166,14 @@ fun PreviewUserProfileScreen(
                         -1 -> {
                             showPassAnim.value = true
                             handleSwipeLeft(currentUserId, activeProfile.userId)
-                            updateDailySwipeCount()
+                            updateDailySwipeCount(currentUserId)
                             navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", activeProfile.userId)
                             markCardProcessed(activeProfile.userId)
                         }
                         1 -> {
                             showLikeAnim.value = true
                             handleSwipeRight(currentUserId, activeProfile.userId, profileViewModel)
-                            updateDailySwipeCount()
+                            updateDailySwipeCount(currentUserId)
                             navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", activeProfile.userId)
                             markCardProcessed(activeProfile.userId)
                         }
@@ -276,7 +276,7 @@ fun PreviewUserProfileScreen(
                         showPassAnim.value = true
                         scope.launch {
                             handleSwipeLeft(currentUserId, activeProfile.userId)
-                            updateDailySwipeCount()          // helper below
+                            updateDailySwipeCount(currentUserId)          // helper below
                             navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", activeProfile.userId)
                             markCardProcessed(activeProfile.userId)
                         }
@@ -310,7 +310,7 @@ fun PreviewUserProfileScreen(
                         showLikeAnim.value = true
                         scope.launch {
                             handleSwipeRight(currentUserId, activeProfile.userId, profileViewModel)
-                            updateDailySwipeCount()
+                            updateDailySwipeCount(currentUserId)
                             navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", activeProfile.userId)
                             markCardProcessed(activeProfile.userId)
 //                            navController.popBackStack("home", false)
@@ -401,8 +401,8 @@ private fun SwipeFeedbackIcon(
 }
 
 /* decrement remainingSwipes to mirror the legacy swipe flow behaviour */
-private suspend fun updateDailySwipeCount() {
-    val uid = FirebaseAuth.getInstance().uid ?: return
+private suspend fun updateDailySwipeCount(uid: String) {
+    if (uid.isBlank()) return
     val ref = FirebaseRefs.db.getReference("users/$uid/swipesInfo/remainingSwipes")
     val current = (ref.get().await().getValue(Int::class.java)
         ?: loadAndResetSwipesDaily(uid)) - 1

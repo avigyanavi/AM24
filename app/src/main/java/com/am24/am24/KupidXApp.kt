@@ -1,5 +1,6 @@
 package com.am24.am24
 
+import DatingViewModel
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -7,36 +8,34 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import coil.Coil
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import com.am24.am24.ui.purchase.PaymentResultListenerHost
 import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.storage.FirebaseStorage
-import com.razorpay.Checkout                       // NEW
-import com.razorpay.ExternalWalletListener        // NEW
-import com.razorpay.PaymentData                   // NEW
-import com.razorpay.PaymentResultWithDataListener // NEW
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.lifecycleScope
-import com.am24.am24.ui.purchase.PaymentResultListenerHost
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.storage.FirebaseStorage
+import com.razorpay.Checkout                       // Razorpay
+import com.razorpay.ExternalWalletListener        // Razorpay
+import com.razorpay.PaymentData                   // Razorpay
+import com.razorpay.PaymentResultWithDataListener // Razorpay
 import kotlinx.coroutines.launch
 import java.util.Locale
-
-
 
 class KupidXAppActivity : AppCompatActivity(),
     PaymentResultWithDataListener,
@@ -46,15 +45,22 @@ class KupidXAppActivity : AppCompatActivity(),
     /* ------------------------------------------------------------------ state */
     private lateinit var auth: FirebaseAuth
     private lateinit var locationManager: LocationManager
+
+    // EXISTING VM
     private val postViewModel: PostViewModel by viewModels()
+
+    // NEW: Lift other feature VMs to Activity scope
+    private val profileViewModel: ProfileViewModel by viewModels()
+    private val nearbyViewModel: NearbyViewModel by viewModels()
+    private val datingViewModel: DatingViewModel by viewModels()
+    private val mainViewModel: MainViewModel by viewModels()
+    private val chatViewModel: ChatViewModel by viewModels()
 
     private var presenceRef: DatabaseReference? = null
 
-    // callbacks wired from the Composable screen
+    // callbacks wired from the Composable screen (Razorpay)
     private var paymentSuccessCallback: ((String) -> Unit)? = null
-    private var paymentErrorCallback:  ((String) -> Unit)? = null
-
-
+    private var paymentErrorCallback: ((String) -> Unit)? = null
 
     // deep-link flag
     private var pendingOpenNotifications = false
@@ -67,10 +73,9 @@ class KupidXAppActivity : AppCompatActivity(),
         ref.onDisconnect().removeValue()
     }
 
-
     /* ------------------------------------------------------------------ locale */
     override fun attachBaseContext(newBase: Context) {
-        val prefs      = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val prefs = newBase.getSharedPreferences("settings", Context.MODE_PRIVATE)
         val defaultLang = defaultLanguageCode()
         val languageCode = prefs.getString("language", defaultLang) ?: defaultLang
         val updatedCtx = newBase.createConfigurationContext(
@@ -82,7 +87,7 @@ class KupidXAppActivity : AppCompatActivity(),
     /* ---------------------------------------------------------------- permissions */
     private val requestLocationPerms =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
-            val fine   = perms[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+            val fine = perms[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
             val coarse = perms[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
             if (fine || coarse) auth.currentUser?.uid?.let { locationManager.updateUserLocation(it) }
             else Toast.makeText(this, "Location permission denied.", Toast.LENGTH_SHORT).show()
@@ -101,29 +106,19 @@ class KupidXAppActivity : AppCompatActivity(),
             intent?.getBooleanExtra("open_upgrade_landing", false) ?: false
 
         auth.currentUser?.uid?.let { uid ->
+            val currentUserId = uid
             locationManager = LocationManager(this)
-
-            Coil.setImageLoader(
-                ImageLoader.Builder(applicationContext)
-                    .crossfade(true)
-                    .diskCache {
-                        DiskCache.Builder()
-                            .directory(cacheDir.resolve("image_cache"))
-                            .maxSizePercent(0.05)
-                            .build()
-                    }
-                    .memoryCache {
-                        MemoryCache.Builder(applicationContext)
-                            .maxSizePercent(0.25)
-                            .build()
-                    }
-                    .build()
-            )
 
             setContent {
                 AppTheme {
                     KupidXApp(
-                        postViewModel = postViewModel,
+                        currentUserId   = currentUserId,    // NEW
+                        postViewModel   = postViewModel,
+                        profileViewModel = profileViewModel,
+                        nearbyViewModel  = nearbyViewModel,
+                        datingViewModel  = datingViewModel,
+                        mainViewModel    = mainViewModel,
+                        chatViewModel    = chatViewModel,
                         openNotifications = pendingOpenNotifications,
                         openUpgradeLanding = pendingOpenUpgradeLanding,
                         onNotificationsConsumed = { pendingOpenNotifications = false },
@@ -159,7 +154,8 @@ class KupidXAppActivity : AppCompatActivity(),
         checkLocationPermissions()
 
         runCatching { PushService.uploadCurrentToken() }.onFailure { it.printStackTrace() }
-        runCatching { FirebaseStorage.getInstance("gs://am-twentyfour.appspot.com") }.onFailure { it.printStackTrace() }
+        runCatching { FirebaseStorage.getInstance("gs://am-twentyfour.appspot.com") }
+            .onFailure { it.printStackTrace() }
         runCatching { postViewModel.loadFiltersFromFirebase(uid) }.onFailure { it.printStackTrace() }
 
         if (hasLocationPermission()) {
@@ -167,14 +163,15 @@ class KupidXAppActivity : AppCompatActivity(),
         }
 
         // 🔸 Server-side reconciliation each login (fire-and-forget; UI doesn't wait)
-                try {
-                        FirebaseFunctions.getInstance("asia-south1")
-                            .getHttpsCallable("loginEntitlementSweep")
-                            .call(hashMapOf<String, Any>())
-                    } catch (_: Exception) {
-                        // ignore – non-critical
-                    }
+        try {
+            FirebaseFunctions.getInstance("asia-south1")
+                .getHttpsCallable("loginEntitlementSweep")
+                .call(hashMapOf<String, Any>())
+        } catch (_: Exception) {
+            // ignore – non-critical
+        }
     }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         var changed = false
@@ -188,6 +185,7 @@ class KupidXAppActivity : AppCompatActivity(),
         }
         if (changed) recreate()
     }
+
     override fun onDestroy() {
         presenceRef?.removeValue()
         super.onDestroy()
@@ -217,8 +215,9 @@ class KupidXAppActivity : AppCompatActivity(),
         onError: (String) -> Unit
     ) {
         paymentSuccessCallback = onSuccess
-        paymentErrorCallback   = onError
+        paymentErrorCallback = onError
     }
+
     /* mandatory overrides for the new listener types */
     override fun onPaymentSuccess(
         razorpayPaymentId: String?,
@@ -241,8 +240,11 @@ class KupidXAppActivity : AppCompatActivity(),
         externalWalletName: String?,
         paymentData: PaymentData?
     ) {
-        Toast.makeText(this,
-            "Selected wallet: $externalWalletName", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            this,
+            "Selected wallet: $externalWalletName",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     /* feed Razorpay result back to the SDK */
@@ -264,7 +266,13 @@ class KupidXAppActivity : AppCompatActivity(),
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
 fun KupidXApp(
+    currentUserId: String,              // NEW
     postViewModel: PostViewModel,
+    profileViewModel: ProfileViewModel,
+    nearbyViewModel: NearbyViewModel,
+    datingViewModel: DatingViewModel,
+    mainViewModel: MainViewModel,
+    chatViewModel: ChatViewModel,       // NEW
     openNotifications: Boolean,
     openUpgradeLanding: Boolean,
     onNotificationsConsumed: () -> Unit,
@@ -295,9 +303,15 @@ fun KupidXApp(
     }
 
     MainScreen(
-        navController = navController,
-        onLogout      = onLogout,
-        postViewModel = postViewModel,
-        locationManager = locationManager
+        navController   = navController,
+        currentUserId   = currentUserId,     // NEW
+        onLogout        = onLogout,
+        postViewModel   = postViewModel,
+        profileViewModel = profileViewModel,
+        nearbyViewModel  = nearbyViewModel,
+        datingViewModel  = datingViewModel,
+        mainViewModel    = mainViewModel,
+        chatViewModel    = chatViewModel,    // NEW
+        locationManager  = locationManager
     )
 }

@@ -24,7 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun UserPostsScreen(
     userId: String,
     navController: NavController,
-    postViewModel: PostViewModel = viewModel()
+    postViewModel: PostViewModel
 ) {
     LaunchedEffect(Unit) { postViewModel.fetchPosts() }
     val allPosts by postViewModel.profilePosts.collectAsState()

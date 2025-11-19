@@ -144,12 +144,19 @@ private object RatingPromptSession {
 fun ChatScreen(
     navController: NavController,
     otherUserId: String,
+    currentUserId: String,              // NEW
     profileViewModel: ProfileViewModel,
+    chatViewModel: ChatViewModel        // NEW
 ) {
-    val chatViewModel: ChatViewModel = viewModel()
-    ChatScreenContent(navController, otherUserId, profileViewModel, chatViewModel)
+    // If ChatScreenContent needs currentUserId, pass it too; otherwise ignore.
+    ChatScreenContent(
+        navController    = navController,
+        otherUserId      = otherUserId,
+        profileViewModel = profileViewModel,
+        chatViewModel    = chatViewModel,
+        currentUserId    = currentUserId      // only if you add this param there
+    )
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreenContent(
@@ -157,6 +164,7 @@ fun ChatScreenContent(
     otherUserId: String,
     profileViewModel: ProfileViewModel,
     chatViewModel: ChatViewModel,
+    currentUserId: String
     ) {
     var previewRefresh by remember { mutableStateOf(0) }
     var pendingEditUri by remember { mutableStateOf<Uri?>(null) }
@@ -172,7 +180,6 @@ fun ChatScreenContent(
             activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
     }
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val compliments by datingViewModel.complimentsReceived.collectAsState()
     val compliment = compliments[otherUserId]
     var fullScreenTarget by remember { mutableStateOf<Message?>(null) }

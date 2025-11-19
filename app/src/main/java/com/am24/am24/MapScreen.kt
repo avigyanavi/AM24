@@ -249,6 +249,7 @@ fun MapScreen(
     onProfileMarkerClicked: (String) -> Unit,
     nearbyViewModel: NearbyViewModel,
     profileViewModel: ProfileViewModel,
+    datingViewModel: DatingViewModel,         // NEW
     radiusKmDefault: Double = 500.0
 ) {
     val ctx = LocalContext.current
@@ -256,7 +257,6 @@ fun MapScreen(
     val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val gson = remember { Gson() }
     val scope = rememberCoroutineScope()
-    val datingViewModel: DatingViewModel = viewModel()
     val dmBootstrap by datingViewModel.dmBootstrap.collectAsState()
     val complimentQueue = remember { mutableStateListOf<ComplimentWithProfile>() }
     val database = remember { FirebaseRefs.db }

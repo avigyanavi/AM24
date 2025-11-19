@@ -85,8 +85,9 @@ fun DMScreen(
     navController: NavController,
     nearbyViewModel: NearbyViewModel,
     profileViewModel: ProfileViewModel,
-    ) {
-    DMScreenContent(navController, nearbyViewModel, profileViewModel)
+    datingViewModel: DatingViewModel,        // NEW
+) {
+    DMScreenContent(navController, nearbyViewModel, profileViewModel, datingViewModel)
 }
 
 @Composable
@@ -94,14 +95,14 @@ fun DMScreenContent(
     navController: NavController,
     nearbyViewModel: NearbyViewModel,
     profileViewModel: ProfileViewModel,
-    ) {
+    datingViewModel: DatingViewModel,        // NEW
+) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
     val database = remember { FirebaseRefs.db }
     val usersRef = remember { database.getReference("users") }
     val messagesRootRef = remember { database.getReference("messages") }
     val ratingsRef = remember { database.getReference("ratings") }
-    val datingViewModel: DatingViewModel = viewModel()
     val dmBootstrap by datingViewModel.dmBootstrap.collectAsState()
     val sessionReady by SessionDataRepository.sessionReady.collectAsState(initial = false)
     val matchIds by SessionDataRepository.matchIds.collectAsState()

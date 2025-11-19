@@ -3,8 +3,8 @@
 // ----------------------------------
 package com.am24.am24
 
+import DatingViewModel
 import EditPicAndVoiceBioScreen
-import android.app.Application
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
@@ -26,14 +26,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.am24.am24.billing.BillingScreen
+import com.am24.am24.safePopBackStack
 import com.am24.am24.ui.purchase.OneTimePurchaseScreen
 import com.am24.am24.ui.purchase.PurchaseType
 import com.firebase.geofire.GeoFire
@@ -43,8 +43,6 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.tasks.await
-import com.am24.am24.billing.BillingScreen
-import com.am24.am24.safePopBackStack
 
 // Initialize GeoFire instance globally
 val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
@@ -54,15 +52,20 @@ val geoFire = GeoFire(FirebaseRefs.db.getReference("geoFireLocations"))
 fun MainNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
+    currentUserId: String,               // NEW
     postViewModel: PostViewModel,
+    profileViewModel: ProfileViewModel,
+    nearbyViewModel: NearbyViewModel,
+    datingViewModel: DatingViewModel,
+    mainViewModel: MainViewModel,
+    chatViewModel: ChatViewModel,
     locationManager: LocationManager
 ) {
-    var userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-
     // Read in the current user's matches from Firebase
     val matchesSet = remember { mutableStateListOf<String>() }
-    LaunchedEffect(userId) {
-        val matchesRef = FirebaseRefs.db.getReference("matches").child(userId)
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isBlank()) return@LaunchedEffect
+        val matchesRef = FirebaseRefs.db.getReference("matches").child(currentUserId)
         matchesRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 matchesSet.clear()
@@ -76,22 +79,14 @@ fun MainNavGraph(
             }
         })
     }
-    LaunchedEffect(userId) {
-        if (userId.isNotBlank()) {              // only when logged-in
-            postViewModel.setCurrentUserId(userId)
+
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotBlank()) {
+            postViewModel.setCurrentUserId(currentUserId)
         }
     }
 
-
-    // Initialize `profileViewModel`
-    val profileViewModel: ProfileViewModel = viewModel(
-        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
-            LocalContext.current.applicationContext as Application
-        )
-    )
-    val nearbyViewModel: NearbyViewModel = viewModel()
-
-    // Initialize LocationManager (safe inside Composable)
+    // Initialize LocationManager reference (already passed from Activity)
     val context = LocalContext.current
     val locationManagerRemembered = remember { locationManager }
 
@@ -107,6 +102,7 @@ fun MainNavGraph(
                 navController = navController,
                 nearbyViewModel = nearbyViewModel,
                 profileViewModel = profileViewModel,
+                datingViewModel = datingViewModel
             )
         }
         composable("leaderboard") {
@@ -254,7 +250,6 @@ fun MainNavGraph(
             PaymentResultScreen(
                 status = status,
                 navController = navController
-                // you can also pass onPaymentSuccess = { /* update Firestore, etc */ }
             )
         }
         composable("policies") {
@@ -268,28 +263,27 @@ fun MainNavGraph(
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
             val uid = backStackEntry.arguments?.getString("userId") ?: return@composable
-            val currentUid = FirebaseAuth.getInstance().currentUser?.uid
             PrivateAlbumScreen(
                 navController = navController,
                 userId = uid,
-                isOwner = uid == currentUid
+                isOwner = uid == currentUserId        // use global id
             )
         }
         composable("settings") {
             SettingsScreen(
-                navController = navController,
-                profileViewModel = profileViewModel
+                navController    = navController,
+                profileViewModel = profileViewModel,
+                currentUserId    = currentUserId
             )
         }
         composable("searchUsername") {
             UsernameSearchScreen(navController = navController)
         }
-        composable("verifications_review") { backStackEntry ->
+        composable("verifications_review") {
             val isAdmin by profileViewModel.isAdmin.collectAsState()
             if (isAdmin) {
                 VerificationReviewScreen()
             } else {
-                // redirect back or show error
                 LaunchedEffect(Unit) {
                     navController.safePopBackStack()
                     Toast.makeText(context, "Unauthorized", Toast.LENGTH_SHORT).show()
@@ -299,7 +293,7 @@ fun MainNavGraph(
         // new: compose a check-in feed screen, keyed by lat & lng
         composable(
             route = "checkinFeed/{placeId}",
-            arguments = listOf(navArgument("placeId"){ type = NavType.StringType })
+            arguments = listOf(navArgument("placeId") { type = NavType.StringType })
         ) { backStackEntry ->
             val placeId = backStackEntry.arguments?.getString("placeId")
             if (placeId == null) {
@@ -310,14 +304,15 @@ fun MainNavGraph(
                 return@composable
             }
             CheckInFeedScreen(
-                placeId       = placeId,
+                placeId = placeId,
                 navController = navController
             )
         }
         composable("peopleWhoLikedMe") {
             PeopleWhoLikeMeScreen(
-                navController    = navController,
-                profileViewModel = profileViewModel
+                navController = navController,
+                profileViewModel = profileViewModel,
+                currentUserId    = currentUserId       // use param instead of default
             )
         }
         composable("upgradeLanding") {
@@ -325,8 +320,8 @@ fun MainNavGraph(
         }
         composable("govtIdVerification") {
             GovtIdVerificationScreen(
-                navController     = navController,
-                profileViewModel  = profileViewModel
+                navController = navController,
+                profileViewModel = profileViewModel
             )
         }
         composable("manageSubscription") {
@@ -338,7 +333,13 @@ fun MainNavGraph(
         composable("chat/{otherUserId}") { backStackEntry ->
             val otherUserId = backStackEntry.arguments?.getString("otherUserId")
             if (otherUserId != null) {
-                ChatScreen(navController, otherUserId, profileViewModel)
+                ChatScreen(
+                    navController    = navController,
+                    otherUserId      = otherUserId,
+                    currentUserId    = currentUserId,   // NEW (if ChatScreen wants it)
+                    profileViewModel = profileViewModel,
+                    chatViewModel    = chatViewModel    // NEW
+                )
             }
         }
         composable(
@@ -357,14 +358,12 @@ fun MainNavGraph(
         }
         // 1) West Bengal top-level map
         composable("map") {
-            // Pass references
             MapScreen(
-                userId = userId,
-                locationManager = locationManagerRemembered,        // Or create it via DI
+                userId = currentUserId,
+                locationManager = locationManagerRemembered,
                 geoFireDatabaseRef = geoFireDatabaseRef,
-                navController = navController, // NEW parameter
+                navController = navController,
                 onProfileMarkerClicked = { profileId ->
-                    // Replace 'matchesSet' with your available list of matched user IDs.
                     if (matchesSet.contains(profileId)) {
                         navController.navigate("matchedUserProfile/$profileId")
                     } else {
@@ -373,6 +372,7 @@ fun MainNavGraph(
                 },
                 nearbyViewModel = nearbyViewModel,
                 profileViewModel = profileViewModel,
+                datingViewModel = datingViewModel
             )
         }
 
@@ -383,28 +383,41 @@ fun MainNavGraph(
             val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
             GroupChatScreen(navController = navController, groupId = groupId)
         }
-        composable("buyAiMessages")  { OneTimePurchaseScreen(PurchaseType.AiMessages,  navController) { navController.safePopBackStack() } }
+        composable("buyAiMessages") {
+            OneTimePurchaseScreen(
+                PurchaseType.AiMessages,
+                navController
+            ) { navController.safePopBackStack() }
+        }
 
-        composable("buySwipes") { OneTimePurchaseScreen(
-            type = PurchaseType.Swipes,
-            navController,
-            onBack = { navController.safePopBackStack() }
-        ) }
-        composable("buyBoosts") { OneTimePurchaseScreen(
-            type = PurchaseType.Boosts,
-            navController,
-            onBack = { navController.safePopBackStack() }
-        ) }
-        composable("buyCompliments") { OneTimePurchaseScreen(
-            type = PurchaseType.Compliments,
-            navController,
-            onBack = { navController.safePopBackStack() }
-        ) }
-        composable("buyBoosts") { OneTimePurchaseScreen(
-            type = PurchaseType.Boosts,
-            navController,
-            onBack = { navController.safePopBackStack() }
-        ) }
+        composable("buySwipes") {
+            OneTimePurchaseScreen(
+                type = PurchaseType.Swipes,
+                navController,
+                onBack = { navController.safePopBackStack() }
+            )
+        }
+        composable("buyBoosts") {
+            OneTimePurchaseScreen(
+                type = PurchaseType.Boosts,
+                navController,
+                onBack = { navController.safePopBackStack() }
+            )
+        }
+        composable("buyCompliments") {
+            OneTimePurchaseScreen(
+                type = PurchaseType.Compliments,
+                navController,
+                onBack = { navController.safePopBackStack() }
+            )
+        }
+        composable("buyBoosts") {
+            OneTimePurchaseScreen(
+                type = PurchaseType.Boosts,
+                navController,
+                onBack = { navController.safePopBackStack() }
+            )
+        }
         composable("saved_posts") {
             SavedPostsScreen(
                 navController = navController,
@@ -416,17 +429,17 @@ fun MainNavGraph(
             route = "matchedUserProfile/{userId}",
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+            val matchedUserId = backStackEntry.arguments?.getString("userId") ?: return@composable
             var matchedProfile by remember { mutableStateOf<Profile?>(null) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
 
-            LaunchedEffect(userId) {
+            LaunchedEffect(matchedUserId) {
                 profileViewModel.fetchCurrentUserProfile() // Ensure current profile is fetched
                 try {
-                    println("Fetching profile for userId: $userId")
+                    println("Fetching profile for userId: $matchedUserId")
                     val snapshot = FirebaseRefs.db
                         .getReference("users")
-                        .child(userId)
+                        .child(matchedUserId)
                         .get()
                         .await()
                     if (snapshot.exists()) {
@@ -438,7 +451,7 @@ fun MainNavGraph(
                             errorMessage = "Profile data could not be parsed"
                         }
                     } else {
-                        errorMessage = "No profile found for userId: $userId"
+                        errorMessage = "No profile found for userId: $matchedUserId"
                     }
                 } catch (e: Exception) {
                     errorMessage = "Error fetching profile: ${e.message}"
@@ -457,7 +470,11 @@ fun MainNavGraph(
                         isMatch = true
                     )
                 } else if (errorMessage != null) {
-                    Text(text = errorMessage!!, color = Color.Red, modifier = Modifier.padding(16.dp))
+                    Text(
+                        text = errorMessage!!,
+                        color = Color.Red,
+                        modifier = Modifier.padding(16.dp)
+                    )
                 } else {
                     Text("Loading profile...", color = Color.White)
                 }
@@ -476,12 +493,13 @@ fun MainNavGraph(
             val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: return@composable
 
             PreviewUserProfileScreen(
-                navController    = navController,
-                targetUserId     = targetId,
-                currentUserId    = currentUid,
-                geoFire          = geoFire,          // ← add this line
+                navController = navController,
+                targetUserId = targetId,
+                currentUserId = currentUid,
+                geoFire = geoFire,
                 profileViewModel = profileViewModel,
-                postViewModel    = postViewModel,
+                postViewModel = postViewModel,
+                datingViewModel  = datingViewModel
             )
         }
     }

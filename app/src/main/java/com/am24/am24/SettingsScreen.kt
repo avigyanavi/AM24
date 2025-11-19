@@ -114,11 +114,10 @@ fun SettingsSection(content: @Composable ColumnScope.() -> Unit) {
 private enum class LocationVisibilityToggle { MATCHES, PUBLIC }
 
 @Composable
-fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewModel) {
+fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewModel, currentUserId: String) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    val user = FirebaseAuth.getInstance().currentUser ?: return
-    val uid = user.uid
+    val uid = currentUserId
 
     val isDarkTheme by ThemeManager.isDarkTheme.collectAsState()
     val sessionReady by SessionDataRepository.sessionReady.collectAsState(initial = false)
