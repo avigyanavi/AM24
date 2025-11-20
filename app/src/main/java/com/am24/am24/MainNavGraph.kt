@@ -59,6 +59,7 @@ fun MainNavGraph(
     datingViewModel: DatingViewModel,
     mainViewModel: MainViewModel,
     chatViewModel: ChatViewModel,
+    aiPartnerViewModel: AIPartnerViewModel,
     locationManager: LocationManager
 ) {
     // Read in the current user's matches from Firebase
@@ -103,6 +104,13 @@ fun MainNavGraph(
                 nearbyViewModel = nearbyViewModel,
                 profileViewModel = profileViewModel,
                 datingViewModel = datingViewModel
+            )
+        }
+        composable("aiPartner") {
+            AIPartnerScreen(
+                navController = navController,
+                aiPartnerViewModel = aiPartnerViewModel,
+                profileViewModel = profileViewModel
             )
         }
         composable("leaderboard") {

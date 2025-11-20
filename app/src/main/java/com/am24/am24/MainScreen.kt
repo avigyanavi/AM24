@@ -21,8 +21,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
-import com.google.firebase.auth.FirebaseAuth
-import androidx.lifecycle.viewmodel.compose.viewModel
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.material3.Badge
@@ -56,6 +54,7 @@ fun MainScreen(
     datingViewModel: DatingViewModel,
     mainViewModel: MainViewModel,
     chatViewModel: ChatViewModel,
+    aiPartnerViewModel: AIPartnerViewModel,
     locationManager: LocationManager
 ) {
     val items = listOf(
@@ -63,7 +62,8 @@ fun MainScreen(
         BottomNavItem(stringResource(R.string.feed), Icons.Outlined.RssFeed, "home"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
-        BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
+//        BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
+        BottomNavItem("AI Partner", Icons.Default.SmartToy, "aiPartner")
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -156,7 +156,7 @@ fun MainScreen(
                     onItemSelected = { route, alreadySelected ->
                         if (alreadySelected) return@BottomNavigationBar
 
-                        val isBlockedByTrial = shouldForceSubscription && route != "settings"
+                        val isBlockedByTrial = shouldForceSubscription
                         if (isBlockedByTrial) return@BottomNavigationBar
 
                         navController.navigate(route) {
@@ -184,7 +184,8 @@ fun MainScreen(
             datingViewModel = datingViewModel,
             mainViewModel = mainViewModel,
             chatViewModel = chatViewModel,
-            locationManager = locationManager
+            locationManager = locationManager,
+            aiPartnerViewModel = aiPartnerViewModel,
         )
 
         val pendingInvite = mainUiState.omegleInvite
@@ -303,7 +304,20 @@ fun TopNavBar(
     TopAppBar(
         modifier = Modifier.shadow(16.dp),
         title = {
-            // Text(stringResource(R.string.app_name), color = Color(0xFFFF6F00))
+            if (currentRoute == "aiPartner") {
+                Column {
+                    Text(
+                        text = "Your AI Partner 💕",
+                        fontSize = 18.sp,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Flirty, safe & just for you",
+                        fontSize = 12.sp,
+                        color = KupidxOrange
+                    )
+                }
+            }
         },
         navigationIcon = {
             Box(

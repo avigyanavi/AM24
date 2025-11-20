@@ -1342,6 +1342,32 @@ function normalizeLastActive(raw) {
   return ms;
 }
 
+exports.generateAIPartnerMessage = functions
+    .region("asia-south1")
+    .https.onCall(async (data, context) => {
+        const userInput = data.userInput || "";
+        const systemPrompt = data.systemPrompt || "You are the user's romantic AI partner.";
+
+        try {
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userInput }
+                ],
+                max_tokens: 200,
+                temperature: 0.8
+            });
+
+            const aiText = completion.choices[0].message.content;
+            return { ok: true, text: aiText };
+
+        } catch (e) {
+            console.error("OpenAI error:", e);
+            return { ok: false, error: e.message };
+        }
+});
+
 exports.getNearbyProfiles = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 120, memory: '1GB' })

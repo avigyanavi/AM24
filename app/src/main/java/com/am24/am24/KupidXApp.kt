@@ -61,7 +61,7 @@ class KupidXAppActivity : AppCompatActivity(),
     // callbacks wired from the Composable screen (Razorpay)
     private var paymentSuccessCallback: ((String) -> Unit)? = null
     private var paymentErrorCallback: ((String) -> Unit)? = null
-
+    private val aiPartnerViewModel: AIPartnerViewModel by viewModels()
     // deep-link flag
     private var pendingOpenNotifications = false
     private var pendingOpenUpgradeLanding = false
@@ -119,6 +119,7 @@ class KupidXAppActivity : AppCompatActivity(),
                         datingViewModel  = datingViewModel,
                         mainViewModel    = mainViewModel,
                         chatViewModel    = chatViewModel,
+                        aiPartnerViewModel = aiPartnerViewModel,
                         openNotifications = pendingOpenNotifications,
                         openUpgradeLanding = pendingOpenUpgradeLanding,
                         onNotificationsConsumed = { pendingOpenNotifications = false },
@@ -273,6 +274,7 @@ fun KupidXApp(
     datingViewModel: DatingViewModel,
     mainViewModel: MainViewModel,
     chatViewModel: ChatViewModel,       // NEW
+    aiPartnerViewModel: AIPartnerViewModel,
     openNotifications: Boolean,
     openUpgradeLanding: Boolean,
     onNotificationsConsumed: () -> Unit,
@@ -312,6 +314,7 @@ fun KupidXApp(
         datingViewModel  = datingViewModel,
         mainViewModel    = mainViewModel,
         chatViewModel    = chatViewModel,    // NEW
+        aiPartnerViewModel = aiPartnerViewModel,
         locationManager  = locationManager
     )
 }
