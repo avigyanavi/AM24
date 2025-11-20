@@ -39,6 +39,10 @@ class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
     private var authListener: FirebaseAuth.AuthStateListener? = null
 
+    // NEW: Prevent early false-null redirect
+    private var startupTime: Long = 0L
+    private var ignoreNullsUntil: Long = 0L
+
     private fun currentProvider(): String {
         val providers = FirebaseAuth.getInstance().currentUser?.providerData
             ?.map { it.providerId } ?: return "unknown"
@@ -51,7 +55,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // A flag to prevent multiple navigations
     private var isNavigationInProgress = false
 
     override fun attachBaseContext(newBase: Context) {
@@ -65,6 +68,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         auth = FirebaseAuth.getInstance()
         GclidStorageManager.cacheFromUri(this, intent?.data)
+
+        // NEW
+        startupTime = System.currentTimeMillis()
+        ignoreNullsUntil = startupTime + 500  // 500 ms window to avoid false nulls
 
         setContent {
             AppTheme {
@@ -81,18 +88,28 @@ class MainActivity : ComponentActivity() {
         val openNotifications = intent?.getBooleanExtra("open_notifications", false) ?: false
         val openUpgradeLanding = intent?.getBooleanExtra("open_upgrade_landing", false) ?: false
 
-        // Define the listener
+        // 🔥 NEW: One-shot snapshot check
+        val initialUser = auth.currentUser
+        if (initialUser != null) {
+            routeBasedOnUid(initialUser, openNotifications, openUpgradeLanding)
+        }
+
+        // ORIGINAL LISTENER, but with null-ignore logic added
         authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             val user = firebaseAuth.currentUser
+            val now = System.currentTimeMillis()
+
             if (user != null) {
                 user.getIdToken(true)
                     .addOnSuccessListener { res ->
                         res.token?.let { TokenStorageManager.saveToken(this@MainActivity, it) }
                     }
-                // User is signed in, route them
                 routeBasedOnUid(user, openNotifications, openUpgradeLanding)
             } else {
-                // User is signed out, go to Landing
+                // ❗ Ignore nulls during first 500ms — the hydration window
+                if (now < ignoreNullsUntil) {
+                    return@AuthStateListener
+                }
                 navigateToLanding()
             }
         }
@@ -100,7 +117,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        // It's best practice to attach the listener in onStart()
         authListener?.let { auth.addAuthStateListener(it) }
     }
 
@@ -112,7 +128,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        // And remove it in onStop() to avoid memory leaks
         authListener?.let { auth.removeAuthStateListener(it) }
     }
 
@@ -131,7 +146,7 @@ class MainActivity : ComponentActivity() {
         val context = LocalContext.current
         val launcher = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission()
-        ) { /* granted / denied callback */ }
+        ) { /* callback */ }
 
         LaunchedEffect(Unit) {
             if (ContextCompat.checkSelfPermission(
@@ -187,6 +202,7 @@ class MainActivity : ComponentActivity() {
                     userRef.updateChildren(updates).await()
                 }
             }
+
             GclidStorageManager.flushPendingGclid(
                 this@MainActivity,
                 user.uid,
@@ -217,7 +233,4 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    // The `onDestroy` method is no longer needed for the listener,
-    // as it's handled in onStop, which is more lifecycle-aware.
 }
