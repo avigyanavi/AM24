@@ -1359,7 +1359,6 @@ exports.getNearbyProfiles = functions
 
     const myLoc     = locSnap.val();
     const myCountry = countrySnap.val() || null;
-    const cutoff    = Date.now() - 7 * 24 * 60 * 60 * 1000;   // drop users inactive for ≥1 week
 
     const distLimit = Number(maxDistance);
     const useDist   =
@@ -1371,41 +1370,40 @@ exports.getNearbyProfiles = functions
 
     if (useDist) {
       /* distance path – query by geohash */
-            const bounds = geohashQueryBounds(myLoc, distLimit);
-            const snaps = await Promise.all(
-              bounds.map(([start, end]) =>
-                db.ref('geoFireLocations')
-                  .orderByChild('g')
-                  .startAt(start)
-                  .endAt(end)
-                  .get()
-              )
-            );
+      const bounds = geohashQueryBounds(myLoc, distLimit);
+      const snaps = await Promise.all(
+        bounds.map(([start, end]) =>
+          db.ref('geoFireLocations')
+            .orderByChild('g')
+            .startAt(start)
+            .endAt(end)
+            .get()
+        )
+      );
 
-            const seen = new Set();
-            snaps.forEach(snap => {
-              snap.forEach(loc => {
-                const id = loc.key;
-                if (id !== uid && !seen.has(id)) {
-                  seen.add(id);
-                  candidateIds.push(id);
-                }
-              });
-            });
+      const seen = new Set();
+      snaps.forEach(snap => {
+        snap.forEach(loc => {
+          const id = loc.key;
+          if (id !== uid && !seen.has(id)) {
+            seen.add(id);
+            candidateIds.push(id);
+          }
+        });
+      });
     } else {
       /* country path – same-country only (if country known) */
       if (!myCountry) return { profiles: [] };
-      const snap = await db
-        .ref('users')
-        .orderByChild('lastActive')
-        .startAt(cutoff)
-        .get();
-      snap.forEach(s => { if (s.key !== uid) candidateIds.push(s.key); });
+
+      const snap = await db.ref('users').get();
+      snap.forEach(s => {
+        if (s.key !== uid) candidateIds.push(s.key);
+      });
     }
 
     if (candidateIds.length === 0) return { profiles: [] };
 
-    /* ── STEP 2: optional distance filter & ordering ─────────────── */
+    /* ── STEP 2: optional distance ordering ──────────────────────── */
     const pairs = [];
     if (useDist) {
       const { distanceBetween } = require('geofire-common');
@@ -1424,7 +1422,7 @@ exports.getNearbyProfiles = functions
           if (Array.isArray(loc) && loc.length === 2) {
             dist = distanceBetween(loc, myLoc);
           }
-          if (dist <= distLimit) pairs.push({ id, dist });
+          pairs.push({ id, dist });
         });
       }
 
@@ -1432,35 +1430,34 @@ exports.getNearbyProfiles = functions
       pairs.sort((a, b) => a.dist - b.dist || a.id.localeCompare(b.id));
       candidateIds = pairs.map(p => p.id);
     } else {
-      /* just deterministic uid-ordering */
-       /* compute distances for ordering when distance filter not used */
-            if (Array.isArray(myLoc) && myLoc.length === 2) {
-              const { distanceBetween } = require('geofire-common');
-              const chunk = 400;
+      /* if caller has a location, still order by distance for nicer UX;
+         otherwise just sort by uid for determinism */
+      if (Array.isArray(myLoc) && myLoc.length === 2) {
+        const { distanceBetween } = require('geofire-common');
+        const chunk = 400;
 
-              for (let i = 0; i < candidateIds.length; i += chunk) {
-                const ids = candidateIds.slice(i, i + chunk);
-                const locSnaps = await Promise.all(
-                  ids.map(id => db.ref(`geoFireLocations/${id}/l`).get())
-                );
+        for (let i = 0; i < candidateIds.length; i += chunk) {
+          const ids = candidateIds.slice(i, i + chunk);
+          const locSnaps = await Promise.all(
+            ids.map(id => db.ref(`geoFireLocations/${id}/l`).get())
+          );
 
-                locSnaps.forEach((snap, idx) => {
-                  const loc = snap.val();
-                  const id = ids[idx];
-                  let dist = Infinity;
-                  if (Array.isArray(loc) && loc.length === 2) {
-                    dist = distanceBetween(loc, myLoc);
-                  }
-                  pairs.push({ id, dist });
-                });
-              }
-
-              pairs.sort((a, b) => a.dist - b.dist || a.id.localeCompare(b.id));
-              candidateIds = pairs.map(p => p.id);
-            } else {
-              /* fallback deterministic ordering if caller has no location */
-              candidateIds.sort();
+          locSnaps.forEach((snap, idx) => {
+            const loc = snap.val();
+            const id  = ids[idx];
+            let dist  = Infinity;
+            if (Array.isArray(loc) && loc.length === 2) {
+              dist = distanceBetween(loc, myLoc);
             }
+            pairs.push({ id, dist });
+          });
+        }
+
+        pairs.sort((a, b) => a.dist - b.dist || a.id.localeCompare(b.id));
+        candidateIds = pairs.map(p => p.id);
+      } else {
+        candidateIds.sort();
+      }
     }
 
     /* ── STEP 3: fetch the profiles ──────────────────────────────── */
@@ -1470,19 +1467,15 @@ exports.getNearbyProfiles = functions
 
     const profiles = profileSnaps
       .map(s => (s.val() ? { ...s.val(), userId: s.key } : null))
-      .filter((p) => {
+      .filter(p => {
         if (!p) return false;
-        const lastActive = normalizeLastActive(p.lastActive);
-        return (
-          Number.isFinite(lastActive) &&
-          lastActive <= cutoff &&
-          normalizeCountry(p.country) === normalizeCountry(myCountry)
-        );
+        if (!myCountry) return true; // no country on caller → accept all
+        return normalizeCountry(p.country) === normalizeCountry(myCountry);
       });
-
 
     return { profiles };
   });
+
 
 exports.getMexicoUserCoords1 = functions
   .region("asia-south1")
@@ -1576,7 +1569,7 @@ exports.getGlobalPremiumUsers = functions
 
     const snap = await getUsersRef()
       .orderByChild('lastActive')
-      .endAt(cutoff)
+      .startAt(cutoff)
       .get();
 
     const profiles = [];

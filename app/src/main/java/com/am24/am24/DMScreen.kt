@@ -108,7 +108,16 @@ fun DMScreenContent(
     val matchIds by SessionDataRepository.matchIds.collectAsState()
     val blockedIds by SessionDataRepository.blockedUserIds.collectAsState()
     val likesMap by SessionDataRepository.likesReceived.collectAsState()
-    val likedCount by SessionDataRepository.likedCount.collectAsState(initial = 0)
+    val liveLikesCount by remember(likesMap, matchIds, blockedIds) {
+        derivedStateOf {
+            likesMap.keys.count { uid ->
+                uid.isNotBlank()
+                        && !matchIds.contains(uid)         // do NOT count matches
+                        && !blockedIds.contains(uid)       // do NOT count blocked
+            }
+        }
+    }
+
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
 
     var showRatingOverlay by remember { mutableStateOf(false) }
@@ -135,6 +144,14 @@ fun DMScreenContent(
         }
         return
     }
+    val liveMatchCount by remember(matchIds, blockedIds) {
+        derivedStateOf {
+            matchIds.count { uid ->
+                uid.isNotBlank()
+                        && !blockedIds.contains(uid)
+            }
+        }
+    }
 
     // If profile is null after loading, handle error
     val profile = currentUserProfile ?: run {
@@ -146,6 +163,7 @@ fun DMScreenContent(
         }
         return
     }
+
 
     val isPremiumUser = profile.isPremium || profile.isPlus
     val todayWeek = remember { Calendar.getInstance().get(Calendar.WEEK_OF_YEAR) }
@@ -208,7 +226,11 @@ fun DMScreenContent(
         var seededMatches = false
 
         if (bootstrap.matches.isNotEmpty() && matchedUsers.isEmpty()) {
-            matchedUsers.addAll(bootstrap.matches.map { it.profile })
+            matchedUsers.addAll(
+                bootstrap.matches
+                    .map { it.profile }
+                    .filter { it.userId.isNotBlank() && it.username.isNotBlank() }
+            )
             seededMatches = true
         }
         bootstrap.matches.forEach { summary ->
@@ -332,6 +354,7 @@ fun DMScreenContent(
 
     LaunchedEffect(matchIds) {
         refreshMatches(matchIds.toList())
+        datingViewModel.refreshDmBootstrap(currentUserId, force = true)
     }
 
     LaunchedEffect(likesMap) {
@@ -497,7 +520,7 @@ fun DMScreenContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "+$likedCount",
+                            "+${liveLikesCount}",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp
@@ -563,7 +586,7 @@ fun DMScreenContent(
             }
         }
         val complimentItems = complimentQueue.filter { cp ->
-            !matchIds.contains(cp.profile.userId) && !blockedIds.contains(cp.profile.userId)
+            !blockedIds.contains(cp.profile.userId)
         }
         if (complimentItems.isNotEmpty()) {
             ComplimentPopupStack(

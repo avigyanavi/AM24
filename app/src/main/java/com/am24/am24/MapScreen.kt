@@ -250,7 +250,7 @@ fun MapScreen(
     nearbyViewModel: NearbyViewModel,
     profileViewModel: ProfileViewModel,
     datingViewModel: DatingViewModel,         // NEW
-    radiusKmDefault: Double = 500.0
+    radiusKmDefault: Double = 50.0
 ) {
     val ctx = LocalContext.current
     val isDarkTheme by ThemeManager.isDarkTheme.collectAsState()
@@ -897,8 +897,8 @@ fun MapScreen(
     }
 
     // heatmap data
-    LaunchedEffect(userLatLng) {
-        if (userLatLng == null) return@LaunchedEffect
+    LaunchedEffect(userLatLng, selectedTab) {
+        if (userLatLng == null || selectedTab != 2) return@LaunchedEffect
         try {
             val snap = FirebaseRefs.db.getReference("posts")
                 .orderByChild("checkIn/placeId")
@@ -1268,7 +1268,7 @@ fun MapScreen(
                                 if (peopleTabUsers.isEmpty() && !isRefreshing && !autoPagedPeople && location != null) {
                                     autoPagedPeople = true
                                     nearbyViewModel.loadNextPage(
-                                        25,
+                                        8,
                                         userId,
                                         location,
                                         geoFireDatabaseRef
@@ -1315,7 +1315,7 @@ fun MapScreen(
                                     } else {
                                         userLatLng?.let {
                                             nearbyViewModel.loadNextPage(
-                                                25,
+                                                8,
                                                 userId,
                                                 it,
                                                 geoFireDatabaseRef
@@ -1342,7 +1342,7 @@ fun MapScreen(
                                 val location = userLatLng
                                 if (cardsTabUsers.isEmpty() && !isRefreshing && !autoPagedCards && location != null) {                                    autoPagedCards = true
                                     nearbyViewModel.loadNextPage(
-                                        10,
+                                        5,
                                         userId,
                                         location,
                                         geoFireDatabaseRef
@@ -1421,7 +1421,7 @@ fun MapScreen(
                                     } else {
                                         userLatLng?.let {
                                             nearbyViewModel.loadNextPage(
-                                                10,
+                                                5,
                                                 userId,
                                                 it,
                                                 geoFireDatabaseRef
@@ -2438,14 +2438,25 @@ private fun ProfileCard(
 
                     // ⬇️ Bottom-left: Distance (replaces randomDetail visually)
                     val statusLabel = buildString {
-                        append(timeAgoShort(resources, user.lastActiveAt))
+                        var hasAny = false
+
                         if (user.distanceMeters.isFinite()) {
-                            append(" · ")
                             append(prettyDistance(user.distanceMeters, useMiles))
+                            hasAny = true
                         }
+
+                        // last active second
+                        val lastActiveText = timeAgoShort(resources, user.lastActiveAt)
+                        if (lastActiveText.isNotBlank()) {
+                            if (hasAny) append(" · ")
+                            append(lastActiveText)
+                            hasAny = true
+                        }
+
+                        // likes last
                         user.totalLikes?.let {
                             if (it > 0) {
-                                append(" · ")
+                                if (hasAny) append(" · ")
                                 append(prettyCount(user.totalLikes)); append(" likes")
                             }
                         }

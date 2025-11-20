@@ -291,7 +291,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         complimentsReceivedRef = null
     }
 
-    private fun refreshDmBootstrap(uid: String, force: Boolean = false) {
+    fun refreshDmBootstrap(uid: String, force: Boolean = false) {
         val now = System.currentTimeMillis()
         if (!force && now - lastDmBootstrapFetch < 2_000) return
         lastDmBootstrapFetch = now

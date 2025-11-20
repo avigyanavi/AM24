@@ -383,12 +383,15 @@ fun handleSwipeRight(
     val timestamp = System.currentTimeMillis()
 
     val swipeData = SwipeData(liked = true, timestamp = timestamp)
+
+    // Basic swipe + like writes
     database.getReference("swipes/$currentUserId/$otherUserId").setValue(swipeData)
     database.getReference("likesGiven/$currentUserId/$otherUserId").setValue(timestamp)
     database.getReference("likesReceived/$otherUserId/$currentUserId").setValue(timestamp)
     profileViewModel.sendLikeNotification(currentUserId, otherUserId, {}, {})
     database.getReference("swipesReceived/$otherUserId/$currentUserId").setValue(true)
 
+    // Track per-user swipe counts
     val swipeCountRef = database.getReference("users/$currentUserId/swipeCounts/$otherUserId")
     swipeCountRef.runTransaction(object : Transaction.Handler {
         override fun doTransaction(mutableData: MutableData): Transaction.Result {
@@ -408,6 +411,7 @@ fun handleSwipeRight(
         }
     })
 
+    // Increment their swipe stats
     database.getReference("users/$otherUserId/numberOfUsersWhoSwiped")
         .get().addOnSuccessListener { snap ->
             val cnt = snap.getValue(Double::class.java) ?: 0.0
@@ -421,31 +425,50 @@ fun handleSwipeRight(
                 .setValue(cnt + 1)
         }
 
+    // ✅ Check if they already liked you → mutual like → MATCH
     database.getReference("swipes/$otherUserId/$currentUserId")
         .get().addOnSuccessListener { snap ->
             val theyLikedYou = snap.getValue(SwipeData::class.java)?.liked == true
             if (theyLikedYou) {
+                // Create match on both sides
                 database.getReference("matches/$currentUserId/$otherUserId")
                     .setValue(timestamp)
                 database.getReference("matches/$otherUserId/$currentUserId")
                     .setValue(timestamp)
 
+                // ✅ NEW: clean up all like records once it becomes a match
+                val cleanupUpdates = hashMapOf<String, Any?>(
+                    // from their perspective
+                    "likesReceived/$currentUserId/$otherUserId" to null,
+                    "likesGiven/$otherUserId/$currentUserId" to null,
+                    // from your perspective
+                    "likesReceived/$otherUserId/$currentUserId" to null,
+                    "likesGiven/$currentUserId/$otherUserId" to null
+                )
+                database.reference.updateChildren(cleanupUpdates)
+
+                // Notifications
                 profileViewModel.sendMatchNotification(currentUserId, otherUserId, {}, {})
                 profileViewModel.sendMatchNotification(otherUserId, currentUserId, {}, {})
 
+                // Stats
                 incrementMatchStats(currentUserId)
                 incrementMatchStats(otherUserId)
 
+                // DM popup
                 profileViewModel.triggerMatchPopUp(currentUserId, otherUserId)
 
+                // If they had sent a compliment before match, auto-drop into chat as first message
                 database.getReference("compliments/$currentUserId/$otherUserId")
                     .get().addOnSuccessListener { cSnap ->
                         val text = cSnap.child("text").getValue(String::class.java) ?: ""
                         val voiceUrl = cSnap.child("voiceUrl").getValue(String::class.java)
+
                         if (text.isNotBlank() || voiceUrl != null) {
-                            val pushKey = database
-                                .reference
-                                .child("messages/$currentUserId/$otherUserId")
+                            val chatId = getChatId(currentUserId, otherUserId)
+
+                            val pushKey = database.reference
+                                .child("messages/$chatId")
                                 .push().key
                                 ?: return@addOnSuccessListener
 
@@ -461,9 +484,7 @@ fun handleSwipeRight(
                                 processed = false
                             )
 
-                            database.getReference("messages/$currentUserId/$otherUserId/$pushKey")
-                                .setValue(msg)
-                            database.getReference("messages/$otherUserId/$currentUserId/$pushKey")
+                            database.getReference("messages/$chatId/$pushKey")
                                 .setValue(msg)
                         }
                     }

@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.firebase.geofire.GeoFire
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -46,7 +45,7 @@ fun PreviewUserProfileScreen(
     geoFire          : GeoFire,
     profileViewModel : ProfileViewModel   = viewModel(),
     postViewModel    : PostViewModel      = viewModel(),   // re-use for posts inside the card
-    datingViewModel  : DatingViewModel,   // NEW: pass this in
+    datingViewModel  : DatingViewModel,   // pass from Activity
 ) {
     var profile      by remember { mutableStateOf<Profile?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -58,8 +57,15 @@ fun PreviewUserProfileScreen(
 
     val deckProfiles by datingViewModel.displayingProfiles.collectAsState()
     val isDeckLoading by datingViewModel.isLoading.collectAsState()
+
+    // 🔹 Decide once if we are in "pure preview" mode (no global deck at open time)
+    val isPurePreview = remember { deckProfiles.isEmpty() }
+
     val cardQueue = remember { mutableStateListOf<Profile>() }
     val swipedIds = remember { mutableStateListOf<String>() }
+
+    // 🔹 Track if the user has ever actually seen a card in this preview session
+    var hasShownCard by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         profileViewModel.fetchCurrentUserProfile()
@@ -71,7 +77,7 @@ fun PreviewUserProfileScreen(
         }
     }
 
-    /* ── one-shot fetch ────────────────────────────────────────────── */
+    /* ── one-shot fetch of the target profile ─────────────────────── */
     LaunchedEffect(targetUserId) {
         try {
             val snap = FirebaseRefs.db.getReference("users")
@@ -93,6 +99,7 @@ fun PreviewUserProfileScreen(
         }
     }
 
+    /* ── Build the local queue: [preview profile] + [deckProfiles] minus swiped ─── */
     LaunchedEffect(profile, deckProfiles, swipedIds.size) {
         val swipedSet = swipedIds.toSet()
         val base = cardQueue.filter { it.userId !in swipedSet }
@@ -123,8 +130,13 @@ fun PreviewUserProfileScreen(
 
     val currentCard = cardQueue.firstOrNull()
 
+    // 🔹 Whenever we have a real card, mark as "shown" and push it into DatingViewModel.
     LaunchedEffect(currentCard?.userId) {
-        datingViewModel.setCurrentSwipeUserId(currentCard?.userId)
+        if (currentCard != null) {
+            hasShownCard = true
+            datingViewModel.setCurrentSwipeUserId(currentCard.userId)
+        }
+        // IMPORTANT: do *not* call setCurrentSwipeUserId(null)
     }
 
     fun markCardProcessed(userId: String) {
@@ -137,9 +149,21 @@ fun PreviewUserProfileScreen(
         }
     }
 
+    // 🔹 Auto-close only if:
+    //   - We're in pure preview mode (no deck at open),
+    //   - The user has actually seen at least one card,
+    //   - We're not loading,
+    //   - Queue is now empty.
+    LaunchedEffect(cardQueue.size, isDeckLoading, isPurePreview, hasShownCard) {
+        if (isPurePreview && hasShownCard && !isDeckLoading && cardQueue.isEmpty()) {
+            navController.popBackStack()
+        }
+    }
+
     // ② collect the match-pop-up state
     val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
     val complimentsLeft by datingViewModel.complimentsLeft.collectAsState()
+
     /* ── UI ────────────────────────────────────────────────────────── */
     Box(
         Modifier
@@ -167,14 +191,18 @@ fun PreviewUserProfileScreen(
                             showPassAnim.value = true
                             handleSwipeLeft(currentUserId, activeProfile.userId)
                             updateDailySwipeCount(currentUserId)
-                            navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", activeProfile.userId)
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("exclude_uid", activeProfile.userId)
                             markCardProcessed(activeProfile.userId)
                         }
                         1 -> {
                             showLikeAnim.value = true
                             handleSwipeRight(currentUserId, activeProfile.userId, profileViewModel)
                             updateDailySwipeCount(currentUserId)
-                            navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", activeProfile.userId)
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("exclude_uid", activeProfile.userId)
                             markCardProcessed(activeProfile.userId)
                         }
                     }
@@ -230,11 +258,14 @@ fun PreviewUserProfileScreen(
                 color     = Color.Red,
                 modifier  = Modifier.align(Alignment.Center)
             )
-            isDeckLoading || (profile == null && cardQueue.isEmpty()) -> CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-                color    = Color(0xFFFF6F00)
-            )
+            isDeckLoading || (profile == null && cardQueue.isEmpty()) -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color    = Color(0xFFFF6F00)
+                )
+            }
             else -> {
+                // This branch should only show when there *was* a proper deck.
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -261,7 +292,7 @@ fun PreviewUserProfileScreen(
             }
         }
 
-        /* ── ✅ / ❌ buttons overlay ───────────────────────────────── */
+        /* ── ✅ / ❌ / 💌 buttons overlay ─────────────────────────── */
         if (currentCard != null) {
             val activeProfile = currentCard
             Row(
@@ -276,8 +307,10 @@ fun PreviewUserProfileScreen(
                         showPassAnim.value = true
                         scope.launch {
                             handleSwipeLeft(currentUserId, activeProfile.userId)
-                            updateDailySwipeCount(currentUserId)          // helper below
-                            navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", activeProfile.userId)
+                            updateDailySwipeCount(currentUserId)
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("exclude_uid", activeProfile.userId)
                             markCardProcessed(activeProfile.userId)
                         }
                     },
@@ -306,14 +339,14 @@ fun PreviewUserProfileScreen(
                 /* ✅ LIKE */
                 FloatingActionButton(
                     onClick = {
-//                        pendingLike = true
                         showLikeAnim.value = true
                         scope.launch {
                             handleSwipeRight(currentUserId, activeProfile.userId, profileViewModel)
                             updateDailySwipeCount(currentUserId)
-                            navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", activeProfile.userId)
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("exclude_uid", activeProfile.userId)
                             markCardProcessed(activeProfile.userId)
-//                            navController.popBackStack("home", false)
                         }
                     },
                     shape          = CircleShape,
@@ -328,7 +361,9 @@ fun PreviewUserProfileScreen(
                         onSend = { text ->
                             datingViewModel.sendCompliment(activeProfile.userId, text, profileViewModel)
                             showComplimentDlg = false
-                            navController.previousBackStackEntry?.savedStateHandle?.set("exclude_uid", activeProfile.userId)
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("exclude_uid", activeProfile.userId)
                             markCardProcessed(activeProfile.userId)
                         },
                         onDismiss = { showComplimentDlg = false }
@@ -336,16 +371,29 @@ fun PreviewUserProfileScreen(
                 }
             }
             if (showPassAnim.value) {
-                SwipeFeedbackIcon(flag = showPassAnim, icon = Icons.Default.Clear, modifier = Modifier.align(Alignment.Center))
+                SwipeFeedbackIcon(
+                    flag = showPassAnim,
+                    icon = Icons.Default.Clear,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
             if (showComplimentAnim.value) {
-                SwipeFeedbackIcon(flag = showComplimentAnim, icon = Icons.Default.LocalAirport, modifier = Modifier.align(Alignment.Center))
+                SwipeFeedbackIcon(
+                    flag = showComplimentAnim,
+                    icon = Icons.Default.LocalAirport,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
             if (showLikeAnim.value) {
-                SwipeFeedbackIcon(flag = showLikeAnim, icon = Icons.Default.Favorite, modifier = Modifier.align(Alignment.Center))
+                SwipeFeedbackIcon(
+                    flag = showLikeAnim,
+                    icon = Icons.Default.Favorite,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
         }
-        matchPopUpState?.let { (you, them) ->
+
+        matchPopUpState?.let { (_, them) ->
             val yourPic = profileViewModel.currentUserProfile.value?.profilepicUrl.orEmpty()
             MatchPopUp(
                 currentUserProfilePic = yourPic,
