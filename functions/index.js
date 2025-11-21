@@ -1111,7 +1111,7 @@ exports.chatSuggestions = functions
       ];
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5-mini",
         messages: gptMsgs,
         temperature: 0.7,
         max_tokens: 400,
@@ -1350,7 +1350,7 @@ exports.generateAIPartnerMessage = functions
 
         try {
             const completion = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
+                model: "gpt-5-mini",
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userInput }
@@ -1913,7 +1913,6 @@ exports.checkExpiredOneTimeSubscriptions = functions.pubsub
        hasPremiumEntitlement ||
        premiumFlagged ||
        entryFeeAccessActive;
-
       if (!hasActiveEntitlement) {
         // Entitlement finished → deactivate both tiers (keep old behavior)
           if (
@@ -2045,6 +2044,8 @@ exports.loginEntitlementSweep = functions
       Number.isFinite(subscriptionCurrentEnd) ? subscriptionCurrentEnd : 0,
       Number.isFinite(subscriptionNextBillingAt) ? subscriptionNextBillingAt : 0,
     );
+    const availableAiMessages = Number(u.availableAiMessages || 0);
+    const hasEntryAiBonus     = !!u.hasEntryAiBonus;
 
      const premiumRenewalSources = [0];
       if (Number.isFinite(premiumExpiryDate)) {
@@ -2077,7 +2078,10 @@ exports.loginEntitlementSweep = functions
     if (hasActiveEntitlement && !isPlus) {
       updates.isPlus = true;
     }
-
+    if (entryFeeAccessActive && !hasEntryAiBonus) {
+      updates.availableAiMessages = availableAiMessages + 150;
+      updates.hasEntryAiBonus     = true; // so we don’t grant it twice
+    }
     const shouldHavePremiumFlag = hasPremiumEntitlement || premiumFlagged;
     if (shouldHavePremiumFlag !== isPremium) {
       updates.isPremium = shouldHavePremiumFlag;
@@ -2264,11 +2268,13 @@ exports.verifyKupidxSubscription = functions
         subscription: { id: subscriptionId, planId },
       };
       if (tier.plus || tier.premium) {
-        updates["swipesInfo/remainingSwipes"] = tier.premium ? 2147483647 : 50;
-        updates.availableBoosts = tier.premium ? 5 : 3;
-        updates.availableCompliments = tier.premium ? 5 : 3;
-        if (tier.premium) updates.availableAiMessages = 2;
-      }
+          updates["swipesInfo/remainingSwipes"] = tier.premium ? 2147483647 : 50;
+          updates.availableBoosts      = tier.premium ? 5 : 3;
+          updates.availableCompliments = tier.premium ? 5 : 3;
+
+          // ⭐ AI messages: Plus = 150 / month, Premium = 900 / month
+          updates.availableAiMessages = tier.premium ? 900 : 150;
+        }
       await admin.database().ref(`users/${uid}`).update(updates);
     }
 
@@ -2302,11 +2308,13 @@ exports.kupidxPlusWebhook = functions
           nextRenewal:       payload.subscription.entity.current_end,
         };
         if (tier.plus || tier.premium) {
-                  updates["swipesInfo/remainingSwipes"] = tier.premium ? 2147483647 : 50;
-                  updates.availableBoosts      = tier.premium ? 5 : 3;
-                  updates.availableCompliments = tier.premium ? 5 : 3;
-                  if (tier.premium) updates.availableAiMessages = 2;
-                }
+          updates["swipesInfo/remainingSwipes"] = tier.premium ? 2147483647 : 50;
+          updates.availableBoosts      = tier.premium ? 5 : 3;
+          updates.availableCompliments = tier.premium ? 5 : 3;
+
+          // ⭐ AI messages: Plus = 150 / month, Premium = 900 / month
+          updates.availableAiMessages = tier.premium ? 900 : 150;
+        }
         await db.update(updates);
         break;
       }

@@ -250,6 +250,13 @@ fun TopNavBar(
     val isProfileScreen = currentRoute == "profile"
     val isDMScreen = currentRoute == "dms"
 
+    // 🔸 NEW: are we on any bottom nav root screen?
+    val isOnBottomNavRoot = currentDestination
+        ?.hierarchy
+        ?.any { dest ->
+            dest.route in listOf("profile", "home", "map", "dms", "aiPartner")
+        } == true
+
     val unreadCount = mainUiState.unreadNotifications
     val allowLocationForMatches = mainUiState.allowLocationForMatches
     val allowLocationPublic = mainUiState.allowLocationPublic
@@ -288,7 +295,6 @@ fun TopNavBar(
         prefs.edit().putString("home_country_filter", homeSelectedCountry).apply()
     }
 
-    // anywhere before TopAppBar:
     val isOnHome = currentDestination
         ?.hierarchy
         ?.any { it.route == "home" } == true
@@ -357,14 +363,11 @@ fun TopNavBar(
                         }
                     }
 
-                    // Location settings icon (map screen)
                     if (currentRoute == "map") {
-                        // --- NEW ORDER & LAYOUT ---------------------------------------------------
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(start = 6.dp)
                         ) {
-                            // 1) City selector icon
                             IconButton(
                                 onClick = {
                                     if (hasLocationSpoofAccess) {
@@ -417,11 +420,9 @@ fun TopNavBar(
                                         onClick = {
                                             cityMenuExpanded = false
                                             if (selectedCountry.isBlank()) {
-                                                // No fixed country → back to GPS
                                                 onClearLocationSpoofing()
                                                 locationManager.resumeUpdates()
                                             } else {
-                                                // Keep the country, clear city
                                                 val countryLatLng =
                                                     CountryLatLngMap.getLatLng(selectedCountry)
                                                 if (countryLatLng != null) {
@@ -467,11 +468,7 @@ fun TopNavBar(
                                     }
                                 }
                             }
-                            // Show selected city label, right after the city icon
-                            if (
-                                hasLocationSpoofAccess &&
-                                selectedCity.isNotBlank()
-                            ) {
+                            if (hasLocationSpoofAccess && selectedCity.isNotBlank()) {
                                 Text(
                                     selectedCity,
                                     color = Color(0xFFFF6F00),
@@ -481,7 +478,6 @@ fun TopNavBar(
                             }
                         }
 
-                        /* 2) Existing location icon */
                         if (isPremium) {
                             IconButton(onClick = onLocationPreferencesClick) {
                                 Icon(
@@ -493,6 +489,7 @@ fun TopNavBar(
                             }
                         }
                     }
+
                     if (isOnHome) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(onClick = {
@@ -527,7 +524,8 @@ fun TopNavBar(
                         }
                     }
 
-                    if (isUserSettings || isProfileScreen || isDMScreen) {
+                    // 🔸 UPDATED: show settings on ALL bottom-nav roots + settings screen
+                    if (isOnBottomNavRoot || isUserSettings) {
                         IconButton(onClick = {
                             if (isUserSettings) {
                                 navController.popBackStack()
@@ -536,8 +534,7 @@ fun TopNavBar(
                             }
                         }) {
                             Box(
-                                modifier = Modifier
-                                    .size(24.dp),
+                                modifier = Modifier.size(24.dp),
                                 contentAlignment = Center
                             ) {
                                 Icon(
@@ -549,7 +546,7 @@ fun TopNavBar(
                             }
                         }
                     }
-                    // Saved-Posts Icon (Profile screen only)
+
                     if (isProfileScreen) {
                         IconButton(onClick = { navController.navigate("saved_posts") }) {
                             Icon(
@@ -561,7 +558,7 @@ fun TopNavBar(
                         }
                     }
                 }
-                // Notifications Icon
+
                 IconButton(onClick = {
                     if (isNotificationsSelected) {
                         navController.popBackStack()

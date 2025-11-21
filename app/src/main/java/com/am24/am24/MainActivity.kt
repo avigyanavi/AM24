@@ -15,12 +15,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FacebookAuthProvider
@@ -29,19 +34,69 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthProvider
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
+// ---------- AUTH STATE + VIEWMODEL ----------
+
+sealed class AuthState {
+    object Loading : AuthState()
+    data class Authenticated(val user: FirebaseUser) : AuthState()
+    object Unauthenticated : AuthState()
+}
+
+class AuthViewModel(
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+) : ViewModel() {
+
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
+    val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    private val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        val user = firebaseAuth.currentUser
+        _authState.value = if (user != null) {
+            AuthState.Authenticated(user)
+        } else {
+            AuthState.Unauthenticated
+        }
+    }
+
+    init {
+        // Initial snapshot + small delay to avoid "false null" on cold start
+        val current = auth.currentUser
+        if (current != null) {
+            _authState.value = AuthState.Authenticated(current)
+        } else {
+            viewModelScope.launch {
+                _authState.value = AuthState.Loading
+                delay(400) // brief hydration window
+                val u = auth.currentUser
+                _authState.value = if (u != null) {
+                    AuthState.Authenticated(u)
+                } else {
+                    AuthState.Unauthenticated
+                }
+            }
+        }
+
+        auth.addAuthStateListener(listener)
+    }
+
+    override fun onCleared() {
+        auth.removeAuthStateListener(listener)
+        super.onCleared()
+    }
+}
+
+// ---------- MAIN ACTIVITY ----------
+
 class MainActivity : ComponentActivity() {
-
-    private lateinit var auth: FirebaseAuth
-    private var authListener: FirebaseAuth.AuthStateListener? = null
-
-    // NEW: Prevent early false-null redirect
-    private var startupTime: Long = 0L
-    private var ignoreNullsUntil: Long = 0L
 
     private fun currentProvider(): String {
         val providers = FirebaseAuth.getInstance().currentUser?.providerData
@@ -55,6 +110,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Prevent multiple navigations
     private var isNavigationInProgress = false
 
     override fun attachBaseContext(newBase: Context) {
@@ -66,69 +122,72 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        auth = FirebaseAuth.getInstance()
         GclidStorageManager.cacheFromUri(this, intent?.data)
-
-        // NEW
-        startupTime = System.currentTimeMillis()
-        ignoreNullsUntil = startupTime + 500  // 500 ms window to avoid false nulls
-
-        setContent {
-            AppTheme {
-                AskNotificationPermission()
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Color(0xFFFF6F00))
-                }
-            }
-        }
 
         val openNotifications = intent?.getBooleanExtra("open_notifications", false) ?: false
         val openUpgradeLanding = intent?.getBooleanExtra("open_upgrade_landing", false) ?: false
 
-        // 🔥 NEW: One-shot snapshot check
-        val initialUser = auth.currentUser
-        if (initialUser != null) {
-            routeBasedOnUid(initialUser, openNotifications, openUpgradeLanding)
-        }
+        setContent {
+            AppTheme {
+                AskNotificationPermission()
 
-        // ORIGINAL LISTENER, but with null-ignore logic added
-        authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-            val user = firebaseAuth.currentUser
-            val now = System.currentTimeMillis()
+                val authViewModel: AuthViewModel = viewModel()
+                val authState by authViewModel.authState.collectAsState()
 
-            if (user != null) {
-                user.getIdToken(true)
-                    .addOnSuccessListener { res ->
-                        res.token?.let { TokenStorageManager.saveToken(this@MainActivity, it) }
+                when (authState) {
+                    AuthState.Loading -> {
+                        // Show spinner while we don't know yet
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color(0xFFFF6F00))
+                        }
                     }
-                routeBasedOnUid(user, openNotifications, openUpgradeLanding)
-            } else {
-                // ❗ Ignore nulls during first 500ms — the hydration window
-                if (now < ignoreNullsUntil) {
-                    return@AuthStateListener
+
+                    is AuthState.Authenticated -> {
+                        val user = (authState as AuthState.Authenticated).user
+
+                        // Navigate once when authenticated
+                        LaunchedEffect(user.uid, openNotifications, openUpgradeLanding) {
+                            routeBasedOnUid(
+                                user = user,
+                                openNotifications = openNotifications,
+                                openUpgradeLanding = openUpgradeLanding
+                            )
+                        }
+
+                        // Still show a loading screen while navigation happens
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color(0xFFFF6F00))
+                        }
+                    }
+
+                    AuthState.Unauthenticated -> {
+                        // Navigate to Landing once when we *know* there is no user
+                        LaunchedEffect(Unit) {
+                            navigateToLanding()
+                        }
+
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color(0xFFFF6F00))
+                        }
+                    }
                 }
-                navigateToLanding()
             }
         }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        authListener?.let { auth.addAuthStateListener(it) }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         GclidStorageManager.cacheFromUri(this, intent.data)
-    }
-
-    override fun onStop() {
-        super.onStop()
-        authListener?.let { auth.removeAuthStateListener(it) }
     }
 
     private fun navigateToLanding() {
@@ -146,7 +205,7 @@ class MainActivity : ComponentActivity() {
         val context = LocalContext.current
         val launcher = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission()
-        ) { /* callback */ }
+        ) { /* granted / denied callback */ }
 
         LaunchedEffect(Unit) {
             if (ContextCompat.checkSelfPermission(

@@ -295,7 +295,7 @@ fun MapScreen(
     var sortMode by nearbyViewModel::sortMode
     var radiusKm by nearbyViewModel::radiusKm
     var lastActiveHours by nearbyViewModel::lastActiveHours
-    var selectedTab by rememberSaveable { mutableStateOf(1) } // 0: People, 1: Cards, 2: Map
+    var selectedTab by rememberSaveable { mutableStateOf(0) } // 0: People, 1: Cards, 2: Map
     var datingFilters by nearbyViewModel::datingFilters
     val defaultDatingFilters = remember { DatingFilterSettings() }
     var showOverflowMenu by remember { mutableStateOf(false) }
@@ -2774,7 +2774,9 @@ private fun NearbyCard(
                     ) {
                         user.roles.take(3).forEach { role ->
                             if (role.isNotBlank()) {
-                                TagBox(role)
+                                Box(Modifier.scale(0.85f)) {   // 0.85f = 85% size, tweak as needed
+                                    TagBox(role)
+                                }
                             }
                         }
                     }

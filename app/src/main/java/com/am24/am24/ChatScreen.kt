@@ -833,54 +833,56 @@ fun ChatScreenContent(
                             onClick = { /* nothing – switch above handles it */ }
                         )
                     }
-                    IconButton(
-                        onClick = {
-                            consumeAiMessage {                    // WILL navigate if credits == 0
-                                suggestionsExpanded = true
-                                if (suggestions == null || messages.size > 10) {
-                                    scope.launch {
-                                        isLoadingSuggestions = true
-                                        suggestions = fetchSuggestionsWithRetry()
-                                        isLoadingSuggestions = false
+                    if (isPremiumUser) {
+                        IconButton(
+                            onClick = {
+                                consumeAiMessage {
+                                    suggestionsExpanded = true
+                                    if (suggestions == null || messages.size > 10) {
+                                        scope.launch {
+                                            isLoadingSuggestions = true
+                                            suggestions = fetchSuggestionsWithRetry()
+                                            isLoadingSuggestions = false
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        enabled = true,                           // ← always clickable
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (outOfCredits)
-                                Color.Gray                        // grey look when exhausted
-                            else
-                                Color(0xFFFFA500)                 // orange when you still have credits
-                        )
-                    ) {
-                        Icon(Icons.Default.SmartToy, null, modifier = Modifier.size(24.dp))
-                    }
+                            },
+                            enabled = true,
+                            colors = IconButtonDefaults.iconButtonColors(
+                                contentColor = if (outOfCredits)
+                                    Color.Gray
+                                else
+                                    Color(0xFFFFA500)
+                            )
+                        ) {
+                            Icon(Icons.Default.SmartToy, null, modifier = Modifier.size(24.dp))
+                        }
 
-                    IconButton(
-                        onClick = {
-                            consumeAiMessage {
-                                placeSuggestionsExpanded = true
-                                if (placeSuggestions == null || messages.size > 10) {
-                                    scope.launch {
-                                        isLoadingPlaces = true
-                                        val sugg = fetchSuggestionsWithRetry()
-                                        placeSuggestions = sugg?.topics
-                                            ?.let { getPlaceSuggestions(it, otherUserProfile, context) }
-                                        isLoadingPlaces = false
+                        IconButton(
+                            onClick = {
+                                consumeAiMessage {
+                                    placeSuggestionsExpanded = true
+                                    if (placeSuggestions == null || messages.size > 10) {
+                                        scope.launch {
+                                            isLoadingPlaces = true
+                                            val sugg = fetchSuggestionsWithRetry()
+                                            placeSuggestions = sugg?.topics
+                                                ?.let { getPlaceSuggestions(it, otherUserProfile, context) }
+                                            isLoadingPlaces = false
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        enabled = true,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (outOfCredits)
-                                Color.Gray
-                            else
-                                Color(0xFFFF6F00)
-                        )
-                    ) {
-                        Icon(Icons.Default.LocationCity, null, modifier = Modifier.size(24.dp))
+                            },
+                            enabled = true,
+                            colors = IconButtonDefaults.iconButtonColors(
+                                contentColor = if (outOfCredits)
+                                    Color.Gray
+                                else
+                                    Color(0xFFFF6F00)
+                            )
+                        ) {
+                            Icon(Icons.Default.LocationCity, null, modifier = Modifier.size(24.dp))
+                        }
                     }
 
                     IconButton(onClick = { moreOptionsMenuExpanded = true }) {

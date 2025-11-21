@@ -18,6 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.tasks.await
 
 data class AIPartnerChatMessage(
     val isUser: Boolean,
@@ -39,6 +42,29 @@ fun AIPartnerScreen(
     var inputText by remember { mutableStateOf("") }
     val messages = remember { mutableStateListOf<AIPartnerChatMessage>() }
 
+    // 🔢 Shared AI message credits
+    val currentUserId = remember { FirebaseAuth.getInstance().currentUser?.uid }
+    val userRef = remember(currentUserId) {
+        currentUserId?.let { uid ->
+            FirebaseRefs.db.getReference("users").child(uid)
+        }
+    }
+
+    // -1 = not loaded yet
+    var aiMessagesLeft by remember { mutableStateOf(-1) }
+    var pendingDebit by remember { mutableStateOf(0) }
+
+    LaunchedEffect(currentUserId) {
+        if (currentUserId == null || userRef == null) return@LaunchedEffect
+        try {
+            val snap = userRef.get().await()
+            aiMessagesLeft = snap.child("availableAiMessages")
+                .getValue(Int::class.java) ?: 0
+        } catch (e: Exception) {
+            Log.e("AIPartnerScreen", "Failed loading AiMessages", e)
+        }
+    }
+
     // Start watching profile as soon as this screen is first composed.
     LaunchedEffect(Unit) {
         aiPartnerViewModel.startProfileListener(profileViewModel)
@@ -53,6 +79,20 @@ fun AIPartnerScreen(
                     text = text
                 )
             )
+
+            // 1 reply = 1 AI message, but only if we had a pending send
+            if (pendingDebit > 0 && aiMessagesLeft > 0 && userRef != null) {
+                pendingDebit -= 1
+                aiMessagesLeft -= 1
+                try {
+                    userRef.child("availableAiMessages").setValue(aiMessagesLeft)
+                } catch (e: Exception) {
+                    Log.e("AIPartnerScreen", "Failed saving AiMessages", e)
+                }
+            } else {
+                // safety: don't leave junk pending
+                pendingDebit = 0
+            }
         }
     }
 
@@ -96,7 +136,13 @@ fun AIPartnerScreen(
                     }
                 }
             }
-
+            Text(
+                text = if (aiMessagesLeft >= 0) "AI messages left: $aiMessagesLeft" else "",
+                color = Color.Gray,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            )
             // Input bar
             Row(
                 modifier = Modifier
@@ -126,7 +172,15 @@ fun AIPartnerScreen(
 
                 FilledIconButton(
                     onClick = {
-                        if (inputText.isBlank() || profile == null || isLoading) return@FilledIconButton
+                        if (inputText.isBlank() || profile == null || isLoading) {
+                            return@FilledIconButton
+                        }
+
+                        // If we've loaded credits and have zero, go to top-up
+                        if (aiMessagesLeft == 0) {
+                            navController.navigate("buyAiMessages")
+                            return@FilledIconButton
+                        }
 
                         val text = inputText.trim()
                         inputText = ""
@@ -139,18 +193,24 @@ fun AIPartnerScreen(
                             )
                         )
 
+                        // Mark that next AI reply should burn 1 token
+                        pendingDebit += 1
+
                         // Call AI
                         scope.launch {
                             aiPartnerViewModel.sendMessage(
                                 userInput = text,
                                 profile = profile!!
                             ) { error ->
+                                // Show error bubble
                                 messages.add(
                                     AIPartnerChatMessage(
                                         isUser = false,
                                         text = error
                                     )
                                 )
+                                // If AI failed, don’t charge
+                                if (pendingDebit > 0) pendingDebit -= 1
                             }
                         }
                     },
@@ -158,7 +218,7 @@ fun AIPartnerScreen(
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
                             color = Color.White
                         )
