@@ -3282,7 +3282,8 @@ fun EnterBirthdateCityHometownScreen(
                 selectedCountry = country
                 registrationViewModel.country = if (country == other) customCountry else country
 
-                if (canonicalCountry(country) == "India") {
+                val canonicalCountryName = canonicalCountry(country)
+                if (canonicalCountryName == "India") {
                     selectedCity     = city
                     selectedLocality = locality
                     if (city == other) {
@@ -3300,14 +3301,14 @@ fun EnterBirthdateCityHometownScreen(
                         registrationViewModel.hometown = locality
                     }
                 } else {
-                    selectedCity        = other
-                    selectedLocality    = other
+                    selectedCity        = city
+                    selectedLocality    = locality
                     customCity          = rawCity
                     customLocality      = rawLocality
                     registrationViewModel.customCity     = rawCity
                     registrationViewModel.customHometown = rawLocality
-                    registrationViewModel.city           = other
-                    registrationViewModel.hometown       = other
+                    registrationViewModel.city           = city
+                    registrationViewModel.hometown       = locality
                 }
                 isLocating = false
             }
@@ -3342,7 +3343,8 @@ fun EnterBirthdateCityHometownScreen(
                 selectedCountry = country
                 registrationViewModel.country = if (country == other) customCountry else country
 
-                if (canonicalCountry(country) == "India") {
+                val canonicalCountryName = canonicalCountry(country)
+                if (canonicalCountryName == "India") {
                     selectedCity     = city
                     selectedLocality = locality
                     if (city == other) {
@@ -3360,14 +3362,14 @@ fun EnterBirthdateCityHometownScreen(
                         registrationViewModel.hometown = locality
                     }
                 } else {
-                    selectedCity        = other
-                    selectedLocality    = other
+                    selectedCity        = city
+                    selectedLocality    = locality
                     customCity          = rawCity
                     customLocality      = rawLocality
                     registrationViewModel.customCity     = rawCity
                     registrationViewModel.customHometown = rawLocality
-                    registrationViewModel.city           = other
-                    registrationViewModel.hometown       = other
+                    registrationViewModel.city           = city
+                    registrationViewModel.hometown       = locality
                 }
                 isLocating = false
             }
@@ -3668,8 +3670,13 @@ internal fun fetchLocation(
             Log.d(TAG, "Geocoder → $detectedCountry / $detectedCity / $detectedLocality")
 
             val matchedCountry = countries.find { it.equals(detectedCountry, ignoreCase = true) } ?: other
-            val matchedCityList = ctx.resources.getStringArray(R.array.city_names).toList()
-            val matchedCity     = matchedCityList.find { it.equals(detectedCity, ignoreCase = true) } ?: other
+            val matchedCityList = when (canonicalCountry(matchedCountry)) {
+                "Mexico" -> ctx.resources.getStringArray(R.array.mexico_cities).toList()
+                "United States" -> ctx.resources.getStringArray(R.array.usa_cities).toList()
+                else -> ctx.resources.getStringArray(R.array.city_names).toList()
+            }
+            val matchedCity = matchedCityList.find { it.equals(detectedCity, ignoreCase = true) }
+                ?: detectedCity.ifBlank { other }
             Log.d(TAG, "Matched country='$matchedCountry'")
 
             val localities = when (matchedCity) {
@@ -3763,9 +3770,10 @@ internal fun fetchLocation(
                 visakhapatnam -> ctx.resources.getStringArray(R.array.localities_visakhapatnam).toList()
                 warangal -> ctx.resources.getStringArray(R.array.localities_warangal).toList()
                 other -> ctx.resources.getStringArray(R.array.localities_other).toList()
-                else -> emptyList()
+                else -> listOfNotNull(detectedLocality.takeIf { it.isNotBlank() }, other)
             }
-            val matchedLocality = localities.find { it.equals(detectedLocality, ignoreCase = true) } ?: other
+            val matchedLocality = localities.find { it.equals(detectedLocality, ignoreCase = true) }
+                ?: detectedLocality.ifBlank { other }
             withContext(Dispatchers.Main) {
                 onLocationFound(
                     matchedCountry,

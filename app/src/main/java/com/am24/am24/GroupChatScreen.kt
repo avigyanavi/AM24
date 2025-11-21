@@ -34,6 +34,9 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.lazy.rememberLazyListState
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 /**
  * Simple group‑chat screen that stores messages under
  *   messages/{groupId}
@@ -44,6 +47,7 @@ data class GroupChatMessage(
     val id: String = "",
     val senderId: String = "",
     val senderName: String = "",
+    val senderUsername: String = "",
     val text: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )
@@ -94,12 +98,20 @@ fun GroupChatScreen(
     val messages = remember { mutableStateListOf<GroupChatMessage>() }
     var messageText by remember { mutableStateOf("") }
     var isMessagesLoading by remember { mutableStateOf(true) }
+    val userIdentityCache = remember { mutableMapOf<String, Pair<String, String>>() }
+    val listState = rememberLazyListState()
     LaunchedEffect(isMessagesLoading, messages.size) {
         if (isMessagesLoading && messages.isEmpty()) {
             delay(SKELETON_FAILSAFE_DELAY_MS)
             if (isMessagesLoading && messages.isEmpty()) {
                 isMessagesLoading = false
             }
+        }
+    }
+
+    LaunchedEffect(messages.size, isMessagesLoading) {
+        if (!isMessagesLoading && messages.isNotEmpty()) {
+            listState.scrollToItem(messages.lastIndex)
         }
     }
 
@@ -120,18 +132,43 @@ fun GroupChatScreen(
                                     if (senderId.isBlank()) {
                                         ValidationResult.Invalid(message.id)
                                     } else {
+                                        val cached = userIdentityCache[senderId]
+                                        val resolvedName = message.senderName.ifBlank { cached?.first ?: "" }
+                                        val resolvedUsername = message.senderUsername.ifBlank { cached?.second ?: "" }
+
+                                        val (name, username) = if (resolvedName.isBlank() || resolvedUsername.isBlank()) {
+                                            try {
+                                                val userSnap = withContext(Dispatchers.IO) {
+                                                    usersRef.child(senderId).get().await()
+                                                }
+                                                val profile = userSnap.getValue(Profile::class.java)
+                                                val fetchedName = resolvedName.ifBlank { profile?.name.orEmpty() }
+                                                val fetchedUsername = resolvedUsername.ifBlank { profile?.username.orEmpty() }
+                                                userIdentityCache[senderId] = fetchedName to fetchedUsername
+                                                fetchedName to fetchedUsername
+                                            } catch (_: Exception) {
+                                                resolvedName to resolvedUsername
+                                            }
+                                        } else {
+                                            resolvedName to resolvedUsername
+                                        }
+
+                                        val enrichedMessage = message.copy(
+                                            senderName = name.ifBlank { "User" },
+                                            senderUsername = username
+                                        )
                                         try {
                                             if (UserDeletionCache.isDeleted(database, senderId)) {
                                                 UserDeletionCache.markDeleted(senderId)
                                                 ValidationResult.Invalid(message.id)
                                             } else {
                                                 UserDeletionCache.markActive(senderId)
-                                                ValidationResult.Valid(message)
+                                                ValidationResult.Valid(enrichedMessage)
                                             }
                                         } catch (ce: CancellationException) {
                                             throw ce
                                         } catch (_: Exception) {
-                                            ValidationResult.Valid(message)
+                                            ValidationResult.Valid(enrichedMessage)
                                         }
                                     }
                                 }
@@ -203,6 +240,7 @@ fun GroupChatScreen(
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = 8.dp),
+                state = listState,
                 verticalArrangement = if (messages.isNotEmpty()) Arrangement.Bottom else Arrangement.Top
             ) {
                 when {
@@ -268,9 +306,11 @@ fun GroupChatScreen(
                     onClick = {
                         if (messageText.isNotBlank()) {
                             val displayName = currentUserProfile?.name ?: "User"
+                            val username = currentUserProfile?.username.orEmpty()
                             sendGroupChatMessage(
                                 userId = currentUserId,
                                 userName = displayName,
+                                userUsername = username,
                                 text = messageText,
                                 messagesRef = messagesRef
                             )
@@ -300,7 +340,13 @@ fun GroupMessageBubble(
     val isCurrentUser = message.senderId == currentUserId
     val bubbleColor   = if (isCurrentUser) Color(0xFFFFDB00) else Color(0xFFFF6F00)
     val textColor     = if (isCurrentUser) Color.Black else Color.White
-
+    val headerLabel = when {
+        message.senderName.isNotBlank() && message.senderUsername.isNotBlank() ->
+            "${message.senderName} (@${message.senderUsername})"
+        message.senderName.isNotBlank() -> message.senderName
+        message.senderUsername.isNotBlank() -> "@${message.senderUsername}"
+        else -> "Unknown user"
+    }
 
     Column(
         modifier = Modifier
@@ -309,7 +355,7 @@ fun GroupMessageBubble(
         horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
     ) {
         Text(
-            text = message.senderName,
+            text = headerLabel,
             color = Color.Gray,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
@@ -379,6 +425,7 @@ private fun GroupMessageSkeleton(isCurrentUser: Boolean) {
 fun sendGroupChatMessage(
     userId: String,
     userName: String,
+    userUsername: String,
     text: String,
     messagesRef: DatabaseReference
 ) {
@@ -387,6 +434,7 @@ fun sendGroupChatMessage(
         id = newId,
         senderId = userId,
         senderName = userName,
+        senderUsername = userUsername,
         text = text,
         timestamp = System.currentTimeMillis()
     )
@@ -395,6 +443,8 @@ fun sendGroupChatMessage(
 
 fun formatGroupTitle(raw: String): String = when (raw) {
     "group_wb" -> "West Bengal"
+    "group_usa" -> "United States"
+    "group_mexico" -> "Mexico"
     else -> raw.removePrefix("group_")
         .replace('_', ' ')
         .replaceFirstChar { it.uppercase() } + " Chat"
