@@ -15,6 +15,8 @@ import com.facebook.appevents.AppEventsLogger
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.MutableData
+import com.google.firebase.database.Transaction
 import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -415,10 +417,17 @@ object BillingManager : PurchasesUpdatedListener {
             .filter { it.first == "entry_fee" }
             .maxOfOrNull { it.second }
 
+        val subRenewalAnchor = purchased
+            .filter { purchase ->
+                purchase.products.any { it in plusSubIds || it in premiumSubIds }
+            }
+            .maxOfOrNull { it.purchaseTime + TimeUnit.DAYS.toMillis(30) }
+
         val nextRenewal = listOfNotNull(
             plusOneTimeExpiry?.takeIf { it > now },
             premiumOneTimeExpiry?.takeIf { it > now },
             entryFeeExpiry?.takeIf { it > now },
+            subRenewalAnchor?.takeIf { it > now },
             ).maxOrNull()
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -479,6 +488,12 @@ object BillingManager : PurchasesUpdatedListener {
         premium: Boolean,
         nextRenewal: Long? = null,
     ) {
+        val aiMessageTopUp = when {
+            premium -> 500
+            plus -> 150
+            else -> 0
+        }
+
         val updates = mutableMapOf<String, Any>(
             "isPlus" to plus,
             "isPremium" to premium,
@@ -489,10 +504,44 @@ object BillingManager : PurchasesUpdatedListener {
             updates["swipesInfo/remainingSwipes"] =
                 if (premium) Int.MAX_VALUE else 50
             updates["availableCompliments"] = if (premium) 5 else 3
-            if (premium) updates["availableAiMessages"] = 2
         }
         updates["nextRenewal"] = nextRenewal ?: 0L
         userRef.updateChildren(updates)
+
+        creditAiMessagesOnce(userRef, aiMessageTopUp, nextRenewal)
+    }
+
+    fun creditAiMessagesOnce(
+        userRef: DatabaseReference,
+        topUpAmount: Int,
+        renewalAnchor: Long?,
+    ) {
+        val anchor = renewalAnchor ?: 0L
+        if (topUpAmount <= 0 || anchor <= 0L) return
+
+        userRef.runTransaction(object : Transaction.Handler {
+            override fun doTransaction(currentData: MutableData): Transaction.Result {
+                val creditedThrough =
+                    currentData.child("aiMessagesCreditedThrough").getValue(Long::class.java) ?: 0L
+                if (anchor <= creditedThrough) return Transaction.success(currentData)
+
+                val currentMessages =
+                    currentData.child("availableAiMessages").getValue(Int::class.java) ?: 0
+                currentData.child("availableAiMessages").value = currentMessages + topUpAmount
+                currentData.child("aiMessagesCreditedThrough").value = anchor
+                return Transaction.success(currentData)
+            }
+
+            override fun onComplete(
+                error: com.google.firebase.database.DatabaseError?,
+                committed: Boolean,
+                currentData: com.google.firebase.database.DataSnapshot?,
+            ) {
+                if (error != null) {
+                    Log.w("BillingManager", "creditAiMessagesOnce failed", error.toException())
+                }
+            }
+        })
     }
 
     private fun verifyPurchaseOnServer(purchase: Purchase) {

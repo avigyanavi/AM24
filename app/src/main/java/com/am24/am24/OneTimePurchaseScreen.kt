@@ -71,6 +71,12 @@ fun OneTimePurchaseScreen(
     val billingViewModel: BillingViewModel = viewModel()
     val products by billingViewModel.products.collectAsState()
     val purchases by billingViewModel.purchases.collectAsState()
+    val selectedSku = remember(type, ui.selectedQty) { type.skuFor(ui.selectedQty) }
+    val playPrice = remember(products, selectedSku) {
+        products.firstOrNull { it.productId == selectedSku }
+            ?.oneTimePurchaseOfferDetails
+            ?.formattedPrice
+    }
 
     fun launchRazorpay(orderId: String, keyId: String) {
         val opts = JSONObject().apply {
@@ -114,6 +120,12 @@ fun OneTimePurchaseScreen(
 
     val totalInrPaise = ui.selectedQty * type.unitPricePaise
     val totalUsd      = ui.selectedQty * type.unitPriceUsd
+    val selectedProduct = products.firstOrNull { it.productId == selectedSku }
+    val displayPrice = when {
+        isIndia -> "₹%.2f".format(totalInrPaise / 100.0)
+        playPrice != null -> playPrice
+        else -> "$%.2f".format(totalUsd)
+    }
 
     Scaffold(
         topBar = {
@@ -154,13 +166,12 @@ fun OneTimePurchaseScreen(
             }
 
             Spacer(Modifier.height(12.dp))
-//            Text(
-//                if (isIndia) "₹%.2f".format(totalInrPaise / 100.0)
-//                else "$%.2f".format(totalUsd),
-//                color = Color.White,
-//                fontSize = 16.sp
-//            )
-//            Spacer(Modifier.height(40.dp))
+            Text(
+                displayPrice,
+                color = Color.White,
+                fontSize = 16.sp
+            )
+            Spacer(Modifier.height(40.dp))
 
             Button(
                 onClick = {
@@ -180,13 +191,11 @@ fun OneTimePurchaseScreen(
                             }
                         }
                     } else {
-                        val sku = type.skuFor(ui.selectedQty) // e.g. swipes_10
-                        val product = products.firstOrNull { it.productId == sku }
-                        if (product != null) {
-                            billingViewModel.purchase(act, product)
+                        if (selectedProduct != null) {
+                            billingViewModel.purchase(act, selectedProduct)
                             ui = ui.copy(isProcessing = true)
                         } else {
-                            Toast.makeText(ctx, "Product not available ($sku)", Toast.LENGTH_LONG).show()
+                            Toast.makeText(ctx, "Product not available ($selectedSku)", Toast.LENGTH_LONG).show()
                         }
                     }
                 },

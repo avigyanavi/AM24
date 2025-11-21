@@ -262,7 +262,8 @@ fun SubscriptionScreen(
     var pendingSubId by remember { mutableStateOf<String?>(null) }
     val subs by BillingManager.subsProducts.collectAsState()
     val products by BillingManager.products.collectAsState()
-    val productDetailsById = remember(products) { products.associateBy { it.productId } }
+    val subsDetailsById = remember(subs) { subs.associateBy { it.productId } }
+    val inappDetailsById = remember(products) { products.associateBy { it.productId } }
 
     /* real-time flags to hide the screen if user already subscribed */
     var plus    by remember { mutableStateOf<Boolean?>(null) }
@@ -345,7 +346,7 @@ fun SubscriptionScreen(
     }
 
     fun handleOneTime(offer: OneTimeOffer) {
-        val pd = productDetailsById[offer.sku]
+        val pd = inappDetailsById[offer.sku]
         if (pd != null) {
             ui = UiState(isProcessing = true, selectedPlanId = offer.sku)
             BillingManager.launchBillingFlow(act, pd, obfuscatedAccountId = uid)
@@ -422,6 +423,23 @@ fun SubscriptionScreen(
                 popUpTo("subscription") { inclusive = true }
             }
         }
+    }
+
+    fun playSubscriptionPrice(plan: Plan): String? {
+        if (useRazorpay) return null
+        val slug = planToSlug(plan)
+        val productId = if (slug.startsWith("premium")) "premium" else "plus"
+        val pd = subsDetailsById[productId] ?: return null
+        val offer = pd.subscriptionOfferDetails?.firstOrNull { it.basePlanId == slug }
+            ?: pd.subscriptionOfferDetails?.firstOrNull()
+        val pricingPhase = offer?.pricingPhases?.pricingPhaseList?.firstOrNull()
+        return pricingPhase?.formattedPrice
+    }
+
+    fun playOneTimePrice(offer: OneTimeOffer): String? {
+        return inappDetailsById[offer.sku]
+            ?.oneTimePurchaseOfferDetails
+            ?.formattedPrice
     }
 
     /* ---------- UI ---------- */
@@ -512,7 +530,10 @@ fun SubscriptionScreen(
                                 color = Color.White
                             )
                             val periodLabelLower = stringResource(periodLabelRes(plan.period)).lowercase(locale)
+                            val playPriceLabel = playSubscriptionPrice(plan)
+
                             val priceLabel = when {
+                                playPriceLabel != null -> playPriceLabel
                                 isIndiaUser -> stringResource(
                                     R.string.subscription_price_label_inr,
                                     plan.price,
@@ -573,8 +594,9 @@ fun SubscriptionScreen(
             ONE_TIME_OFFERS
                 .filter { it.period == currentPeriod }
                 .forEach { offer ->
-                    val productAvailable = productDetailsById[offer.sku] != null
+                    val productAvailable = inappDetailsById[offer.sku] != null
                     val processing = ui.isProcessing && ui.selectedPlanId == offer.sku
+                    val playPrice = playOneTimePrice(offer)
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -605,11 +627,19 @@ fun SubscriptionScreen(
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color.White
                                 )
-                                Text(
-                                    offer.displayPrice(ctx, isIndiaUser, isMexico, isThailand),
-                                    color = Color.LightGray,
-                                    fontSize = 14.sp
-                                )
+                                if (playPrice != null) {
+                                    Text(
+                                        playPrice,
+                                        color = Color.LightGray,
+                                        fontSize = 14.sp
+                                    )
+                                } else {
+                                    Text(
+                                        offer.displayPrice(ctx, isIndiaUser, isMexico, isThailand),
+                                        color = Color.LightGray,
+                                        fontSize = 14.sp
+                                    )
+                                }
                                 val durationLabel = stringResource(periodDurationRes(offer.period))
                                 Text(
                                     stringResource(R.string.subscription_one_time_label, durationLabel),

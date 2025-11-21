@@ -444,11 +444,16 @@ private fun launchOneTimeUpi(
                         "nextRenewal" to now + validityMs,
                         "availableCompliments"  to if (tier == Tier.PREMIUM) 5 else 3,
                         "swipesInfo/remainingSwipes" to if (tier == Tier.PREMIUM) Int.MAX_VALUE else 50
-                    ).apply {
-                        if (tier == Tier.PREMIUM) put("availableAiMessages", 2)
-                    }
+                    )
 
                     FirebaseRefs.db.getReference("users/$uid").updateChildren(updates)
+                    val renewalAnchor = now + validityMs
+                    val aiMessagesTopUp = if (tier == Tier.PREMIUM) 500 else 150
+                    BillingManager.creditAiMessagesOnce(
+                        FirebaseRefs.db.getReference("users/$uid"),
+                        aiMessagesTopUp,
+                        renewalAnchor,
+                    )
                     Toast.makeText(ctx, "Thanks! Enjoy your perks.", Toast.LENGTH_LONG).show()
 
                     nav.navigate("settings") {

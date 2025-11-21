@@ -93,6 +93,7 @@ fun EntryFeePlusScreen(navController: NavController) {
                 )
                 userRef.updateChildren(updates)
                     .addOnSuccessListener {
+                        BillingManager.creditAiMessagesOnce(userRef, 150, renewalTime)
                         val offerDetails = BillingManager.products.value
                             .firstOrNull { it.productId == "entry_fee" }
                             ?.oneTimePurchaseOfferDetails

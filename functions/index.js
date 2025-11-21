@@ -2272,8 +2272,8 @@ exports.verifyKupidxSubscription = functions
           updates.availableBoosts      = tier.premium ? 5 : 3;
           updates.availableCompliments = tier.premium ? 5 : 3;
 
-          // ⭐ AI messages: Plus = 150 / month, Premium = 900 / month
-          updates.availableAiMessages = tier.premium ? 900 : 150;
+          // ⭐ AI messages: Plus = 150 / month, Premium = 500 / month
+          updates.availableAiMessages = tier.premium ? 500 : 150;
         }
       await admin.database().ref(`users/${uid}`).update(updates);
     }
@@ -2312,8 +2312,8 @@ exports.kupidxPlusWebhook = functions
           updates.availableBoosts      = tier.premium ? 5 : 3;
           updates.availableCompliments = tier.premium ? 5 : 3;
 
-          // ⭐ AI messages: Plus = 150 / month, Premium = 900 / month
-          updates.availableAiMessages = tier.premium ? 900 : 150;
+          // ⭐ AI messages: Plus = 150 / month, Premium = 500 / month
+          updates.availableAiMessages = tier.premium ? 500 : 150;
         }
         await db.update(updates);
         break;
