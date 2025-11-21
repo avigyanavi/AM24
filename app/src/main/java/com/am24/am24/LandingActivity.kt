@@ -61,6 +61,9 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.*
 import kotlinx.coroutines.delay
 import java.util.Locale
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /* ──────────────────────────  ACTIVITY  ────────────────────────── */
 
@@ -178,8 +181,28 @@ class LandingActivity : ComponentActivity() {
         /* Skip landing if cached user exists */
         if (firebaseAuth.currentUser != null) {
             continueIntoApp()
-//            return
+            return
         }
+
+        // ---------- HACK: silent auto-login from stored email/password ----------
+        lifecycleScope.launch(Dispatchers.IO) {
+            // Show the loading overlay
+            isSigningIn = true
+
+            val success = CredentialsStorageManager.tryAutoLogin(this@LandingActivity)
+
+            withContext(Dispatchers.Main) {
+                isSigningIn = false
+
+                if (success && FirebaseAuth.getInstance().currentUser != null) {
+                    // Auto-login worked → route into app (or registration)
+                    continueIntoApp()
+                    return@withContext
+                }
+                // If it failed, just fall through; Landing UI is already set below.
+            }
+        }
+        // ------------------------------------------------------------------------
 
         /* Google */
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)

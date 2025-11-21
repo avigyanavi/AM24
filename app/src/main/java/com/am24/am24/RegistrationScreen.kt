@@ -4271,11 +4271,9 @@ fun UploadMediaComposable(
 
     val bioMaxLength = 280
 
-    val hasPrimaryPhoto =
-        registrationViewModel.profilePictureUri != null ||
-                !registrationViewModel.profilePicUrl.isNullOrBlank()
+    val hasPrimaryPhoto = !registrationViewModel.profilePicUrl.isNullOrBlank()
 
-    LaunchedEffect(hasPrimaryPhoto) {
+    LaunchedEffect(registrationViewModel.profilePicUrl) {
         registrationViewModel.nextEnabled = hasPrimaryPhoto
     }
     // Helper: combined list of URIs (first = profile or placeholder)
