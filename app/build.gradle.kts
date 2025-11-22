@@ -22,6 +22,7 @@ android {
             useSupportLibrary = true
         }
     }
+    //
 
     // ▼ This is the correct place
     bundle {
