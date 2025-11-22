@@ -1,6 +1,11 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
+package com.am24.am24
+
 import android.app.Activity
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Base64
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -19,7 +24,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
@@ -29,11 +35,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.am24.am24.FirebaseRefs
-import com.am24.am24.Profile
-import com.am24.am24.ProfileViewModel
-import com.am24.am24.compressImage
-import com.am24.am24.moderateImages
 import com.am24.am24.ui.theme.DarkGrayBackground
 import com.google.firebase.auth.FirebaseAuth
 import com.yalantis.ucrop.UCrop
@@ -42,7 +43,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
+private const val TAG = "EditPic"
+
 @Composable
 fun EditPicAndVoiceBioScreen(
     navController: NavController,
@@ -56,22 +58,27 @@ fun EditPicAndVoiceBioScreen(
     // Up to 5 photo slots
     val photoItems = remember { mutableStateListOf<String>() }
 
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     // Fetch user profile
     LaunchedEffect(currentUserId) {
+        Log.d(TAG, "Fetching profile for $currentUserId")
         profileViewModel.fetchUserProfile(
             userId = currentUserId,
             onSuccess = { fetchedProfile ->
+                Log.d(TAG, "Profile fetched, pic=${fetchedProfile.profilepicUrl}")
                 profile = fetchedProfile
                 val combined = mutableListOf<String>()
                 fetchedProfile.profilepicUrl?.let { combined.add(it) }
                 combined.addAll(fetchedProfile.optionalPhotoUrls)
                 while (combined.size < 5) combined.add("")
-                if (combined.size > 5) combined.dropLast(combined.size - 5)
                 photoItems.clear()
                 photoItems.addAll(combined.take(5))
+                Log.d(TAG, "Initial photoItems=$photoItems")
             },
             onFailure = { error ->
-                Log.e("EditPic", "Failed to load profile: $error")
+                Log.e(TAG, "Failed to load profile: $error")
             }
         )
     }
@@ -84,58 +91,127 @@ fun EditPicAndVoiceBioScreen(
         return
     }
 
-    // Image picking and cropping setup
+    // Which slot is being edited
     var slotIndexToReplace by remember { mutableStateOf<Int?>(null) }
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    // Image moderation helper
-    suspend fun isExplicit(uri: Uri): Boolean = withContext(Dispatchers.IO) {
-        val jpeg = compressImage(context, uri) ?: return@withContext false
-        val b64 = android.util.Base64.encodeToString(jpeg, android.util.Base64.NO_WRAP)
-        moderateImages(listOf(b64))
-    }
+    // ------ Launchers ------
 
+    // Crop launcher
     val cropLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        Log.d(TAG, "UCrop resultCode=${result.resultCode}")
         if (result.resultCode == Activity.RESULT_OK) {
             val outUri = result.data?.let { UCrop.getOutput(it) }
-                ?: return@rememberLauncherForActivityResult
-            val idx = slotIndexToReplace ?: return@rememberLauncherForActivityResult
+            if (outUri == null) {
+                Log.e(TAG, "UCrop output URI is null")
+                return@rememberLauncherForActivityResult
+            }
+            val idx = slotIndexToReplace
+            if (idx == null) {
+                Log.e(TAG, "slotIndexToReplace is null on crop result")
+                return@rememberLauncherForActivityResult
+            }
+
+            Log.d(TAG, "Cropped image uri=$outUri for slot=$idx")
+
+            // 1️⃣ Immediately show cropped image using content:// URI so user sees it
+            photoItems[idx] = outUri.toString()
+
+            // 2️⃣ Then compress + moderate + upload in background
             scope.launch {
-                if (isExplicit(outUri)) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context,
-                            "That photo looks explicit – please choose another.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                    return@launch
-                }
                 try {
-                    val jpegBytes = compressImage(context, outUri) ?: return@launch
-                    val fileName = "${'$'}{System.currentTimeMillis()}.jpg"
+                    val jpegBytes = withContext(Dispatchers.IO) {
+                        compressImage(context, outUri)
+                    }
+
+                    if (jpegBytes == null) {
+                        Log.e(TAG, "compressImage returned null before upload")
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                context,
+                                "Image compression failed. Try a different photo.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        return@launch
+                    }
+
+                    Log.d(TAG, "Compressed image size=${jpegBytes.size} bytes")
+
+                    // Moderation using same bytes
+                    val isExplicit = withContext(Dispatchers.IO) {
+                        val b64 = Base64.encodeToString(jpegBytes, Base64.NO_WRAP)
+                        moderateImages(listOf(b64))
+                    }
+
+                    Log.d(TAG, "moderateImages result=$isExplicit")
+
+                    if (isExplicit) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                context,
+                                "That photo looks explicit – please choose another.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            // reset the slot back to empty
+                            photoItems[idx] = ""
+                        }
+                        return@launch
+                    }
+
+                    // Upload
+                    val fileName = "${System.currentTimeMillis()}.jpg"
                     val imgRef = FirebaseRefs.storage.reference
-                        .child("users/${'$'}currentUserId/${'$'}fileName")
+                        .child("users/$currentUserId/$fileName")
+
+                    Log.d(TAG, "Uploading to path=${imgRef.path}")
 
                     imgRef.putBytes(jpegBytes)
                         .addOnSuccessListener {
                             it.storage.downloadUrl.addOnSuccessListener { dl ->
+                                Log.d(TAG, "Upload success, url=$dl, slot=$idx")
+                                Toast.makeText(
+                                    context,
+                                    "Photo uploaded ✅",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                // swap preview URI with network URL
                                 photoItems[idx] = dl.toString()
+                                Log.d(TAG, "Updated photoItems=$photoItems")
+                            }.addOnFailureListener { e ->
+                                Log.e(TAG, "Failed to get downloadUrl: ${e.message}", e)
+                                Toast.makeText(
+                                    context,
+                                    "Upload done but URL failed: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         }
                         .addOnFailureListener { e ->
-                            Log.e("PhotoUpload", "Upload failed: ${'$'}{e.message}")
+                            Log.e(TAG, "Upload failed: ${e.message}", e)
+                            Toast.makeText(
+                                context,
+                                "Upload failed: ${e.message}",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
+
                 } catch (e: Exception) {
-                    Log.e("PhotoCompress", "Compression error: ${'$'}{e.message}")
+                    Log.e(TAG, "Compression/Upload error: ${e.message}", e)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context,
+                            "Image processing failed: ${e.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
+
         } else if (result.resultCode == UCrop.RESULT_ERROR) {
             val error = result.data?.let { UCrop.getError(it) }
-            error?.let { Log.e("UCrop", "Crop failed", it) }
+            Log.e(TAG, "UCrop error", error)
         }
     }
 
@@ -144,8 +220,17 @@ fun EditPicAndVoiceBioScreen(
         ActivityResultContracts.GetContent()
     ) { rawUri: Uri? ->
         rawUri ?: return@rememberLauncherForActivityResult
-        val idx = slotIndexToReplace ?: return@rememberLauncherForActivityResult
-        val destinationFile = File(context.cacheDir, "cropped_${'$'}{System.currentTimeMillis()}.jpg")
+        val idx = slotIndexToReplace
+        if (idx == null) {
+            Log.e(TAG, "slotIndexToReplace is null on pickImage result")
+            return@rememberLauncherForActivityResult
+        }
+        Log.d(TAG, "Picked raw uri=$rawUri for slot=$idx")
+
+        val destinationFile = File(
+            context.cacheDir,
+            "cropped_${System.currentTimeMillis()}.jpg"
+        )
         val destinationUri = Uri.fromFile(destinationFile)
         val options = UCrop.Options().apply {
             setCompressionFormat(Bitmap.CompressFormat.JPEG)
@@ -166,6 +251,8 @@ fun EditPicAndVoiceBioScreen(
         val mainPic = nonEmpty.firstOrNull()
         val others = if (nonEmpty.size > 1) nonEmpty.drop(1) else emptyList()
 
+        Log.d(TAG, "Saving profile with mainPic=$mainPic others=$others")
+
         val updatedProfile = profile!!.copy(
             profilepicUrl = mainPic,
             optionalPhotoUrls = others
@@ -174,15 +261,26 @@ fun EditPicAndVoiceBioScreen(
         profileViewModel.saveProfileUpdated(
             updatedProfile = updatedProfile,
             onSuccess = {
-                scope.launch(Dispatchers.Main) {
+                Log.d(TAG, "Profile save success")
+                scope.launch {
                     navController.navigateUp()
                 }
             },
-            onFailure = { e -> Log.e("EditPic", "Failed to update: $e") }
+            onFailure = { e ->
+                Log.e(TAG, "Failed to update profile: $e")
+                scope.launch {
+                    Toast.makeText(
+                        context,
+                        "Failed to save profile: $e",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
         )
     }
 
-    // UI
+    // ---------------- UI ----------------
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -232,12 +330,18 @@ fun EditPicAndVoiceBioScreen(
                                     .fillMaxSize()
                                     .border(1.dp, Color.Gray, RectangleShape)
                                     .clickable {
+                                        Log.d(TAG, "Clicked empty slot index=$index")
                                         slotIndexToReplace = index
                                         pickImageLauncher.launch("image/*")
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("+", color = Color.Gray, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "+",
+                                    color = Color.Gray,
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         } else {
                             AsyncImage(
@@ -246,12 +350,16 @@ fun EditPicAndVoiceBioScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
+
                             IconButton(
                                 onClick = {
                                     val countNonEmpty = photoItems.count { it.isNotBlank() }
-                                    if (countNonEmpty == 1 && index == photoItems.indexOfFirst { it.isNotBlank() }) {
-                                        Log.w("EditPic", "Cannot remove the only photo.")
+                                    if (countNonEmpty == 1 &&
+                                        index == photoItems.indexOfFirst { it.isNotBlank() }
+                                    ) {
+                                        Log.w(TAG, "Cannot remove the only photo.")
                                     } else {
+                                        Log.d(TAG, "Removing photo at index=$index")
                                         photoItems[index] = ""
                                     }
                                 },
@@ -261,9 +369,11 @@ fun EditPicAndVoiceBioScreen(
                             ) {
                                 Icon(Icons.Default.Close, "Remove", tint = Color.Red)
                             }
+
                             if (index > 0) {
                                 IconButton(
                                     onClick = {
+                                        Log.d(TAG, "Moving photo $index -> ${index - 1}")
                                         val temp = photoItems[index - 1]
                                         photoItems[index - 1] = photoItems[index]
                                         photoItems[index] = temp
@@ -273,12 +383,18 @@ fun EditPicAndVoiceBioScreen(
                                         .offset(x = 4.dp, y = (-4).dp)
                                         .size(24.dp)
                                 ) {
-                                    Icon(Icons.Default.KeyboardArrowUp, "Move Left", tint = Color.White)
+                                    Icon(
+                                        Icons.Default.KeyboardArrowUp,
+                                        "Move Left",
+                                        tint = Color.White
+                                    )
                                 }
                             }
+
                             if (index < photoItems.lastIndex) {
                                 IconButton(
                                     onClick = {
+                                        Log.d(TAG, "Moving photo $index -> ${index + 1}")
                                         val temp = photoItems[index + 1]
                                         photoItems[index + 1] = photoItems[index]
                                         photoItems[index] = temp
@@ -288,7 +404,11 @@ fun EditPicAndVoiceBioScreen(
                                         .offset(x = 32.dp, y = (-4).dp)
                                         .size(24.dp)
                                 ) {
-                                    Icon(Icons.Default.KeyboardArrowDown, "Move Right", tint = Color.White)
+                                    Icon(
+                                        Icons.Default.KeyboardArrowDown,
+                                        "Move Right",
+                                        tint = Color.White
+                                    )
                                 }
                             }
                         }

@@ -89,6 +89,8 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileInputStream
+import java.io.InputStream
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -375,67 +377,75 @@ fun RegistrationScreen(
                 /* NEW → one global “Next” icon, enabled ⇔ viewModel.nextEnabled */
                 /* NEW → one global “Next” icon */
                 actions = {
-                    IconButton(
-                        onClick = {
-                            if (registrationViewModel.nextEnabled) {
-                                onNext()
-                            } else {
-                                when (currentStep) {
-                                    2 -> {
-                                        val userAge = calculateAge(registrationViewModel.dob)
-                                        when {
-                                            registrationViewModel.dob.isBlank() ->
-                                                Toast.makeText(
-                                                    context,
-                                                    context.getString(R.string.toast_select_birth_date),
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                            userAge == null || userAge < 18 ->
-                                                Toast.makeText(
-                                                    context,
-                                                    context.getString(R.string.toast_minimum_age),
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                            registrationViewModel.gender.isBlank() ->
-                                                Toast.makeText(
-                                                    context,
-                                                    context.getString(R.string.please_select_gender),
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                            else -> {}
+                    if (currentStep != 1) {
+                        IconButton(
+                            onClick = {
+                                if (registrationViewModel.nextEnabled) {
+                                    onNext()
+                                } else {
+                                    when (currentStep) {
+                                        2 -> {
+                                            val userAge = calculateAge(registrationViewModel.dob)
+                                            when {
+                                                registrationViewModel.dob.isBlank() ->
+                                                    Toast.makeText(
+                                                        context,
+                                                        context.getString(R.string.toast_select_birth_date),
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+
+                                                userAge == null || userAge < 18 ->
+                                                    Toast.makeText(
+                                                        context,
+                                                        context.getString(R.string.toast_minimum_age),
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+
+                                                registrationViewModel.gender.isBlank() ->
+                                                    Toast.makeText(
+                                                        context,
+                                                        context.getString(R.string.please_select_gender),
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+
+                                                else -> {}
+                                            }
+                                        }
+
+                                        8 -> {
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.toast_complete_entry_fee),
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+
+                                        9 -> {
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.toast_pick_valid_username),
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+
+                                        else -> {
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.toast_complete_required_fields),
+                                                Toast.LENGTH_LONG
+                                            ).show()
                                         }
                                     }
-                                    8 -> {
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.toast_complete_entry_fee),
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-                                    9 -> {
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.toast_pick_valid_username),
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-                                    else -> {
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.toast_complete_required_fields),
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
                                 }
-                            }
-                        },
-                        enabled = true
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowForward,
-                            contentDescription = "Next",
-                            tint = Color.White
-                        )
+                            },
+                            enabled = true
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowForward,
+                                contentDescription = "Next",
+                                tint = Color.White
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
@@ -2693,60 +2703,111 @@ suspend fun saveProfileToFirebase(
     }
 }
 
+private const val COMPRESS_TAG = "CompressImage"
+
 @Suppress("ReturnCount")
 suspend fun compressImage(
     context: Context,
     uri: Uri,
-    maxWidth: Int = 1080,      // down-scale if wider than this
-    quality: Int = 75          // JPEG quality 0‒100
+    maxWidth: Int = 1080,
+    quality: Int = 75
 ): ByteArray? = withContext(Dispatchers.IO) {
+
+    Log.d(COMPRESS_TAG, "compressImage start, uri=$uri, scheme=${uri.scheme}")
+
+    // Helper to open an InputStream for content://
+    fun openContentStream(): InputStream? {
+        return try {
+            context.contentResolver.openInputStream(uri)
+        } catch (e: Exception) {
+            Log.e(COMPRESS_TAG, "openContentStream failed for $uri: ${e.message}", e)
+            null
+        }
+    }
+
     var sampled: Bitmap? = null
     var scaled: Bitmap? = null
-    try {
-        val resolver = context.contentResolver
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)?.use { input ->
-            BitmapFactory.decodeStream(input, null, bounds)
-        } ?: return@withContext null
 
+    try {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+
+        val isFileScheme = uri.scheme == "file"
+        val path = uri.path
+
+        // 1) Read bounds
+        if (isFileScheme && path != null) {
+            // ✅ For UCrop file:// output, use decodeFile
+            Log.d(COMPRESS_TAG, "Reading bounds via decodeFile, path=$path")
+            BitmapFactory.decodeFile(path, bounds)
+        } else {
+            // content:// or others via stream
+            Log.d(COMPRESS_TAG, "Reading bounds via content resolver for $uri")
+            openContentStream()?.use { input ->
+                BitmapFactory.decodeStream(input, null, bounds)
+            } ?: run {
+                Log.e(COMPRESS_TAG, "openContentStream() null when reading bounds for $uri")
+                return@withContext null
+            }
+        }
+
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            Log.e(
+                COMPRESS_TAG,
+                "Invalid image bounds for $uri w=${bounds.outWidth} h=${bounds.outHeight}"
+            )
+            return@withContext null
+        }
+
+        // 2) Compute sampling
         val sampleSize = calculateInSampleSize(bounds, maxWidth)
         val decodeOptions = BitmapFactory.Options().apply {
             inSampleSize = sampleSize
             inPreferredConfig = Bitmap.Config.RGB_565
         }
 
-        sampled = resolver.openInputStream(uri)?.use { input ->
-            BitmapFactory.decodeStream(input, null, decodeOptions)
+        // 3) Decode bitmap
+        sampled = if (isFileScheme && path != null) {
+            Log.d(COMPRESS_TAG, "Decoding bitmap via decodeFile, sampleSize=$sampleSize, path=$path")
+            BitmapFactory.decodeFile(path, decodeOptions)
+        } else {
+            Log.d(COMPRESS_TAG, "Decoding bitmap via content resolver, sampleSize=$sampleSize")
+            openContentStream()?.use { input ->
+                BitmapFactory.decodeStream(input, null, decodeOptions)
+            }
         }
 
         val decoded = sampled ?: run {
-            Log.e("CompressImage", "Unable to decode sampled bitmap for uri=$uri")
+            Log.e(COMPRESS_TAG, "Unable to decode bitmap for uri=$uri")
             return@withContext null
         }
 
+        // 4) Optional extra downscale
         val ratio = maxWidth.toFloat() / decoded.width.toFloat()
         scaled = if (ratio < 1f) {
             val targetWidth = (decoded.width * ratio).roundToInt().coerceAtLeast(1)
             val targetHeight = (decoded.height * ratio).roundToInt().coerceAtLeast(1)
-            Bitmap.createScaledBitmap(
-                decoded,
-                targetWidth,
-                targetHeight,
-                true
+            Log.d(
+                COMPRESS_TAG,
+                "Scaling from ${decoded.width}x${decoded.height} -> ${targetWidth}x${targetHeight}"
             )
+            Bitmap.createScaledBitmap(decoded, targetWidth, targetHeight, true)
         } else {
             decoded
         }
 
-        ByteArrayOutputStream().use { out ->
+        // 5) Compress to JPEG bytes
+        return@withContext ByteArrayOutputStream().use { out ->
             scaled!!.compress(Bitmap.CompressFormat.JPEG, quality, out)
-            out.toByteArray()
+            val bytes = out.toByteArray()
+            Log.d(
+                COMPRESS_TAG,
+                "Compressed $uri → ${bytes.size} bytes (sampleSize=$sampleSize, scheme=${uri.scheme})"
+            )
+            bytes
         }
-    } catch (oom: OutOfMemoryError) {
-        Log.e("CompressImage", "Out of memory while compressing image", oom)
-        null
+
     } catch (e: Exception) {
-        Log.e("CompressImage", "Failed to compress image: ${e.message}")
+        Log.e(COMPRESS_TAG, "Failed to compress image for $uri: ${e.message}", e)
         null
     } finally {
         if (scaled != null && scaled !== sampled && scaled?.isRecycled == false) {
