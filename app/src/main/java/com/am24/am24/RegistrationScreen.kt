@@ -93,6 +93,7 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
+import com.google.firebase.storage.ktx.storageMetadata
 
 class RegistrationActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
@@ -2787,16 +2788,23 @@ fun uploadProfilePicToFirebase(
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
         val ref = storageRef.child("users/$userId/profile_pic.jpg")
 
-        ref.putBytes(jpegBytes)
-            .addOnSuccessListener {
-                ref.downloadUrl.addOnSuccessListener { downloadUri ->
-                    registrationViewModel.profilePicUrl = downloadUri.toString()
-                    Log.d("UploadMedia", "Profile picture uploaded: $downloadUri")
-                }
+        try {
+            val metadata = storageMetadata { contentType = "image/jpeg" }
+            ref.putBytes(jpegBytes, metadata).await()
+            val downloadUri = ref.downloadUrl.await()
+            registrationViewModel.profilePicUrl = downloadUri.toString()
+            Log.d("UploadMedia", "Profile picture uploaded: $downloadUri")
+        } catch (e: Exception) {
+            Log.e("UploadMedia", "Profile-pic upload failed", e)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_upload_failed_try_again),
+                    Toast.LENGTH_LONG
+                ).show()
             }
-            .addOnFailureListener { e ->
-                Log.e("UploadMedia", "Profile-pic upload failed: ${e.message}")
-            }
+            registrationViewModel.profilePicUrl = null
+        }
     }
 }
 
@@ -4632,15 +4640,21 @@ fun uploadOptionalPhoto(
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
         val ref = storageRef.child("users/$userId/${uri.lastPathSegment ?: System.currentTimeMillis()}.jpg")
 
-        ref.putBytes(jpegBytes)
-            .addOnSuccessListener {
-                ref.downloadUrl.addOnSuccessListener { downloadUri ->
-                    registrationViewModel.optionalPhotoUrls.add(downloadUri.toString())
-                }
+        try {
+            val metadata = storageMetadata { contentType = "image/jpeg" }
+            ref.putBytes(jpegBytes, metadata).await()
+            val downloadUri = ref.downloadUrl.await()
+            registrationViewModel.optionalPhotoUrls.add(downloadUri.toString())
+        } catch (e: Exception) {
+            Log.e("UploadMedia", "Optional-photo upload failed", e)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_upload_failed_try_again),
+                    Toast.LENGTH_LONG
+                ).show()
             }
-            .addOnFailureListener { e ->
-                Log.e("UploadMedia", "Optional-photo upload failed: ${e.message}")
-            }
+        }
     }
 }
 

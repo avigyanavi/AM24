@@ -15,6 +15,8 @@
     <string name="add_location_optional">เพิ่มตำแหน่งที่ตั้ง (ไม่บังคับ)</string>
     <string name="show_on_profile">แสดงในโปรไฟล์</string>
     <string name="dont_show_location">ไม่แสดงตำแหน่งที่ตั้ง</string>
+    <string name="toast_upload_failed_try_again">เราไม่สามารถอัปโหลดรูปนั้นได้ กรุณาลองอีกครั้ง</string>
+
     <string name="roles_label">บทบาท</string>
     <string name="private_album">อัลบั้มส่วนตัว</string>
     <string name="private_album_title">อัลบั้มส่วนตัว</string>

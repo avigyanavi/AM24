@@ -15,6 +15,8 @@
     <string name="settings_search_username_no_results">No se encontraron usuarios con ese nombre.</string>
     <string name="settings_search_username_premium_only">Solo Premium</string>
     <string name="sort_popular">Popular</string>
+    <string name="toast_upload_failed_try_again">No pudimos subir esa foto. Por favor, inténtalo de nuevo.</string>
+
     <string name="filter_label_age">Age %1$s</string>
     <string name="filter_label_gender">Gender: %1$s</string>
     <string name="filter_label_orientation">Orientation: %1$s</string>

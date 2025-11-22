@@ -9,6 +9,7 @@
     <string name="dont_show_location">Don\'t show location</string>
     <string name="private_album">Private album</string>
     <string name="private_album_title">Private Album</string>
+    <string name="toast_upload_failed_try_again">We couldn’t upload that photo. Please try again.</string>
     <string name="private_album_settings">Private album settings</string>
     <string name="share_private_album">Share private album</string>
     <string name="user_shared_private_album">%1$s has shared their private album</string>
