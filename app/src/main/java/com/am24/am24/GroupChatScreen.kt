@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -51,8 +50,6 @@ data class GroupChatMessage(
     val text: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )
-
-private const val SKELETON_FAILSAFE_DELAY_MS = 5_000L
 
 private sealed interface ValidationResult {
     data class Valid(val message: GroupChatMessage) : ValidationResult
@@ -100,14 +97,6 @@ fun GroupChatScreen(
     var isMessagesLoading by remember { mutableStateOf(true) }
     val userIdentityCache = remember { mutableMapOf<String, Pair<String, String>>() }
     val listState = rememberLazyListState()
-    LaunchedEffect(isMessagesLoading, messages.size) {
-        if (isMessagesLoading && messages.isEmpty()) {
-            delay(SKELETON_FAILSAFE_DELAY_MS)
-            if (isMessagesLoading && messages.isEmpty()) {
-                isMessagesLoading = false
-            }
-        }
-    }
 
     LaunchedEffect(messages.size, isMessagesLoading) {
         if (!isMessagesLoading && messages.isNotEmpty()) {
@@ -216,113 +205,85 @@ fun GroupChatScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(formatGroupTitle(groupId), color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)            )
-        },
-        containerColor = Color.Black
-    ) { paddingValues ->
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        /* ----- messages list ----- */
+        LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color.Black)
+                .weight(1f)
+                .padding(vertical = 8.dp),
+            state = listState,
+            verticalArrangement = if (messages.isNotEmpty()) Arrangement.Bottom else Arrangement.Top
         ) {
-            /* ----- messages list ----- */
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 8.dp),
-                state = listState,
-                verticalArrangement = if (messages.isNotEmpty()) Arrangement.Bottom else Arrangement.Top
-            ) {
-                when {
-                    isMessagesLoading -> {
-                        items(6) { index ->
-                            GroupMessageSkeleton(isCurrentUser = index % 2 == 0)
-                        }
+            when {
+                isMessagesLoading -> {
+                    items(6) { index ->
+                        GroupMessageSkeleton(isCurrentUser = index % 2 == 0)
                     }
+                }
 
-                    messages.isEmpty() -> {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("No messages yet", color = Color.Gray, fontSize = 12.sp)
-                            }
-                        }
-                    }
-
-                    else -> {
-                        items(messages) { msg ->
-                            GroupMessageBubble(
-                                message = msg,
-                                navController = navController,
-                                currentUserId = currentUserId,
-                                matches = matches
-                            )
-                        }
+                else -> {
+                    items(messages) { msg ->
+                        GroupMessageBubble(
+                            message = msg,
+                            navController = navController,
+                            currentUserId = currentUserId,
+                            matches = matches
+                        )
                     }
                 }
             }
+        }
 
-            /* ----- input row ----- */
-            Row(
+        /* ----- input row ----- */
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextField(
+                value = messageText,
+                onValueChange = { messageText = it },
+                placeholder = { Text("Type a message…", color = Color.Gray) },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .weight(1f)
+                    .background(Color.DarkGray, RoundedCornerShape(24.dp)),
+                colors = TextFieldDefaults.colors(
+                    unfocusedContainerColor = Color.DarkGray,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedTextColor = Color.White,
+                    focusedPlaceholderColor = Color.Gray,
+                    cursorColor             = KupidxOrange
+                ),
+                singleLine = true,
+                shape = RoundedCornerShape(24.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            IconButton(
+                onClick = {
+                    if (messageText.isNotBlank()) {
+                        val displayName = currentUserProfile?.name ?: "User"
+                        val username = currentUserProfile?.username.orEmpty()
+                        sendGroupChatMessage(
+                            userId = currentUserId,
+                            userName = displayName,
+                            userUsername = username,
+                            text = messageText,
+                            messagesRef = messagesRef
+                        )
+                        messageText = ""
+                    }
+                },
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFFFF4500), CircleShape)
             ) {
-                TextField(
-                    value = messageText,
-                    onValueChange = { messageText = it },
-                    placeholder = { Text("Type a message…", color = Color.Gray) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(Color.DarkGray, RoundedCornerShape(24.dp)),
-                    colors = TextFieldDefaults.colors(
-                        unfocusedContainerColor = Color.DarkGray,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        focusedPlaceholderColor = Color.Gray,
-                        cursorColor             = KupidxOrange
-                    ),
-                    singleLine = true,
-                    shape = RoundedCornerShape(24.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                IconButton(
-                    onClick = {
-                        if (messageText.isNotBlank()) {
-                            val displayName = currentUserProfile?.name ?: "User"
-                            val username = currentUserProfile?.username.orEmpty()
-                            sendGroupChatMessage(
-                                userId = currentUserId,
-                                userName = displayName,
-                                userUsername = username,
-                                text = messageText,
-                                messagesRef = messagesRef
-                            )
-                            messageText = ""
-                        }
-                    },
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(Color(0xFFFF4500), CircleShape)
-                ) {
-                    Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
-                }
+                Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
             }
         }
     }

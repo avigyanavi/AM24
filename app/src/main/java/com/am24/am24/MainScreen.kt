@@ -249,6 +249,7 @@ fun TopNavBar(
     val isUserSettings = currentRoute == "settings"
     val isProfileScreen = currentRoute == "profile"
     val isDMScreen = currentRoute == "dms"
+    val isGroupChat = currentDestination?.route?.startsWith("groupChat") == true
 
     // 🔸 NEW: are we on any bottom nav root screen?
     val isOnBottomNavRoot = currentDestination
@@ -306,34 +307,54 @@ fun TopNavBar(
         ?.any { it.route == "omegleUsers" } == true
     val isAdmin by profileViewModel.isAdmin.collectAsState()
     val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()
+    val groupId = navBackStackEntry?.arguments?.getString("groupId")
 
     TopAppBar(
         modifier = Modifier.shadow(16.dp),
         title = {
-            if (currentRoute == "aiPartner") {
-                Column {
+            when {
+                isGroupChat && groupId != null -> {
                     Text(
-                        text = "Your AI Partner 💕",
+                        text = formatGroupTitle(groupId),
                         fontSize = 18.sp,
                         color = Color.White
                     )
-                    Text(
-                        text = "Flirty, safe & just for you",
-                        fontSize = 12.sp,
-                        color = KupidxOrange
-                    )
+                }
+                currentRoute == "aiPartner" -> {
+                    Column {
+                        Text(
+                            text = "Your AI Partner 💕",
+                            fontSize = 18.sp,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Flirty, safe & just for you",
+                            fontSize = 12.sp,
+                            color = KupidxOrange
+                        )
+                    }
                 }
             }
         },
         navigationIcon = {
-            Box(
-                modifier = Modifier.size(40.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.kupidx_logo1),
-                    contentDescription = stringResource(R.string.logo_kupidx_desc),
-                    modifier = Modifier.size(56.dp)
-                )
+            if (isGroupChat) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.kupidx_logo1),
+                        contentDescription = stringResource(R.string.logo_kupidx_desc),
+                        modifier = Modifier.size(56.dp)
+                    )
+                }
             }
         },
         actions = {
