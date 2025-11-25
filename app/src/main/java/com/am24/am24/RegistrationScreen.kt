@@ -89,7 +89,6 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileInputStream
 import java.io.InputStream
 import java.util.Calendar
 import java.util.Locale
@@ -792,7 +791,7 @@ fun RegistrationAccordion(
     title: String,
     content: @Composable () -> Unit
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(true) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -3870,7 +3869,7 @@ fun EnterInterestsScreen(
     val categorized = interestPresets()
 
     val interestsOverLimit = registrationViewModel.interests.size > maxInterests
-    val canProceed = registrationViewModel.interests.isNotEmpty() && !interestsOverLimit
+    val canProceed = !interestsOverLimit
 
     LaunchedEffect(canProceed) { registrationViewModel.nextEnabled = canProceed }
     /* ───── 3) UI ───── */
