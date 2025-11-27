@@ -6,6 +6,7 @@ import java.util.Locale
 fun defaultLanguageCode(): String {
     val deviceLanguage = Locale.getDefault().language.lowercase(Locale.ROOT)
     return when (deviceLanguage) {
+        "hi" -> "hi"
         "es" -> "es"
         "th" -> "th"
         "vi" -> "vi"

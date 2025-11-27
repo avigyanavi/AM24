@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 private const val TAG = "AIPartnerViewModel"
 
@@ -94,12 +95,26 @@ class AIPartnerViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val basePartnerPrompt = """
-                    You are the user's ideal romantic partner in a dating app.
-                    Be empathetic, flirty, supportive, and culturally aware of Indian and global contexts.
-                    Reference Indian festivals, cities, food or pop-culture only when relevant (not always).
-                    Responses must be under 150 words. Respond in the user's preferred language.
-                """.trimIndent()
+                val preferredLanguageCode = profile.preferredLanguage
+                    .ifBlank { defaultLanguageCode() }
+                    .lowercase(Locale.ROOT)
+
+                val languageInstruction = preferredLanguageCode
+                    .takeIf { it != "en" }
+                    ?.let {
+                        val languageName = Locale(it).displayLanguage
+                            .takeIf { name -> name.isNotBlank() }
+                            ?: it
+                        "Respond in the user's preferred language: $languageName."
+                    }
+
+                val basePartnerPrompt = buildString {
+                    appendLine("You are the user's ideal romantic partner in a dating app.")
+                    appendLine("Be empathetic, flirty, supportive, and culturally aware of Indian and global contexts.")
+                    appendLine("Reference Indian festivals, cities, food or pop-culture only when relevant (not always).")
+                    appendLine("Responses must be under 150 words.")
+                    languageInstruction?.let { appendLine(it) }
+                }.trim()
 
                 val fullSystemPrompt = buildString {
                     appendLine(basePartnerPrompt)

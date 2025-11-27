@@ -48,6 +48,12 @@ fun canonicalGender(raw: String?): String {
         "mujer", "mujeres", "femenino" -> "female"
         "otro", "otra", "otros", "otras", "no binario", "no-binario", "no_binario", "nobinario" -> "other"
 
+        // Hindi
+        "पुरुष" -> "male"
+        "महिला" -> "female"
+        "अन्य" -> "other"
+        "कोई भी" -> ""
+
         // Stored resource keys
         "male_option" -> "male"
         "female_option" -> "female"
@@ -79,7 +85,7 @@ private fun String.stripAccents(): String =
         .trim()
 
 private val countryMap: Map<String, String> by lazy {
-    val languages = listOf(Locale.ENGLISH, Locale("es"), Locale("th"), Locale("vi"))
+    val languages = listOf(Locale.ENGLISH, Locale("es"), Locale("th"), Locale("vi"), Locale("hi"))
     Locale.getISOCountries().flatMap { code ->
         val en = Locale("", code).getDisplayCountry(Locale.ENGLISH)
         languages.map { lang ->
