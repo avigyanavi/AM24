@@ -10,8 +10,9 @@
     <string name="username_updated">Tên người dùng đã được cập nhật</string>
     <string name="action_done">Hoàn tất</string>
     <string name="toast_upload_failed_try_again">Chúng tôi không thể tải lên ảnh đó. Vui lòng thử lại.</string>
-
+    <string name="settings_advanced_settings">Cài đặt nâng cao</string>
     <string name="verify_email_body">Vui lòng xác minh địa chỉ email của bạn để sử dụng ứng dụng.</string>
+    <string name="language_name_hindi">हिन्दी</string>
 
     <string name="email_verification_sent">Email xác minh đã được gửi!</string>
     <string name="email_verified_enjoy">Email đã được xác minh – hãy tận hưởng ứng dụng!</string>

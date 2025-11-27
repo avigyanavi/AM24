@@ -11,6 +11,7 @@
     <string name="private_album_title">Private Album</string>
     <string name="toast_upload_failed_try_again">We couldn’t upload that photo. Please try again.</string>
     <string name="private_album_settings">Private album settings</string>
+    <string name="settings_advanced_settings">Advanced settings</string>
     <string name="share_private_album">Share private album</string>
     <string name="user_shared_private_album">%1$s has shared their private album</string>
     <string name="user_hidden_private_album">%1$s has hidden their private album</string>
@@ -1749,6 +1750,7 @@
     <string name="postgrad_nehu_shillong">North-Eastern Hill University, Shillong</string>
     <string name="postgrad_cotton_university">Cotton University</string>
     <string name="postgrad_iim_shillong">Indian Institute of Management Shillong</string>
+    <string name="language_name_hindi">हिन्दी</string>
 
     <!-- Union Territories -->
     <string name="postgrad_jamia_millia_islamia">Jamia Millia Islamia</string>

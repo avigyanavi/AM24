@@ -741,10 +741,10 @@ fun LanguageSelectionBar(
 ) {
     val languages = listOf(
         "English" to "en",
-        "Español" to "es",
+        "हिन्दी" to "hi",
     )
     // Only English + Spanish are selectable now
-    val unlockedCodes = setOf("en", "es")
+    val unlockedCodes = setOf("en", "hi")
     val scroll = rememberScrollState()
 
     Row(

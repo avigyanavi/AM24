@@ -94,14 +94,11 @@ class AIPartnerViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val lang = "en" // TODO: hook to profile language if/when you add it
-
                 val basePartnerPrompt = """
                     You are the user's ideal romantic partner in a dating app.
                     Be empathetic, flirty, supportive, and culturally aware of Indian and global contexts.
-                    Reference Indian festivals, cities, food or pop-culture when relevant.
-                    Responses must be under 150 words.
-                    Respond in language code: $lang.
+                    Reference Indian festivals, cities, food or pop-culture only when relevant (not always).
+                    Responses must be under 150 words. Respond in the user's preferred language.
                 """.trimIndent()
 
                 val fullSystemPrompt = buildString {

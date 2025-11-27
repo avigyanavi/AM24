@@ -1099,14 +1099,15 @@ private fun GlobalPrefCard(
     isMatrimony: Boolean,
     onMatrimonyChange: (Boolean) -> Unit
 ) {
-    val ctx = LocalContext.current
     val langs = listOf(
         stringResource(R.string.language_name_english) to "en",
+        stringResource(R.string.language_name_hindi) to "hi",
         stringResource(R.string.language_name_spanish) to "es",
         stringResource(R.string.language_name_thai) to "th",
         stringResource(R.string.language_name_vietnamese) to "vi",
     )
     var exp by remember { mutableStateOf(false) }
+    var advancedExpanded by remember { mutableStateOf(false) }
 
     SettingsSection {
         ListItem(
@@ -1196,34 +1197,56 @@ private fun GlobalPrefCard(
         Row(
             Modifier
                 .fillMaxWidth()
+                .clickable { advancedExpanded = !advancedExpanded }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.MyLocation, null)
+            Icon(Icons.Default.Settings, null)
             Spacer(Modifier.width(16.dp))
-            Text(stringResource(R.string.settings_allow_matches_maps), Modifier.weight(1f))
-            Switch(
-                checked = allowLoc,
-                onCheckedChange = onAllowLocChange,
-                colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFF6F00))
+            Text(stringResource(R.string.settings_advanced_settings), Modifier.weight(1f))
+            Icon(
+                if (advancedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null
             )
         }
-        Divider(Modifier.padding(start = 56.dp))
 
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Default.Public, null)
-            Spacer(Modifier.width(16.dp))
-            Text(stringResource(R.string.settings_allow_public_maps), Modifier.weight(1f))
-            Switch(
-                checked = allowPublic,
-                onCheckedChange = onAllowPublicChange,
-                colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFF6F00))
-            )
+        if (advancedExpanded) {
+            Divider(Modifier.padding(start = 56.dp))
+
+
+            /* location */
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.MyLocation, null)
+                Spacer(Modifier.width(16.dp))
+                Text(stringResource(R.string.settings_allow_matches_maps), Modifier.weight(1f))
+                Switch(
+                    checked = allowLoc,
+                    onCheckedChange = onAllowLocChange,
+                    colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFF6F00))
+                )
+            }
+            Divider(Modifier.padding(start = 56.dp))
+
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Public, null)
+                Spacer(Modifier.width(16.dp))
+                Text(stringResource(R.string.settings_allow_public_maps), Modifier.weight(1f))
+                Switch(
+                    checked = allowPublic,
+                    onCheckedChange = onAllowPublicChange,
+                    colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFF6F00))
+                )
+            }
         }
         Divider(Modifier.padding(start = 56.dp))
 
