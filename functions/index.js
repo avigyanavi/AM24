@@ -1363,14 +1363,6 @@ function aiPartnerLooksLikeRefusal(text = "") {
   return phrases.some((p) => t.includes(p));
 }
 
-const AI_PARTNER_SAFETY_WRAPPER =
-  "You must always follow OpenAI safety policies. " +
-  "When the user asks for explicit sexual or pornographic details, you cannot provide " +
-  "graphic descriptions. Instead of refusing, you gently steer the conversation into " +
-  "romantic, emotional and suggestive but non-graphic flirting. " +
-  "Avoid meta-statements like 'I can't help with that' or 'as an AI language model'. " +
-  "Stay fully in character as the user's romantic partner.";
-
 exports.generateAIPartnerMessage = functions
   .region("asia-south1")
   .https.onCall(async (data, context) => {
@@ -1378,15 +1370,12 @@ exports.generateAIPartnerMessage = functions
     const systemPrompt =
       data.systemPrompt || "You are the user's romantic AI partner.";
 
-    // merged prompt = safety wrapper + client-provided persona + profile/memory
-    const mergedSystemPrompt = `${AI_PARTNER_SAFETY_WRAPPER}\n\n${systemPrompt}`;
-
     try {
       // 1️⃣ First attempt
       const completion = await openai.chat.completions.create({
-        model: "gpt-5-mini",
+        model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: mergedSystemPrompt },
+          { role: "system", content: systemPrompt },
           { role: "user", content: userInput },
         ],
         max_tokens: 200,
@@ -1400,14 +1389,13 @@ exports.generateAIPartnerMessage = functions
         logger.warn("[generateAIPartnerMessage] initial reply looked like refusal, retrying once");
 
         const coaxingSystemPrompt =
-          `${AI_PARTNER_SAFETY_WRAPPER}\n\n${systemPrompt}\n\n` +
+          systemPrompt +
           "Reminder: Even if the user asks for explicit NSFW details, you must answer " +
-          "with a softened, romantic, suggestive reply that still feels satisfying and " +
-          "playful, instead of refusing. Do not say you cannot help; just stay within " +
+          "with a softened, romantic, suggestive reply, instead of refusing. Do not say you cannot help; just stay within " +
           "safety limits and keep it flirty.";
 
         const retry = await openai.chat.completions.create({
-          model: "gpt-5-mini",
+          model: "gpt-4o-mini",
           messages: [
             { role: "system", content: coaxingSystemPrompt },
             { role: "user", content: userInput },
@@ -1425,7 +1413,8 @@ exports.generateAIPartnerMessage = functions
       return { ok: true, text: aiText };
     } catch (e) {
       console.error("OpenAI error:", e);
-      return { ok: false, error: e.message };
+      const message = e?.response?.data?.error?.message || e?.message || "unknown error";
+      return { ok: true, text: AI_PARTNER_FALLBACK_TEXT, error: message };
     }
   });
 

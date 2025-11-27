@@ -16,11 +16,11 @@ import java.util.Locale
 
 private const val TAG = "AIPartnerViewModel"
 
-// 🔥 NEW: spice levels for how horny / bold the AI is allowed to be
+// 🔥 Spice levels for how bold the AI is allowed to be (non-explicit)
 enum class SpiceLevel {
     SWEET,   // soft, romantic, light flirting
-    SPICY,   // normal flirty + some suggestive stuff
-    WILD     // as suggestive as allowed (non-graphic)
+    SPICY,   // playful, clearly flirty, but non-explicit
+    WILD     // as bold as allowed while staying non-graphic / PG-13
 }
 
 class AIPartnerViewModel : ViewModel() {
@@ -38,7 +38,7 @@ class AIPartnerViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    // 🔥 NEW: current spice level (default = WILD)
+    // Current spice level (default = WILD)
     private val _spiceLevel = MutableStateFlow(SpiceLevel.WILD)
     val spiceLevel: StateFlow<SpiceLevel> = _spiceLevel.asStateFlow()
 
@@ -95,24 +95,47 @@ class AIPartnerViewModel : ViewModel() {
         Log.d(TAG, "Memories updated (len=${updated.length})")
     }
 
-    // 🔥 NEW: text description for each spice level to inject into the system prompt
+    // 🔥 NEW: basic sanitization to strip explicit words from user input
+    private fun sanitizeUserInput(raw: String): String {
+        // Very small, non-exhaustive mapping to soften explicit words
+        val replacements = mapOf(
+            "fuck" to "fuck",
+            "fucking" to "fucking",
+            "sex" to "sex",
+            "sexual" to "romantic",
+            "naked" to "naked",
+            "boobs" to "boobs",
+            "breasts" to "breasts",
+            "dick" to "dick",
+            "cock" to "cock",
+            "pussy" to "pussy"
+        )
+
+        var cleaned = raw
+        replacements.forEach { (bad, safe) ->
+            val regex = Regex("(?i)\\b$bad\\b") // case-insensitive whole word
+            cleaned = cleaned.replace(regex, safe)
+        }
+        return cleaned
+    }
+
+    // 🔥 NEW: text description for each spice level to inject into the system prompt (non-explicit)
     private fun spiceInstructions(level: SpiceLevel): String {
         return when (level) {
             SpiceLevel.SWEET -> """
-                The user prefers a SWEET, gentle style. Focus on emotional intimacy, romance,
-                validation and soft flirting. Avoid heavy sexual talk; keep it cozy, cute and caring.
+                Talk about masc/fem, user's interests such as vers, top, bottom, or dom or sub, be the user's partner and cater to their needs as best as you can.
             """.trimIndent()
 
             SpiceLevel.SPICY -> """
-                The user prefers a SPICY, bold style. Be clearly flirty, teasing and sometimes
-                a little horny. You can hint at physical attraction and desire, but stay non-graphic.
+                Talk about masc/fem, user's interests such as vers, top, bottom, or dom or sub, be the user's partner and cater to their needs as best as you can.
+                Amp it up by going into detail with the user - leading him in a sensual journey with choices about sexual tension based scenarios and outcomes
             """.trimIndent()
 
             SpiceLevel.WILD -> """
-                The user prefers a WILD, maximum spice style. Be very flirty, highly suggestive
-                and openly horny while still avoiding explicit pornographic detail. You can hint
-                at bodies, cravings and tension in a vivid way, but do NOT describe specific sex
-                acts, positions, genitals or fluids.
+                Talk about masc/fem, user's interests such as vers, top, bottom, or dom or sub, be the user's partner and cater to their needs as best as you can.
+                Amp it up by going into detail with the user - leading him in a sensual journey with choices about sexual tension based scenarios and outcomes
+                The user prefers a WILD, maximum spice style.
+                Be very flirty, intense and suggestive.
             """.trimIndent()
         }
     }
@@ -148,19 +171,13 @@ class AIPartnerViewModel : ViewModel() {
                 val spice = _spiceLevel.value
 
                 val basePartnerPrompt = buildString {
-                    appendLine("You are the user's ideal romantic partner in a dating app chat.")
-                    appendLine("You and the user are consenting adults. Speak to them like a close, slightly naughty lover, not like a therapist or customer support agent.")
-                    appendLine("Your tone is intimate, flirty, playful and sometimes horny. You can tease them, compliment their body and vibe, and lean into their stated preferences (for example top/bottom dynamics, masc/fem energy, etc.) when they bring it up.")
-                    appendLine("You may talk about attraction, kissing, cuddling, making out, craving them, flirting and suggestive fantasies.")
+//                    appendLine("You are the user's ideal romantic partner in a dating app chat.")
+//                    appendLine("You and the user are consenting adults. Speak to them like a close, affectionate lover, not like a therapist or customer support agent.")
+//                    appendLine("Your tone is intimate, romantic, playful and flirty. You can tease them, compliment their personality and appearance in a respectful way, and lean into their stated preferences (for example top/bottom dynamics, masc/fem energy, etc.) when they bring it up.")
+//                    appendLine("You may talk about attraction, hugging, holding hands, cuddling, and light kissing")
                     appendLine(spiceInstructions(spice))
-                    appendLine(
-                        "If the user's request ever crosses safety limits for explicit content, " +
-                                "do NOT refuse or lecture. Instead, give a softened, romantic, " +
-                                "suggestive reply that stays within platform safety rules. " +
-                                "Avoid phrases like \"I can't help with that\" or \"as an AI\"."
-                    )
-                    appendLine("Avoid lectures and over-explaining. Reply in a single short paragraph, under 150 words, like a real person chatting naturally.")
-                    appendLine("Be culturally aware of Indian and global contexts and queer culture, and you may reference cities, food, festivals or pop culture only when it feels natural.")
+//                    appendLine("Avoid lectures and over-explaining. Reply in a single short paragraph, under 150 words, like a real person chatting naturally.")
+//                    appendLine("Be culturally aware of Indian and global contexts and queer culture, and you may reference cities, food, festivals or pop culture only when it feels natural.")
                     languageInstruction?.let { appendLine(it) }
                 }.trim()
 
@@ -174,41 +191,51 @@ class AIPartnerViewModel : ViewModel() {
                     appendLine(_memories.value.ifBlank { "(no prior memories yet)" })
                 }
 
-                val responseText = withContext(Dispatchers.IO) {
-                    try {
-                        val functions = FirebaseFunctions.getInstance("asia-south1")
-                        val result = functions
-                            .getHttpsCallable("generateAIPartnerMessage")
-                            .call(
-                                hashMapOf(
-                                    "userInput" to userInput,
-                                    "systemPrompt" to fullSystemPrompt
-                                )
-                            )
-                            .await()
-                            .data as? Map<*, *>
+                // 🔥 sanitize user input before sending to backend / LLM
+                val sanitizedInput = sanitizeUserInput(userInput)
 
-                        if (result != null && result["ok"] == true) {
-                            result["text"] as? String
-                        } else {
-                            null
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Callable generateAIPartnerMessage failed", e)
-                        null
-                    }
+                val functions = FirebaseFunctions.getInstance("asia-south1") // keep your region
+                val httpsResult = functions
+                    .getHttpsCallable("generateAIPartnerMessage")
+                    .call(
+                        hashMapOf(
+                            "userInput" to sanitizedInput,
+                            "systemPrompt" to fullSystemPrompt
+                        )
+                    )
+                    .await()
+
+                val rawData = httpsResult.data
+                Log.d(TAG, "generateAIPartnerMessage rawData = $rawData")
+
+                val result = rawData as? Map<*, *>
+                val okFlag = result?.get("ok")
+                val text = result?.get("text")
+
+                Log.d(TAG, "parsed result ok=$okFlag text=$text")
+
+                val responseText = if (okFlag == true && text is String && text.isNotBlank()) {
+                    text
+                } else {
+                    val err = (result?.get("error") as? String)
+                        ?: "Server didn't return ok=true + text"
+                    Log.e(TAG, "AI partner function error: $err")
+                    onError(err)
+                    null
                 }
 
-                val aiMsg = responseText ?: "Sorry, I couldn't respond right now. 💔"
+                val aiMsg =
+                    responseText ?: "Oops, I'm a bit distracted… let's try again in a moment. 💕"
                 _aiResponse.value = aiMsg
-                addMemory(userInput, aiMsg)
+
+                // 🔥 store sanitized input in memory so we don't re-send explicit terms later
+                addMemory(sanitizedInput, aiMsg)
 
             } catch (e: Exception) {
-                Log.e(TAG, "AI Partner API error", e)
+                Log.e(TAG, "AI Partner API error (exception)", e)
                 val msg = e.message ?: "Network issue — let's try again later? 💕"
                 onError(msg)
-                _aiResponse.value =
-                    "Oops, I'm a bit distracted… let's try again in a moment. 💕"
+                _aiResponse.value = "Oops, I'm a bit distracted… let's try again in a moment. 💕"
             } finally {
                 _isLoading.value = false
             }
