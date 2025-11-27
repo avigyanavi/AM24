@@ -16,6 +16,13 @@ import java.util.Locale
 
 private const val TAG = "AIPartnerViewModel"
 
+// 🔥 NEW: spice levels for how horny / bold the AI is allowed to be
+enum class SpiceLevel {
+    SWEET,   // soft, romantic, light flirting
+    SPICY,   // normal flirty + some suggestive stuff
+    WILD     // as suggestive as allowed (non-graphic)
+}
+
 class AIPartnerViewModel : ViewModel() {
 
     // Condensed profile base prompt (we keep it inside VM, not exposed)
@@ -30,6 +37,14 @@ class AIPartnerViewModel : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    // 🔥 NEW: current spice level (default = WILD)
+    private val _spiceLevel = MutableStateFlow(SpiceLevel.WILD)
+    val spiceLevel: StateFlow<SpiceLevel> = _spiceLevel.asStateFlow()
+
+    fun setSpiceLevel(level: SpiceLevel) {
+        _spiceLevel.value = level
+    }
 
     /**
      * Start listening to profile updates and keep an up-to-date condensed profile prompt.
@@ -80,6 +95,28 @@ class AIPartnerViewModel : ViewModel() {
         Log.d(TAG, "Memories updated (len=${updated.length})")
     }
 
+    // 🔥 NEW: text description for each spice level to inject into the system prompt
+    private fun spiceInstructions(level: SpiceLevel): String {
+        return when (level) {
+            SpiceLevel.SWEET -> """
+                The user prefers a SWEET, gentle style. Focus on emotional intimacy, romance,
+                validation and soft flirting. Avoid heavy sexual talk; keep it cozy, cute and caring.
+            """.trimIndent()
+
+            SpiceLevel.SPICY -> """
+                The user prefers a SPICY, bold style. Be clearly flirty, teasing and sometimes
+                a little horny. You can hint at physical attraction and desire, but stay non-graphic.
+            """.trimIndent()
+
+            SpiceLevel.WILD -> """
+                The user prefers a WILD, maximum spice style. Be very flirty, highly suggestive
+                and openly horny while still avoiding explicit pornographic detail. You can hint
+                at bodies, cravings and tension in a vivid way, but do NOT describe specific sex
+                acts, positions, genitals or fluids.
+            """.trimIndent()
+        }
+    }
+
     /**
      * Call Cloud Function backed by OpenAI (generateAIPartnerMessage).
      */
@@ -108,21 +145,32 @@ class AIPartnerViewModel : ViewModel() {
                         "Respond in the user's preferred language: $languageName."
                     }
 
+                val spice = _spiceLevel.value
+
                 val basePartnerPrompt = buildString {
-                    appendLine("You are the user's ideal romantic partner in a dating app.")
-                    appendLine("Be empathetic, flirty, supportive, and culturally aware of Indian and global contexts.")
-                    appendLine("Reference Indian festivals, cities, food or pop-culture only when relevant (not always).")
-                    appendLine("Responses must be under 150 words.")
+                    appendLine("You are the user's ideal romantic partner in a dating app chat.")
+                    appendLine("You and the user are consenting adults. Speak to them like a close, slightly naughty lover, not like a therapist or customer support agent.")
+                    appendLine("Your tone is intimate, flirty, playful and sometimes horny. You can tease them, compliment their body and vibe, and lean into their stated preferences (for example top/bottom dynamics, masc/fem energy, etc.) when they bring it up.")
+                    appendLine("You may talk about attraction, kissing, cuddling, making out, craving them, flirting and suggestive fantasies.")
+                    appendLine(spiceInstructions(spice))
+                    appendLine(
+                        "If the user's request ever crosses safety limits for explicit content, " +
+                                "do NOT refuse or lecture. Instead, give a softened, romantic, " +
+                                "suggestive reply that stays within platform safety rules. " +
+                                "Avoid phrases like \"I can't help with that\" or \"as an AI\"."
+                    )
+                    appendLine("Avoid lectures and over-explaining. Reply in a single short paragraph, under 150 words, like a real person chatting naturally.")
+                    appendLine("Be culturally aware of Indian and global contexts and queer culture, and you may reference cities, food, festivals or pop culture only when it feels natural.")
                     languageInstruction?.let { appendLine(it) }
                 }.trim()
 
                 val fullSystemPrompt = buildString {
                     appendLine(basePartnerPrompt)
                     appendLine()
-                    appendLine("Profile:")
-                    appendLine(condensedProfile)
+                    appendLine("Condensed profile about the user (for context, do not repeat verbatim):")
+                    appendLine(condensedProfile.ifBlank { "(no profile loaded yet)" })
                     appendLine()
-                    appendLine("Key memories from previous chats:")
+                    appendLine("Compact memory of recent conversation (for continuity, don't restate literally, just use it to stay in character):")
                     appendLine(_memories.value.ifBlank { "(no prior memories yet)" })
                 }
 

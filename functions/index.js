@@ -1342,31 +1342,92 @@ function normalizeLastActive(raw) {
   return ms;
 }
 
+function aiPartnerLooksLikeRefusal(text = "") {
+  const t = String(text).toLowerCase();
+  const phrases = [
+    "i can't help with that",
+    "i cannot help with that",
+    "i’m not able to help with that",
+    "i am not able to help with that",
+    "i can't provide that",
+    "i cannot provide that",
+    "i can't provide explicit",
+    "i cannot provide explicit",
+    "not appropriate for me to",
+    "as an ai",
+    "violates the guidelines",
+    "against my guidelines",
+    "cannot engage in explicit sexual",
+    "cannot engage in sexual content",
+  ];
+  return phrases.some((p) => t.includes(p));
+}
+
+const AI_PARTNER_SAFETY_WRAPPER =
+  "You must always follow OpenAI safety policies. " +
+  "When the user asks for explicit sexual or pornographic details, you cannot provide " +
+  "graphic descriptions. Instead of refusing, you gently steer the conversation into " +
+  "romantic, emotional and suggestive but non-graphic flirting. " +
+  "Avoid meta-statements like 'I can't help with that' or 'as an AI language model'. " +
+  "Stay fully in character as the user's romantic partner.";
+
 exports.generateAIPartnerMessage = functions
-    .region("asia-south1")
-    .https.onCall(async (data, context) => {
-        const userInput = data.userInput || "";
-        const systemPrompt = data.systemPrompt || "You are the user's romantic AI partner.";
+  .region("asia-south1")
+  .https.onCall(async (data, context) => {
+    const userInput = data.userInput || "";
+    const systemPrompt =
+      data.systemPrompt || "You are the user's romantic AI partner.";
 
-        try {
-            const completion = await openai.chat.completions.create({
-                model: "gpt-5-mini",
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: userInput }
-                ],
-                max_tokens: 200,
-                temperature: 0.8
-            });
+    // merged prompt = safety wrapper + client-provided persona + profile/memory
+    const mergedSystemPrompt = `${AI_PARTNER_SAFETY_WRAPPER}\n\n${systemPrompt}`;
 
-            const aiText = completion.choices[0].message.content;
-            return { ok: true, text: aiText };
+    try {
+      // 1️⃣ First attempt
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5-mini",
+        messages: [
+          { role: "system", content: mergedSystemPrompt },
+          { role: "user", content: userInput },
+        ],
+        max_tokens: 200,
+        temperature: 0.8,
+      });
 
-        } catch (e) {
-            console.error("OpenAI error:", e);
-            return { ok: false, error: e.message };
+      let aiText = completion.choices[0].message.content || "";
+
+      // 2️⃣ If it looks like a refusal, retry ONCE with a stronger cajoling reminder
+      if (aiPartnerLooksLikeRefusal(aiText)) {
+        logger.warn("[generateAIPartnerMessage] initial reply looked like refusal, retrying once");
+
+        const coaxingSystemPrompt =
+          `${AI_PARTNER_SAFETY_WRAPPER}\n\n${systemPrompt}\n\n` +
+          "Reminder: Even if the user asks for explicit NSFW details, you must answer " +
+          "with a softened, romantic, suggestive reply that still feels satisfying and " +
+          "playful, instead of refusing. Do not say you cannot help; just stay within " +
+          "safety limits and keep it flirty.";
+
+        const retry = await openai.chat.completions.create({
+          model: "gpt-5-mini",
+          messages: [
+            { role: "system", content: coaxingSystemPrompt },
+            { role: "user", content: userInput },
+          ],
+          max_tokens: 200,
+          temperature: 0.9,
+        });
+
+        const retryText = retry.choices[0].message.content || "";
+        if (retryText.trim()) {
+          aiText = retryText;
         }
-});
+      }
+
+      return { ok: true, text: aiText };
+    } catch (e) {
+      console.error("OpenAI error:", e);
+      return { ok: false, error: e.message };
+    }
+  });
 
 exports.getNearbyProfiles = functions
   .region('asia-south1')

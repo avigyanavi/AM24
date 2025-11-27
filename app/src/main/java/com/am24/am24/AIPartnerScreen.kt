@@ -21,6 +21,13 @@ import kotlinx.coroutines.launch
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
+import android.app.Activity
+import android.content.Context
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 
 data class AIPartnerChatMessage(
     val isUser: Boolean,
@@ -38,9 +45,27 @@ fun AIPartnerScreen(
     val aiResp by aiPartnerViewModel.aiResponse.collectAsState()
     val isLoading by aiPartnerViewModel.isLoading.collectAsState()
 
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
+    val defaultLang = defaultLanguageCode()
+    var selectedLanguage by remember { mutableStateOf(prefs.getString("language", defaultLang) ?: defaultLang) }
+    var showLanguageMenu by remember { mutableStateOf(false) }
+    val languages = listOf(
+        stringResource(R.string.language_name_english) to "en",
+        stringResource(R.string.language_name_hindi) to "hi",
+        stringResource(R.string.language_name_spanish) to "es",
+        stringResource(R.string.language_name_thai) to "th",
+        stringResource(R.string.language_name_vietnamese) to "vi",
+    )
+
+
     val scope = rememberCoroutineScope()
     var inputText by remember { mutableStateOf("") }
     val messages = remember { mutableStateListOf<AIPartnerChatMessage>() }
+
+    val effectiveProfile = profile?.let {
+        if (selectedLanguage != it.preferredLanguage) it.copy(preferredLanguage = selectedLanguage) else it
+    }
 
     // 🔢 Shared AI message credits
     val currentUserId = remember { FirebaseAuth.getInstance().currentUser?.uid }
@@ -106,6 +131,65 @@ fun AIPartnerScreen(
             modifier = Modifier
                 .fillMaxSize()
         ) {
+            val currentLanguageLabel =
+                languages.firstOrNull { it.second == selectedLanguage }?.first ?: selectedLanguage
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Language, contentDescription = null, tint = Color.White)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.settings_preferred_language),
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                }
+                Box {
+                    OutlinedButton(
+                        onClick = { showLanguageMenu = true },
+                        border = BorderStroke(1.dp, Color(0xFFFF6F00)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = Color.White
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(currentLanguageLabel, color = Color.White, fontSize = 13.sp)
+                        Icon(
+                            imageVector = Icons.Filled.ArrowDropDown,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showLanguageMenu,
+                        onDismissRequest = { showLanguageMenu = false }
+                    ) {
+                        languages.forEach { (label, code) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    showLanguageMenu = false
+                                    if (selectedLanguage != code) {
+                                        selectedLanguage = code
+                                        prefs.edit().putString("language", code).apply()
+                                        userRef?.child("preferredLanguage")?.setValue(code)
+                                        updateLocale(context, code)
+                                        (context as? Activity)?.recreate()
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
             // Messages list
             LazyColumn(
                 modifier = Modifier
@@ -172,7 +256,7 @@ fun AIPartnerScreen(
 
                 FilledIconButton(
                     onClick = {
-                        if (inputText.isBlank() || profile == null || isLoading) {
+                        if (inputText.isBlank() || effectiveProfile == null || isLoading) {
                             return@FilledIconButton
                         }
 
@@ -200,7 +284,7 @@ fun AIPartnerScreen(
                         scope.launch {
                             aiPartnerViewModel.sendMessage(
                                 userInput = text,
-                                profile = profile!!
+                                profile = effectiveProfile
                             ) { error ->
                                 // Show error bubble
                                 messages.add(

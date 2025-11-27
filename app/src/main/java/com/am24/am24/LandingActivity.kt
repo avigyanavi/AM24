@@ -21,19 +21,15 @@ import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -59,11 +55,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.*
-import kotlinx.coroutines.delay
 import java.util.Locale
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+
 
 /* ──────────────────────────  ACTIVITY  ────────────────────────── */
 
@@ -547,17 +540,6 @@ fun LandingScreen(
     onGoogleSignIn: () -> Unit,
     onFacebookSignIn: () -> Unit
 ) {
-    val context = LocalContext.current
-    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    var selectedLanguage by remember { mutableStateOf(prefs.getString("language", "en")!!) }
-    var shouldRestart by remember { mutableStateOf(false) }
-
-    if (shouldRestart) {
-        LaunchedEffect(Unit) {
-            delay(100)
-            (context as? Activity)?.recreate()
-        }
-    }
     Box(
         Modifier
             .fillMaxSize()
@@ -634,18 +616,6 @@ fun LandingScreen(
             Spacer(Modifier.height(40.dp))
 
             SocialSignInButtons(onGoogleSignIn, onFacebookSignIn)
-        }
-
-        LanguageSelectionBar(
-            selectedLanguage,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-        ) { lang ->
-            if (lang != selectedLanguage) {
-                prefs.edit().putString("language", lang).apply()
-                shouldRestart = true
-            }
         }
 
         /* ─── 3. Full-screen loading overlay ─── */
@@ -728,62 +698,6 @@ fun SocialSignInButton(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-    }
-}
-
-/* ───────── Languages row ───────── */
-
-@Composable
-fun LanguageSelectionBar(
-    selectedLanguage: String,
-    modifier: Modifier = Modifier,
-    onLanguageSelected: (String) -> Unit
-) {
-    val languages = listOf(
-        "English" to "en",
-        "हिन्दी" to "hi",
-    )
-    // Only English + Spanish are selectable now
-    val unlockedCodes = setOf("en", "hi")
-    val scroll = rememberScrollState()
-
-    Row(
-        modifier = modifier
-            .horizontalScroll(scroll)
-            .padding(bottom = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        languages.forEach { (label, code) ->
-            val isUnlocked = code in unlockedCodes
-            val isSelected = selectedLanguage == code
-
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (!isUnlocked) {
-                    Icon(
-                        Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = Color.LightGray,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-
-                Button(
-                    onClick = { if (isUnlocked) onLanguageSelected(code) },
-                    enabled = isUnlocked,
-                    modifier = Modifier.defaultMinSize(minHeight = 36.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = when {
-                            isUnlocked && isSelected -> Color(0xFFFF6000)
-                            isUnlocked -> Color.DarkGray
-                            else -> Color.Gray
-                        },
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text(label, fontSize = 11.sp, maxLines = 1)
-                }
-            }
-        }
     }
 }
 
