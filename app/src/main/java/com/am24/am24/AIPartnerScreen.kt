@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
-import android.app.Activity
+import androidx.compose.foundation.lazy.LazyRow
 import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.BorderStroke
@@ -128,6 +128,7 @@ fun AIPartnerScreen(
     var inputText by remember { mutableStateOf("") }
     val messages = remember { mutableStateListOf<AIPartnerChatMessage>() }
     val listState = rememberLazyListState()
+    val quickPrompts = remember { listOf("send me a hot pic of you") }
 
     // Scroll to bottom whenever list size changes
     LaunchedEffect(messages.size) {
@@ -589,6 +590,23 @@ fun AIPartnerScreen(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 4.dp)
             )
+
+            if (quickPrompts.isNotEmpty()) {
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(quickPrompts) { prompt ->
+                        AssistChip(
+                            onClick = { inputText = prompt },
+                            label = { Text(prompt) },
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                    }
+                }
+            }
 
             // Input bar
             Row(
