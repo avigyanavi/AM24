@@ -36,6 +36,7 @@ import com.razorpay.PaymentData                   // Razorpay
 import com.razorpay.PaymentResultWithDataListener // Razorpay
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.google.firebase.database.ServerValue
 
 class KupidXAppActivity : AppCompatActivity(),
     PaymentResultWithDataListener,
@@ -71,6 +72,12 @@ class KupidXAppActivity : AppCompatActivity(),
         presenceRef = ref
         ref.setValue(true)
         ref.onDisconnect().removeValue()
+
+
+        // Also track when the client disconnects so lastActive reflects the offline moment
+        FirebaseRefs.db.getReference("users").child(uid).child("lastActive")
+            .onDisconnect()
+            .setValue(ServerValue.TIMESTAMP)
     }
 
     /* ------------------------------------------------------------------ locale */
@@ -125,6 +132,7 @@ class KupidXAppActivity : AppCompatActivity(),
                         onNotificationsConsumed = { pendingOpenNotifications = false },
                         onUpgradeConsumed = { pendingOpenUpgradeLanding = false },
                         onLogout = {
+                            PushService.updateLastActive()
                             presenceRef?.removeValue()
                             auth.signOut()
                             TokenStorageManager.clearToken(this@KupidXAppActivity)
@@ -188,6 +196,7 @@ class KupidXAppActivity : AppCompatActivity(),
     }
 
     override fun onDestroy() {
+        PushService.updateLastActive()
         presenceRef?.removeValue()
         super.onDestroy()
     }
