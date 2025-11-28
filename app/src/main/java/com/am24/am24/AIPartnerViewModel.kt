@@ -50,6 +50,10 @@ class AIPartnerViewModel : ViewModel() {
     private val _spiceLevel = MutableStateFlow(SpiceLevel.MEDIUM)
     val spiceLevel: StateFlow<SpiceLevel> = _spiceLevel.asStateFlow()
 
+    // Last concise turn summary (user + AI), up to ~20 words
+    private val _lastTurnSummary = MutableStateFlow<String?>(null)
+    val lastTurnSummary: StateFlow<String?> = _lastTurnSummary.asStateFlow()
+
     fun setSpiceLevel(level: SpiceLevel) {
         _spiceLevel.value = level
     }
@@ -91,6 +95,22 @@ class AIPartnerViewModel : ViewModel() {
                 append(" Bio: ${profile.bio.take(120)}.")
             }
         }
+    }
+
+    private fun buildTurnSummary(userMsg: String, aiMsg: String): String {
+        val raw = "User: $userMsg | AI: $aiMsg"
+        val words = raw.split("\\s+".toRegex()).filter { it.isNotBlank() }
+        return if (words.size <= 20) {
+            raw
+        } else {
+            words.take(20).joinToString(" ")
+        }
+    }
+
+    private fun updateLastTurnSummary(userMsg: String, aiMsg: String) {
+        val summary = buildTurnSummary(userMsg, aiMsg)
+        _lastTurnSummary.value = summary
+        Log.d(TAG, "Last turn summary: $summary")
     }
 
     /**
@@ -288,7 +308,12 @@ class AIPartnerViewModel : ViewModel() {
                 val cleaned = sanitizeAiReply(responseText)
                 val aiMsg = cleaned ?: "Sorry, I couldn't respond right now. 💔"
                 _aiResponse.value = aiMsg
+
+                // Store long-ish memory string (last ~1000 chars)
                 addMemory(userInput, aiMsg)
+
+                // Store ultra-short 20-word summary of just this turn
+                updateLastTurnSummary(userInput, aiMsg)
 
             } catch (e: Exception) {
                 Log.e(TAG, "AI Partner API error", e)
@@ -319,12 +344,25 @@ class AIPartnerViewModel : ViewModel() {
             try {
                 val functions = FirebaseFunctions.getInstance("asia-south1")
 
+                // 🔥 Build compact context + current request
+                val contextSummary = _lastTurnSummary.value
+                val combinedPrompt = buildString {
+                    if (!contextSummary.isNullOrBlank()) {
+                        append("Previous mood/context: ")
+                        append(contextSummary)
+                        append(". ")
+                    }
+                    append("Now user says: ")
+                    append(userPrompt.trim())
+                }
+
                 val resultMap = withContext(Dispatchers.IO) {
                     functions
                         .getHttpsCallable("generateAIPartnerImage")
                         .call(
                             hashMapOf(
-                                "prompt" to userPrompt.trim()
+                                // Only ever send short natural language, no b64
+                                "prompt" to combinedPrompt
                             )
                         )
                         .await()

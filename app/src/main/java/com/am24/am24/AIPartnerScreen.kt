@@ -206,6 +206,45 @@ fun AIPartnerScreen(
         return sliced.joinToString(" ")
     }
 
+    fun lastMessageIsAiImage(messages: List<AIPartnerChatMessage>): Boolean {
+        val last = messages.lastOrNull() ?: return false
+        return !last.isUser && last.imageBytes != null
+    }
+
+    // Heuristic: is the user explicitly asking for a NEW pic right now?
+    fun shouldTriggerImageGen(
+        rawText: String,
+        messages: List<AIPartnerChatMessage>,
+        isImageLoading: Boolean
+    ): Boolean {
+        if (isImageLoading) return false
+
+        val lower = rawText.lowercase()
+
+        // generic pic keywords
+        val hasPicKeyword = listOf("pic", "photo", "selfie", "image")
+            .any { lower.contains(it) }
+
+        if (!hasPicKeyword) return false
+
+        // explicitly asking for another / to send
+        val hasRequestVerb = listOf(
+            "send", "bhej", "bhejo", "dede", "de de",
+            "dikha", "show",
+            "another", "one more", "ek aur", "more pic", "next pic"
+        ).any { lower.contains(it) }
+
+        val lastWasAiImage = lastMessageIsAiImage(messages)
+
+        // If last was an image, only fire when there's a clear "send another" vibe.
+        // If last was NOT an image, any pic keyword is enough.
+        return if (lastWasAiImage) {
+            hasRequestVerb
+        } else {
+            true
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -382,7 +421,7 @@ fun AIPartnerScreen(
                         val text = inputText.trim()
                         inputText = ""
 
-// Always push the user message into UI
+                        // Always push the user message into UI
                         messages.add(
                             AIPartnerChatMessage(
                                 isUser = true,
@@ -390,12 +429,15 @@ fun AIPartnerScreen(
                             )
                         )
 
-                        val lower = text.lowercase()
-                        val wantsPic = listOf("pic", "photo", "selfie", "image")
-                            .any { lower.contains(it) }
+                        // 🔍 Decide if this should be an IMAGE request or plain text chat
+                        val triggerImage = shouldTriggerImageGen(
+                            rawText = text,
+                            messages = messages,
+                            isImageLoading = isImageLoading
+                        )
 
-                        if (wantsPic && !isImageLoading) {
-                            // 1) Build the 20-word context from last user+AI turn
+                        if (triggerImage) {
+                            // 1) Build the 20-word context from last user+AI **text** turn
                             val ctx = buildPicContext(messages)
 
                             // 2) PREPEND it to the *actual* user input
@@ -405,11 +447,21 @@ fun AIPartnerScreen(
                                 append("Generate a flirty, safe selfie-style picture that matches this mood (no nudity, no explicit content).")
                             }
 
-                            // 3) Just call image API, NO text AI call
+                            // 3) Add a loader bubble
+                            messages.add(
+                                AIPartnerChatMessage(
+                                    isUser = false,
+                                    isImageLoadingBubble = true
+                                )
+                            )
+
+                            // 4) Call image API ONLY, no text sendMessage()
                             scope.launch {
                                 aiPartnerViewModel.generateImageFromUserPrompt(
                                     userPrompt = promptForImage
                                 ) { error ->
+                                    // remove loader if still there
+                                    messages.removeAll { !it.isUser && it.isImageLoadingBubble }
                                     messages.add(
                                         AIPartnerChatMessage(
                                             isUser = false,
@@ -423,7 +475,7 @@ fun AIPartnerScreen(
                             return@FilledIconButton
                         }
 
-// Normal flow (non-pic messages) → text AI
+                        // 📝 Normal flow (non-pic messages) → text AI
                         pendingDebit += 1
                         scope.launch {
                             aiPartnerViewModel.sendMessage(
