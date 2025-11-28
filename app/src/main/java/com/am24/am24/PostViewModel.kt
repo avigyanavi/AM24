@@ -464,8 +464,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     // Update filteredPosts to combine both filters
     val filteredPosts: StateFlow<List<Post>> = combine(
-        _posts.filter { it.isNotEmpty() },
-        _userProfiles.filter { it.isNotEmpty() },
+        _posts,
+        _userProfiles,
         _filterSettings,
         _feedFilters,
         currentUserIdFlow

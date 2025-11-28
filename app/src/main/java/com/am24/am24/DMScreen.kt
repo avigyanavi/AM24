@@ -120,9 +120,6 @@ fun DMScreenContent(
 
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
 
-    var showRatingOverlay by remember { mutableStateOf(false) }
-    var profileToRate by remember { mutableStateOf<Profile?>(null) }
-    var tempRating by remember { mutableStateOf(-1.0) }
     var showUnmatchDialog by remember { mutableStateOf(false) }
     var profileToUnmatch by remember { mutableStateOf<Profile?>(null) }
     var showSmartMatchDialog by remember { mutableStateOf(false) }
@@ -252,7 +249,10 @@ fun DMScreenContent(
 
     val messageListeners = remember { mutableMapOf<String, ValueEventListener>() }
 
-
+    val reportsRef = remember { database.getReference("reports") }
+    var showReportDialog by remember { mutableStateOf(false) }
+    var profileToReport by remember { mutableStateOf<Profile?>(null) }
+    var reportReason by remember { mutableStateOf("") }
     fun prefetchProfileImages(profiles: List<Profile>) {
         profiles.forEach { profile ->
             val url = profile.profilepicThumbnailUrl ?: profile.profilepicUrl
@@ -566,15 +566,10 @@ fun DMScreenContent(
                             lastMessage = lastMsg.first,
                             lastMessageFromCurrentUser = lastMsg.second,
                             lastMessageRead = lastMsg.third,
-                            onRateClick = { selectedProfile ->
-                                fetchUserRating(
-                                    ratingsRef,
-                                    selectedProfile.userId
-                                ) { fetchedRating ->
-                                    tempRating = fetchedRating
-                                    profileToRate = selectedProfile
-                                    showRatingOverlay = true
-                                }
+                            onReportClick = { selectedProfile ->
+                                profileToReport = selectedProfile
+                                reportReason = ""
+                                showReportDialog = true
                             },
                             onUnmatchClick = { selectedProfile ->
                                 profileToUnmatch = selectedProfile
@@ -618,45 +613,6 @@ fun DMScreenContent(
                 }
             )
         }
-        if (showRatingOverlay && profileToRate != null) {
-            Dialog(onDismissRequest = {
-                showRatingOverlay = false
-                profileToRate = null
-            }) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color.Black,
-                    border = BorderStroke(2.dp, Color(0xFFFF4500))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        RatingBar(rating = profileToRate!!.averageRating, ratingCount = profileToRate!!.numberOfRatings)
-                        Text(
-                            stringResource(
-                                R.string.dm_your_rating,
-                                if (tempRating >= 0) String.format("%.1f", tempRating) else "N/A"
-                            ),
-                            color = Color.Gray, fontSize = 12.sp
-                        )
-                        Slider(
-                            value = if (tempRating >= 0) tempRating.toFloat() else 0f,
-                            onValueChange = { tempRating = it.toDouble() },
-                            onValueChangeFinished = {
-                                updateUserRating(ratingsRef, usersRef, profileToRate!!.userId, tempRating, context)
-                                showRatingOverlay = false
-                                profileToRate = null
-                            },
-                            valueRange = 0f..5f,
-                            steps = 4,
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color(0xFFFF4500),
-                                activeTrackColor = Color(0xFFFF4500)
-                            )
-                        )
-                    }
-                }
-            }
-        }
-
         if (showUnmatchDialog && profileToUnmatch != null) {
             Dialog(onDismissRequest = {
                 showUnmatchDialog = false
@@ -699,6 +655,104 @@ fun DMScreenContent(
                     }
                 }
             }
+        }
+
+        if (showReportDialog && profileToReport != null) {
+            AlertDialog(
+                onDismissRequest = {
+                    showReportDialog = false
+                    profileToReport = null
+                },
+                title = { Text(stringResource(R.string.chat_report_title)) },
+                text = {
+                    Column {
+                        Text(stringResource(R.string.chat_report_prompt))
+                        Spacer(Modifier.height(8.dp))
+                        TextField(
+                            value = reportReason,
+                            onValueChange = { reportReason = it },
+                            placeholder = { Text(stringResource(R.string.chat_report_placeholder)) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                            colors = TextFieldDefaults.colors(
+                                unfocusedContainerColor = Color.DarkGray,
+                                focusedContainerColor = Color.DarkGray,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            )
+                        )
+                    }
+                },
+                confirmButton = {
+                    val context = LocalContext.current
+                    TextButton(
+                        onClick = {
+                            if (reportReason.isBlank()) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.chat_report_prompt),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@TextButton
+                            }
+                            val target = profileToReport!!
+                            coroutineScope.launch {
+                                try {
+                                    submitReport(
+                                        reportsRef = reportsRef,
+                                        reporterId = currentUserId,
+                                        reportedId = target.userId,
+                                        reason = reportReason,
+                                        context = context
+                                    )
+                                    blockUser(
+                                        database = database,
+                                        blockerId = currentUserId,
+                                        blockedId = target.userId,
+                                        context = context
+                                    )
+                                    // also unmatch
+                                    unmatchUser(
+                                        currentUserId = currentUserId,
+                                        otherUserId = target.userId,
+                                        database = database,
+                                        context = context
+                                    )
+                                    showReportDialog = false
+                                    profileToReport = null
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.chat_report_success),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } catch (e: Exception) {
+                                    Log.e("DMScreen", "Report failed", e)
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.chat_report_failed),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        }
+                    ) {
+                        Text(stringResource(R.string.chat_report_submit), color = Color.Red)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showReportDialog = false
+                            profileToReport = null
+                        }
+                    ) {
+                        Text(stringResource(R.string.cancel), color = Color.Gray)
+                    }
+                }
+            )
         }
 
         if (showSmartMatchDialog) {
@@ -907,66 +961,118 @@ fun DMUserCard(
     lastMessage: String,
     lastMessageFromCurrentUser: Boolean,
     lastMessageRead: Boolean,
-    onRateClick: (Profile) -> Unit,
+    onReportClick: (Profile) -> Unit,
     onUnmatchClick: (Profile) -> Unit
 ) {
-    Box(
-        Modifier
+    val borderColor = getLevelBorderColor(profile.averageRating)
+    val displayName = profile.name.ifBlank { profile.username }
+    val age = calculateAge(profile.dob)?.toString().orEmpty()
+
+    // Build a compact meta line like: "25 • Bowbazar • Product Manager"
+    val metaParts = buildList {
+        if (age.isNotBlank()) {
+            add(stringResource(R.string.age_only_format, age))   // e.g. "Age: 25"
+        }
+        if (profile.hometown.isNotBlank()) add(profile.hometown)
+        if (profile.jobRole.isNotBlank()) add(profile.jobRole)
+    }
+    val metaLine = metaParts.joinToString(" • ")
+
+    val baseMessageText = when {
+        lastMessage.isEmpty() ->
+            stringResource(R.string.no_messages_yet)
+        lastMessageFromCurrentUser ->
+            stringResource(R.string.sent_message, lastMessage)
+        else -> lastMessage
+    }
+
+    val ticks = if (lastMessageFromCurrentUser && lastMessage.isNotEmpty()) {
+        if (lastMessageRead) stringResource(R.string.seen_status)
+        else stringResource(R.string.delivered_status)
+    } else ""
+
+    val fullPreview = if (ticks.isNotEmpty()) {
+        "$baseMessageText  $ticks"
+    } else {
+        baseMessageText
+    }
+
+    val styledPreview = buildAnnotatedString {
+        val tickAt = fullPreview.indexOf('✔')
+        if (tickAt >= 0) {
+            append(fullPreview.substring(0, tickAt))
+            withStyle(SpanStyle(color = Color(0xFFFF4500))) {
+                append(fullPreview.substring(tickAt))
+            }
+        } else {
+            append(fullPreview)
+        }
+    }
+
+    val showUnreadBadge =
+        !lastMessageFromCurrentUser &&
+                lastMessage.isNotEmpty() &&
+                !lastMessageRead
+
+    Surface(
+        modifier = Modifier
             .fillMaxWidth()
-            .background(DarkGrayBackground)
-            .border(
-                BorderStroke(2.dp, getLevelBorderColor(profile.averageRating)),
-                shape = RoundedCornerShape(8.dp)
-            )
-            .clickable { navController.navigate("chat/${profile.userId}") }
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { navController.navigate("chat/${profile.userId}") },
+        color = Color(0xFF121212),
+        tonalElevation = 2.dp,
+        shadowElevation = 6.dp,
+        border = BorderStroke(1.dp, borderColor)
     ) {
-        Column(Modifier.padding(12.dp)) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AIOrProfileImage(
                     profile,
                     Modifier
-                        .size(70.dp)
+                        .size(56.dp)
                         .clip(CircleShape)
                         .background(Color.Gray)
                 )
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    val displayName = profile.name.ifBlank { profile.username }
-                    Text(
-                        text = displayName,
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    val age = calculateAge(profile.dob)?.toString().orEmpty()
-                    val localeInfo = if (profile.hometown.isNotBlank()) {
-                        "${profile.hometown}, ${profile.jobRole}, ${stringResource(R.string.age_format, age)}"
-                    } else {
-                        stringResource(R.string.age_only_format, age)
-                    }
-                    Text(localeInfo, fontSize = 14.sp, color = Color.White)
 
-                    val messageText = when {
-                        lastMessage.isEmpty() -> stringResource(R.string.no_messages_yet)
-                        lastMessageFromCurrentUser -> stringResource(R.string.sent_message, lastMessage)
-                        else -> lastMessage
+                Spacer(Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = displayName,
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (showUnreadBadge) {
+                            Spacer(Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFF4500))
+                            )
+                        }
                     }
-                    val ticks = if (lastMessageFromCurrentUser && lastMessage.isNotEmpty()) {
-                        if (lastMessageRead) stringResource(R.string.seen_status)
-                        else stringResource(R.string.delivered_status)
-                    } else ""
-                    val fullText = messageText + ticks
-                    val styled = buildAnnotatedString {
-                        val tickAt = fullText.indexOf('✔')
-                        if (tickAt >= 0) {
-                            append(fullText.substring(0, tickAt))
-                            withStyle(SpanStyle(color = Color(0xFFFF4500))) {
-                                append(fullText.substring(tickAt))
-                            }
-                        } else append(fullText)
+
+                    if (metaLine.isNotBlank()) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = metaLine,
+                            fontSize = 11.sp,
+                            color = Color(0xFFBBBBBB),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
+
+                    Spacer(Modifier.height(4.dp))
+
                     Text(
-                        text = styled,
+                        text = styledPreview,
                         fontSize = 12.sp,
                         color = Color.White,
                         maxLines = 2,
@@ -974,20 +1080,33 @@ fun DMUserCard(
                     )
                 }
             }
+
+            Spacer(Modifier.height(6.dp))
+
             Row(
-                Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = { onRateClick(profile) }) {
-                    Text(stringResource(R.string.rate), color = Color(0xFFFF4500))
+                TextButton(onClick = { onReportClick(profile) }) {
+                    Text(
+                        text = stringResource(R.string.chat_menu_report), // keep text short in strings.xml
+                        color = Color(0xFFFFA000),
+                        fontSize = 11.sp
+                    )
                 }
                 TextButton(onClick = { onUnmatchClick(profile) }) {
-                    Text(stringResource(R.string.action_unmatch), color = Color.Red)
+                    Text(
+                        text = stringResource(R.string.action_unmatch),
+                        color = Color.Red,
+                        fontSize = 11.sp
+                    )
                 }
             }
         }
     }
 }
+
+
 
 @Composable
 fun ComplimentCard(
@@ -997,22 +1116,24 @@ fun ComplimentCard(
     onReject: () -> Unit,
     onClick: () -> Unit
 ) {
-    Box(
-        Modifier
+    val borderColor = getLevelBorderColor(profile.averageRating)
+
+    Surface(
+        modifier = Modifier
             .fillMaxWidth()
-            .background(DarkGrayBackground)
-            .border(
-                BorderStroke(2.dp, getLevelBorderColor(profile.averageRating)),
-                shape = RoundedCornerShape(8.dp)
-            )
-            .clickable { onClick() }
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() },
+        color = Color(0xFF141414),
+        tonalElevation = 4.dp,
+        shadowElevation = 8.dp,
+        border = BorderStroke(1.dp, borderColor.copy(alpha = 0.8f))
     ) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AIOrProfileImage(
                     profile,
                     Modifier
-                        .size(70.dp)
+                        .size(64.dp)
                         .clip(CircleShape)
                         .background(Color.Gray)
                 )
@@ -1021,9 +1142,10 @@ fun ComplimentCard(
                     Text(
                         text = profile.name.ifBlank { profile.username },
                         color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
+                    Spacer(Modifier.height(4.dp))
                     val text = if (compliment.text.isNotBlank()) {
                         compliment.text
                     } else {
@@ -1038,17 +1160,22 @@ fun ComplimentCard(
                     )
                 }
             }
+            Spacer(Modifier.height(8.dp))
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = onAccept) { Text(stringResource(R.string.action_accept), color = Color(0xFFFF4500)) }
-                TextButton(onClick = onReject) { Text(stringResource(R.string.action_reject), color = Color.Red) }
-
+                TextButton(onClick = onAccept) {
+                    Text(stringResource(R.string.action_accept), color = Color(0xFFFFA000))
+                }
+                TextButton(onClick = onReject) {
+                    Text(stringResource(R.string.action_reject), color = Color.Red)
+                }
             }
         }
     }
 }
+
 
 
 private fun unmatchUser(
@@ -1217,4 +1344,32 @@ fun GroupChatChip(
     ) {
         Text(title, color = Color.White, fontSize = 11.sp)
     }
+}
+
+private suspend fun submitReport(
+    reportsRef: DatabaseReference,
+    reporterId: String,
+    reportedId: String,
+    reason: String,
+    context: android.content.Context
+) {
+    val reportId = reportsRef.push().key ?: return
+    val report = mapOf(
+        "reporterId" to reporterId,
+        "reportedId" to reportedId,
+        "reason" to reason,
+        "timestamp" to System.currentTimeMillis(),
+        "status" to "pending"
+    )
+    reportsRef.child(reportId).setValue(report).await()
+}
+
+private suspend fun blockUser(
+    database: FirebaseDatabase,
+    blockerId: String,
+    blockedId: String,
+    context: android.content.Context
+) {
+    val blockRef = database.getReference("blocks/$blockerId/$blockedId")
+    blockRef.setValue(true).await()
 }

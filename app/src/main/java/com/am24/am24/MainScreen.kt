@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.RssFeed
 import androidx.compose.ui.draw.shadow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
@@ -88,6 +89,25 @@ fun MainScreen(
     val shouldForceSubscription = mainUiState.shouldForceSubscription
     val showTopBar = mainUiState.showTopBar
     val showBottomBar = mainUiState.showBottomBar
+    val lastBottomNavRoute = mainUiState.lastBottomNavRoute
+    val bottomNavRoutes = remember(items) { items.map { it.route }.toSet() }
+
+    var hasRestoredBottomNav by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(lastBottomNavRoute, showBottomBar) {
+        if (!hasRestoredBottomNav && showBottomBar) {
+            if (lastBottomNavRoute in bottomNavRoutes && lastBottomNavRoute != currentRoute) {
+                navController.navigate(lastBottomNavRoute) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
+            hasRestoredBottomNav = true
+        }
+    }
     // ───────────────────────────────────────────────────
     val context = LocalContext.current
     val activity = context as? Activity
@@ -159,6 +179,7 @@ fun MainScreen(
                         val isBlockedByTrial = shouldForceSubscription
                         if (isBlockedByTrial) return@BottomNavigationBar
 
+                        mainViewModel.setLastBottomNavRoute(route)
                         navController.navigate(route) {
                             // ✅ Keep one backstack entry per bottom tab and save its state
                             popUpTo(navController.graph.findStartDestination().id) {

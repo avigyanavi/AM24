@@ -16,9 +16,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
+import android.content.Context
 
 private const val TAG = "MainViewModel"
-
+private const val PREF_LAST_BOTTOM_NAV_ROUTE = "last_bottom_nav_route"
+const val DEFAULT_BOTTOM_NAV_ROUTE = "map"
+private val bottomNavRoutes = setOf("profile", "home", "map", "dms", "aiPartner")
 /**
  * Container for UI state managed by [MainViewModel].
  */
@@ -38,10 +41,14 @@ data class MainUiState(
     val isPlusAccessExpired: Boolean = false,
     val isPremiumAccessExpired: Boolean = false,
     val hasLocationSpoofAccess: Boolean = false,
+    val lastBottomNavRoute: String = DEFAULT_BOTTOM_NAV_ROUTE,
     @StringRes val inviteStatusMessage: Int? = null
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val preferences =
+        application.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -77,6 +84,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (currentRoute == route) return
         currentRoute = route
         recomputeGating()
+        persistBottomNavRoute(route)
     }
 
     fun showLocationDialog() {
@@ -360,6 +368,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setLastBottomNavRoute(route: String) {
+        if (route !in bottomNavRoutes) return
+        preferences.edit().putString(PREF_LAST_BOTTOM_NAV_ROUTE, route).apply()
+        updateState { copy(lastBottomNavRoute = route) }
+    }
+
+    private fun persistBottomNavRoute(route: String?) {
+        if (route == null) return
+        if (route in bottomNavRoutes) {
+            setLastBottomNavRoute(route)
+        }
+    }
     private fun stopUserListener() {
         val ref = userRef
         val listener = userListener
@@ -407,6 +427,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
+        val savedRoute = preferences.getString(PREF_LAST_BOTTOM_NAV_ROUTE, DEFAULT_BOTTOM_NAV_ROUTE)
+            ?: DEFAULT_BOTTOM_NAV_ROUTE
+        updateState { copy(lastBottomNavRoute = savedRoute) }
         viewModelScope.launch {
             ensureListeners()
         }

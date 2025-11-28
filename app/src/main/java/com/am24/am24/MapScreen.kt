@@ -1228,6 +1228,42 @@ fun MapScreen(
                     }
                 }
 
+                // 🔻 NEW: quick Male/Female/All toggle
+                GenderQuickToggle(
+                    selectedCanonicalGender = canonicalGender(datingFilters.gender),
+                    onGenderSelected = { newCanonical ->
+                        // build updated filters
+                        val updated = nearbyViewModel.datingFilters.copy(
+                            gender = newCanonical
+                        )
+
+                        nearbyViewModel.datingFilters = updated
+
+                        // persist
+                        prefs.edit()
+                            .putString("map_dating_filters", gson.toJson(updated))
+                            .apply()
+
+                        // reset pagination & caches, then hard refresh
+                        val defaultLimit = when (selectedTab) {
+                            1 -> 10
+                            else -> 25
+                        }
+                        nearbyViewModel.currentLimit = defaultLimit
+                        tabResultsCache.clear()
+                        nearbyViewModel.resetPagination()
+
+                        userLatLng?.let { center ->
+                            nearbyViewModel.refreshNearbyUsers(
+                                userId,
+                                center,
+                                geoFireDatabaseRef,
+                                forceRefresh = true
+                            )
+                        }
+                    }
+                )
+
                 if (activeFilterLabels.isNotEmpty()) {
                     Text(
                         text = ctx.getString(
@@ -2923,6 +2959,46 @@ private fun LockedChip(
             Icon(Icons.Default.Lock, contentDescription = null)
             Spacer(Modifier.width(6.dp))
             Text(label)
+        }
+    }
+}
+
+@Composable
+private fun GenderQuickToggle(
+    selectedCanonicalGender: String,
+    onGenderSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // We’ll only show All / Male / Female to keep it simple visually
+    val options = genderFilterOptions.take(3) // "" (All), male, female
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        options.forEach { option ->
+            val optionCanonical = option.canonicalValue
+            val isSelected = if (optionCanonical.isBlank()) {
+                selectedCanonicalGender.isBlank()
+            } else {
+                selectedCanonicalGender == optionCanonical
+            }
+
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    val newCanonical = when {
+                        optionCanonical.isBlank() -> ""           // All
+                        isSelected -> ""                           // toggle off → All
+                        else -> optionCanonical
+                    }
+                    onGenderSelected(newCanonical)
+                },
+                label = { Text(stringResource(option.labelRes)) }
+            )
         }
     }
 }
