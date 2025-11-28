@@ -109,6 +109,12 @@
     </plurals>
     <string name="feature_ai_messages_plus">25 AI messages / month</string>
     <string name="feature_ai_messages_premium">50 AI messages / month</string>
+    <string name="chat_action_copy">Copy</string>
+    <string name="chat_action_react">React</string>
+    <string name="chat_action_delete">Delete</string>
+    <string name="chat_action_delete_all">Delete All</string>
+    <string name="chat_react_title">Reactions</string>
+    <string name="chat_react_clear">Clear Reaction</string>
 
     <string name="toast_not_logged_in">Not logged in</string>
     <string name="toast_camera_permission_required">Camera permission is required to take a photo</string>

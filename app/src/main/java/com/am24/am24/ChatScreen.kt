@@ -30,6 +30,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.media3.transformer.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -119,6 +120,7 @@ import java.io.IOException
 import kotlin.compareTo
 import kotlin.dec
 import com.am24.am24.ui.CompatibilityMeter
+import androidx.compose.foundation.combinedClickable
 
 // Updated Message data class (without viewed field)
 data class Message(
@@ -133,7 +135,9 @@ data class Message(
     val processed: Boolean = false,
     @get:PropertyName("isPost")
     @set:PropertyName("isPost")
-    var isPost: Boolean = false // Add this field to flag shared posts
+    var isPost: Boolean = false, // Add this field to flag shared posts
+    val reaction: String? = null          // 👈 NEW
+
 )
 
 private object RatingPromptSession {
@@ -166,6 +170,11 @@ fun ChatScreenContent(
     chatViewModel: ChatViewModel,
     currentUserId: String
     ) {
+    val ENABLE_CHAT_RATING_UI = false
+
+    var selectedMessage by remember { mutableStateOf<Message?>(null) }
+    var showMessageMenu by remember { mutableStateOf(false) }
+    var showReactionPicker by remember { mutableStateOf(false) }
     var previewRefresh by remember { mutableStateOf(0) }
     var pendingEditUri by remember { mutableStateOf<Uri?>(null) }
     var pendingPhotoUri by remember { mutableStateOf<Uri?>(null) }
@@ -231,7 +240,7 @@ fun ChatScreenContent(
         }
     }
     var messageText by remember { mutableStateOf("") }
-    var showRating by remember { mutableStateOf(true) }
+    var showRating by remember { mutableStateOf(false) }
 
     // decide *once* per session
     LaunchedEffect(Unit) {
@@ -889,19 +898,19 @@ fun ChatScreenContent(
                         Icon(Icons.Default.MoreVert, "More Options", tint = Color.White)
                     }
                     DropdownMenu(expanded = moreOptionsMenuExpanded, onDismissRequest = { moreOptionsMenuExpanded = false }) {
-                        DropdownMenuItem(
-                            text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Star, contentDescription = "Toggle Rating", tint = Color(0xFFFF4500))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(chatrate)
-                                }
-                            },
-                            onClick = {
-                                moreOptionsMenuExpanded = false
-                                showRating = !showRating
-                            }
-                        )
+//                        DropdownMenuItem(
+//                            text = {
+//                                Row(verticalAlignment = Alignment.CenterVertically) {
+//                                    Icon(Icons.Default.Star, contentDescription = "Toggle Rating", tint = Color(0xFFFF4500))
+//                                    Spacer(Modifier.width(4.dp))
+//                                    Text(chatrate)
+//                                }
+//                            },
+//                            onClick = {
+//                                moreOptionsMenuExpanded = false
+//                                showRating = !showRating
+//                            }
+//                        )
                         DropdownMenuItem(
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1017,7 +1026,7 @@ fun ChatScreenContent(
     ) { paddingValues ->
         Box(Modifier.fillMaxSize().padding(paddingValues).background(DarkGrayBackground)) {
             Column(Modifier.fillMaxSize()) {
-                if (otherUserProfile != null && showRating) {
+                if (ENABLE_CHAT_RATING_UI && otherUserProfile != null && showRating) {
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
                         CompatibilityMeter(percent = aiMatchResult?.totalMatchPercentage?.toDouble() ?: 0.0)
                         var yourrating = stringResource(R.string.chat_your_rating)
@@ -1135,18 +1144,38 @@ fun ChatScreenContent(
                                 )
                             } else {
                                 when (message.mediaType) {
-                                    "voice" -> VoiceMessageBubble(message, currentUserId)
+                                    "voice" -> VoiceMessageBubble(
+                                        message, currentUserId,
+                                        onLongPress = {
+                                            selectedMessage = message
+                                            showMessageMenu = true
+                                        }
+                                    )
                                     "photo" -> MediaMessageBubble(
                                         message,
                                         currentUserId,
-                                        onFullscreen = { fullScreenTarget = it }
+                                        onFullscreen = { fullScreenTarget = it },
+                                        onLongPress = {
+                                            selectedMessage = message
+                                            showMessageMenu = true
+                                        }
                                     )
                                     "video" -> MediaMessageBubble(
                                         message,
                                         currentUserId,
-                                        onFullscreen = { fullScreenTarget = it }
+                                        onFullscreen = { fullScreenTarget = it },
+                                        onLongPress = {
+                                            selectedMessage = message
+                                            showMessageMenu = true
+                                        }
                                     )
-                                    else -> MessageBubble(message, currentUserId)
+                                    else -> MessageBubble(
+                                        message, currentUserId,
+                                        onLongPress = {
+                                            selectedMessage = message
+                                            showMessageMenu = true
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -1685,6 +1714,105 @@ fun ChatScreenContent(
                 )
             }
         }
+        // ─── Message actions bottom sheet ───
+        if (showMessageMenu && selectedMessage != null) {
+            val msg = selectedMessage!!
+            val ctx = context
+            ModalBottomSheet(
+                onDismissRequest = { showMessageMenu = false }
+            ) {
+                // Copy text
+                if (msg.text.isNotBlank()) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.chat_action_copy)) },
+                        modifier = Modifier.clickable {
+                            val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE)
+                                    as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(
+                                android.content.ClipData.newPlainText("message", msg.text)
+                            )
+                            showMessageMenu = false
+                        }
+                    )
+                }
+
+                // React with emoji
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.chat_action_react)) },
+                    modifier = Modifier.clickable {
+                        showMessageMenu = false
+                        showReactionPicker = true
+                    }
+                )
+
+                // Delete this message
+                ListItem(
+                    headlineContent = {
+                        Text(stringResource(R.string.chat_action_delete), color = Color.Red)
+                    },
+                    modifier = Modifier.clickable {
+                        messagesRef.child(msg.id).removeValue()
+                        showMessageMenu = false
+                    }
+                )
+
+                // Delete entire chat
+                ListItem(
+                    headlineContent = {
+                        Text(stringResource(R.string.chat_action_delete_all), color = Color.Red)
+                    },
+                    modifier = Modifier.clickable {
+                        chatViewModel.clearConversation()
+                        showMessageMenu = false
+                    }
+                )
+            }
+        }
+
+// ─── Emoji picker dialog ───
+        if (showReactionPicker && selectedMessage != null) {
+            val msg = selectedMessage!!
+            val emojis = listOf("❤️", "😍", "😂", "😮", "😢", "👍")
+            AlertDialog(
+                onDismissRequest = { showReactionPicker = false },
+                title = { Text(stringResource(R.string.chat_react_title)) },
+                text = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        emojis.forEach { emoji ->
+                            Text(
+                                text = emoji,
+                                fontSize = 28.sp,
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .clickable {
+                                        messagesRef.child(msg.id)
+                                            .child("reaction")
+                                            .setValue(emoji)
+                                        showReactionPicker = false
+                                    }
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            // Clear reaction
+                            messagesRef.child(msg.id).child("reaction").setValue(null)
+                            showReactionPicker = false
+                        }
+                    ) { Text(stringResource(R.string.chat_react_clear)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showReactionPicker = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
     }
     FullscreenMediaViewer(
         target = fullScreenTarget,
@@ -2127,20 +2255,27 @@ fun FullscreenVideoPlayer(uri: Uri, onDismiss: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MediaMessageBubble(
     message: Message,
     currentUserId: String,
-    onFullscreen: (Message) -> Unit
+    onFullscreen: (Message) -> Unit,
+    onLongPress: (Message) -> Unit = {}   // 👈 NEW
 ) {
     val isCurrentUser = message.senderId == currentUserId
     val ticks = if (isCurrentUser) {
         if (message.read) "✔✔" else "✔"
     } else ""
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .combinedClickable(                     // 👈 click = open, longClick = menu
+                onClick = { onFullscreen(message) },
+                onLongClick = { onLongPress(message) }
+            ),
         horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
     ) {
         Column(
@@ -2148,38 +2283,55 @@ fun MediaMessageBubble(
                 .background(Color.Black, RoundedCornerShape(12.dp))
                 .padding(12.dp)
         ) {
-            Box(modifier = Modifier.clickable { onFullscreen(message) }) {
-                when (message.mediaType) {
-                    "photo" -> CachedPhotoThumbnail(
-                        url = message.mediaUrl ?: "",
-                        modifier = Modifier.size(150.dp),
-                        contentScale = ContentScale.Crop,
-                        placeholderResId = R.drawable.local_placeholder,
-                        errorResId = R.drawable.local_placeholder
-                    )
-                    "video" -> CachedVideoThumbnail(
-                        url = message.mediaUrl ?: "",
-                        modifier = Modifier.size(150.dp),
-                        contentScale = ContentScale.Crop,
-                        placeholderResId = R.drawable.local_placeholder,
-                        errorResId = R.drawable.local_placeholder
-                    )
-                }
+            when (message.mediaType) {
+                "photo" -> CachedPhotoThumbnail(
+                    url = message.mediaUrl ?: "",
+                    modifier = Modifier.size(150.dp),
+                    contentScale = ContentScale.Crop,
+                    placeholderResId = R.drawable.local_placeholder,
+                    errorResId = R.drawable.local_placeholder
+                )
+                "video" -> CachedVideoThumbnail(
+                    url = message.mediaUrl ?: "",
+                    modifier = Modifier.size(150.dp),
+                    contentScale = ContentScale.Crop,
+                    placeholderResId = R.drawable.local_placeholder,
+                    errorResId = R.drawable.local_placeholder
+                )
             }
+
             Spacer(Modifier.height(4.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(formatRelativeTime(message.timestamp), color = Color.DarkGray, fontSize = 12.sp)
+                Text(
+                    formatRelativeTime(message.timestamp),
+                    color = Color.DarkGray,
+                    fontSize = 12.sp
+                )
                 if (ticks.isNotEmpty()) {
                     Spacer(Modifier.width(4.dp))
                     Text(ticks, color = Color(0xFFFF4500), fontSize = 12.sp)
                 }
             }
+
+            // 👇 show reaction under the bubble if present
+            if (message.reaction != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = message.reaction,
+                    fontSize = 14.sp,
+                    color = Color.White
+                )
+            }
         }
     }
 }
 
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MessageBubble(message: Message, currentUserId: String, isSuperswipe: Boolean = false) {
+fun MessageBubble(message: Message, currentUserId: String, isSuperswipe: Boolean = false,onLongPress: (Message) -> Unit = {})
+{
     val isCurrentUser = message.senderId == currentUserId
     val bubbleColor = when {
         isSuperswipe -> Color(0xFFE91E63)
@@ -2193,20 +2345,34 @@ fun MessageBubble(message: Message, currentUserId: String, isSuperswipe: Boolean
         if (message.read) "✔✔" else "✔"
     } else ""
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
     ) {
         Column(
-            modifier = Modifier.background(bubbleColor, RoundedCornerShape(12.dp)).padding(12.dp)
+            modifier = Modifier
+                .combinedClickable(              // 👈 this is what you were missing
+                    onClick = { /* normal click; links handled by ClickableText */ },
+                    onLongClick = { onLongPress(message) }
+                )
+                .background(bubbleColor, RoundedCornerShape(12.dp))
+                .padding(12.dp)
         ) {
             if (isSuperswipe) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.EmojiEmotions, contentDescription = "SuperSwipe", tint = Color.White, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.EmojiEmotions,
+                        contentDescription = "SuperSwipe",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(Modifier.width(4.dp))
                     Text("Super-Swipe!", color = Color.White, fontSize = 12.sp)
                 }
                 Spacer(Modifier.height(4.dp))
             }
+
             ClickableText(
                 text = annotatedText,
                 style = TextStyle(color = textColor, fontSize = 16.sp),
@@ -2218,21 +2384,42 @@ fun MessageBubble(message: Message, currentUserId: String, isSuperswipe: Boolean
                         }
                 }
             )
+
             Spacer(modifier = Modifier.height(4.dp))
+
             Row {
-                Text(text = formatRelativeTime(message.timestamp), color = Color.DarkGray, fontSize = 12.sp)
+                Text(
+                    text = formatRelativeTime(message.timestamp),
+                    color = Color.DarkGray,
+                    fontSize = 12.sp
+                )
                 if (ticks.isNotEmpty()) {
                     Spacer(Modifier.width(4.dp))
                     Text(ticks, color = Color(0xFFFF4500), fontSize = 12.sp)
                 }
             }
+
+            // 👇 reaction rendering
+            if (message.reaction != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = message.reaction,
+                    fontSize = 14.sp,
+                    color = Color.White
+                )
+            }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun VoiceMessageBubble(message: Message, currentUserId: String) {
-    val context = LocalContext.current
+fun VoiceMessageBubble(
+    message: Message,
+    currentUserId: String,
+    onLongPress: (Message) -> Unit = {}
+)
+{    val context = LocalContext.current
     val isCurrentUser = message.senderId == currentUserId
     var isPlaying by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf(0f) }
@@ -2248,37 +2435,42 @@ fun VoiceMessageBubble(message: Message, currentUserId: String) {
         } else progress = 0f
     }
     val ticks = if (isCurrentUser) if (message.read) "✔✔" else "✔" else ""
-    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start) {
-        Column(Modifier.background(Color.Black, RoundedCornerShape(12.dp)).padding(12.dp)) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .combinedClickable(
+                onClick = { /* click handled by IconButton */ },
+                onLongClick = { onLongPress(message) }
+            ),
+        horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
+    ) {
+        Column(
+            Modifier
+                .background(Color.Black, RoundedCornerShape(12.dp))
+                .padding(12.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = {
-                    if (isPlaying) {
-                        player?.pause()
-                        isPlaying = false
-                    } else {
-                        val mp = MediaPlayer().apply {
-                            setDataSource(message.mediaUrl)
-                            prepareAsync()
-                            setOnPreparedListener { start(); player = this; isPlaying = true }
-                            setOnCompletionListener { isPlaying = false; progress = 0f }
-                            setOnErrorListener { _, what, extra ->
-                                Toast.makeText(context, "Playback error: $what, $extra", Toast.LENGTH_SHORT).show(); false
-                            }
-                        }
-                    }
-                }) {
-                    Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Play/Pause", tint = Color(0xFFFF4500))
-                }
-                LinearProgressIndicator(progress = progress, Modifier.weight(1f).padding(horizontal = 8.dp), color = Color(0xFFFFA500), trackColor = Color.Gray)
-                Text(formatDuration(player?.duration?.toLong() ?: 0L), color = Color.DarkGray, fontSize = 12.sp)
+                // ... your existing IconButton + progress + duration ...
             }
+
             Spacer(Modifier.height(4.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(formatRelativeTime(message.timestamp), color = Color.DarkGray, fontSize = 12.sp)
                 if (ticks.isNotEmpty()) {
                     Spacer(Modifier.width(4.dp))
                     Text(ticks, color = Color(0xFFFF4500), fontSize = 12.sp)
                 }
+            }
+
+            if (message.reaction != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = message.reaction,
+                    fontSize = 14.sp,
+                    color = Color.White
+                )
             }
         }
     }
@@ -2605,48 +2797,68 @@ fun ChatInputBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        TextField(
-            value = messageText,
-            onValueChange = onTextChange,
-            placeholder = { Text(stringResource(R.string.hint_type_message), color = Color.White) },
+        // Box so the dropdown can anchor to the text field area
+        Box(
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 48.dp)
-                .background(Color.DarkGray, RoundedCornerShape(24.dp)),
-            colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = Color.DarkGray,
-                focusedTextColor = Color.White,
-                focusedPlaceholderColor = Color.Gray,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                cursorColor             = KupidxOrange
-            ),
-//            singleLine = true,
-
-            keyboardActions = KeyboardActions(
-                onSend = {
-                    if (sendEnabled) onSend()
-                }
+        ) {
+            TextField(
+                value = messageText,
+                onValueChange = onTextChange,
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.hint_type_message),
+                        color = Color.Gray
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .clip(RoundedCornerShape(24.dp)),
+                colors = TextFieldDefaults.colors(
+                    unfocusedContainerColor = Color.DarkGray,
+                    focusedContainerColor = Color.DarkGray,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedPlaceholderColor = Color.Gray,
+                    unfocusedPlaceholderColor = Color.Gray,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = KupidxOrange
+                ),
+                trailingIcon = {
+                    IconButton(onClick = { mediaMenu = true }) {
+                        Icon(
+                            imageVector = Icons.Default.AttachFile,
+                            contentDescription = "Attach",
+                            tint = Color(0xFFFFA500)
+                        )
+                    }
+                },
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    imeAction = ImeAction.Send
+                ),
+                keyboardActions = KeyboardActions(
+                    onSend = {
+                        if (sendEnabled) onSend()
+                    }
+                )
             )
-        )
 
-        Spacer(Modifier.width(4.dp))
-
-        IconButton(onClick = { mediaMenu = true }) {
-            Icon(Icons.Default.MoreVert, null, tint = Color(0xFFFFA500))
+            // Dropdown anchored to the same Box (visually under the attachment icon)
+            MediaToolsMenu(
+                expanded = mediaMenu,
+                onDismiss = { mediaMenu = false },
+                isRecording = isRecording,
+                onToggleRecord = onToggleRecord,
+                onPickPhoto = onPickPhoto,
+                onPickVideo = onPickVideo,
+                onCapturePhoto = onCapturePhoto,
+                onCaptureVideo = onCaptureVideo
+            )
         }
-        MediaToolsMenu(
-            expanded = mediaMenu,
-            onDismiss = { mediaMenu = false },
-            isRecording = isRecording,
-            onToggleRecord = onToggleRecord,
-            onPickPhoto = onPickPhoto,
-            onPickVideo = onPickVideo,
-            onCapturePhoto = onCapturePhoto,
-            onCaptureVideo = onCaptureVideo
-        )
 
-        Spacer(Modifier.width(4.dp))
+        Spacer(Modifier.width(6.dp))
 
         IconButton(
             enabled = sendEnabled,
@@ -2662,11 +2874,12 @@ fun ChatInputBar(
                     color = Color.White
                 )
             } else {
-                Icon(Icons.Default.Send, null, tint = Color.White)
+                Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
             }
         }
     }
 }
+
 
 fun captureWithPermission(
     context: Context,

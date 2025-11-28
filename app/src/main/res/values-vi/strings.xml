@@ -15,6 +15,13 @@
     <string name="language_name_hindi">हिन्दी</string>
     <string name="feature_ai_messages_plus">25 tin nhắn AI / tháng</string>
     <string name="feature_ai_messages_premium">50 tin nhắn AI / tháng</string>
+    <string name="chat_action_copy">Sao chép</string>
+    <string name="chat_action_react">Phản ứng</string>
+    <string name="chat_action_delete">Xóa</string>
+    <string name="chat_action_delete_all">Xóa tất cả</string>
+    <string name="chat_react_title">Phản ứng</string>
+    <string name="chat_react_clear">Xóa phản ứng</string>
+
     <string name="email_verification_sent">Email xác minh đã được gửi!</string>
     <string name="email_verified_enjoy">Email đã được xác minh – hãy tận hưởng ứng dụng!</string>
     <string name="email_not_verified_yet">Vẫn chưa được xác minh — vui lòng xác nhận liên kết trước.</string>

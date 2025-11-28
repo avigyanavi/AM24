@@ -191,12 +191,13 @@ class ChatViewModel : ViewModel() {
                             senderId = map["senderId"] as? String ?: "",
                             receiverId = map["receiverId"] as? String ?: "",
                             text = map["text"] as? String ?: "",
-                            timestamp = (map["timestamp"] as? Long) ?: System.currentTimeMillis(),
+                            timestamp = (map["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis(),
                             read = map["read"] as? Boolean ?: false,
                             mediaType = map["mediaType"] as? String,
                             mediaUrl = map["mediaUrl"] as? String,
                             processed = map["processed"] as? Boolean ?: false,
-                            isPost = map["isPost"] as? Boolean ?: false
+                            isPost = map["isPost"] as? Boolean ?: false,
+                            reaction   = map["reaction"] as? String    // ✅ ADD THIS
                         )
                     } catch (e: Exception) {
                         Log.e("ChatViewModel", "Failed parsing message ${child.key}: ${e.message}")
@@ -254,7 +255,8 @@ class ChatViewModel : ViewModel() {
         mediaType = this["mediaType"] as? String,
         mediaUrl = this["mediaUrl"] as? String,
         processed = this["processed"] as? Boolean ?: false,
-        isPost = this["isPost"] as? Boolean ?: false
+        isPost = this["isPost"] as? Boolean ?: false,
+        reaction = this["reaction"] as? String
     )
 
     private fun clearListeners() {

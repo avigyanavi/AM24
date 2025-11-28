@@ -24,7 +24,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.am24.am24.FirebaseRefs
 import kotlinx.coroutines.tasks.await
 
 @Composable
@@ -37,8 +36,17 @@ fun AIPartnerFullImageScreen(
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // ---------- Load from RTDB ----------
+    // ---------- Load from cache, then RTDB if needed ----------
     LaunchedEffect(userId, timestamp) {
+        // 1) try in-memory cache first
+        val cached = AIPartnerImageCache.get(timestamp)
+        if (cached != null) {
+            bytes = cached
+            isLoading = false
+            return@LaunchedEffect
+        }
+
+        // 2) fallback → fetch from RTDB once
         try {
             val snap = FirebaseRefs.db
                 .getReference("aiPartnerChats")
@@ -54,7 +62,9 @@ fun AIPartnerFullImageScreen(
                 if (b64.isNullOrBlank()) {
                     error = "Image not available."
                 } else {
-                    bytes = Base64.decode(b64, Base64.DEFAULT)
+                    val decoded = Base64.decode(b64, Base64.DEFAULT)
+                    bytes = decoded
+                    AIPartnerImageCache.put(timestamp, decoded)   // cache it
                 }
             }
         } catch (_: Exception) {
@@ -71,8 +81,9 @@ fun AIPartnerFullImageScreen(
 
     val transformState = rememberTransformableState { zoomChange, panChange, _ ->
         val newScale = (scale * zoomChange).coerceIn(1f, 4f)
-        // adjust pan only when zoomed
+
         if (newScale == 1f) {
+            // reset pan when fully zoomed out
             offsetX = 0f
             offsetY = 0f
         } else {
@@ -108,7 +119,6 @@ fun AIPartnerFullImageScreen(
             }
 
             bytes != null -> {
-                // Zoomable / pannable image
                 AsyncImage(
                     model = bytes!!,
                     contentDescription = "AI Partner Image",

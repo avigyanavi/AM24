@@ -5684,6 +5684,13 @@
     <string name="job_role_option_other">अन्य</string>
     <string name="feature_ai_messages_plus">25 AI संदेश / माह</string>
     <string name="feature_ai_messages_premium">50 AI संदेश / माह</string>
+    <string name="chat_action_copy">कॉपी करें</string>
+    <string name="chat_action_react">रिएक्ट करें</string>
+    <string name="chat_action_delete">हटाएँ</string>
+    <string name="chat_action_delete_all">सभी हटाएँ</string>
+    <string name="chat_react_title">रिएक्शन्स</string>
+    <string name="chat_react_clear">रिएक्शन हटाएँ</string>
+
     <!-- ── Work/Industry dropdown ── -->
     <string name="select_work">काम चुनें</string>
     <string name="work_option_not_selected">चुना नहीं गया</string>

@@ -63,6 +63,10 @@ fun AIPartnerMessageRemote.toLocal(): AIPartnerChatMessage {
         try { Base64.decode(it, Base64.DEFAULT) } catch (_: Exception) { null }
     }
 
+    if (bytes != null) {
+        AIPartnerImageCache.put(timestamp, bytes)
+    }
+
     return AIPartnerChatMessage(
         isUser = user,
         text = text,
@@ -70,6 +74,25 @@ fun AIPartnerMessageRemote.toLocal(): AIPartnerChatMessage {
         isImageLoadingBubble = false,
         timestamp = timestamp
     )
+}
+
+
+object AIPartnerImageCache {
+    private val cache = mutableMapOf<Long, ByteArray>()
+
+    fun put(timestamp: Long, bytes: ByteArray) {
+        cache[timestamp] = bytes
+    }
+
+    fun get(timestamp: Long): ByteArray? = cache[timestamp]
+
+    fun remove(timestamp: Long) {
+        cache.remove(timestamp)
+    }
+
+    fun clear() {
+        cache.clear()
+    }
 }
 
 @Composable
@@ -236,6 +259,8 @@ fun AIPartnerScreen(
 
             try {
                 val bytes = Base64.decode(b64, Base64.DEFAULT)
+// cache it
+                AIPartnerImageCache.put(nowTs, bytes)
 
                 messages.add(
                     AIPartnerChatMessage(
@@ -308,8 +333,9 @@ fun AIPartnerScreen(
     }
 
     fun lastMessageIsAiImage(messages: List<AIPartnerChatMessage>): Boolean {
-        val last = messages.lastOrNull() ?: return false
-        return !last.isUser && last.imageBytes != null
+        // look for the most recent AI message (non-user) and see if THAT was an image
+        val lastAi = messages.asReversed().firstOrNull { !it.isUser }
+        return lastAi?.imageBytes != null
     }
 
     fun shouldTriggerImageGen(
@@ -342,7 +368,7 @@ fun AIPartnerScreen(
         val lastWasAiImage = lastMessageIsAiImage(messages)
 
         return if (lastWasAiImage) {
-            hasRequestVerb
+            hasRequestVerb   // false → no new pic
         } else {
             true
         }
@@ -706,6 +732,7 @@ fun deleteMessage(
     chatRef: DatabaseReference?
 ) {
     messages.removeAll { it.timestamp == timestamp }
+    AIPartnerImageCache.remove(timestamp)
     chatRef?.child(timestamp.toString())?.removeValue()
 }
 
@@ -725,6 +752,7 @@ fun deleteAllMessages(
     aiPartnerViewModel: AIPartnerViewModel
 ) {
     messages.clear()
-    chatRef?.removeValue()          // deletes entire aiPartnerChats/{uid}
-    aiPartnerViewModel.clearAllState()  // clears memories + lastTurnSummary
+    chatRef?.removeValue()
+    AIPartnerImageCache.clear()
+    aiPartnerViewModel.clearAllState()
 }

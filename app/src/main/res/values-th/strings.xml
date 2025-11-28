@@ -20,6 +20,13 @@
     <string name="language_name_hindi">हिन्दी</string>
     <string name="feature_ai_messages_plus">25 ข้อความ AI / เดือน</string>
     <string name="feature_ai_messages_premium">50 ข้อความ AI / เดือน</string>
+    <string name="chat_action_copy">คัดลอก</string>
+    <string name="chat_action_react">แสดงรีแอคชั่น</string>
+    <string name="chat_action_delete">ลบ</string>
+    <string name="chat_action_delete_all">ลบทั้งหมด</string>
+    <string name="chat_react_title">ปฏิกิริยา</string>
+    <string name="chat_react_clear">ลบปฏิกิริยา</string>
+
     <string name="roles_label">บทบาท</string>
     <string name="private_album">อัลบั้มส่วนตัว</string>
     <string name="private_album_title">อัลบั้มส่วนตัว</string>
