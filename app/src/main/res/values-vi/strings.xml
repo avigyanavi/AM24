@@ -13,7 +13,8 @@
     <string name="settings_advanced_settings">Cài đặt nâng cao</string>
     <string name="verify_email_body">Vui lòng xác minh địa chỉ email của bạn để sử dụng ứng dụng.</string>
     <string name="language_name_hindi">हिन्दी</string>
-
+    <string name="feature_ai_messages_plus">25 tin nhắn AI / tháng</string>
+    <string name="feature_ai_messages_premium">50 tin nhắn AI / tháng</string>
     <string name="email_verification_sent">Email xác minh đã được gửi!</string>
     <string name="email_verified_enjoy">Email đã được xác minh – hãy tận hưởng ứng dụng!</string>
     <string name="email_not_verified_yet">Vẫn chưa được xác minh — vui lòng xác nhận liên kết trước.</string>

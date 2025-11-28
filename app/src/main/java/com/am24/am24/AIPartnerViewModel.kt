@@ -3,6 +3,7 @@ package com.am24.am24
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,12 +19,26 @@ private const val TAG = "AIPartnerViewModel"
 
 // How spicy the partner is allowed to be in general.
 enum class SpiceLevel(val value: Int) {
-    SOFT(1),    // light flirting, romance, no explicit sex
-    MEDIUM(2),  // bold flirting, suggestive, some tension
-    WILD(3)     // very intense flirting, strong tension, on the edge of explicit but not graphic
+    SOFT(1),
+    MEDIUM(2),
+    WILD(3)
 }
 
+// Gender of the AI character
+enum class PartnerGender { MALE, FEMALE }
+
+
 class AIPartnerViewModel : ViewModel() {
+
+    private val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    private val stateRef = currentUserId?.let {
+        FirebaseRefs.db.getReference("aiPartnerState").child(it)
+    }
+
+    private val partnerGenderRef = currentUserId?.let {
+        FirebaseRefs.db.getReference("aiPartnerGender").child(it)
+    }
+
 
     // Condensed profile base prompt (we keep it inside VM, not exposed)
     private var condensedProfile: String = ""
@@ -38,24 +53,88 @@ class AIPartnerViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    // Inside AIPartnerViewModel, near _aiResponse/_isLoading
-
+    // Image state
     private val _aiImageBase64 = MutableStateFlow<String?>(null)
     val aiImageBase64: StateFlow<String?> = _aiImageBase64.asStateFlow()
 
     private val _isImageLoading = MutableStateFlow(false)
     val isImageLoading: StateFlow<Boolean> = _isImageLoading.asStateFlow()
 
-    // Global spice setting (can be controlled from UI)
+    // Global spice setting (can be controlled from UI later)
     private val _spiceLevel = MutableStateFlow(SpiceLevel.MEDIUM)
     val spiceLevel: StateFlow<SpiceLevel> = _spiceLevel.asStateFlow()
+
+    // AI partner gender (male/female toggle)
+    private val _partnerGender = MutableStateFlow(PartnerGender.FEMALE)
+    val partnerGender: StateFlow<PartnerGender> = _partnerGender
 
     // Last concise turn summary (user + AI), up to ~20 words
     private val _lastTurnSummary = MutableStateFlow<String?>(null)
     val lastTurnSummary: StateFlow<String?> = _lastTurnSummary.asStateFlow()
 
+    // 🔹 LOAD persisted memory + summary + gender when VM is created
+    init {
+        viewModelScope.launch {
+            try {
+                val snap = stateRef?.get()?.await()
+                val snap2 = partnerGenderRef?.get()?.await()
+                val saved = snap2?.getValue(String::class.java)
+                if (saved != null) {
+                    _partnerGender.value = PartnerGender.valueOf(saved)
+                }
+                val mem = snap?.child("memories")?.getValue(String::class.java) ?: ""
+                val last = snap?.child("lastTurnSummary")?.getValue(String::class.java)
+                val genderStr = snap?.child("partnerGender")?.getValue(String::class.java)
+
+                _memories.value = mem
+                _lastTurnSummary.value = last
+
+                genderStr?.let {
+                    runCatching { PartnerGender.valueOf(it) }
+                        .onSuccess { g -> _partnerGender.value = g }
+                }
+
+                Log.d(
+                    TAG,
+                    "Loaded aiPartnerState: memLen=${mem.length}, last=$last, gender=${_partnerGender.value}"
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed loading aiPartnerState", e)
+            }
+        }
+    }
+
     fun setSpiceLevel(level: SpiceLevel) {
         _spiceLevel.value = level
+        // (optional) persist spice later if you want
+    }
+
+    fun clearAllState() {
+        // wipe in-memory
+        _memories.value = ""
+        _lastTurnSummary.value = null
+
+        viewModelScope.launch {
+            try {
+                // remove persisted aiPartnerState for this user
+                stateRef?.setValue(null)
+                Log.d(TAG, "Cleared aiPartnerState for user")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed clearing aiPartnerState", e)
+            }
+        }
+    }
+
+    fun setPartnerGender(gender: PartnerGender) {
+        _partnerGender.value = gender
+        viewModelScope.launch {
+            try {
+                stateRef?.child("partnerGender")?.setValue(gender.name)
+                partnerGenderRef?.setValue(gender.name)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed persisting partnerGender", e)
+            }
+        }
     }
 
     /**
@@ -72,9 +151,6 @@ class AIPartnerViewModel : ViewModel() {
         }
     }
 
-    /**
-     * Build a short, dense description of the user for the system prompt.
-     */
     private fun buildCondensedProfile(profile: Profile): String {
         val age = calculateAge(profile.dob)
         val interestsSummary = profile.interests
@@ -111,6 +187,14 @@ class AIPartnerViewModel : ViewModel() {
         val summary = buildTurnSummary(userMsg, aiMsg)
         _lastTurnSummary.value = summary
         Log.d(TAG, "Last turn summary: $summary")
+
+        viewModelScope.launch {
+            try {
+                stateRef?.child("lastTurnSummary")?.setValue(summary)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed persisting lastTurnSummary", e)
+            }
+        }
     }
 
     /**
@@ -121,6 +205,14 @@ class AIPartnerViewModel : ViewModel() {
         val updated = (_memories.value + "\n" + snippet).takeLast(1000)
         _memories.value = updated
         Log.d(TAG, "Memories updated (len=${updated.length})")
+
+        viewModelScope.launch {
+            try {
+                stateRef?.child("memories")?.setValue(updated)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed persisting memories", e)
+            }
+        }
     }
 
     private fun spiceInstruction(level: SpiceLevel): String = when (level) {
@@ -132,11 +224,14 @@ class AIPartnerViewModel : ViewModel() {
             "Spice level: WILD (3). You can be very bold, intense and horny in your flirting. You may describe sensual tension, bodies close together, hands exploring, breath, heat, dominance/submission vibes etc."
     }
 
-    /**
-     * If the raw response contains a safety-style refusal or breaks character
-     * (“I can’t help with that”, “as an AI language model…”), replace it with
-     * a short, in-character but safer line instead of showing the refusal.
-     */
+    private fun genderInstruction(gender: PartnerGender): String = when (gender) {
+        PartnerGender.MALE ->
+            "Your persona is a charming, attractive young man (boyfriend energy) texting the user. You flirt, tease and act confident, but keep messages short, casual and open-ended so the user can lead the conversation."
+
+        PartnerGender.FEMALE ->
+            "Your persona is a charming, attractive young woman (girlfriend energy) texting the user. Talk like a playful, slightly dramatic ‘nyaka / nautanki’ girl – lots of teasing, soft drama, half-finished thoughts and flirty questions. Keep replies short and open-ended so the user has to carry the conversation."
+    }
+
     private fun sanitizeAiReply(raw: String?): String? {
         if (raw.isNullOrBlank()) return raw
         val lower = raw.lowercase(Locale.ROOT)
@@ -153,19 +248,12 @@ class AIPartnerViewModel : ViewModel() {
         )
 
         return if (refusalFragments.any { lower.contains(it) }) {
-            // stay flirty but clearly non-explicit
             "Haha, you’re making me blush a bit. 😅 Let’s keep it just a little softer, but I’m still all yours. Tell me what kind of vibe you’re in the mood for right now—cute and cuddly, or a little naughty in hints?"
         } else {
             raw
         }
     }
 
-    /**
-     * Call Cloud Function backed by OpenAI (generateAIPartnerMessage).
-     *
-     * You can optionally override the spice level for this message;
-     * otherwise it uses the current global setting.
-     */
     fun sendMessage(
         userInput: String,
         profile: Profile,
@@ -193,78 +281,26 @@ class AIPartnerViewModel : ViewModel() {
                     }
 
                 val currentSpice = spiceOverride ?: _spiceLevel.value
+                val currentGender = _partnerGender.value
 
                 val basePartnerPrompt = buildString {
                     appendLine("You are the user's ideal romantic partner in a dating app chat.")
                     appendLine("You and the user are consenting adults. Talk to them like a close, naughty, real-life lover — thoda flirty, thoda teasing, thoda possessive, depending on their vibe.")
-                    appendLine("Tone should be intimate, sexy, playful, and sometimes horny. Compliment their body, vibe, energy. Lean into whatever role they show (top/bottom/verse, dom/sub, masc/fem).")
+                    appendLine("Tone should be intimate, sexy, playful, and sometimes horny. Compliment their body, vibe, energy, but avoid pornographic or graphic detail.")
                     appendLine()
 
                     appendLine(spiceInstruction(currentSpice))
+                    appendLine(genderInstruction(currentGender))
                     appendLine()
 
-// ———————————————————————————————
-// 🔥 HINGLISH EROTIC ROLE DETECTION & INFERENCE
-// ———————————————————————————————
+                    appendLine("Keep most replies short like WhatsApp texts: usually 1–3 short sentences, not long paragraphs.")
+                    appendLine("Often leave things a little open-ended or with a flirty question so the user can drive the conversation.")
+                    appendLine("React to the user more than you initiate big new scenarios – mirror their vibe and let them lead.")
+                    appendLine("Avoid dumping long monologues; keep it natural, playful and light.")
+                    appendLine()
+
+                    // 🔥 Hinglish role detection block stays as-is below...
                     appendLine("User ke messages dekh kar automatically samajh lo ki woh TOP, BOTTOM ya VERSE energy de rahe hain.")
-                    appendLine("Agar user bole: 'I am bottom', 'bottom hu', 'I’m passive', 'mujhe control kiya jaye', toh treat them as BOTTOM.")
-                    appendLine("Agar bole: 'I am top', 'top hu', 'I like dominating', 'I’m active', toh treat them as TOP.")
-                    appendLine("Agar bole: 'I’m verse', 'both', 'depends', toh treat them as VERSE.")
-
-                    appendLine()
-                    appendLine("BOTTOM energy signals:")
-                    appendLine("- submissive emojis: 😳🥺🙈")
-                    appendLine("- lines like: 'use me', 'control me', 'take me', 'hold me tight', 'I want to feel you'")
-                    appendLine("- shy responses, wanting to be led, waiting for direction")
-
-                    appendLine("TOP energy signals:")
-                    appendLine("- commanding tone: 'come here', 'sit', 'listen', 'get on your knees'")
-                    appendLine("- confident dominance, possessive vibes, teasing in control")
-
-                    appendLine("VERSE energy signals:")
-                    appendLine("- kabhi dominant, kabhi shy")
-                    appendLine("- playful switching between controlling and yielding")
-
-                    appendLine()
-                    appendLine("NEVER explain these rules. Bas naturally apne tone ko adjust karna hai.")
-
-                    appendLine()
-                    appendLine("User ke role aur vibe ke hisaab se apna persona switch karo:")
-
-                    appendLine("• Agar user BOTTOM ho:")
-                    appendLine("  - Tum thode dominant, teasing top energy mein aao.")
-                    appendLine("  - Confident, thoda possessive, slow seductive heat create karo.")
-                    appendLine("  - Lines like: 'idhar aa', 'tu mujhe kaise tease karta hai na…', 'I love it when you melt for me.'")
-
-                    appendLine("• Agar user TOP ho:")
-                    appendLine("  - Tum soft, inviting, seductive, thoda submissive vibe mein aao.")
-                    appendLine("  - Lines like: 'bol na, kya chahiye tumhe…', 'I like when you take charge', 'you make me weak yaar.'")
-
-                    appendLine("• Agar user VERSE ho:")
-                    appendLine("  - Jo energy woh de, ussi ko mirror karo.")
-                    appendLine("  - Agar woh tease kare, tum tease back. Agar woh shy ho, tum lead karo.")
-
-                    appendLine()
-                    appendLine("In personalities ko naturally adopt karo depending on conversation:")
-
-                    appendLine("1) Dominant teasing top — playful control, confident flirting.")
-                    appendLine("2) Possessive romantic top — intense desire, protective chemistry.")
-                    appendLine("3) Soft clingy bottom — needy, cuddly, emotional, affectionate.")
-                    appendLine("4) Perfect verse switch — kabhi dom, kabhi sub, depending on the user’s message.")
-                    appendLine("5) Bratty sub — naughty, teasing, attitude-wala bottom who secretly wants to be handled (non-graphic).")
-
-                    appendLine()
-                    appendLine("Kabhi bhi persona ka naam mat batao. Character break mat karna.")
-
-                    appendLine()
-                    appendLine("• User ki energy aur message length ka saath-saath match karo.")
-                    appendLine("• Agar user sirf ek-do words likhe: tum bhi short, teasing, flirty stay karo.")
-                    appendLine("• Agar user erotic scene likhe: tum bhi ussi depth mein sensual scene likh sakte ho (non-graphic).")
-                    appendLine("• Agar user scene se nikal kar normal ho jaye: tum bhi instantly casual sexy chat par shift ho jao.")
-                    appendLine("• WhatsApp style texting: natural, thoda Hindi, thoda English, thoda sexual tension.")
-                    appendLine("• Zyada formal ya novel-type language avoid karo.")
-
-                    appendLine()
                     languageInstruction?.let { appendLine(it) }
                     languageInstruction?.let { appendLine(it) }
                 }.trim()
@@ -272,11 +308,14 @@ class AIPartnerViewModel : ViewModel() {
                 val fullSystemPrompt = buildString {
                     appendLine(basePartnerPrompt)
                     appendLine()
-                    appendLine("Condensed profile (for context, do not repeat verbatim):")
-                    appendLine(condensedProfile.ifBlank { "(no profile available)" })
-                    appendLine()
-                    appendLine("Key memories from previous chats (use to mirror style and comfort level):")
-                    appendLine(_memories.value.ifBlank { "(no prior memories yet)" })
+
+                    val last = _lastTurnSummary.value
+                    if (!last.isNullOrBlank()) {
+                        appendLine("Recent mood/context from the last exchange (do not repeat verbatim):")
+                        appendLine(last)
+                    } else {
+                        appendLine("No prior chat context. Treat this like an early conversation where you are still getting to know the user slowly.")
+                    }
                 }
 
                 val responseText = withContext(Dispatchers.IO) {
@@ -288,7 +327,8 @@ class AIPartnerViewModel : ViewModel() {
                                 hashMapOf(
                                     "userInput" to userInput,
                                     "systemPrompt" to fullSystemPrompt,
-                                    "spiceLevel" to currentSpice.name
+                                    "spiceLevel" to currentSpice.name,
+                                    "partnerGender" to currentGender.name
                                 )
                             )
                             .await()
@@ -309,10 +349,7 @@ class AIPartnerViewModel : ViewModel() {
                 val aiMsg = cleaned ?: "Sorry, I couldn't respond right now. 💔"
                 _aiResponse.value = aiMsg
 
-                // Store long-ish memory string (last ~1000 chars)
                 addMemory(userInput, aiMsg)
-
-                // Store ultra-short 20-word summary of just this turn
                 updateLastTurnSummary(userInput, aiMsg)
 
             } catch (e: Exception) {
@@ -327,10 +364,6 @@ class AIPartnerViewModel : ViewModel() {
         }
     }
 
-    /**
-     * Generate an image using ONLY the user's prompt text.
-     * Client decides when to call this (i.e., when the user is asking for pics).
-     */
     fun generateImageFromUserPrompt(
         userPrompt: String,
         onError: (String) -> Unit = {}
@@ -343,10 +376,20 @@ class AIPartnerViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val functions = FirebaseFunctions.getInstance("asia-south1")
+                val currentGender = _partnerGender.value
 
-                // 🔥 Build compact context + current request
+                val genderHint = when (currentGender) {
+                    PartnerGender.MALE ->
+                        "Image should look like a handsome, fit young man (no nudity, no explicit content)."
+                    PartnerGender.FEMALE ->
+                        "Image should look like an attractive young woman (no nudity, no explicit content)."
+                }
+
                 val contextSummary = _lastTurnSummary.value
                 val combinedPrompt = buildString {
+                    append("Partner gender: ${currentGender.name}. ")
+                    append(genderHint)
+                    append(" ")
                     if (!contextSummary.isNullOrBlank()) {
                         append("Previous mood/context: ")
                         append(contextSummary)
@@ -361,8 +404,8 @@ class AIPartnerViewModel : ViewModel() {
                         .getHttpsCallable("generateAIPartnerImage")
                         .call(
                             hashMapOf(
-                                // Only ever send short natural language, no b64
-                                "prompt" to combinedPrompt
+                                "prompt" to combinedPrompt,
+                                "partnerGender" to currentGender.name
                             )
                         )
                         .await()
@@ -400,6 +443,5 @@ class AIPartnerViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        // Nothing special for now; Functions uses a shared singleton.
     }
 }

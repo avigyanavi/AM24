@@ -2142,10 +2142,6 @@ exports.loginEntitlementSweep = functions
     if (hasActiveEntitlement && !isPlus) {
       updates.isPlus = true;
     }
-    if (entryFeeAccessActive && !hasEntryAiBonus) {
-      updates.availableAiMessages = availableAiMessages + 150;
-      updates.hasEntryAiBonus     = true; // so we don’t grant it twice
-    }
     const shouldHavePremiumFlag = hasPremiumEntitlement || premiumFlagged;
     if (shouldHavePremiumFlag !== isPremium) {
       updates.isPremium = shouldHavePremiumFlag;
@@ -2336,8 +2332,8 @@ exports.verifyKupidxSubscription = functions
           updates.availableBoosts      = tier.premium ? 5 : 3;
           updates.availableCompliments = tier.premium ? 5 : 3;
 
-          // ⭐ AI messages: Plus = 150 / month, Premium = 500 / month
-          updates.availableAiMessages = tier.premium ? 500 : 150;
+          // ⭐ AI messages: Plus = 25 / month, Premium = 50 / month
+          updates.availableAiMessages = tier.premium ? 50 : 25;
         }
       await admin.database().ref(`users/${uid}`).update(updates);
     }
@@ -2376,8 +2372,8 @@ exports.kupidxPlusWebhook = functions
           updates.availableBoosts      = tier.premium ? 5 : 3;
           updates.availableCompliments = tier.premium ? 5 : 3;
 
-          // ⭐ AI messages: Plus = 150 / month, Premium = 500 / month
-          updates.availableAiMessages = tier.premium ? 500 : 150;
+          // ⭐ AI messages: Plus = 25 / month, Premium = 50 / month
+          updates.availableAiMessages = tier.premium ? 50 : 25;
         }
         await db.update(updates);
         break;

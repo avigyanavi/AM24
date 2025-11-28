@@ -489,8 +489,8 @@ object BillingManager : PurchasesUpdatedListener {
         nextRenewal: Long? = null,
     ) {
         val aiMessageTopUp = when {
-            premium -> 500
-            plus -> 150
+            premium -> 50
+            plus -> 25
             else -> 0
         }
 

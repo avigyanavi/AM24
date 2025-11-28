@@ -125,6 +125,16 @@ fun MainNavGraph(
         composable("create_post") {
             CreatePostScreen(navController = navController, postViewModel = postViewModel)
         }
+        composable("aiImageFull/{userId}/{timestamp}") { backStack ->
+            val uid = backStack.arguments?.getString("userId")!!
+            val ts = backStack.arguments?.getString("timestamp")!!.toLong()
+
+            AIPartnerFullImageScreen(
+                navController = navController,
+                userId = uid,
+                timestamp = ts
+            )
+        }
         composable("create_post/text") {
             TextPostComposable(navController = navController, postViewModel = postViewModel)
         }

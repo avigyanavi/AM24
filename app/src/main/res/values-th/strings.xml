@@ -18,7 +18,8 @@
     <string name="toast_upload_failed_try_again">เราไม่สามารถอัปโหลดรูปนั้นได้ กรุณาลองอีกครั้ง</string>
     <string name="settings_advanced_settings">การตั้งค่าขั้นสูง</string>
     <string name="language_name_hindi">हिन्दी</string>
-
+    <string name="feature_ai_messages_plus">25 ข้อความ AI / เดือน</string>
+    <string name="feature_ai_messages_premium">50 ข้อความ AI / เดือน</string>
     <string name="roles_label">บทบาท</string>
     <string name="private_album">อัลบั้มส่วนตัว</string>
     <string name="private_album_title">อัลบั้มส่วนตัว</string>

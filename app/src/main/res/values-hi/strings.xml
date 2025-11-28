@@ -5682,7 +5682,8 @@
     <string name="job_role_option_entrepreneur">उद्यमी</string>
     <string name="job_role_option_intern">इंटर्न</string>
     <string name="job_role_option_other">अन्य</string>
-
+    <string name="feature_ai_messages_plus">25 AI संदेश / माह</string>
+    <string name="feature_ai_messages_premium">50 AI संदेश / माह</string>
     <!-- ── Work/Industry dropdown ── -->
     <string name="select_work">काम चुनें</string>
     <string name="work_option_not_selected">चुना नहीं गया</string>

@@ -141,7 +141,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
                 updates["nextRenewal"] = finalRenewal
                 userRef.updateChildren(updates)
                     .addOnSuccessListener {
-                        BillingManager.creditAiMessagesOnce(userRef, 150, finalRenewal)
+                        BillingManager.creditAiMessagesOnce(userRef, 25, finalRenewal)
                         val offer = BillingManager.products.value
                             .firstOrNull { it.productId == "entry_fee" }
                             ?.oneTimePurchaseOfferDetails

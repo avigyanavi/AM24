@@ -45,12 +45,12 @@ private val PLUS_FEATURES = listOf(
     R.string.feature_no_ads,
     R.string.feature_people_liked_me,
     R.string.feature_picture_voice_posts,
-    R.string.feature_50_swipes,
+    R.string.feature_ai_messages_plus,
     R.string.feature_3_compliments,
 )
 
 private val PREMIUM_FEATURES = listOf(
-    R.string.feature_video_rank_section,
+    R.string.feature_ai_messages_premium,
     R.string.feature_unlimited_swipes,
     R.string.feature_unlock_maps,
     R.string.feature_5_compliments,
@@ -448,7 +448,7 @@ private fun launchOneTimeUpi(
 
                     FirebaseRefs.db.getReference("users/$uid").updateChildren(updates)
                     val renewalAnchor = now + validityMs
-                    val aiMessagesTopUp = if (tier == Tier.PREMIUM) 500 else 150
+                    val aiMessagesTopUp = if (tier == Tier.PREMIUM) 50 else 25
                     BillingManager.creditAiMessagesOnce(
                         FirebaseRefs.db.getReference("users/$uid"),
                         aiMessagesTopUp,
