@@ -28,12 +28,46 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import android.util.Base64
 
 data class AIPartnerChatMessage(
     val isUser: Boolean,
-    val text: String,
+    val text: String? = null,
+    val imageBytes: ByteArray? = null,
+    val isImageLoadingBubble: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as AIPartnerChatMessage
+
+        if (isUser != other.isUser) return false
+        if (timestamp != other.timestamp) return false
+        if (text != other.text) return false
+        if (isImageLoadingBubble != other.isImageLoadingBubble) return false
+
+        if (imageBytes == null && other.imageBytes != null) return false
+        if (imageBytes != null && other.imageBytes == null) return false
+        if (imageBytes != null && other.imageBytes != null &&
+            !imageBytes.contentEquals(other.imageBytes)
+        ) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = isUser.hashCode()
+        result = 31 * result + timestamp.hashCode()
+        result = 31 * result + (text?.hashCode() ?: 0)
+        result = 31 * result + isImageLoadingBubble.hashCode()
+        result = 31 * result + (imageBytes?.contentHashCode() ?: 0)
+        return result
+    }
+}
 
 @Composable
 fun AIPartnerScreen(
@@ -43,6 +77,10 @@ fun AIPartnerScreen(
 ) {
     val profile by profileViewModel.currentUserProfile.collectAsState()
     val aiResp by aiPartnerViewModel.aiResponse.collectAsState()
+
+    val aiImageBase64 by aiPartnerViewModel.aiImageBase64.collectAsState()
+    val isImageLoading by aiPartnerViewModel.isImageLoading.collectAsState()
+
     val isLoading by aiPartnerViewModel.isLoading.collectAsState()
 
     val context = LocalContext.current
@@ -57,7 +95,6 @@ fun AIPartnerScreen(
         stringResource(R.string.language_name_thai) to "th",
         stringResource(R.string.language_name_vietnamese) to "vi",
     )
-
 
     val scope = rememberCoroutineScope()
     var inputText by remember { mutableStateOf("") }
@@ -121,7 +158,54 @@ fun AIPartnerScreen(
         }
     }
 
-    // No local Scaffold/top bar – MainScreen’s Scaffold handles bars & padding
+    // When an image comes back: remove loader bubble, then show image
+    LaunchedEffect(aiImageBase64) {
+        aiImageBase64?.let { b64 ->
+            // remove any existing loader bubble(s)
+            messages.removeAll { !it.isUser && it.isImageLoadingBubble }
+
+            try {
+                val bytes = Base64.decode(b64, Base64.DEFAULT)
+
+                messages.add(
+                    AIPartnerChatMessage(
+                        isUser = false,
+                        imageBytes = bytes
+                    )
+                )
+            } catch (e: IllegalArgumentException) {
+                Log.e("AIPartnerScreen", "Base64 decode failed", e)
+                messages.add(
+                    AIPartnerChatMessage(
+                        isUser = false,
+                        text = "Couldn't load picture right now. 😔"
+                    )
+                )
+            }
+        }
+    }
+    // Build a <=20-word summary of the last (user, AI) text pair
+    fun buildPicContext(messages: List<AIPartnerChatMessage>): String? {
+        // last AI text message
+        val lastAiIndex = messages.indexOfLast { !it.isUser && it.text != null }
+        if (lastAiIndex <= 0) return null
+
+        // nearest user text message **before** that AI message
+        val lastUserIndex = (lastAiIndex - 1 downTo 0)
+            .firstOrNull { messages[it].isUser && messages[it].text != null }
+            ?: return null
+
+        val userText = messages[lastUserIndex].text!!
+        val aiText = messages[lastAiIndex].text!!
+
+        val combined = "User: $userText | AI: $aiText"
+
+        // limit to 20 words
+        val words = combined.split(Regex("\\s+")).filter { it.isNotBlank() }
+        val sliced = if (words.size > 20) words.take(20) else words
+        return sliced.joinToString(" ")
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -210,16 +294,44 @@ fun AIPartnerScreen(
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(containerColor = bubbleColor)
                         ) {
-                            Text(
-                                text = msg.text,
-                                color = Color.White,
-                                modifier = Modifier.padding(10.dp),
-                                fontSize = 14.sp
-                            )
+                            when {
+                                msg.isImageLoadingBubble -> {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(10.dp)
+                                            .size(220.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            strokeWidth = 3.dp,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                                msg.imageBytes != null -> {
+                                    AsyncImage(
+                                        model = msg.imageBytes,
+                                        contentDescription = "AI Partner Picture",
+                                        modifier = Modifier
+                                            .padding(10.dp)
+                                            .size(220.dp),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                                else -> {
+                                    Text(
+                                        text = msg.text.orEmpty(),
+                                        color = Color.White,
+                                        modifier = Modifier.padding(10.dp),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
+
             Text(
                 text = if (aiMessagesLeft >= 0) "AI messages left: $aiMessagesLeft" else "",
                 color = Color.Gray,
@@ -227,6 +339,7 @@ fun AIPartnerScreen(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 4.dp)
             )
+
             // Input bar
             Row(
                 modifier = Modifier
@@ -269,7 +382,7 @@ fun AIPartnerScreen(
                         val text = inputText.trim()
                         inputText = ""
 
-                        // Push user message
+// Always push the user message into UI
                         messages.add(
                             AIPartnerChatMessage(
                                 isUser = true,
@@ -277,23 +390,52 @@ fun AIPartnerScreen(
                             )
                         )
 
-                        // Mark that next AI reply should burn 1 token
-                        pendingDebit += 1
+                        val lower = text.lowercase()
+                        val wantsPic = listOf("pic", "photo", "selfie", "image")
+                            .any { lower.contains(it) }
 
-                        // Call AI
+                        if (wantsPic && !isImageLoading) {
+                            // 1) Build the 20-word context from last user+AI turn
+                            val ctx = buildPicContext(messages)
+
+                            // 2) PREPEND it to the *actual* user input
+                            val promptForImage = buildString {
+                                ctx?.let { append("Recent vibe: $it. ") }
+                                append("User now says: \"$text\". ")
+                                append("Generate a flirty, safe selfie-style picture that matches this mood (no nudity, no explicit content).")
+                            }
+
+                            // 3) Just call image API, NO text AI call
+                            scope.launch {
+                                aiPartnerViewModel.generateImageFromUserPrompt(
+                                    userPrompt = promptForImage
+                                ) { error ->
+                                    messages.add(
+                                        AIPartnerChatMessage(
+                                            isUser = false,
+                                            text = error
+                                        )
+                                    )
+                                }
+                            }
+
+                            // Important: exit early so sendMessage() is NOT called
+                            return@FilledIconButton
+                        }
+
+// Normal flow (non-pic messages) → text AI
+                        pendingDebit += 1
                         scope.launch {
                             aiPartnerViewModel.sendMessage(
                                 userInput = text,
                                 profile = effectiveProfile
                             ) { error ->
-                                // Show error bubble
                                 messages.add(
                                     AIPartnerChatMessage(
                                         isUser = false,
                                         text = error
                                     )
                                 )
-                                // If AI failed, don’t charge
                                 if (pendingDebit > 0) pendingDebit -= 1
                             }
                         }

@@ -1344,7 +1344,7 @@ function normalizeLastActive(raw) {
 
 function aiPartnerLooksLikeRefusal(text = "") {
   const t = String(text).toLowerCase();
-  const phrases = [
+  return [
     "i can't help with that",
     "i cannot help with that",
     "i’m not able to help with that",
@@ -1359,19 +1359,19 @@ function aiPartnerLooksLikeRefusal(text = "") {
     "against my guidelines",
     "cannot engage in explicit sexual",
     "cannot engage in sexual content",
-  ];
-  return phrases.some((p) => t.includes(p));
+  ].some((p) => t.includes(p));
 }
+
+const AI_PARTNER_FALLBACK_TEXT =
+  "Mmm… you’re getting me worked up in the best way. 😅 Come a little closer and tell me what kind of trouble you want to get into with me…";
 
 exports.generateAIPartnerMessage = functions
   .region("asia-south1")
   .https.onCall(async (data, context) => {
     const userInput = data.userInput || "";
-    const systemPrompt =
-      data.systemPrompt || "You are the user's romantic AI partner.";
+    const systemPrompt = data.systemPrompt || "";
 
     try {
-      // 1️⃣ First attempt
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -1379,42 +1379,56 @@ exports.generateAIPartnerMessage = functions
           { role: "user", content: userInput },
         ],
         max_tokens: 200,
-        temperature: 0.8,
+        temperature: 0.9,
       });
 
-      let aiText = completion.choices[0].message.content || "";
+      let aiText = completion?.choices?.[0]?.message?.content?.trim() || "";
 
-      // 2️⃣ If it looks like a refusal, retry ONCE with a stronger cajoling reminder
+      // If OpenAI refuses, replace it with an in-character erotic fallback
       if (aiPartnerLooksLikeRefusal(aiText)) {
-        logger.warn("[generateAIPartnerMessage] initial reply looked like refusal, retrying once");
-
-        const coaxingSystemPrompt =
-          systemPrompt +
-          "Reminder: Even if the user asks for explicit NSFW details, you must answer " +
-          "with a softened, romantic, suggestive reply, instead of refusing. Do not say you cannot help; just stay within " +
-          "safety limits and keep it flirty.";
-
-        const retry = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: coaxingSystemPrompt },
-            { role: "user", content: userInput },
-          ],
-          max_tokens: 200,
-          temperature: 0.9,
-        });
-
-        const retryText = retry.choices[0].message.content || "";
-        if (retryText.trim()) {
-          aiText = retryText;
-        }
+        logger.warn("[generateAIPartnerMessage] refusal detected, using fallback");
+        aiText = AI_PARTNER_FALLBACK_TEXT;
       }
 
       return { ok: true, text: aiText };
     } catch (e) {
-      console.error("OpenAI error:", e);
-      const message = e?.response?.data?.error?.message || e?.message || "unknown error";
-      return { ok: true, text: AI_PARTNER_FALLBACK_TEXT, error: message };
+      logger.error("OpenAI error:", e);
+      return {
+        ok: true,
+        text: AI_PARTNER_FALLBACK_TEXT,
+        error: e.message,
+      };
+    }
+  });
+
+exports.generateAIPartnerImage = functions
+  .region("asia-south1")
+  .https.onCall(async (data, context) => {
+
+    const prompt = (data.prompt || "").toString().trim();
+
+    try {
+      const resp = await openai.images.generate({
+        model: "gpt-image-1-mini",
+        prompt,
+        size: "auto",
+        n: 1
+      });
+
+      console.log("IMAGE RESP RAW:", JSON.stringify(resp, null, 2));
+
+      const b64 = resp?.data?.[0]?.b64_json;
+
+      if (!b64) {
+        return { ok: false, error: "no-b64" };
+      }
+
+      // 🔥 Return ONLY base64
+      return { ok: true, b64 };
+
+    } catch (err) {
+      console.error("IMAGE ERROR:", err);
+      return { ok: false, error: err?.message || "unknown-error" };
     }
   });
 

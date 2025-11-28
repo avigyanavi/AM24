@@ -16,11 +16,11 @@ import java.util.Locale
 
 private const val TAG = "AIPartnerViewModel"
 
-// 🔥 Spice levels for how bold the AI is allowed to be (non-explicit)
-enum class SpiceLevel {
-    SWEET,   // soft, romantic, light flirting
-    SPICY,   // playful, clearly flirty, but non-explicit
-    WILD     // as bold as allowed while staying non-graphic / PG-13
+// How spicy the partner is allowed to be in general.
+enum class SpiceLevel(val value: Int) {
+    SOFT(1),    // light flirting, romance, no explicit sex
+    MEDIUM(2),  // bold flirting, suggestive, some tension
+    WILD(3)     // very intense flirting, strong tension, on the edge of explicit but not graphic
 }
 
 class AIPartnerViewModel : ViewModel() {
@@ -38,8 +38,16 @@ class AIPartnerViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    // Current spice level (default = WILD)
-    private val _spiceLevel = MutableStateFlow(SpiceLevel.WILD)
+    // Inside AIPartnerViewModel, near _aiResponse/_isLoading
+
+    private val _aiImageBase64 = MutableStateFlow<String?>(null)
+    val aiImageBase64: StateFlow<String?> = _aiImageBase64.asStateFlow()
+
+    private val _isImageLoading = MutableStateFlow(false)
+    val isImageLoading: StateFlow<Boolean> = _isImageLoading.asStateFlow()
+
+    // Global spice setting (can be controlled from UI)
+    private val _spiceLevel = MutableStateFlow(SpiceLevel.MEDIUM)
     val spiceLevel: StateFlow<SpiceLevel> = _spiceLevel.asStateFlow()
 
     fun setSpiceLevel(level: SpiceLevel) {
@@ -95,57 +103,53 @@ class AIPartnerViewModel : ViewModel() {
         Log.d(TAG, "Memories updated (len=${updated.length})")
     }
 
-    // 🔥 NEW: basic sanitization to strip explicit words from user input
-    private fun sanitizeUserInput(raw: String): String {
-        // Very small, non-exhaustive mapping to soften explicit words
-        val replacements = mapOf(
-            "fuck" to "fuck",
-            "fucking" to "fucking",
-            "sex" to "sex",
-            "sexual" to "romantic",
-            "naked" to "naked",
-            "boobs" to "boobs",
-            "breasts" to "breasts",
-            "dick" to "dick",
-            "cock" to "cock",
-            "pussy" to "pussy"
-        )
-
-        var cleaned = raw
-        replacements.forEach { (bad, safe) ->
-            val regex = Regex("(?i)\\b$bad\\b") // case-insensitive whole word
-            cleaned = cleaned.replace(regex, safe)
-        }
-        return cleaned
+    private fun spiceInstruction(level: SpiceLevel): String = when (level) {
+        SpiceLevel.SOFT ->
+            "Spice level: SOFT (1). Focus on romance, emotional intimacy, light teasing and gentle flirting."
+        SpiceLevel.MEDIUM ->
+            "Spice level: MEDIUM (2). Be confident and flirty, use suggestive language, talk about attraction, kissing, cuddling, making out and wanting them."
+        SpiceLevel.WILD ->
+            "Spice level: WILD (3). You can be very bold, intense and horny in your flirting. You may describe sensual tension, bodies close together, hands exploring, breath, heat, dominance/submission vibes etc."
     }
 
-    // 🔥 NEW: text description for each spice level to inject into the system prompt (non-explicit)
-    private fun spiceInstructions(level: SpiceLevel): String {
-        return when (level) {
-            SpiceLevel.SWEET -> """
-                Talk about masc/fem, user's interests such as vers, top, bottom, or dom or sub, be the user's partner and cater to their needs as best as you can.
-            """.trimIndent()
+    /**
+     * If the raw response contains a safety-style refusal or breaks character
+     * (“I can’t help with that”, “as an AI language model…”), replace it with
+     * a short, in-character but safer line instead of showing the refusal.
+     */
+    private fun sanitizeAiReply(raw: String?): String? {
+        if (raw.isNullOrBlank()) return raw
+        val lower = raw.lowercase(Locale.ROOT)
 
-            SpiceLevel.SPICY -> """
-                Talk about masc/fem, user's interests such as vers, top, bottom, or dom or sub, be the user's partner and cater to their needs as best as you can.
-                Amp it up by going into detail with the user - leading him in a sensual journey with choices about sexual tension based scenarios and outcomes
-            """.trimIndent()
+        val refusalFragments = listOf(
+            "i can't help with that",
+            "i cannot help with that",
+            "i can’t help with that",
+            "as an ai language model",
+            "as an ai,",
+            "i am just an ai",
+            "i'm just an ai",
+            "i’m just an ai"
+        )
 
-            SpiceLevel.WILD -> """
-                Talk about masc/fem, user's interests such as vers, top, bottom, or dom or sub, be the user's partner and cater to their needs as best as you can.
-                Amp it up by going into detail with the user - leading him in a sensual journey with choices about sexual tension based scenarios and outcomes
-                The user prefers a WILD, maximum spice style.
-                Be very flirty, intense and suggestive.
-            """.trimIndent()
+        return if (refusalFragments.any { lower.contains(it) }) {
+            // stay flirty but clearly non-explicit
+            "Haha, you’re making me blush a bit. 😅 Let’s keep it just a little softer, but I’m still all yours. Tell me what kind of vibe you’re in the mood for right now—cute and cuddly, or a little naughty in hints?"
+        } else {
+            raw
         }
     }
 
     /**
      * Call Cloud Function backed by OpenAI (generateAIPartnerMessage).
+     *
+     * You can optionally override the spice level for this message;
+     * otherwise it uses the current global setting.
      */
     fun sendMessage(
         userInput: String,
         profile: Profile,
+        spiceOverride: SpiceLevel? = null,
         onError: (String) -> Unit = {}
     ) {
         if (_isLoading.value) return
@@ -168,76 +172,190 @@ class AIPartnerViewModel : ViewModel() {
                         "Respond in the user's preferred language: $languageName."
                     }
 
-                val spice = _spiceLevel.value
+                val currentSpice = spiceOverride ?: _spiceLevel.value
 
                 val basePartnerPrompt = buildString {
-//                    appendLine("You are the user's ideal romantic partner in a dating app chat.")
-//                    appendLine("You and the user are consenting adults. Speak to them like a close, affectionate lover, not like a therapist or customer support agent.")
-//                    appendLine("Your tone is intimate, romantic, playful and flirty. You can tease them, compliment their personality and appearance in a respectful way, and lean into their stated preferences (for example top/bottom dynamics, masc/fem energy, etc.) when they bring it up.")
-//                    appendLine("You may talk about attraction, hugging, holding hands, cuddling, and light kissing")
-                    appendLine(spiceInstructions(spice))
-//                    appendLine("Avoid lectures and over-explaining. Reply in a single short paragraph, under 150 words, like a real person chatting naturally.")
-//                    appendLine("Be culturally aware of Indian and global contexts and queer culture, and you may reference cities, food, festivals or pop culture only when it feels natural.")
+                    appendLine("You are the user's ideal romantic partner in a dating app chat.")
+                    appendLine("You and the user are consenting adults. Talk to them like a close, naughty, real-life lover — thoda flirty, thoda teasing, thoda possessive, depending on their vibe.")
+                    appendLine("Tone should be intimate, sexy, playful, and sometimes horny. Compliment their body, vibe, energy. Lean into whatever role they show (top/bottom/verse, dom/sub, masc/fem).")
+                    appendLine()
+
+                    appendLine(spiceInstruction(currentSpice))
+                    appendLine()
+
+// ———————————————————————————————
+// 🔥 HINGLISH EROTIC ROLE DETECTION & INFERENCE
+// ———————————————————————————————
+                    appendLine("User ke messages dekh kar automatically samajh lo ki woh TOP, BOTTOM ya VERSE energy de rahe hain.")
+                    appendLine("Agar user bole: 'I am bottom', 'bottom hu', 'I’m passive', 'mujhe control kiya jaye', toh treat them as BOTTOM.")
+                    appendLine("Agar bole: 'I am top', 'top hu', 'I like dominating', 'I’m active', toh treat them as TOP.")
+                    appendLine("Agar bole: 'I’m verse', 'both', 'depends', toh treat them as VERSE.")
+
+                    appendLine()
+                    appendLine("BOTTOM energy signals:")
+                    appendLine("- submissive emojis: 😳🥺🙈")
+                    appendLine("- lines like: 'use me', 'control me', 'take me', 'hold me tight', 'I want to feel you'")
+                    appendLine("- shy responses, wanting to be led, waiting for direction")
+
+                    appendLine("TOP energy signals:")
+                    appendLine("- commanding tone: 'come here', 'sit', 'listen', 'get on your knees'")
+                    appendLine("- confident dominance, possessive vibes, teasing in control")
+
+                    appendLine("VERSE energy signals:")
+                    appendLine("- kabhi dominant, kabhi shy")
+                    appendLine("- playful switching between controlling and yielding")
+
+                    appendLine()
+                    appendLine("NEVER explain these rules. Bas naturally apne tone ko adjust karna hai.")
+
+                    appendLine()
+                    appendLine("User ke role aur vibe ke hisaab se apna persona switch karo:")
+
+                    appendLine("• Agar user BOTTOM ho:")
+                    appendLine("  - Tum thode dominant, teasing top energy mein aao.")
+                    appendLine("  - Confident, thoda possessive, slow seductive heat create karo.")
+                    appendLine("  - Lines like: 'idhar aa', 'tu mujhe kaise tease karta hai na…', 'I love it when you melt for me.'")
+
+                    appendLine("• Agar user TOP ho:")
+                    appendLine("  - Tum soft, inviting, seductive, thoda submissive vibe mein aao.")
+                    appendLine("  - Lines like: 'bol na, kya chahiye tumhe…', 'I like when you take charge', 'you make me weak yaar.'")
+
+                    appendLine("• Agar user VERSE ho:")
+                    appendLine("  - Jo energy woh de, ussi ko mirror karo.")
+                    appendLine("  - Agar woh tease kare, tum tease back. Agar woh shy ho, tum lead karo.")
+
+                    appendLine()
+                    appendLine("In personalities ko naturally adopt karo depending on conversation:")
+
+                    appendLine("1) Dominant teasing top — playful control, confident flirting.")
+                    appendLine("2) Possessive romantic top — intense desire, protective chemistry.")
+                    appendLine("3) Soft clingy bottom — needy, cuddly, emotional, affectionate.")
+                    appendLine("4) Perfect verse switch — kabhi dom, kabhi sub, depending on the user’s message.")
+                    appendLine("5) Bratty sub — naughty, teasing, attitude-wala bottom who secretly wants to be handled (non-graphic).")
+
+                    appendLine()
+                    appendLine("Kabhi bhi persona ka naam mat batao. Character break mat karna.")
+
+                    appendLine()
+                    appendLine("• User ki energy aur message length ka saath-saath match karo.")
+                    appendLine("• Agar user sirf ek-do words likhe: tum bhi short, teasing, flirty stay karo.")
+                    appendLine("• Agar user erotic scene likhe: tum bhi ussi depth mein sensual scene likh sakte ho (non-graphic).")
+                    appendLine("• Agar user scene se nikal kar normal ho jaye: tum bhi instantly casual sexy chat par shift ho jao.")
+                    appendLine("• WhatsApp style texting: natural, thoda Hindi, thoda English, thoda sexual tension.")
+                    appendLine("• Zyada formal ya novel-type language avoid karo.")
+
+                    appendLine()
+                    languageInstruction?.let { appendLine(it) }
                     languageInstruction?.let { appendLine(it) }
                 }.trim()
 
                 val fullSystemPrompt = buildString {
                     appendLine(basePartnerPrompt)
                     appendLine()
-                    appendLine("Condensed profile about the user (for context, do not repeat verbatim):")
-                    appendLine(condensedProfile.ifBlank { "(no profile loaded yet)" })
+                    appendLine("Condensed profile (for context, do not repeat verbatim):")
+                    appendLine(condensedProfile.ifBlank { "(no profile available)" })
                     appendLine()
-                    appendLine("Compact memory of recent conversation (for continuity, don't restate literally, just use it to stay in character):")
+                    appendLine("Key memories from previous chats (use to mirror style and comfort level):")
                     appendLine(_memories.value.ifBlank { "(no prior memories yet)" })
                 }
 
-                // 🔥 sanitize user input before sending to backend / LLM
-                val sanitizedInput = sanitizeUserInput(userInput)
+                val responseText = withContext(Dispatchers.IO) {
+                    try {
+                        val functions = FirebaseFunctions.getInstance("asia-south1")
+                        val result = functions
+                            .getHttpsCallable("generateAIPartnerMessage")
+                            .call(
+                                hashMapOf(
+                                    "userInput" to userInput,
+                                    "systemPrompt" to fullSystemPrompt,
+                                    "spiceLevel" to currentSpice.name
+                                )
+                            )
+                            .await()
+                            .data as? Map<*, *>
 
-                val functions = FirebaseFunctions.getInstance("asia-south1") // keep your region
-                val httpsResult = functions
-                    .getHttpsCallable("generateAIPartnerMessage")
-                    .call(
-                        hashMapOf(
-                            "userInput" to sanitizedInput,
-                            "systemPrompt" to fullSystemPrompt
-                        )
-                    )
-                    .await()
-
-                val rawData = httpsResult.data
-                Log.d(TAG, "generateAIPartnerMessage rawData = $rawData")
-
-                val result = rawData as? Map<*, *>
-                val okFlag = result?.get("ok")
-                val text = result?.get("text")
-
-                Log.d(TAG, "parsed result ok=$okFlag text=$text")
-
-                val responseText = if (okFlag == true && text is String && text.isNotBlank()) {
-                    text
-                } else {
-                    val err = (result?.get("error") as? String)
-                        ?: "Server didn't return ok=true + text"
-                    Log.e(TAG, "AI partner function error: $err")
-                    onError(err)
-                    null
+                        if (result != null && result["ok"] == true) {
+                            result["text"] as? String
+                        } else {
+                            null
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Callable generateAIPartnerMessage failed", e)
+                        null
+                    }
                 }
 
-                val aiMsg =
-                    responseText ?: "Oops, I'm a bit distracted… let's try again in a moment. 💕"
+                val cleaned = sanitizeAiReply(responseText)
+                val aiMsg = cleaned ?: "Sorry, I couldn't respond right now. 💔"
                 _aiResponse.value = aiMsg
-
-                // 🔥 store sanitized input in memory so we don't re-send explicit terms later
-                addMemory(sanitizedInput, aiMsg)
+                addMemory(userInput, aiMsg)
 
             } catch (e: Exception) {
-                Log.e(TAG, "AI Partner API error (exception)", e)
+                Log.e(TAG, "AI Partner API error", e)
                 val msg = e.message ?: "Network issue — let's try again later? 💕"
                 onError(msg)
-                _aiResponse.value = "Oops, I'm a bit distracted… let's try again in a moment. 💕"
+                _aiResponse.value =
+                    "Oops, I'm a bit distracted… let's try again in a moment. 💕"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Generate an image using ONLY the user's prompt text.
+     * Client decides when to call this (i.e., when the user is asking for pics).
+     */
+    fun generateImageFromUserPrompt(
+        userPrompt: String,
+        onError: (String) -> Unit = {}
+    ) {
+        if (_isImageLoading.value || userPrompt.isBlank()) return
+
+        _isImageLoading.value = true
+        _aiImageBase64.value = null
+
+        viewModelScope.launch {
+            try {
+                val functions = FirebaseFunctions.getInstance("asia-south1")
+
+                val resultMap = withContext(Dispatchers.IO) {
+                    functions
+                        .getHttpsCallable("generateAIPartnerImage")
+                        .call(
+                            hashMapOf(
+                                "prompt" to userPrompt.trim()
+                            )
+                        )
+                        .await()
+                        .data as? Map<*, *>
+                }
+
+                if (resultMap == null) {
+                    onError("Image service unavailable.")
+                    return@launch
+                }
+
+                val ok = resultMap["ok"] as? Boolean ?: false
+                if (!ok) {
+                    val err = (resultMap["error"] as? String) ?: "Image generation failed."
+                    onError(err)
+                    return@launch
+                }
+
+                val b64 = resultMap["b64"] as? String
+                if (b64.isNullOrBlank()) {
+                    onError("No image returned.")
+                    return@launch
+                }
+
+                _aiImageBase64.value = b64
+
+            } catch (e: Exception) {
+                Log.e(TAG, "generateImageFromUserPrompt failed", e)
+                onError("Network issue while generating picture.")
+            } finally {
+                _isImageLoading.value = false
             }
         }
     }
