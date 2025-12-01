@@ -320,7 +320,8 @@ fun showVoiceBio(profile: Profile) {
         }
 
         if (profile.averageRating > 0.0 && profile.numberOfRatings > 0) {
-            RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+            RatingBarFromLikes(likes = profile.totalDatingLikes)
+
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
@@ -528,6 +529,22 @@ fun handleSwipeLeft(currentUserId: String, otherUserId: String) {
         val currentCount = snapshot.getValue(Double::class.java) ?: 0.0
         otherUserProfileRef.setValue(currentCount + 1)
     }
+    // --- NEW: atomically increment the persistent counter ---
+    val totalLikesRef = database.getReference("users/$otherUserId/totalDatingLikes")
+    totalLikesRef.runTransaction(object : Transaction.Handler {
+        override fun doTransaction(current: MutableData): Transaction.Result {
+            val cur = current.getValue(Int::class.java) ?: 0
+            current.value = cur + 1
+            return Transaction.success(current)
+        }
+
+        override fun onComplete(error: DatabaseError?, committed: Boolean, snapshot: DataSnapshot?) {
+            if (!committed) {
+                Log.e("handleSwipeRight", "Failed to increment totalDatingLikes for $otherUserId: ${error?.message}")
+            }
+            // no additional action required
+        }
+    })
 }
 
 private fun incrementMatchStats(userId: String) {

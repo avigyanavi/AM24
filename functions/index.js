@@ -487,6 +487,40 @@ exports.refreshNearbyIndexes = functions
     return null;
   });
 
+exports.onAuthUserDeleteCleanupNotifications = functions
+  .region('asia-south1')
+  .auth.user()
+  .onDelete(async (user) => {
+    try {
+      const deletedUid = user.uid;
+      const root = admin.database().ref('notifications');
+      const snap = await root.get();
+      if (!snap.exists()) return null;
+
+      const updates = {};
+      snap.forEach(recipientSnap => {
+        const recipientId = recipientSnap.key;
+        recipientSnap.forEach(nSnap => {
+          const nid = nSnap.key;
+          const nVal = nSnap.val() || {};
+          if (nVal.senderId === deletedUid) {
+            updates[`/notifications/${recipientId}/${nid}`] = null;
+          }
+        });
+      });
+
+      if (Object.keys(updates).length === 0) return null;
+
+      // apply deletions in one atomic update
+      await admin.database().ref().update(updates);
+      console.log(`[onAuthUserDeleteCleanupNotifications] removed ${Object.keys(updates).length} notifications from deleted user ${deletedUid}`);
+      return null;
+    } catch (err) {
+      console.error('onAuthUserDeleteCleanupNotifications error', err);
+      return null;
+    }
+  });
+
 exports.forceDeleteAccount = functions.region('asia-southeast1').https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Sign in required');
   const uid = context.auth.uid;
@@ -2454,40 +2488,115 @@ exports.onPostReport = functions
     return null;
   });
 
-exports.grantWeeklyQuotas = functions.pubsub
-  .schedule('every 10080 minutes')
-  .timeZone('Asia/Kolkata')
-  .onRun(async () => {
-    const usersRef = admin.database().ref('users');
-    const snap     = await usersRef.once('value');
-    const updates  = {};
+exports.processLikesCleanupRequest = functions
+  .region('asia-south1')
+  .database.instance(DB)
+  .ref('/likesReceivedCleanupRequests/{owner}/{target}')
+  .onCreate(async (snap, context) => {
+    const owner = context.params.owner;
+    const target = context.params.target;
+    const rootRef = admin.database().ref();
 
-    snap.forEach(userSnap => {
-      const uid  = userSnap.key;
-      const data = userSnap.val() || {};
-      let boosts, compliments, ai;
-
-      if (data.isPremium) {
-        boosts      = 5;
-        compliments = 5;
-        ai          = 2;
-      } else if (data.isPlus) {
-        boosts      = 3;
-        compliments = 3;
-      } else {
-        return; // skip free users
+    try {
+      // 1) Fast-path: does the auth user exist?
+      try {
+        await admin.auth().getUser(target);
+      } catch (authErr) {
+        // If auth.user not found -> safe to delete the like immediately
+        if (authErr.code === 'auth/user-not-found') {
+          const updates = {};
+          updates[`likesReceived/${owner}/${target}`] = null;
+          updates[`likesReceivedCleanupRequests/${owner}/${target}`] = null;
+          updates[`likesDeletesLog/${owner}/${target}`] = {
+            deletedBy: 'cloudfunc',
+            reason: 'auth-user-not-found',
+            timestamp: admin.database.ServerValue.TIMESTAMP
+          };
+          await rootRef.update(updates);
+          return null;
+        }
+        // For other auth errors, log and continue to profile check below
+        console.warn(`[processLikesCleanupRequest] auth.getUser error for ${target}`, authErr);
       }
 
-      updates[`users/${uid}/availableBoosts`]      = boosts;
-      updates[`users/${uid}/availableCompliments`] = compliments;
-      if (ai !== undefined) {
-              updates[`users/${uid}/availableAiMessages`] = ai;
-            }
-    });
+      // 2) If auth user exists, verify profile presence (users/<target>)
+      const userSnap = await admin.database().ref(`users/${target}`).get();
+      if (!userSnap.exists()) {
+        const updates = {};
+        updates[`likesReceived/${owner}/${target}`] = null;
+        updates[`likesReceivedCleanupRequests/${owner}/${target}`] = null;
+        updates[`likesDeletesLog/${owner}/${target}`] = {
+          deletedBy: 'cloudfunc',
+          reason: 'profile-missing',
+          timestamp: admin.database.ServerValue.TIMESTAMP
+        };
+        await rootRef.update(updates);
+      } else {
+        // Target looks valid — do nothing and leave the cleanup request in place
+        // (a scheduled job or manual review can remove it later if needed)
+        return null;
+      }
+    } catch (err) {
+      console.error(`[processLikesCleanupRequest] failed for ${owner}/${target}`, err);
+      // Don't delete anything on unexpected errors — leaving the request intact is safer.
+    }
+    return null;
+  });
 
-    // perform all updates in one go
-    await admin.database().ref().update(updates);
-    console.log("Weekly quotas granted.");
+
+exports.processLikesCleanupRequest = functions
+  .region('asia-south1')
+  .database.instance(DB)
+  .ref('/likesReceivedCleanupRequests/{owner}/{target}')
+  .onCreate(async (snap, context) => {
+    const owner = context.params.owner;
+    const target = context.params.target;
+    const rootRef = admin.database().ref();
+
+    try {
+      // 1) Fast-path: does the auth user exist?
+      try {
+        await admin.auth().getUser(target);
+      } catch (authErr) {
+        // If auth.user not found -> safe to delete the like immediately
+        if (authErr.code === 'auth/user-not-found') {
+          const updates = {};
+          updates[`likesReceived/${owner}/${target}`] = null;
+          updates[`likesReceivedCleanupRequests/${owner}/${target}`] = null;
+          updates[`likesDeletesLog/${owner}/${target}`] = {
+            deletedBy: 'cloudfunc',
+            reason: 'auth-user-not-found',
+            timestamp: admin.database.ServerValue.TIMESTAMP
+          };
+          await rootRef.update(updates);
+          return null;
+        }
+        // For other auth errors, log and continue to profile check below
+        console.warn(`[processLikesCleanupRequest] auth.getUser error for ${target}`, authErr);
+      }
+
+      // 2) If auth user exists, verify profile presence (users/<target>)
+      const userSnap = await admin.database().ref(`users/${target}`).get();
+      if (!userSnap.exists()) {
+        const updates = {};
+        updates[`likesReceived/${owner}/${target}`] = null;
+        updates[`likesReceivedCleanupRequests/${owner}/${target}`] = null;
+        updates[`likesDeletesLog/${owner}/${target}`] = {
+          deletedBy: 'cloudfunc',
+          reason: 'profile-missing',
+          timestamp: admin.database.ServerValue.TIMESTAMP
+        };
+        await rootRef.update(updates);
+      } else {
+        // Target looks valid — do nothing and leave the cleanup request in place
+        // (a scheduled job or manual review can remove it later if needed)
+        return null;
+      }
+    } catch (err) {
+      console.error(`[processLikesCleanupRequest] failed for ${owner}/${target}`, err);
+      // Don't delete anything on unexpected errors — leaving the request intact is safer.
+    }
+    return null;
   });
 
 // functions/src/unread-counter.ts

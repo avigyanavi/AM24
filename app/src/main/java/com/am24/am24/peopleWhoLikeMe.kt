@@ -28,7 +28,10 @@ import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.res.stringResource
+import com.google.firebase.database.ServerValue
 import kotlinx.coroutines.launch
+import java.text.DateFormat
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,7 +152,7 @@ fun PeopleWhoLikeMeScreen(
             fetched.forEach { (userId, summary) ->
                 if (summary.username.isBlank()) {
                     runCatching {
-                        FirebaseRefs.db.getReference("likesReceived/$currentUserId/$userId").removeValue().await()
+                        FirebaseRefs.db.getReference("likesReceivedCleanupRequests/$currentUserId/$userId").setValue(ServerValue.TIMESTAMP)
                     }
                     UserDeletionCache.markDeleted(userId)
                 } else {
@@ -290,8 +293,10 @@ fun PeopleWhoLikeMeScreen(
                                             color = Color.Gray,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
+                                        val likedAtMillis = likesMap[profile.userId] ?: 0L
+                                        val likedAtText = if (likedAtMillis > 0L) DateFormat.getDateTimeInstance().format(Date(likedAtMillis)) else "Recently liked"
                                         Text(
-                                            text = "Total likes: ${profile.likesReceivedCount}",
+                                            text = "Liked you: $likedAtText",
                                             color = Color.White,
                                             style = MaterialTheme.typography.bodySmall
                                         )

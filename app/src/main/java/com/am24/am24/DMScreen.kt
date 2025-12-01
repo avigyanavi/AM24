@@ -108,6 +108,7 @@ fun DMScreenContent(
     val matchIds by SessionDataRepository.matchIds.collectAsState()
     val blockedIds by SessionDataRepository.blockedUserIds.collectAsState()
     val likesMap by SessionDataRepository.likesReceived.collectAsState()
+    val likedCount by SessionDataRepository.likedCount.collectAsState(initial = 0)
     val liveLikesCount by remember(likesMap, matchIds, blockedIds) {
         derivedStateOf {
             likesMap.keys.count { uid ->
@@ -520,7 +521,7 @@ fun DMScreenContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "+${liveLikesCount}",
+                            "+${likedCount}",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp

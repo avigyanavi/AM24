@@ -59,13 +59,13 @@ fun MainScreen(
     locationManager: LocationManager
 ) {
     val items = listOf(
-        BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile"),
+        BottomNavItem("AI Partner", Icons.Default.SmartToy, "aiPartner"),
         BottomNavItem(stringResource(R.string.feed), Icons.Outlined.RssFeed, "home"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
 //        BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
-        BottomNavItem("AI Partner", Icons.Default.SmartToy, "aiPartner")
-    )
+        BottomNavItem(stringResource(R.string.profile), Icons.Default.PersonOutline, "profile")
+        )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route

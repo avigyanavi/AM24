@@ -817,10 +817,7 @@ fun FeedItem(
                         val ratingCount = userProfile?.numberOfRatings ?: 0
                         if (avgRating > 0 && ratingCount > 0) {
                             Spacer(modifier = Modifier.height(4.dp))
-                            RatingBar(
-                                rating = avgRating,
-                                ratingCount = ratingCount
-                            )
+                            RatingBarFromLikes(likes = currentUserProfile!!.totalDatingLikes)
                             Spacer(modifier = Modifier.height(4.dp))
                         }
                     }

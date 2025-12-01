@@ -3429,7 +3429,7 @@ fun UserProfilePopup(
         val displayName = profile.name.ifBlank { profile.username }
         Text(text = displayName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = KupidxOrange)
         Spacer(Modifier.height(6.dp))
-        RatingBar2(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
+        RatingBarFromLikes(likes = profile.totalDatingLikes)
         Spacer(Modifier.height(16.dp))
         Button(onClick = { onProfileClick(profile.userId) }) {     Text(stringResource(R.string.btn_view_full_profile))
         }

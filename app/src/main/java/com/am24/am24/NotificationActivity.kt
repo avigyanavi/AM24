@@ -54,10 +54,42 @@ fun ActiveNotificationsView(
         isLoading = true
         profileViewModel.getNotifications(
             userId = currentUserId,
-            onSuccess = {
+            onSuccess = { fetched ->
                 notifications.clear()
-                notifications.addAll(it)
+                notifications.addAll(fetched)
                 isLoading = false
+
+                // NEW: reset unread counter AND mark each notification row as read
+                try {
+                    val updates = HashMap<String, Any?>()
+
+                    // reset badge
+                    updates["users/$currentUserId/notifUnreadCount"] = 0
+
+                    // mark each notification row as read in DB (only if not already read)
+                    fetched.forEach { n ->
+                        if (n.isRead != "true") {
+                            updates["notifications/$currentUserId/${n.id}/isRead"] = "true"
+                        }
+                    }
+
+                    if (updates.isNotEmpty()) {
+                        FirebaseRefs.db.reference.updateChildren(updates)
+                            .addOnSuccessListener {
+                                // optionally update local model so UI updates immediately
+                                fetched.forEach { n -> n.isRead = "true" }
+                                // reflect in local list
+                                notifications.clear()
+                                notifications.addAll(fetched)
+                            }
+                            .addOnFailureListener { e ->
+                                // log but don't crash the UI
+                                android.util.Log.w("Notifications", "mark-read failed: ${e.message}")
+                            }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("Notifications", "mark-read exception: ${e.message}")
+                }
             },
             onFailure = {
                 // Handle error if needed

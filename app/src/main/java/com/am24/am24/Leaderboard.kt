@@ -547,10 +547,7 @@ fun LeaderboardRow(rank: Int, profile: Profile) {
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
-                RatingBar(
-                    rating = profile.averageRating,
-                    ratingCount = profile.numberOfRatings
-                )
+                RatingBarFromLikes(likes = profile.totalDatingLikes)
             }
         }
     }

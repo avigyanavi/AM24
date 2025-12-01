@@ -6,6 +6,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.MutableData
+import com.google.firebase.database.ServerValue
+import com.google.firebase.database.Transaction
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -156,14 +159,63 @@ object SessionDataRepository {
         val ref = db.getReference("likesReceived/$userId")
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val likes = snapshot.children.associate { child ->
-                    val nestedTimestamp = child.child("timestamp").getValue(Long::class.java)
-                    val directTimestamp = child.getValue(Long::class.java)
-                    val timestamp = nestedTimestamp ?: directTimestamp ?: 0L
-                    child.key!! to timestamp
+                try {
+                    // Debug: log raw child values (trim in prod)
+                    Log.d(TAG, "likesReceived snapshot for $userId children: ${snapshot.children.map { it.key to it.value }}")
+
+                    val map = snapshot.children.mapNotNull { child ->
+                        val key = child.key ?: return@mapNotNull null
+
+                        // 1) nested object: { timestamp: 123456789 }
+                        val nestedTs = child.child("timestamp").getValue(Number::class.java)?.toLong()
+                        if (nestedTs != null && nestedTs > 0L) return@mapNotNull key to nestedTs
+
+                        // 2) direct numeric value stored as Number (covers Int/Long/Double)
+                        val directNum = child.getValue(Number::class.java)?.toLong()
+                        if (directNum != null && directNum > 0L) return@mapNotNull key to directNum
+
+                        // 3) direct numeric stored as String
+                        val asString = child.getValue(String::class.java)
+                        val parsed = asString?.toLongOrNull()
+                        if (parsed != null && parsed > 0L) return@mapNotNull key to parsed
+
+                        // 4) boolean presence (true) => keep but mark unknown timestamp (0L)
+                        val asBool = child.getValue(Boolean::class.java)
+                        if (asBool == true) {
+                            Log.w(TAG, "Like value for $key is boolean true — keeping key with unknown timestamp (0L)")
+                            return@mapNotNull key to 0L
+                        }
+
+                        // 5) Unknown/unexpected format: keep the key with unknown timestamp (0L) and log
+                        Log.w(TAG, "Unrecognized likesReceived/$userId/$key value: ${child.value} (${child.value?.javaClass?.name}). Keeping key and requesting server verification.")
+                        // Optional: request server-side verification (if not already requested)
+                        try {
+                            val cleanupRef = db.getReference("likesReceivedCleanupRequests/$userId/$key")
+                            // Only set if absent — avoid overwriting repeated requests (ServerValue.TIMESTAMP)
+                            cleanupRef.runTransaction(object : Transaction.Handler {
+                                override fun doTransaction(currentData: MutableData): Transaction.Result {
+                                    if (currentData.value == null) {
+                                        currentData.value = ServerValue.TIMESTAMP
+                                    }
+                                    return Transaction.success(currentData)
+                                }
+                                override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
+                                    if (error != null) Log.w(TAG, "Failed to set cleanup request for $userId/$key: ${error.message}")
+                                }
+                            })
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to write cleanup request for $key: ${e.message}")
+                        }
+                        return@mapNotNull key to 0L
+                    }.toMap()
+
+                    // Update state — keep keys even with fallback 0L
+                    _likesReceived.value = map
+                    recomputeLikeDerivedState()
+                } catch (e: Exception) {
+                    Log.w(TAG, "likes listener parse error: ${e.message}", e)
+                    // IMPORTANT: do not remove keys on parse error; keep existing map (no change)
                 }
-                _likesReceived.value = likes
-                recomputeLikeDerivedState()
             }
 
             override fun onCancelled(error: DatabaseError) {

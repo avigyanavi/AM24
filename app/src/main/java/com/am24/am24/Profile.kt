@@ -98,6 +98,7 @@ data class Profile(
     /** when that profile was boosted (ms since epoch) */
     var boostedAt: Long? = null,
     val swipeCounts: MutableMap<String, Int> = mutableMapOf(),
+    var totalDatingLikes: Int = 0,   // <-- new: persistent total of dating "likes" (swipe-rights received)
 
     /** NEW  ➜  running total of GPT / Places-AI requests made by this user */
     var aiMessagesSent: Int = 0,

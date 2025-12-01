@@ -868,8 +868,10 @@ fun PhotoCarouselWithOverlay(
 
                 // Rating Bar + zodiac side by side
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RatingBar(rating = profile.averageRating, ratingCount = profile.numberOfRatings)
-                    Spacer(Modifier.width(8.dp))
+                    if (profile.totalDatingLikes > 0) {
+                        RatingBarFromLikes(likes = profile.totalDatingLikes)
+                        Spacer(Modifier.width(8.dp))
+                    }
 
                     // Zodiac next to rating bar
                     val zodiac = profile.zodiac ?: deriveZodiac(profile.dob)
@@ -5941,6 +5943,66 @@ fun RatingBar(
         )
     }
 }
+
+@Composable
+fun RatingBarFromLikes(
+    likes: Int,
+    modifier: Modifier = Modifier
+) {
+    val starSize = 26.dp
+    val orange = Color(0xFFFF6F00)
+
+    // Map likes -> star count according to your normalization:
+    // 1-10 -> 1 star
+    // 10-20 -> 2 stars
+    // 20-50 -> 3 stars
+    // 50-100 -> 4 stars
+    // 100+ -> 5 stars
+    val stars = when {
+        likes <= 0 -> 0
+        likes <= 10 -> 1
+        likes <= 20 -> 2
+        likes <= 50 -> 3
+        likes <= 100 -> 4
+        else -> 5
+    }.coerceIn(0, 5)
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        // filled stars
+        repeat(stars) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = orange,
+                modifier = Modifier.size(starSize)
+            )
+        }
+
+        // empty stars for the rest
+        repeat(5 - stars) {
+            Icon(
+                imageVector = Icons.Default.StarBorder,
+                contentDescription = null,
+                tint = orange,
+                modifier = Modifier.size(starSize)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(6.dp))
+
+        // Display likes count text
+        Text(
+            text = if (likes <= 0) "0 likes" else "$likes likes",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 10.sp
+        )
+    }
+}
+
 
 // Custom modifier to clip the Icon's canvas to the given fraction of its width
 fun Modifier.fractionalClip(fraction: Float) = this.then(
