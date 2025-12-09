@@ -57,6 +57,9 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.*
 import java.util.Locale
 
+// Compose interaction imports for pressed-state visuals
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 
 /* ──────────────────────────  ACTIVITY  ────────────────────────── */
 
@@ -303,22 +306,22 @@ class LandingActivity : ComponentActivity() {
                     .onFailure { Log.w("LandingActivity", "Failed to pre-clear Facebook session", it) }
             }
 
-        LoginManager.getInstance()
-            .registerCallback(callbackManager, object : FacebookCallback<LoginResult> {
-                override fun onSuccess(res: LoginResult) =
-                    handleFacebookAccessToken(res.accessToken)
+            LoginManager.getInstance()
+                .registerCallback(callbackManager, object : FacebookCallback<LoginResult> {
+                    override fun onSuccess(res: LoginResult) =
+                        handleFacebookAccessToken(res.accessToken)
 
-                override fun onCancel() {
-                    isSigningIn = false
-                    toast("Facebook sign-in cancelled")
-                }
+                    override fun onCancel() {
+                        isSigningIn = false
+                        toast("Facebook sign-in cancelled")
+                    }
 
-                override fun onError(e: FacebookException) {
-                    Log.e("LandingActivity", "Facebook sign-in error", e)
-                    toast("Facebook sign-in failed: ${e.localizedMessage}")
-                    isSigningIn = false
-                }
-            })
+                    override fun onError(e: FacebookException) {
+                        Log.e("LandingActivity", "Facebook sign-in error", e)
+                        toast("Facebook sign-in failed: ${e.localizedMessage}")
+                        isSigningIn = false
+                    }
+                })
 
             LoginManager.getInstance()
                 .logInWithReadPermissions(this@LandingActivity, listOf("email", "public_profile"))
@@ -377,7 +380,8 @@ class LandingActivity : ComponentActivity() {
                 } else {
                     val ex = task.exception
                     if (ex is FirebaseAuthUserCollisionException) {
-                        promptForPasswordAndLink(ex.email ?: "", credential)
+                        // Pass the nullable email — allow promptForPasswordAndLink to collect email if needed
+                        promptForPasswordAndLink(ex.email, credential)
                     } else {
                         toast("Auth failed: ${ex?.localizedMessage}")
                     }
@@ -385,12 +389,29 @@ class LandingActivity : ComponentActivity() {
             }
     }
 
-    /* ───────── Collision-handling ───────── */
+    /* ───────── Collision-handling (safe) ───────── */
     private fun promptForPasswordAndLink(email: String?, pending: AuthCredential) {
+        // Keep previous trimming logic
         val sanitizedEmail = email?.trim()?.takeIf { it.isNotEmpty() }
 
-        val attemptLink: (String, String) -> Unit = { resolvedEmail, password ->
-            val emailCred = EmailAuthProvider.getCredential(resolvedEmail, password)
+        // use an anonymous function so `return` exits the function cleanly
+        val attemptLink = fun(resolvedEmail: String, password: String) {
+            // Defensive checks before calling getCredential
+            val re = resolvedEmail.trim()
+            val pw = password.trim()
+            if (re.isEmpty() || pw.isEmpty()) {
+                toast(getString(R.string.toast_complete_required_fields))
+                return
+            }
+
+            val emailCred = try {
+                EmailAuthProvider.getCredential(re, pw)
+            } catch (iae: IllegalArgumentException) {
+                Log.w("LandingActivity", "Invalid credential inputs: email='${re.takeIf { it.isNotEmpty() } ?: "<blank>"}'")
+                toast(getString(R.string.toast_complete_required_fields))
+                return
+            }
+
             firebaseAuth.signInWithCredential(emailCred)
                 .addOnCompleteListener(this) { signInTask ->
                     if (signInTask.isSuccessful) {
@@ -444,23 +465,44 @@ class LandingActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Collect only password from user. This version validates before returning
+     * and prevents empty submissions (so EmailAuthProvider won't be called with blank).
+     */
     private fun collectPasswordFromUser(email: String, onPassword: (String) -> Unit) {
         val input = android.widget.EditText(this).apply {
             hint = getString(R.string.password)
             inputType = android.text.InputType.TYPE_CLASS_TEXT or
                     android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
-        AlertDialog.Builder(this)
+
+        val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.link_accounts_title)
             .setMessage(getString(R.string.link_accounts_message, email))
             .setView(input)
-            .setPositiveButton(R.string.ok) { d, _ ->
-                onPassword(input.text.toString()); d.dismiss()
-            }
+            .setPositiveButton(R.string.ok, null)
             .setNegativeButton(R.string.cancel) { d, _ -> d.cancel() }
-            .show()
+            .create()
+
+        dialog.setOnShowListener {
+            val ok = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            ok.setOnClickListener {
+                val pw = input.text?.toString()?.trim().orEmpty()
+                if (pw.isEmpty()) {
+                    input.error = getString(R.string.toast_complete_required_fields)
+                    return@setOnClickListener
+                }
+                dialog.dismiss()
+                onPassword(pw)
+            }
+        }
+
+        dialog.show()
     }
 
+    /**
+     * Collect email + password from user. Validates fields and prevents empty values.
+     */
     private fun collectEmailAndPasswordFromUser(onCredentials: (String, String) -> Unit) {
         val emailInput = android.widget.EditText(this).apply {
             hint = getString(R.string.email_label)
@@ -491,7 +533,7 @@ class LandingActivity : ComponentActivity() {
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
                 val emailText = emailInput.text.toString().trim()
-                val passwordText = passwordInput.text.toString()
+                val passwordText = passwordInput.text.toString().trim()
 
                 if (emailText.isEmpty()) {
                     emailInput.error = getString(R.string.toast_complete_required_fields)
@@ -510,6 +552,7 @@ class LandingActivity : ComponentActivity() {
 
         dialog.show()
     }
+
     private fun formatMessageWithReason(
         @StringRes baseRes: Int,
         @StringRes withReasonRes: Int,
@@ -571,6 +614,9 @@ fun LandingScreen(
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Register button (outlined)
+            val registerInteraction = remember { MutableInteractionSource() }
+            val registerPressed by registerInteraction.collectIsPressedAsState()
             OutlinedButton(
                 onClick = onRegisterClick,
                 modifier = Modifier
@@ -578,8 +624,9 @@ fun LandingScreen(
                     .height(50.dp),
                 shape = RoundedCornerShape(25.dp),
                 border = BorderStroke(1.dp, KupidxOrange),
+                interactionSource = registerInteraction,
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = DarkGrayBackground,
+                    containerColor = if (registerPressed) Color.White.copy(alpha = 0.06f) else DarkGrayBackground,
                     contentColor = KupidxOrange
                 )
             ) {
@@ -593,6 +640,9 @@ fun LandingScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // Login button (outlined) — improved pressed feedback
+            val loginInteraction = remember { MutableInteractionSource() }
+            val loginPressed by loginInteraction.collectIsPressedAsState()
             OutlinedButton(
                 onClick = onLoginClick,
                 modifier = Modifier
@@ -600,8 +650,9 @@ fun LandingScreen(
                     .height(50.dp),
                 shape = RoundedCornerShape(25.dp),
                 border = BorderStroke(1.dp, KupidxOrange),
+                interactionSource = loginInteraction,
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = DarkGrayBackground,
+                    containerColor = if (loginPressed) Color.White.copy(alpha = 0.06f) else DarkGrayBackground,
                     contentColor = KupidxOrange
                 )
             ) {
@@ -669,6 +720,9 @@ fun SocialSignInButton(
     contentColor: Color,
     onClick: () -> Unit
 ) {
+    // create and read interaction source so we can change the background on press
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
     Button(
         onClick,
         modifier = modifier
@@ -678,9 +732,12 @@ fun SocialSignInButton(
             ),
         shape = RoundedCornerShape(25.dp),
         border = BorderStroke(1.dp, KupidxOrange),
+        interactionSource = interactionSource,
         colors = ButtonDefaults.buttonColors(
-            containerColor = backgroundColor,
-            contentColor = contentColor
+            containerColor = if (pressed) Color.White.copy(alpha = 0.05f) else backgroundColor,
+            contentColor = contentColor,
+            disabledContainerColor = backgroundColor,
+            disabledContentColor = contentColor.copy(alpha = 0.4f)
         ),
         elevation = ButtonDefaults.buttonElevation(2.dp)
     ) {

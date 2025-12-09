@@ -547,7 +547,11 @@ fun LeaderboardRow(rank: Int, profile: Profile) {
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
-                RatingBarFromLikes(likes = profile.totalDatingLikes)
+                val likes = profile.numberOfSwipeRights
+                val totalSwipes = profile.numberOfUsersWhoSwiped.coerceAtLeast(0)
+                val dislikes = (totalSwipes - likes).coerceAtLeast(0)
+
+                RatingBarFromLikes(likes = likes, dislikes = dislikes)
             }
         }
     }

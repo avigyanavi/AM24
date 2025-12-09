@@ -817,7 +817,11 @@ fun FeedItem(
                         val ratingCount = userProfile?.numberOfRatings ?: 0
                         if (avgRating > 0 && ratingCount > 0) {
                             Spacer(modifier = Modifier.height(4.dp))
-                            RatingBarFromLikes(likes = currentUserProfile!!.totalDatingLikes)
+                            val likes = currentUserProfile!!.numberOfSwipeRights
+                            val totalSwipes = currentUserProfile.numberOfUsersWhoSwiped.coerceAtLeast(0)
+                            val dislikes = (totalSwipes - likes).coerceAtLeast(0)
+
+                            RatingBarFromLikes(likes = likes, dislikes = dislikes)
                             Spacer(modifier = Modifier.height(4.dp))
                         }
                     }

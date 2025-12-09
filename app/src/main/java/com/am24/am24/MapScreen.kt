@@ -2834,6 +2834,10 @@ private fun prettyCount(n: Int?): String {
         return "0"
     }
 }
+// Add this import if not already present:
+// import androidx.compose.material.Slider
+// import androidx.compose.material.SliderDefaults as OldSliderDefaults
+
 @Composable
 private fun RadiusChip(
     radiusKm: Double,                  // keep km internally for GeoFire
@@ -2843,7 +2847,6 @@ private fun RadiusChip(
 ) {
     val minKm = 10.0
     val maxKm = 8000.0
-
 
     // Slider displays miles when needed but converts back to km for state
     val sliderPos = remember(radiusKm) {
@@ -2876,23 +2879,28 @@ private fun RadiusChip(
             Spacer(Modifier.width(6.dp))
             Text(label, color = KupidxOrange, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.width(6.dp))
-            Slider(
+
+            // Use material Slider (circular thumb)
+            androidx.compose.material.Slider(
                 value = sliderPos,
                 onValueChange = {
                     val newKm = minKm * (maxKm / minKm).pow(it.toDouble())
                     onChange(newKm.coerceIn(minKm, maxKm))
                 },
                 valueRange = 0f..1f,
-                colors = SliderDefaults.colors(
+                colors = androidx.compose.material.SliderDefaults.colors(
                     thumbColor = KupidxOrange,
                     activeTrackColor = KupidxOrange,
-                    inactiveTrackColor = KupidxOrange.copy(alpha = 0.3f) // optional
+                    inactiveTrackColor = KupidxOrange.copy(alpha = 0.3f)
                 ),
                 modifier = Modifier.weight(1f)
             )
         }
     }
 }
+// Add this import if not already present:
+// import androidx.compose.material.Slider
+// import androidx.compose.material.SliderDefaults as OldSliderDefaults
 
 @Composable
 private fun LastActiveChip(
@@ -2924,11 +2932,12 @@ private fun LastActiveChip(
             Spacer(Modifier.width(6.dp))
             Text(label, color = KupidxOrange, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.width(6.dp))
-            Slider(
+
+            androidx.compose.material.Slider(
                 value = hours.toFloat(),
                 onValueChange = { onChange(it.toDouble().coerceIn(minHours, maxHours)) },
                 valueRange = minHours.toFloat()..maxHours.toFloat(),
-                colors = SliderDefaults.colors(
+                colors = androidx.compose.material.SliderDefaults.colors(
                     thumbColor = KupidxOrange,
                     activeTrackColor = KupidxOrange,
                     inactiveTrackColor = KupidxOrange.copy(alpha = 0.3f)
@@ -3429,7 +3438,11 @@ fun UserProfilePopup(
         val displayName = profile.name.ifBlank { profile.username }
         Text(text = displayName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = KupidxOrange)
         Spacer(Modifier.height(6.dp))
-        RatingBarFromLikes(likes = profile.totalDatingLikes)
+        val likes = profile.numberOfSwipeRights
+        val totalSwipes = profile.numberOfUsersWhoSwiped.coerceAtLeast(0)
+        val dislikes = (totalSwipes - likes).coerceAtLeast(0)
+
+        RatingBarFromLikes(likes = likes, dislikes = dislikes)
         Spacer(Modifier.height(16.dp))
         Button(onClick = { onProfileClick(profile.userId) }) {     Text(stringResource(R.string.btn_view_full_profile))
         }

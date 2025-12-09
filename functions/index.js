@@ -457,6 +457,102 @@ exports.rebuildActiveFeed = functions
     }
   });
 
+const chunk = (arr, size) => {
+  const out = []; for (let i=0;i<arr.length;i+=size) out.push(arr.slice(i,i+size)); return out;
+};
+
+/**
+ * GET / POST (https) function
+ * Query params:
+ *   - enforce=true  -> will cap availableAiMessages > 25 to 25 (writes back to DB)
+ *
+ * Response JSON:
+ *  {
+ *    histogram: { "0-5": 123, "6-10": 45, ... , ">25": 3 },
+ *    totalUsersScanned: N,
+ *    usersAbove25: [ { uid, value }, ... ],
+ *    changesApplied: { updated: M }   // only when enforce=true
+ *  }
+ */
+exports.reportAiMessagesDistribution = functions
+  .region("asia-south1")
+  .runWith({ timeoutSeconds: 540, memory: "512MB" })
+  .https.onRequest(async (req, res) => {
+    try {
+      const enforce = String(req.query.enforce || req.body?.enforce || "").toLowerCase() === "true";
+
+      const usersSnap = await admin.database().ref("users").get();
+      if (!usersSnap.exists()) {
+        return res.status(200).json({ histogram: {}, totalUsersScanned: 0, usersAbove25: [] });
+      }
+
+      // histogram buckets
+      const buckets = {
+        "0-5": 0,
+        "6-10": 0,
+        "11-15": 0,
+        "16-20": 0,
+        "21-25": 0,
+        ">25": 0
+      };
+
+      const usersAbove25 = [];
+      const updates = {}; // multi-path updates if enforce=true
+      let total = 0;
+
+      usersSnap.forEach(child => {
+        total++;
+        const uid = child.key;
+        const data = child.val() || {};
+        const raw = data.availableAiMessages;
+        // coerce to integer, treat missing/non-number as 0
+        const val = (Number.isFinite(Number(raw)) ? Math.floor(Number(raw)) : 0);
+
+        if (val <= 5) buckets["0-5"]++;
+        else if (val <= 10) buckets["6-10"]++;
+        else if (val <= 15) buckets["11-15"]++;
+        else if (val <= 20) buckets["16-20"]++;
+        else if (val <= 25) buckets["21-25"]++;
+        else {
+          buckets[">25"]++;
+          usersAbove25.push({ uid, value: val });
+
+          if (enforce) {
+            // cap down to 25
+            updates[`users/${uid}/availableAiMessages`] = 25;
+          }
+        }
+      });
+
+      let applied = { updated: 0 };
+      if (enforce && Object.keys(updates).length) {
+        // perform batched updates (avoid huge single update if you have many users)
+        const entries = Object.entries(updates);
+        const CHUNK = 400; // safe size
+        const groups = chunk(entries, CHUNK);
+
+        for (const g of groups) {
+          const batch = {};
+          for (const [path, val] of g) batch[path] = val;
+          await admin.database().ref().update(batch);
+          applied.updated += Object.keys(batch).length;
+        }
+      }
+
+      return res.status(200).json({
+        histogram: buckets,
+        totalUsersScanned: total,
+        usersAbove25,
+        changesApplied: enforce ? applied : undefined,
+        note: enforce ? "Values >25 were capped to 25." : "Run with ?enforce=true to cap values >25 to 25."
+      });
+    } catch (err) {
+      console.error("reportAiMessagesDistribution error:", err);
+      return res.status(500).json({ error: String(err) });
+    }
+  });
+
+
 exports.refreshNearbyIndexes = functions
   .region('asia-south1')
   .pubsub.schedule('every 5 minutes')

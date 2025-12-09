@@ -254,13 +254,14 @@ fun AIPartnerScreen(
     // When an image comes back
     LaunchedEffect(aiImageBase64) {
         aiImageBase64?.let { b64 ->
+            // remove loading bubble if present
             messages.removeAll { !it.isUser && it.isImageLoadingBubble }
 
             val nowTs = System.currentTimeMillis()
 
             try {
                 val bytes = Base64.decode(b64, Base64.DEFAULT)
-// cache it
+                // cache it
                 AIPartnerImageCache.put(nowTs, bytes)
 
                 messages.add(
@@ -278,13 +279,27 @@ fun AIPartnerScreen(
                     timestamp = nowTs
                 )
 
+                // <-- NEW: consume reserved credit on successful image
+                if (pendingDebit > 0 && aiMessagesLeft > 0 && userRef != null) {
+                    pendingDebit -= 1
+                    aiMessagesLeft -= 1
+                    try {
+                        userRef.child("availableAiMessages").setValue(aiMessagesLeft)
+                        Log.d("AIPartnerScreen", "Consumed 1 credit for image. aiMessagesLeft=$aiMessagesLeft, pendingDebit=$pendingDebit")
+                    } catch (e: Exception) {
+                        Log.e("AIPartnerScreen", "Failed saving AiMessages after image", e)
+                    }
+                } else {
+                    // Normalise pendingDebit in case it's inconsistent
+                    pendingDebit = 0
+                }
+
             } catch (e: IllegalArgumentException) {
                 Log.e("AIPartnerScreen", "Base64 decode failed", e)
                 messages.add(
                     AIPartnerChatMessage(
                         isUser = false,
-                        text = "Couldn't load picture right now. 😔",
-                        timestamp = nowTs
+                        text = "Couldn't load picture right now. 😔"
                     )
                 )
 
@@ -294,13 +309,18 @@ fun AIPartnerScreen(
                     imageB64 = null,
                     timestamp = nowTs
                 )
+
+                // Release reserved credit on decode failure too
+                if (pendingDebit > 0) {
+                    pendingDebit -= 1
+                    Log.d("AIPartnerScreen", "Base64 decode failed — released reserved credit. pendingDebit=$pendingDebit")
+                }
             }
         }
     }
 
     // 🔐 Explicit word list + censor
     val EXPLICIT_WORDS = listOf(
-        "fuck", "sex", "horny", "nude", "naked",
         "boobs", "tits", "breast", "ass",
         "dick", "cock", "pussy",
         "chod", "chodo", "chud", "rand", "bhosd"
@@ -680,8 +700,12 @@ fun AIPartnerScreen(
                             val promptForImage = buildString {
                                 safeCtx?.let { append("Recent vibe: $it. ") }
                                 append("User now says: \"$safeUser\". ")
-                                append("Generate a flirty, safe selfie-style picture that matches this mood (no nudity, no explicit content).")
+                                append("Generate a flirty, picture that matches this mood.")
                             }
+
+                            // <-- NEW: reserve a credit for the upcoming image attempt
+                            pendingDebit += 1
+                            Log.d("AIPartnerScreen", "Reserved 1 credit for image generation. pendingDebit=$pendingDebit, aiMessagesLeft=$aiMessagesLeft")
 
                             messages.add(
                                 AIPartnerChatMessage(
@@ -694,11 +718,21 @@ fun AIPartnerScreen(
                                 aiPartnerViewModel.generateImageFromUserPrompt(
                                     userPrompt = promptForImage
                                 ) { error ->
+                                    // UPDATED onError handler (see next block)
+                                    Log.d("AIPartnerScreen", "Image generation failed: $error")
                                     messages.removeAll { !it.isUser && it.isImageLoadingBubble }
+
+                                    // If we reserved a credit earlier, release it on failure (do NOT consume it)
+                                    if (pendingDebit > 0) {
+                                        pendingDebit -= 1
+                                        Log.d("AIPartnerScreen", "Image gen failed — released reserved credit. pendingDebit=$pendingDebit")
+                                    }
+
                                     messages.add(
                                         AIPartnerChatMessage(
                                             isUser = false,
-                                            text = error
+                                            // FRIENDLY explicit message for the user
+                                            text = "I can’t create that kind of picture right now. How about a flirty message instead? 😉"
                                         )
                                     )
                                 }

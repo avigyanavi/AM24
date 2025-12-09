@@ -320,7 +320,11 @@ fun showVoiceBio(profile: Profile) {
         }
 
         if (profile.averageRating > 0.0 && profile.numberOfRatings > 0) {
-            RatingBarFromLikes(likes = profile.totalDatingLikes)
+            val likes = profile.numberOfSwipeRights
+            val totalSwipes = profile.numberOfUsersWhoSwiped.coerceAtLeast(0)
+            val dislikes = (totalSwipes - likes).coerceAtLeast(0)
+
+            RatingBarFromLikes(likes = likes, dislikes = dislikes)
 
             Spacer(modifier = Modifier.height(8.dp))
         }
