@@ -321,13 +321,25 @@ fun RegistrationScreen(
         else        -> progress
     }
     var hasCompletedStep1 by remember { mutableStateOf(initialStep > 1) }
-    val onNext = {
+    val scope = rememberCoroutineScope()
+
+    val onNext: () -> Unit = {
         registrationViewModel.nextEnabled = false
+
         if (currentStep == 1) {
             hasCompletedStep1 = true
         }
-        currentStep += 1
-        saveStep(currentStep)
+
+        if (currentStep == 7) {
+            scope.launch {
+                scenario3MarkUserPaid()
+                currentStep += 1
+                saveStep(currentStep)
+            }
+        } else {
+            currentStep += 1
+            saveStep(currentStep)
+        }
     }
     val onBack: () -> Unit = {
         when {
@@ -4739,198 +4751,30 @@ fun uploadPrivateAlbumMedia(
     }
 }
 
-//@OptIn(ExperimentalMaterial3Api::class)
-//@Composable
-//fun EnterProfileHeadlineScreen(
-//    registrationViewModel: RegistrationViewModel,
-//    onNext: () -> Unit
-//) {
-//    // Local state for name & height to mirror registrationViewModel
-//    var heightText by remember { mutableStateOf(registrationViewModel.height.toString()) }
-//    var feetText   by remember {
-//        mutableStateOf(registrationViewModel.height2.getOrNull(0)?.toString() ?: "")
-//    }
-//    var inchText   by remember {
-//        mutableStateOf(registrationViewModel.height2.getOrNull(1)?.toString() ?: "")
-//    }
-//    var headline by remember { mutableStateOf(TextFieldValue(registrationViewModel.bio)) }
-//
-//    Scaffold(
-//        content = { innerPadding ->
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .background(Color(0xFF1A1A1A))
-//                    .padding(innerPadding),
-//                contentAlignment = Alignment.Center
-//            ) {
-//                Column(
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .padding(horizontal = 32.dp),
-//                    verticalArrangement = Arrangement.Center,
-//                    horizontalAlignment = Alignment.CenterHorizontally
-//                ) {
-//                    // ---- Full Name (optional) ----
-//                    TextFieldWithLabel(
-//                        label = stringResource(R.string.full_name_label),
-//                        value = registrationViewModel.name,
-//                        onValueChange = { registrationViewModel.name = it }
-//                    )
-//
-//                    Spacer(modifier = Modifier.height(16.dp))
-//
-//                    // ---- Height (optional) ----
-//                    Text(
-//                        text = stringResource(R.string.height_label),
-//                        color = Color.White,
-//                        fontSize = 18.sp
-//                    )
-//                    Row(verticalAlignment = Alignment.CenterVertically) {
-//                        Switch(
-//                            checked = registrationViewModel.isHeightInFeet,
-//                            onCheckedChange = { useFeet ->
-//                                registrationViewModel.isHeightInFeet = useFeet
-//                                if (useFeet) {
-//                                    val (f, i) = registrationViewModel.cmToFeetInches(registrationViewModel.height)
-//                                    feetText = f.toString()
-//                                    inchText = i.toString()
-//                                } else {
-//                                    val f = feetText.toIntOrNull() ?: 0
-//                                    val i = inchText.toIntOrNull() ?: 0
-//                                    heightText = registrationViewModel.feetInchesToCm(f, i).toString()
-//                                }
-//                            },
-//                            colors = SwitchDefaults.colors(
-//                                checkedThumbColor = Color(0xFFFF6000),
-//                                uncheckedThumbColor = Color.White
-//                            )
-//                        )
-//                        Text(
-//                            text = if (registrationViewModel.isHeightInFeet)
-//                                stringResource(R.string.feet_inches_label)
-//                            else
-//                                stringResource(R.string.centimeters_label),
-//                            color = Color.White
-//                        )
-//                    }
-//
-//                    if (registrationViewModel.isHeightInFeet) {
-//                        Row(
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .padding(vertical = 8.dp),
-//                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-//                            verticalAlignment = Alignment.CenterVertically
-//                        ) {
-//                            OutlinedTextField(
-//                                value = feetText,
-//                                onValueChange = { newFeet ->
-//                                    feetText = newFeet
-//                                    registrationViewModel.height2 = listOf(
-//                                        newFeet.toIntOrNull() ?: 0,
-//                                        registrationViewModel.height2.getOrNull(1) ?: 0
-//                                    )
-//                                },
-//                                label = { Text(stringResource(R.string.feet_label), color = Color.White) },
-//                                singleLine = true,
-//                                modifier = Modifier
-//                                    .weight(1f)
-//                                    .heightIn(56.dp),
-//                                colors = TextFieldDefaults.outlinedTextFieldColors(
-//                                    focusedBorderColor = Color(0xFFFF6000),
-//                                    unfocusedBorderColor = Color.White,
-//                                    cursorColor = Color.White,
-//                                    focusedLabelColor = Color(0xFFFF6000),
-//                                    unfocusedLabelColor = Color.White
-//                                )
-//                            )
-//
-//                            OutlinedTextField(
-//                                value = inchText,
-//                                onValueChange = { newInch ->
-//                                    inchText = newInch
-//                                    registrationViewModel.height2 = listOf(
-//                                        registrationViewModel.height2.getOrNull(0) ?: 0,
-//                                        newInch.toIntOrNull() ?: 0
-//                                    )
-//                                },
-//                                label = {
-//                                    Text(
-//                                        stringResource(R.string.inches_label),
-//                                        color = Color.White
-//                                    )
-//                                },
-//                                singleLine = true,
-//                                modifier = Modifier
-//                                    .weight(1f)
-//                                    .heightIn(56.dp),
-//                                colors = TextFieldDefaults.outlinedTextFieldColors(
-//                                    focusedBorderColor = Color(0xFFFF6000),
-//                                    unfocusedBorderColor = Color.White,
-//                                    cursorColor = Color.White,
-//                                    focusedLabelColor = Color(0xFFFF6000),
-//                                    unfocusedLabelColor = Color.White
-//                                )
-//                            )
-//                        }
-//                    } else {
-//                        TextFieldWithLabel(
-//                            label = stringResource(R.string.height_cm_label),
-//                            value = heightText,
-//                            onValueChange = { newCm ->
-//                                heightText = newCm
-//                                registrationViewModel.height = newCm.toIntOrNull()
-//                                    ?: registrationViewModel.height
-//                            }
-//                        )
-//                    }
-//
-//                    // Add a spacer after height ✔
-//                    Spacer(modifier = Modifier.height(24.dp))
-//                    // Headline/Bio TextField
-//                    OutlinedTextField(
-//                        value = headline,
-//                        onValueChange = {
-//                            headline = it
-//                            registrationViewModel.bio = it.text
-//                        },
-//                        label = { Text("Bio (optional)", color = Color(0xFFFF6000)) },
-//                        singleLine = true,
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(bottom = 16.dp),
-//                        colors = OutlinedTextFieldDefaults.colors(
-//                            focusedTextColor = Color.White,
-//                            unfocusedTextColor = Color.White,
-//                            cursorColor = Color(0xFFFF4500),
-//                            focusedBorderColor = Color(0xFFFF4500),
-//                            unfocusedBorderColor = Color(0xFFFF6000)
-//                        )
-//                    )
-//
-//                    // Next Button
-//                    Button(
-//                        onClick = {
-//                            registrationViewModel.bio = headline.text
-//                            onNext()
-//                        },
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .height(56.dp),
-//                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6000)),
-//                        shape = CircleShape,
-//                        elevation = ButtonDefaults.buttonElevation(8.dp)
-//                    ) {
-//                        Text(
-//                            text = stringResource(R.string.next_button),
-//                            color = Color.White,
-//                            fontSize = 18.sp,
-//                            fontWeight = FontWeight.Bold
-//                        )
-//                    }
-//                }
-//            }
-//        }
-//    )
-//}
+private const val SCENARIO3_PLUS_DAYS = 30L
+
+private suspend fun scenario3MarkUserPaid(): Boolean {
+    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return false
+    val userRef = FirebaseRefs.db.reference.child("users").child(uid)
+
+    val alreadyPaid = runCatching {
+        userRef.child("isEntryFeePaid").get().await().getValue(Boolean::class.java) == true
+    }.getOrDefault(false)
+    if (alreadyPaid) return true
+
+    val now = System.currentTimeMillis()
+    val nextRenewal = now + TimeUnit.DAYS.toMillis(SCENARIO3_PLUS_DAYS)
+
+    val updates = mapOf(
+        "isEntryFeePaid" to true,
+        "entryFeePaidAt" to now,
+        "nextRenewal" to nextRenewal,
+        "isPlus" to true,
+        "availableAiMessages" to 5,
+    )
+
+    return runCatching {
+        userRef.updateChildren(updates).await()
+        true
+    }.getOrDefault(false)
+}

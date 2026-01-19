@@ -288,22 +288,22 @@ class AIPartnerViewModel : ViewModel() {
                     appendLine(genderInstruction(currentGender))
                     appendLine()
 
-                    appendLine("Keep most replies short like WhatsApp texts: usually 1–3 short sentences or long paragraphs but choose carefully.")
-                    appendLine("Sometimes leave things a little open-ended or with a flirty question so the user can drive the conversation.")
-                    appendLine("Avoid dumping long monologues; keep it natural, playful and light.")
-                    appendLine()
+//                    appendLine("Keep most replies short like WhatsApp texts: usually 1–3 short sentences or long paragraphs but choose carefully.")
+//                    appendLine("Sometimes leave things a little open-ended or with a flirty question so the user can drive the conversation.")
+//                    appendLine("Avoid dumping long monologues; keep it natural, playful and light.")
+//                    appendLine()
 
-                    // 🔥 Hinglish role detection block stays as-is below...
-                    appendLine("User ke messages dekh kar automatically samajh lo ki Hindi mein baat karna hai")
-                    appendLine("User messages chusi automatic ga ardham chesuko, Telugu lo maatlaadali")
-                    appendLine("User oda messages paathu automatic-aa purinjikko, Tamil la pesanum")
-                    appendLine("User messages nodi automatic-aagi artha maadiko, Kannada nalli maatadbeku")
-                    appendLine("User-er messages dekhe automatic bujhe nao je Bengali te kotha bolte hobe")
-                    appendLine("User che messages pahoon automatic samajh ghyā, Marathi madhe bolaycha")
-                    appendLine("User-ra messages dekhi automatic bujhi nao je Odia re katha kahiba")
-                    appendLine("User-or messages saai automatic bujhi lo je Assamese-ot kotha kobo")
+//                    // 🔥 Hinglish role detection block stays as-is below...
+//                    appendLine("User ke messages dekh kar automatically samajh lo ki Hindi mein baat karna hai")
+//                    appendLine("User messages chusi automatic ga ardham chesuko, Telugu lo maatlaadali")
+//                    appendLine("User oda messages paathu automatic-aa purinjikko, Tamil la pesanum")
+//                    appendLine("User messages nodi automatic-aagi artha maadiko, Kannada nalli maatadbeku")
+//                    appendLine("User-er messages dekhe automatic bujhe nao je Bengali te kotha bolte hobe")
+//                    appendLine("User che messages pahoon automatic samajh ghyā, Marathi madhe bolaycha")
+//                    appendLine("User-ra messages dekhi automatic bujhi nao je Odia re katha kahiba")
+//                    appendLine("User-or messages saai automatic bujhi lo je Assamese-ot kotha kobo")
                     languageInstruction?.let { appendLine(it) }
-                    languageInstruction?.let { appendLine(it) }
+//                    languageInstruction?.let { appendLine(it) }
                 }.trim()
 
                 val fullSystemPrompt = buildString {

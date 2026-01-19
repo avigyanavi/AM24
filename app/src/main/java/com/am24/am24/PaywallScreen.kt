@@ -225,17 +225,42 @@ fun PaywallScreen(onPaid: () -> Unit) {
             Spacer(Modifier.height(12.dp))
             Text(it, color = Color.White, fontSize = 12.sp)
         }
-        Spacer(Modifier.height(24.dp))
-        Button(
-            onClick = {
-                val act = ctx as? Activity ?: return@Button
-                entryProduct?.let {
-                    BillingManager.launchBillingFlow(act, it, uid)
-                }
-            },
-            enabled = entryProduct != null && !isProcessing
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(buttonLabel)
+            Text(
+                text = "Just one last step…",
+                color = Color.White,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = "Finalizing your access.",
+                color = Color.White,
+                fontSize = 16.sp
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = "This will only take a moment.",
+                color = Color.Gray,
+                fontSize = 13.sp
+            )
+
+            Spacer(Modifier.height(32.dp))
+
+            CircularProgressIndicator(
+                color = Color(0xFFFF6F00),
+                strokeWidth = 3.dp
+            )
         }
     }
 }
