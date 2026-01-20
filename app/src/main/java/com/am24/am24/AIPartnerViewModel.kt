@@ -389,8 +389,9 @@ class AIPartnerViewModel : ViewModel() {
                 val contextSummary = _lastTurnSummary.value
                 val combinedPrompt = buildString {
                     append("Partner gender: ${currentGender.name}. ")
+                    append("If applicable,")
                     append(genderHint)
-                    append(" ")
+                    append("Else give the image the user is asking for.")
                     if (!contextSummary.isNullOrBlank()) {
                         append("Previous mood/context: ")
                         append(contextSummary)

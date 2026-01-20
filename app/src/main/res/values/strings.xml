@@ -1,6 +1,13 @@
 <resources>
         <string name="upgrade_to_plus_to_unlock">Upgrade to Plus to unlock</string>
-        <string name="upgrade_to_premium_to_unlock">Upgrade to Premium to unlock</string>
+    <string name="upgrade_to_premium_to_unlock">Upgrade to Premium to unlock</string>
+    <string name="ad_prompt_title">Watch an ad to keep using the app</string>
+    <string name="ad_prompt_message">We show one short ad per day to support free users.</string>
+    <string name="ad_prompt_confirm">Watch ad</string>
+    <string name="toast_ad_not_ready">Ad not ready yet. Please try again shortly.</string>
+    <string name="admob_app_id">ca-app-pub-5266481866342618~3563725191</string>
+    <string name="admob_interstitial_global">ca-app-pub-3206974923602803/4963016556</string>
+    <string name="admob_interstitial_india">ca-app-pub-3206974923602803/6227964942</string>
     <string name="settings_get_more_boosts">Get More Boosts</string>
     <string name="create_post_title">Create New Post</string>
     <string name="text_post_label">Text Post</string>

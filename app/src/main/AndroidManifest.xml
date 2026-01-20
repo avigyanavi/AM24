@@ -63,6 +63,10 @@
             android:value="c2deeaa408a6cc080a2f914008805bcd" />
 
         <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
+
+        <meta-data
                     android:name="com.facebook.sdk.AutoInitEnabled"
                     android:value="true" />
                 <meta-data

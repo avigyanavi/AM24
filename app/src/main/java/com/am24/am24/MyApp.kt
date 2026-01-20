@@ -14,8 +14,8 @@ import com.android.installreferrer.api.InstallReferrerStateListener
 import com.facebook.FacebookSdk
 import com.android.installreferrer.api.ReferrerDetails
 import com.facebook.appevents.AppEventsLogger
-import com.facebook.appevents.internal.AppEventUtility.isEmulator
 import kotlinx.coroutines.CoroutineScope
+import com.google.android.gms.ads.MobileAds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -47,7 +47,7 @@ class MyApp : Application() {
         AppEventsLogger.activateApp(this) // safe even if called multiple times
 
         Log.d("MyApp", "Facebook SDK initialized synchronously")
-
+        MobileAds.initialize(this)
         // ───────── Firebase App Check ─────────
         appScope.launch {
             runCatching {

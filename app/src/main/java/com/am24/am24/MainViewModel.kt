@@ -37,6 +37,7 @@ data class MainUiState(
     val showTopBar: Boolean = true,
     val showBottomBar: Boolean = true,
     val shouldForceSubscription: Boolean = false,
+    val forceSubscriptionEnabled: Boolean = false,
     val isTrialExpired: Boolean = false,
     val isPlusAccessExpired: Boolean = false,
     val isPremiumAccessExpired: Boolean = false,
@@ -64,7 +65,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var notificationsRef: DatabaseReference? = null
     private var notificationsListener: ValueEventListener? = null
-
+    private var forceSubscriptionRef: DatabaseReference? = null
+    private var forceSubscriptionListener: ValueEventListener? = null
     private var listenersStarted = false
     private var currentRoute: String? = null
     private var currentUserId: String? = null
@@ -78,6 +80,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         startUserListener(uid)
         startOmegleInviteListener(uid)
         startNotificationsListener(uid)
+        startForceSubscriptionListener()
     }
 
     fun onRouteChanged(route: String?) {
@@ -177,6 +180,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         stopOmegleInviteListener()
         stopOmegleChatStatusListener()
         stopNotificationsListener()
+        stopForceSubscriptionListener()
     }
 
     private fun startUserListener(uid: String) {
@@ -346,11 +350,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         ref.addValueEventListener(listener)
     }
 
+    private fun startForceSubscriptionListener() {
+        val ref = FirebaseRefs.db.reference.child("config").child("forceSubscription")
+            .child("enabled")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val enabled = snapshot.getValue(Boolean::class.java) == true
+                updateState { copy(forceSubscriptionEnabled = enabled) }
+                recomputeGating()
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.w(TAG, "forceSubscription flag listener cancelled: ${error.message}")
+            }
+        }
+        forceSubscriptionRef = ref
+        forceSubscriptionListener = listener
+        ref.addValueEventListener(listener)
+    }
+
     private fun recomputeGating() {
         val state = _uiState.value
-        val shouldForceSubscription = state.isTrialExpired ||
-                state.isPlusAccessExpired ||
-                state.isPremiumAccessExpired
+        val shouldForceSubscription = state.forceSubscriptionEnabled && (
+                state.isTrialExpired ||
+                        state.isPlusAccessExpired ||
+                        state.isPremiumAccessExpired
+                )
         val baseAllowsGlobalBars = currentRoute?.startsWith("chat/") == false &&
                 currentRoute != "leaderboard"
         val showTopBar = !shouldForceSubscription && baseAllowsGlobalBars
@@ -418,6 +443,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         notificationsRef = null
         notificationsListener = null
+    }
+
+    private fun stopForceSubscriptionListener() {
+        val ref = forceSubscriptionRef
+        val listener = forceSubscriptionListener
+        if (ref != null && listener != null) {
+            ref.removeEventListener(listener)
+        }
+        forceSubscriptionRef = null
+        forceSubscriptionListener = null
     }
 
     private fun updateState(reducer: MainUiState.() -> MainUiState) {

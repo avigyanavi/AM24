@@ -15,8 +15,8 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 312
-        versionName = "1.0.2"
+        versionCode = 314
+        versionName = "1.0.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -105,7 +105,7 @@ dependencies {
     implementation("io.coil-kt:coil:2.2.2")
     implementation("androidx.compose.ui:ui-text")
     implementation("androidx.media3:media3-transformer:1.8.0")
-
+    implementation("com.google.android.gms:play-services-ads:24.9.0")
     //geofire
     implementation(libs.firebase.geofire.android) // Check for the latest version
     implementation(libs.play.services.location)

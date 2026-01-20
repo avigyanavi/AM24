@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -42,7 +41,13 @@ import androidx.compose.ui.draw.shadow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.compose.runtime.saveable.rememberSaveable
+import android.widget.Toast
+import java.util.concurrent.TimeUnit
 
+private const val PREFS_ADS = "ad_prefs"
+private const val KEY_LAST_INTERSTITIAL_SHOWN = "last_interstitial_shown_ms"
+private const val INTERSTITIAL_DELAY_MS = 30_000L
+private val INTERSTITIAL_COOLDOWN_MS = TimeUnit.DAYS.toMillis(1)
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
 fun MainScreen(
@@ -92,8 +97,17 @@ fun MainScreen(
     val lastBottomNavRoute = mainUiState.lastBottomNavRoute
     val bottomNavRoutes = remember(items) { items.map { it.route }.toSet() }
 
-    var hasRestoredBottomNav by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    val activity = context as? Activity
+    val host = context as? KupidXAppActivity
+    val adPrefs = remember { context.getSharedPreferences(PREFS_ADS, Context.MODE_PRIVATE) }
 
+    var hasRestoredBottomNav by rememberSaveable { mutableStateOf(false) }
+    var showInterstitialPrompt by rememberSaveable { mutableStateOf(false) }
+    var interstitialScheduled by rememberSaveable { mutableStateOf(false) }
+    var lastInterstitialShownMs by remember {
+        mutableStateOf(adPrefs.getLong(KEY_LAST_INTERSTITIAL_SHOWN, 0L))
+    }
     LaunchedEffect(lastBottomNavRoute, showBottomBar) {
         if (!hasRestoredBottomNav && showBottomBar) {
             if (lastBottomNavRoute in bottomNavRoutes && lastBottomNavRoute != currentRoute) {
@@ -108,9 +122,6 @@ fun MainScreen(
             hasRestoredBottomNav = true
         }
     }
-    // ───────────────────────────────────────────────────
-    val context = LocalContext.current
-    val activity = context as? Activity
 
     BackHandler(enabled = navController.previousBackStackEntry == null) {
         activity?.finish()
@@ -125,6 +136,21 @@ fun MainScreen(
             navController.navigate("subscription?allowIfSubscribed=false&force=true") {
                 launchSingleTop = true
             }
+        }
+    }
+
+    val isFreeTier = !isPremium && !isPlus
+    LaunchedEffect(isFreeTier, lastInterstitialShownMs) {
+        if (!isFreeTier || interstitialScheduled) return@LaunchedEffect
+        interstitialScheduled = true
+        val now = System.currentTimeMillis()
+        val recentlyShown = now - lastInterstitialShownMs < INTERSTITIAL_COOLDOWN_MS
+        if (recentlyShown) return@LaunchedEffect
+        kotlinx.coroutines.delay(INTERSTITIAL_DELAY_MS)
+        val latestNow = System.currentTimeMillis()
+        val stillEligible = latestNow - lastInterstitialShownMs >= INTERSTITIAL_COOLDOWN_MS
+        if (stillEligible && isFreeTier) {
+            showInterstitialPrompt = true
         }
     }
 
@@ -237,6 +263,37 @@ fun MainScreen(
                     }
                 },
                 text = { Text(stringResource(inviteMessage), color = KupidxOrange) }
+            )
+        }
+        if (showInterstitialPrompt) {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text(stringResource(R.string.ad_prompt_title)) },
+                text = { Text(stringResource(R.string.ad_prompt_message)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        host?.showDailyInterstitial(
+                            onDismissed = {
+                                val now = System.currentTimeMillis()
+                                lastInterstitialShownMs = now
+                                adPrefs.edit().putLong(KEY_LAST_INTERSTITIAL_SHOWN, now).apply()
+                                showInterstitialPrompt = false
+                            },
+                            onFailed = {
+                                Toast.makeText(
+                                    context,
+                                    R.string.toast_ad_not_ready,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                showInterstitialPrompt = false
+                            }
+                        ) ?: run {
+                            showInterstitialPrompt = false
+                        }
+                    }) {
+                        Text(stringResource(R.string.ad_prompt_confirm))
+                    }
+                }
             )
         }
     }

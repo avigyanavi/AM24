@@ -3793,4 +3793,76 @@ exports.notifyOmegleInvite = functions
     return null;
   });
 
+exports.grantAiMessagesLast90Days = functions
+  .region("asia-south1")
+  .runWith({ timeoutSeconds: 540, memory: "1GB" })
+  .https.onRequest(async (req, res) => {
+    try {
+      const db = admin.database();
+
+      // ─────────────────────────────────────────────
+      // SAFETY: run-once guard
+      // ─────────────────────────────────────────────
+      const lockRef = db.ref("adminJobs/grantAiMessagesLast90Days");
+      const lockSnap = await lockRef.get();
+
+      if (lockSnap.exists()) {
+        return res.status(200).send("Already executed. No action taken.");
+      }
+
+      // ─────────────────────────────────────────────
+      // Time window: last 90 days
+      // ─────────────────────────────────────────────
+      const NOW = Date.now();
+      const DAYS_90_MS = 90 * 24 * 60 * 60 * 1000;
+      const cutoff = NOW - DAYS_90_MS;
+
+      const usersSnap = await db.ref("users").get();
+      if (!usersSnap.exists()) {
+        return res.status(200).send("No users found.");
+      }
+
+      const updates = {};
+      let eligible = 0;
+
+      usersSnap.forEach(userSnap => {
+        const uid = userSnap.key;
+        const lastActive = Number(userSnap.child("lastActive").val() || 0);
+
+        if (lastActive >= cutoff) {
+          const current = Number(
+            userSnap.child("availableAiMessages").val() || 0
+          );
+          updates[`users/${uid}/availableAiMessages`] = current + 5;
+          eligible++;
+        }
+      });
+
+      // Mark job as completed (idempotency)
+      updates["adminJobs/grantAiMessagesLast90Days"] = {
+        executedAt: NOW,
+        cutoff,
+        addedPerUser: 5,
+        affectedUsers: eligible
+      };
+
+      if (eligible === 0) {
+        await lockRef.set({
+          executedAt: NOW,
+          affectedUsers: 0
+        });
+        return res.status(200).send("No eligible users in last 90 days.");
+      }
+
+      await db.ref().update(updates);
+
+      return res.status(200).send(
+        `SUCCESS: +5 AI messages granted to ${eligible} users (active ≤90 days)`
+      );
+
+    } catch (err) {
+      console.error("grantAiMessagesLast90Days failed", err);
+      return res.status(500).send("Internal error");
+    }
+  });
 

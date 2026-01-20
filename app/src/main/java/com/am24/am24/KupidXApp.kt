@@ -37,7 +37,7 @@ import com.razorpay.PaymentResultWithDataListener // Razorpay
 import kotlinx.coroutines.launch
 import java.util.Locale
 import com.google.firebase.database.ServerValue
-
+import com.am24.am24.ads.InterstitialAdManager
 class KupidXAppActivity : AppCompatActivity(),
     PaymentResultWithDataListener,
     ExternalWalletListener,
@@ -66,7 +66,7 @@ class KupidXAppActivity : AppCompatActivity(),
     // deep-link flag
     private var pendingOpenNotifications = false
     private var pendingOpenUpgradeLanding = false
-
+    private val interstitialAdManager by lazy { InterstitialAdManager(this) }
     private fun setupPresence(uid: String) {
         val ref = FirebaseRefs.db.getReference("presence").child(uid)
         presenceRef = ref
@@ -147,6 +147,7 @@ class KupidXAppActivity : AppCompatActivity(),
             lifecycleScope.launch {
                 continueInitialization(uid)
             }
+            interstitialAdManager.preload(resolveInterstitialAdUnitId())
         } ?: run {
             startActivity(Intent(this, LandingActivity::class.java))
             finish()
@@ -215,6 +216,23 @@ class KupidXAppActivity : AppCompatActivity(),
                     Manifest.permission.ACCESS_COARSE_LOCATION
                 )
             )
+        }
+    }
+
+    fun showDailyInterstitial(onDismissed: () -> Unit, onFailed: (String?) -> Unit) {
+        interstitialAdManager.show(
+            activity = this,
+            adUnitId = resolveInterstitialAdUnitId(),
+            onDismissed = onDismissed,
+            onFailed = onFailed
+        )
+    }
+
+    private fun resolveInterstitialAdUnitId(): String {
+        return if (CountryUtil.isProbablyInIndia(this)) {
+            getString(R.string.admob_interstitial_india)
+        } else {
+            getString(R.string.admob_interstitial_global)
         }
     }
 
