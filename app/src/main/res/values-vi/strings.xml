@@ -5805,8 +5805,8 @@
     <string name="ad_prompt_confirm">Watch ad</string>
     <string name="toast_ad_not_ready">Ad not ready yet. Please try again shortly.</string>
     <string name="admob_app_id">ca-app-pub-5266481866342618~3563725191</string>
-    <string name="admob_interstitial_global">ca-app-pub-3206974923602803/4963016556</string>
-    <string name="admob_interstitial_india">ca-app-pub-3206974923602803/6227964942</string>
+    <string name="admob_interstitial_main">ca-app-pub-5266481866342618/6026963354</string>
+    <string name="admob_interstitial_india">ca-app-pub-5266481866342618/8454532406</string>
     <string name="settings_get_more_boosts">Mua thêm Boost</string>
     <string name="create_post_title">Tạo bài viết mới</string>
     <string name="text_post_label">Bài viết chữ</string>

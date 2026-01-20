@@ -229,10 +229,10 @@ class KupidXAppActivity : AppCompatActivity(),
     }
 
     private fun resolveInterstitialAdUnitId(): String {
-        return if (CountryUtil.isProbablyInIndia(this)) {
-            getString(R.string.admob_interstitial_india)
+        return if (CountryUtil.isUnitedStates(this, null)) {
+            getString(R.string.admob_interstitial_main)
         } else {
-            getString(R.string.admob_interstitial_global)
+            getString(R.string.admob_interstitial_india)
         }
     }
 
