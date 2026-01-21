@@ -228,6 +228,10 @@ class KupidXAppActivity : AppCompatActivity(),
         )
     }
 
+    fun preloadDailyInterstitial() {
+        interstitialAdManager.preload(resolveInterstitialAdUnitId())
+    }
+
     private fun resolveInterstitialAdUnitId(): String {
         return if (CountryUtil.isUnitedStates(this, null)) {
             getString(R.string.admob_interstitial_main)
