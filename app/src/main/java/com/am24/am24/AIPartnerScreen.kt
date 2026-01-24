@@ -128,7 +128,7 @@ fun AIPartnerScreen(
     var inputText by remember { mutableStateOf("") }
     val messages = remember { mutableStateListOf<AIPartnerChatMessage>() }
     val listState = rememberLazyListState()
-    val quickPrompts = remember { listOf("send me a hot pic of you") }
+    val quickPrompts = remember { listOf("Hi! How are you?") }
 
     // Scroll to bottom whenever list size changes
     LaunchedEffect(messages.size) {

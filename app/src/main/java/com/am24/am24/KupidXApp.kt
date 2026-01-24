@@ -147,7 +147,6 @@ class KupidXAppActivity : AppCompatActivity(),
             lifecycleScope.launch {
                 continueInitialization(uid)
             }
-            interstitialAdManager.preload(resolveInterstitialAdUnitId())
         } ?: run {
             startActivity(Intent(this, LandingActivity::class.java))
             finish()
@@ -219,17 +218,21 @@ class KupidXAppActivity : AppCompatActivity(),
         }
     }
 
-    fun showDailyInterstitial(onDismissed: () -> Unit, onFailed: (String?) -> Unit) {
+    fun showDailyInterstitial(
+        isFreeTier: Boolean,
+        onDismissed: () -> Unit,
+        onFailed: (String?) -> Unit
+    ) {
+        if (!isFreeTier) {
+            onFailed(null)
+            return
+        }
         interstitialAdManager.show(
             activity = this,
             adUnitId = resolveInterstitialAdUnitId(),
             onDismissed = onDismissed,
             onFailed = onFailed
         )
-    }
-
-    fun preloadDailyInterstitial() {
-        interstitialAdManager.preload(resolveInterstitialAdUnitId())
     }
 
     private fun resolveInterstitialAdUnitId(): String {

@@ -4751,7 +4751,7 @@ fun uploadPrivateAlbumMedia(
     }
 }
 
-private const val SCENARIO3_PLUS_DAYS = 30L
+private const val SCENARIO3_PLUS_DAYS = 2L
 
 private suspend fun scenario3MarkUserPaid(): Boolean {
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return false

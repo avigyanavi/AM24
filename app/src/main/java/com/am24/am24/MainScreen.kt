@@ -146,7 +146,6 @@ fun MainScreen(
         val now = System.currentTimeMillis()
         val recentlyShown = now - lastInterstitialShownMs < INTERSTITIAL_COOLDOWN_MS
         if (recentlyShown) return@LaunchedEffect
-        host?.preloadDailyInterstitial()
         kotlinx.coroutines.delay(INTERSTITIAL_DELAY_MS)
         val latestNow = System.currentTimeMillis()
         val stillEligible = latestNow - lastInterstitialShownMs >= INTERSTITIAL_COOLDOWN_MS
@@ -274,6 +273,7 @@ fun MainScreen(
                 confirmButton = {
                     TextButton(onClick = {
                         host?.showDailyInterstitial(
+                            isFreeTier = isFreeTier,
                             onDismissed = {
                                 val now = System.currentTimeMillis()
                                 lastInterstitialShownMs = now

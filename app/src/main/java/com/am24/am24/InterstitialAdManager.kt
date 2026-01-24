@@ -13,27 +13,6 @@ class InterstitialAdManager(private val context: Context) {
     private var interstitialAd: InterstitialAd? = null
     private var isLoading = false
 
-    fun preload(adUnitId: String) {
-        if (isLoading || interstitialAd != null) return
-        isLoading = true
-        InterstitialAd.load(
-            context,
-            adUnitId,
-            AdRequest.Builder().build(),
-            object : InterstitialAdLoadCallback() {
-                override fun onAdLoaded(ad: InterstitialAd) {
-                    interstitialAd = ad
-                    isLoading = false
-                }
-
-                override fun onAdFailedToLoad(error: LoadAdError) {
-                    interstitialAd = null
-                    isLoading = false
-                }
-            }
-        )
-    }
-
     fun show(
         activity: Activity,
         adUnitId: String,
@@ -41,21 +20,51 @@ class InterstitialAdManager(private val context: Context) {
         onFailed: (String?) -> Unit
     ) {
         val ad = interstitialAd
-        if (ad == null) {
-            preload(adUnitId)
+        if (ad != null) {
+            showLoadedAd(activity, ad, onDismissed, onFailed)
+            return
+        }
+
+        if (isLoading) {
             onFailed(null)
             return
         }
+
+        isLoading = true
+        InterstitialAd.load(
+            context,
+            adUnitId,
+            AdRequest.Builder().build(),
+            object : InterstitialAdLoadCallback() {
+                override fun onAdLoaded(loadedAd: InterstitialAd) {
+                    interstitialAd = loadedAd
+                    isLoading = false
+                    showLoadedAd(activity, loadedAd, onDismissed, onFailed)
+                }
+
+                override fun onAdFailedToLoad(error: LoadAdError) {
+                    interstitialAd = null
+                    isLoading = false
+                    onFailed(error.message)
+                }
+            }
+        )
+    }
+
+    private fun showLoadedAd(
+        activity: Activity,
+        ad: InterstitialAd,
+        onDismissed: () -> Unit,
+        onFailed: (String?) -> Unit
+    ) {
         ad.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdDismissedFullScreenContent() {
                 interstitialAd = null
-                preload(adUnitId)
                 onDismissed()
             }
 
             override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                 interstitialAd = null
-                preload(adUnitId)
                 onFailed(adError.message)
             }
         }
