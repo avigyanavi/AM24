@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,10 +19,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
-import coil.Coil
-import coil.ImageLoader
-import coil.disk.DiskCache
-import coil.memory.MemoryCache
+import kotlinx.coroutines.tasks.await
 import com.am24.am24.ui.purchase.PaymentResultListenerHost
 import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -218,6 +214,16 @@ class KupidXAppActivity : AppCompatActivity(),
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        profileViewModel.prepareForAppOpenTracking()
+    }
+
+    override fun onStop() {
+        profileViewModel.trackLastScreenBeforeClose()
+        super.onStop()
+    }
+
     fun showDailyInterstitial(
         isFreeTier: Boolean,
         onDismissed: () -> Unit,
@@ -227,12 +233,33 @@ class KupidXAppActivity : AppCompatActivity(),
             onFailed(null)
             return
         }
-        interstitialAdManager.show(
-            activity = this,
-            adUnitId = resolveInterstitialAdUnitId(),
-            onDismissed = onDismissed,
-            onFailed = onFailed
-        )
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            onFailed(null)
+            return
+        }
+        lifecycleScope.launch {
+            val entitlements = runCatching {
+                FirebaseRefs.db.getReference("users").child(uid).get().await()
+            }
+            val snapshot = entitlements.getOrNull()
+            if (snapshot == null) {
+                onFailed(null)
+                return@launch
+            }
+            val isPlus = snapshot.child("isPlus").getValue(Boolean::class.java) == true
+            val isPremium = snapshot.child("isPremium").getValue(Boolean::class.java) == true
+            if (isPlus || isPremium) {
+                onFailed(null)
+                return@launch
+            }
+            interstitialAdManager.show(
+                activity = this@KupidXAppActivity,
+                adUnitId = resolveInterstitialAdUnitId(),
+                onDismissed = onDismissed,
+                onFailed = onFailed
+            )
+        }
     }
 
     private fun resolveInterstitialAdUnitId(): String {

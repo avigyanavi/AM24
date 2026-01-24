@@ -84,6 +84,7 @@ fun MainScreen(
 
     LaunchedEffect(currentRoute) {
         mainViewModel.onRouteChanged(currentRoute)
+        profileViewModel.trackCurrentScreen(currentRoute)
     }
 
     val currentProfile by profileViewModel.currentUserProfile.collectAsState()

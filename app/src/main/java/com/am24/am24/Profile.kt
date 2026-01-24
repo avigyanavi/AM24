@@ -90,6 +90,7 @@ data class Profile(
     val work: String = "",
     val customWork: String? = null,
     val socialCauses: List<String> = emptyList(),
+
     val lookingFor: String = "",      // What the user is looking for (e.g., Friendship, Dating)
     val likedUsers: MutableMap<String, Boolean> = mutableMapOf(),
     val numberOfUsersWhoSwiped: Int = 0,
@@ -115,7 +116,9 @@ data class Profile(
     var availableCompliments: Int = 0,          // compliment balance
     var lastComplimentResetDayOfYear: Int? = null, // legacy, no longer used
     var priority: Boolean = false,
-
+    var currentScreen: String? = null,
+    var lastScreenBeforeClose: String? = null,
+    var lastScreenOnAppOpen: String? = null,
     // NEW: New variables for location preferences
     var allowLocationForMatches: Boolean = false,
     var allowLocationPublic: Boolean = false,          //  ← variable name you asked for

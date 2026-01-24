@@ -6193,7 +6193,9 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
         "politics" to updatedProfile.politics,
         "customPolitics" to updatedProfile.customPolitics,
         "socialCauses" to updatedProfile.socialCauses,
-
+        "currentScreen" to updatedProfile.currentScreen,
+        "lastScreenBeforeClose" to updatedProfile.lastScreenBeforeClose,
+        "lastScreenOnAppOpen" to updatedProfile.lastScreenOnAppOpen,
         // NEW: For the college degree
         "collegeDegree" to updatedProfile.collegeDegree,
 

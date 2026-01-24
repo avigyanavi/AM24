@@ -3866,3 +3866,237 @@ exports.grantAiMessagesLast90Days = functions
     }
   });
 
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeRtdbKey(value = '') {
+  return String(value)
+    .replace(/[.#$/\[\]]/g, '_')
+    .trim() || 'Unknown';
+}
+
+exports.createScreenTrackingReport = functions
+  .region('asia-south1')
+  .runWith({ timeoutSeconds: 540, memory: '1GB' })
+  .https.onRequest(async (req, res) => {
+    try {
+      const targetUid = 'VHnQOhWFyBSV1gPN4ePBQu87P5A2';
+      const usersSnap = await admin.database().ref(`users/${targetUid}`).once('value');
+      const capturedAt = Date.now();
+      const reportRef = admin.database().ref(`reports/screenTracking/${capturedAt}`);
+      const countryCounts = {};
+      const countryNames = {};
+      let totalUsers = 0;
+      let updates = {};
+      let pending = 0;
+      const flushes = [];
+
+      const queueFlush = () => {
+        if (pending === 0) return;
+        flushes.push(reportRef.update(updates));
+        updates = {};
+        pending = 0;
+      };
+
+      const user = usersSnap.val() || {};
+      const uid = usersSnap.key;
+      if (uid) {
+        const country = user.country || 'Unknown';
+        const countryKey = sanitizeRtdbKey(country);
+        const row = {
+          uid,
+          username: user.username || '',
+          name: user.name || '',
+          country,
+          currentScreen: user.currentScreen || '',
+          lastScreenBeforeClose: user.lastScreenBeforeClose || '',
+          lastScreenOnAppOpen: user.lastScreenOnAppOpen || '',
+          lastActive: user.lastActive || 0,
+        };
+
+        updates[`users/${uid}`] = row;
+        updates[`countries/${countryKey}/${uid}`] = row;
+        countryCounts[countryKey] = (countryCounts[countryKey] || 0) + 1;
+        countryNames[countryKey] = country;
+        totalUsers += 1;
+        pending += 1;
+
+        if (pending >= 500) {
+          queueFlush();
+        }
+      }
+
+      queueFlush();
+      await Promise.all(flushes);
+      await reportRef.child('meta').set({
+        capturedAt,
+        totalUsers,
+        countryCounts,
+        countryNames,
+      });
+      await admin.database().ref('reports/screenTrackingLatest').set({ capturedAt });
+
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const reportUrl = `${baseUrl}/screenTrackingReport?ts=${capturedAt}`;
+
+      res.set('Access-Control-Allow-Origin', '*')
+        .json({ capturedAt, reportUrl });
+    } catch (err) {
+      console.error('createScreenTrackingReport error:', err);
+      res.status(500).send(err.message);
+    }
+  });
+exports.screenTrackingReport = functions
+  .region('asia-south1')
+  .https.onRequest(async (req, res) => {
+    try {
+      const timestamp = Number(req.query.ts);
+      const latestSnap = await admin.database().ref('reports/screenTrackingLatest').get();
+      const latest = latestSnap.val()?.capturedAt;
+      const capturedAt = Number.isFinite(timestamp) ? timestamp : latest;
+
+      if (!capturedAt) {
+        res.status(404).send('No reports found.');
+        return;
+      }
+
+      const reportSnap = await admin.database()
+        .ref(`reports/screenTracking/${capturedAt}`)
+        .get();
+      if (!reportSnap.exists()) {
+        res.status(404).send('Report not found.');
+        return;
+      }
+
+      const report = reportSnap.val() || {};
+      const users = Array.isArray(report.users) ? report.users : [];
+      const grouped = users.reduce((acc, user) => {
+        const country = user.country || 'Unknown';
+        if (!acc[country]) acc[country] = [];
+        acc[country].push(user);
+        return acc;
+      }, {});
+
+      const capturedAtIso = new Date(report.capturedAt || capturedAt).toISOString();
+      const countriesHtml = Object.keys(grouped)
+        .sort((a, b) => a.localeCompare(b))
+        .map((country) => {
+          const rows = grouped[country]
+            .map((user) => `
+              <tr>
+                <td>${escapeHtml(user.uid)}</td>
+                <td>${escapeHtml(user.username)}</td>
+                <td>${escapeHtml(user.name)}</td>
+                <td>${escapeHtml(user.currentScreen)}</td>
+                <td>${escapeHtml(user.lastScreenBeforeClose)}</td>
+                <td>${escapeHtml(user.lastScreenOnAppOpen)}</td>
+                <td>${escapeHtml(user.lastActive)}</td>
+              </tr>
+            `)
+            .join('');
+          return `
+            <details>
+              <summary>${escapeHtml(country)} (${grouped[country].length})</summary>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>UID</th>
+                      <th>Username</th>
+                      <th>Name</th>
+                      <th>Current Screen</th>
+                      <th>Last Screen Before Close</th>
+                      <th>Last Screen On App Open</th>
+                      <th>Last Active (ms)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          `;
+        })
+        .join('');
+
+      const html = `<!doctype html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Screen Tracking Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 24px; color: #1a1a1a; }
+              h1 { margin-bottom: 8px; }
+              .meta { margin-bottom: 24px; color: #555; }
+              details { border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; padding: 12px; }
+              summary { cursor: pointer; font-weight: 600; }
+              .table-wrap { overflow-x: auto; margin-top: 12px; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }
+              th { background: #f5f5f5; }
+            </style>
+          </head>
+          <body>
+            <h1>Screen Tracking Report</h1>
+            <div class="meta">Captured at: ${escapeHtml(capturedAtIso)}</div>
+            ${countriesHtml || '<p>No users found.</p>'}
+          </body>
+        </html>`;
+
+      res.set('Content-Type', 'text/html; charset=utf-8').send(html);
+    } catch (err) {
+      console.error('screenTrackingReport error:', err);
+      res.status(500).send(err.message);
+    }
+  });
+
+
+exports.backfillScreenTrackingFieldsForUser = functions
+  .region('asia-south1')
+  .runWith({ timeoutSeconds: 540, memory: '1GB' })
+  .https.onRequest(async (_req, res) => {
+    try {
+      const usersSnap = await admin.database().ref('users').get();
+      if (!usersSnap.exists()) {
+        res.status(404).send('No users found.');
+        return;
+      }
+
+      const updates = {};
+      usersSnap.forEach((snap) => {
+        const user = snap.val() || {};
+        const uid = snap.key;
+        if (!uid) return;
+        if (user.currentScreen === undefined) updates[`${uid}/currentScreen`] = '';
+        if (user.lastScreenBeforeClose === undefined) {
+          updates[`${uid}/lastScreenBeforeClose`] = '';
+        }
+        if (user.lastScreenOnAppOpen === undefined) {
+          updates[`${uid}/lastScreenOnAppOpen`] = '';
+        }
+      });
+
+      const updateEntries = Object.entries(updates);
+      const chunkSize = 500;
+      for (let i = 0; i < updateEntries.length; i += chunkSize) {
+        const chunk = Object.fromEntries(updateEntries.slice(i, i + chunkSize));
+        if (Object.keys(chunk).length > 0) {
+          await admin.database().ref('users').update(chunk);
+        }
+      }
+
+      res.set('Access-Control-Allow-Origin', '*')
+        .json({ updatedCount: Object.keys(updates).length });
+    } catch (err) {
+      console.error('backfillScreenTrackingFieldsForUser error:', err);
+      res.status(500).send(err.message);
+    }
+  });

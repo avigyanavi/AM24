@@ -116,6 +116,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private var monetizationRef: DatabaseReference? = null
     private var monetizationListener: ValueEventListener? = null
 
+    private var didSetAppOpenScreen = false
+    private var lastTrackedScreen: String? = null
+
     // Add this function to fetch and store the current user's profile
     fun fetchCurrentUserProfile() {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
@@ -160,6 +163,49 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         ref.addValueEventListener(listener)
     }
     // ────────────────────────────────────────────────────────────────────────
+
+    fun prepareForAppOpenTracking() {
+        didSetAppOpenScreen = false
+    }
+
+    fun trackCurrentScreen(route: String?) {
+        if (route.isNullOrBlank() || route == lastTrackedScreen) return
+        lastTrackedScreen = route
+        _currentUserProfile.update { profile ->
+            profile?.copy(
+                currentScreen = route,
+                lastScreenOnAppOpen = if (!didSetAppOpenScreen) route else profile.lastScreenOnAppOpen
+            )
+        }
+
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val updates = mutableMapOf<String, Any>("currentScreen" to route)
+        if (!didSetAppOpenScreen) {
+            updates["lastScreenOnAppOpen"] = route
+            didSetAppOpenScreen = true
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { usersRef.child(currentUserId).updateChildren(updates).await() }
+                .onFailure { Log.e(TAG, "Failed to update screen tracking", it) }
+        }
+    }
+
+    fun trackLastScreenBeforeClose() {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val screen = lastTrackedScreen ?: _currentUserProfile.value?.currentScreen ?: return
+        _currentUserProfile.update { profile ->
+            profile?.copy(lastScreenBeforeClose = screen)
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                usersRef.child(currentUserId)
+                    .updateChildren(mapOf("lastScreenBeforeClose" to screen))
+                    .await()
+            }.onFailure { Log.e(TAG, "Failed to update last screen before close", it) }
+        }
+    }
 
     // ─── NEW: listen for isPlus in /users/{uid}/isPlus ──────────────────────
     private fun watchPlusFlag() {
@@ -364,6 +410,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     "lookingFor"                  to profileWithScore.lookingFor,
                     "loveLanguage"                  to profileWithScore.loveLanguage,
                     "sexualOrientation"          to profileWithScore.sexualOrientation,
+                    "currentScreen"             to profileWithScore.currentScreen,
+                    "lastScreenBeforeClose"     to profileWithScore.lastScreenBeforeClose,
+                    "lastScreenOnAppOpen"        to profileWithScore.lastScreenOnAppOpen,
                     "interests"                   to profileWithScore.interests.map {
                         mapOf("name" to it.name, "emoji" to it.emoji)
                     },

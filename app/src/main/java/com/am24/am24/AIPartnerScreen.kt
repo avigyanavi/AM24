@@ -375,8 +375,31 @@ fun AIPartnerScreen(
         }
 
         // Existing pic keywords path
-        val hasPicKeyword = listOf("pic", "photo", "selfie", "image")
-            .any { lower.contains(it) }
+        val hasPicKeyword = listOf(
+            "pic",
+            "photo",
+            "selfie",
+            "image",
+            "foto",
+            "fotografia",
+            "fotografía",
+            "imagen",
+            "imagem",
+            "photographie",
+            "bild",
+            "immagine",
+            "fotoğraf",
+            "фото",
+            "фотография",
+            "obraz",
+            "사진",
+            "画像",
+            "写真",
+            "图片",
+            "ảnh",
+            "ảnh chụp",
+            "tasveer"
+        ).any { lower.contains(it) }
 
         if (!hasPicKeyword) return false
 

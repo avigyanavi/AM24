@@ -353,15 +353,8 @@ fun EditPicAndVoiceBioScreen(
 
                             IconButton(
                                 onClick = {
-                                    val countNonEmpty = photoItems.count { it.isNotBlank() }
-                                    if (countNonEmpty == 1 &&
-                                        index == photoItems.indexOfFirst { it.isNotBlank() }
-                                    ) {
-                                        Log.w(TAG, "Cannot remove the only photo.")
-                                    } else {
-                                        Log.d(TAG, "Removing photo at index=$index")
-                                        photoItems[index] = ""
-                                    }
+                                    Log.d(TAG, "Removing photo at index=$index")
+                                    photoItems[index] = ""
                                 },
                                 modifier = Modifier
                                     .align(Alignment.TopStart)
