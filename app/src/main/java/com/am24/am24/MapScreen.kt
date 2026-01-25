@@ -5,7 +5,7 @@
 )
 
 package com.am24.am24
-
+import kotlinx.coroutines.Job
 import DatingViewModel
 import android.Manifest
 import android.annotation.SuppressLint
@@ -302,6 +302,8 @@ fun MapScreen(
     var showFiltersDialog by remember { mutableStateOf(false) }
     var isPlus by remember { mutableStateOf(false) }
     var isPremium by remember { mutableStateOf(false) }
+    var isAdjustingSlider by remember { mutableStateOf(false) }
+    var sliderInteractionJob by remember { mutableStateOf<Job?>(null) }
     var omegleInvite by remember { mutableStateOf<OmegleMatch?>(null) }
     var remainingSwipes by remember { mutableStateOf(0) }
     var swipesLoaded by remember { mutableStateOf(false) }
@@ -328,6 +330,25 @@ fun MapScreen(
     val isRefreshing by nearbyViewModel.isRefreshing.collectAsState()
     val hasAttemptedInitialLoad by nearbyViewModel.hasAttemptedInitialLoad.collectAsState()
     val hasLoadedFirstResult by nearbyViewModel.hasLoadedFirstResult.collectAsState()
+    fun setSliderInteraction(active: Boolean) {
+        sliderInteractionJob?.cancel()
+        if (active) {
+            isAdjustingSlider = true
+        } else {
+            sliderInteractionJob = scope.launch {
+                delay(150)
+                isAdjustingSlider = false
+            }
+        }
+    }
+    fun toggleSortMode() {
+        if (selectedTab == 2) return
+        selectedTab = when (selectedTab) {
+            0 -> 1
+            1 -> 0
+            else -> 0
+        }
+    }
     LaunchedEffect(dmBootstrap) {
         complimentQueue.clear()
         dmBootstrap?.compliments?.let { complimentQueue.addAll(it) }
@@ -1125,6 +1146,8 @@ fun MapScreen(
                                         prefs.edit().putFloat("map_last_active_hours", it.toFloat())
                                             .apply()
                                     },
+                                    onInteraction = ::setSliderInteraction,
+                                    onToggle = ::toggleSortMode,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -1135,6 +1158,8 @@ fun MapScreen(
                                         radiusKm = it
                                         prefs.edit().putFloat("map_radius_km", it.toFloat()).apply()
                                     },
+                                    onInteraction = ::setSliderInteraction,
+                                    onToggle = ::toggleSortMode,
                                     useMiles = useMiles,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -1205,14 +1230,22 @@ fun MapScreen(
                 ) {
                     Tab(
                         selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
+                        onClick = {
+                            if (!isAdjustingSlider) {
+                                selectedTab = 0
+                            }
+                        },
                         selectedContentColor = KupidxOrange,
                         unselectedContentColor = Color.Gray,
                         text = { Text(stringResource(R.string.tab_people)) }
                     )
                     Tab(
                         selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
+                        onClick = {
+                            if (!isAdjustingSlider) {
+                                selectedTab = 1
+                            }
+                        },
                         selectedContentColor = KupidxOrange,
                         unselectedContentColor = Color.Gray,
                         text = { Text(stringResource(R.string.tab_cards)) }
@@ -1220,7 +1253,11 @@ fun MapScreen(
                     if (isPremium) {
                         Tab(
                             selected = selectedTab == 2,
-                            onClick = { selectedTab = 2 },
+                            onClick = {
+                                if (!isAdjustingSlider) {
+                                    selectedTab = 2
+                                }
+                            },
                             selectedContentColor = KupidxOrange,
                             unselectedContentColor = Color.Gray,
                             text = { Text(stringResource(R.string.tab_map)) }
@@ -2843,6 +2880,8 @@ private fun RadiusChip(
     radiusKm: Double,                  // keep km internally for GeoFire
     useMiles: Boolean,
     onChange: (Double) -> Unit,        // expects km
+    onInteraction: (Boolean) -> Unit = {},
+    onToggle: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val minKm = 10.0
@@ -2875,18 +2914,29 @@ private fun RadiusChip(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Radar, contentDescription = null, tint = KupidxOrange)
-            Spacer(Modifier.width(6.dp))
-            Text(label, color = KupidxOrange, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.width(6.dp))
+            Row(
+                modifier = Modifier
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { onToggle() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Radar, contentDescription = null, tint = KupidxOrange)
+                Spacer(Modifier.width(6.dp))
+                Text(label, color = KupidxOrange, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.width(6.dp))
+            }
 
             // Use material Slider (circular thumb)
             androidx.compose.material.Slider(
                 value = sliderPos,
                 onValueChange = {
+                    onInteraction(true)
                     val newKm = minKm * (maxKm / minKm).pow(it.toDouble())
                     onChange(newKm.coerceIn(minKm, maxKm))
                 },
+                onValueChangeFinished = { onInteraction(false) },
                 valueRange = 0f..1f,
                 colors = androidx.compose.material.SliderDefaults.colors(
                     thumbColor = KupidxOrange,
@@ -2906,6 +2956,8 @@ private fun RadiusChip(
 private fun LastActiveChip(
     hours: Double,
     onChange: (Double) -> Unit,
+    onInteraction: (Boolean) -> Unit = {},
+    onToggle: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val minHours = 24.0
@@ -2928,14 +2980,27 @@ private fun LastActiveChip(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Schedule, contentDescription = null, tint = KupidxOrange)
-            Spacer(Modifier.width(6.dp))
-            Text(label, color = KupidxOrange, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.width(6.dp))
+            Row(
+                modifier = Modifier
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { onToggle() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Schedule, contentDescription = null, tint = KupidxOrange)
+                Spacer(Modifier.width(6.dp))
+                Text(label, color = KupidxOrange, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.width(6.dp))
+            }
 
             androidx.compose.material.Slider(
                 value = hours.toFloat(),
-                onValueChange = { onChange(it.toDouble().coerceIn(minHours, maxHours)) },
+                onValueChange = {
+                    onInteraction(true)
+                    onChange(it.toDouble().coerceIn(minHours, maxHours))
+                },
+                onValueChangeFinished = { onInteraction(false) },
                 valueRange = minHours.toFloat()..maxHours.toFloat(),
                 colors = androidx.compose.material.SliderDefaults.colors(
                     thumbColor = KupidxOrange,
