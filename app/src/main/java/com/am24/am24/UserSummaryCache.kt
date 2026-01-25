@@ -56,22 +56,51 @@ object UserSummaryCache {
 
     private suspend fun fetchFromNetwork(ids: Collection<String>): Map<String, UserSummary> = coroutineScope {
         val summariesRef = FirebaseRefs.db.getReference("userSummaries")
+        val usersRef = FirebaseRefs.db.getReference("users")
         val result = mutableMapOf<String, UserSummary>()
         ids.map { id ->
             async(Dispatchers.IO) {
                 try {
                     val snapshot = summariesRef.child(id).get().await()
-                    if (!snapshot.exists()) return@async
                     val summary = snapshot.getValue(UserSummary::class.java)
                     if (summary != null) {
                         val normalized = if (summary.userId.isBlank()) summary.copy(userId = id) else summary
                         result[id] = normalized
+                        return@async
                     }
+                    val profileSnapshot = usersRef.child(id).get().await()
+                    val profile = profileSnapshot.getValue(Profile::class.java) ?: return@async
+                    result[id] = profile.toUserSummary(id)
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to fetch summary for $id", e)
+                    try {
+                        val profileSnapshot = usersRef.child(id).get().await()
+                        val profile = profileSnapshot.getValue(Profile::class.java)
+                        if (profile != null) {
+                            result[id] = profile.toUserSummary(id)
+                        }
+                    } catch (fallbackError: Exception) {
+                        Log.e(TAG, "Failed to fetch profile fallback for $id", fallbackError)
+                    }
                 }
             }
         }.awaitAll()
         result
     }
+}
+private fun Profile.toUserSummary(userIdFallback: String): UserSummary {
+    return UserSummary(
+        userId = userId.ifBlank { userIdFallback },
+        username = username,
+        name = name,
+        dob = dob,
+        roles = roles,
+        jobRole = jobRole,
+        profilepicUrl = profilepicUrl,
+        profilepicThumbnailUrl = profilepicThumbnailUrl,
+        lastActive = lastActive,
+        likesReceivedCount = totalDatingLikes,
+        latitude = latitude.takeIf { it != 0.0 },
+        longitude = longitude.takeIf { it != 0.0 }
+    )
 }

@@ -1269,7 +1269,11 @@ fun FeedItem(
                             Text(
                                 text = "${localUpvotes}",
                                 color = Color(0xFFFFDB00),
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable {
+                                    val encoded = Uri.encode(post.postId)
+                                    navController.navigate("postVotes/$encoded/upvotes")
+                                }
                             )
                         }
 
@@ -1284,7 +1288,11 @@ fun FeedItem(
                             Text(
                                 text = "${localDownvotes}",
                                 color = Color(0xFFFF6F00),
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable {
+                                    val encoded = Uri.encode(post.postId)
+                                    navController.navigate("postVotes/$encoded/downvotes")
+                                }
                             )
                         }
 

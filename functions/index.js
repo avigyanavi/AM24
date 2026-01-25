@@ -4149,7 +4149,18 @@ exports.pushLikeNotification = functions
   .onCreate(async (snapshot, ctx) => {
     const notification = snapshot.val() || {};
     const type = notification.type;
-    if (type !== 'new_like' && type !== 'new_match') return null;
+    const supportedTypes = new Set([
+      'new_like',
+      'new_match',
+      'chat_message',
+      'post_upvote',
+      'post_downvote',
+      'comment_upvote',
+      'comment_downvote',
+      'post_comment',
+      'match_post',
+    ]);
+    if (!supportedTypes.has(type)) return null;
 
     const uid = ctx.params.uid;
     const tokenSnap = await admin.database()
@@ -4160,13 +4171,27 @@ exports.pushLikeNotification = functions
 
     const message = typeof notification.message === 'string' && notification.message.trim()
       ? notification.message
-      : (type === 'new_like' ? 'You have a new like!' : 'Your like was accepted!');
+      : (() => {
+        switch (type) {
+          case 'new_like':
+            return 'You have a new like!';
+          case 'new_match':
+            return 'Your like was accepted!';
+          case 'chat_message':
+            return 'You have a new message.';
+          default:
+            return 'You have a new update.';
+        }
+      })();
 
     const res = await admin.messaging().sendEachForMulticast({
       tokens,
       data: {
         type,
         message,
+        senderId: notification.senderId || '',
+        postId: notification.postId || '',
+        commentId: notification.commentId || '',
       },
       android: { priority: 'high' },
     });

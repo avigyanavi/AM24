@@ -394,6 +394,27 @@ fun MainNavGraph(
         }
 
         composable(
+            route = "postVotes/{postId}/{voteType}",
+            arguments = listOf(
+                navArgument("postId") { type = NavType.StringType },
+                navArgument("voteType") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val encodedPostId = backStackEntry.arguments?.getString("postId").orEmpty()
+            val voteType = backStackEntry.arguments?.getString("voteType").orEmpty()
+            val postId = Uri.decode(encodedPostId)
+            if (postId.isBlank()) {
+                LaunchedEffect(Unit) { navController.safePopBackStack() }
+                return@composable
+            }
+            PostVoteUserListScreen(
+                navController = navController,
+                postId = postId,
+                voteType = voteType
+            )
+        }
+
+        composable(
             route = "groupChat/{groupId}",
             arguments = listOf(navArgument("groupId") { type = NavType.StringType })
         ) { backStackEntry ->

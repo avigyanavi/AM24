@@ -44,6 +44,12 @@
     <string name="add_location_optional">Add a location (optional)</string>
     <string name="notification_like_received">You have a new like!</string>
     <string name="notification_like_accepted">Your like was accepted!</string>
+    <string name="notification_new_message">You have a new message.</string>
+    <string name="notification_post_update">You have a new update.</string>
+    <string name="upvotes_list_title">Upvotes</string>
+    <string name="downvotes_list_title">Downvotes</string>
+    <string name="upvotes_list_empty">No upvotes yet</string>
+    <string name="downvotes_list_empty">No downvotes yet</string>
     <string name="online_users">Online Users</string>
     <string name="roles_compatible">Roles align</string>
     <string name="shared_tribes_prefix">Shared tribes: %1$s</string>

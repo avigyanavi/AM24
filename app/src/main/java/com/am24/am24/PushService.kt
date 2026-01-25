@@ -204,6 +204,66 @@ class PushService : FirebaseMessagingService() {
                         .build()
                 )
             }
+            "chat_message" -> {
+                val senderId = data["senderId"] ?: return
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        this, android.Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED) return
+
+                val pending = PendingIntent.getActivity(
+                    this, 5,
+                    Intent(this, MainActivity::class.java).apply {
+                        putExtra("open_chat_user_id", senderId)
+                        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    },
+                    PendingIntent.FLAG_IMMUTABLE
+                )
+                ensureChannel()
+                val message = data["message"] ?: getString(R.string.notification_new_message)
+                NotificationManagerCompat.from(this).notify(
+                    94,
+                    NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setSmallIcon(R.drawable.kupidx_notification)
+                        .setContentTitle(getString(R.string.app_name))
+                        .setContentText(message)
+                        .setAutoCancel(true)
+                        .setContentIntent(pending)
+                        .build()
+                )
+            }
+            "post_upvote",
+            "post_downvote",
+            "comment_upvote",
+            "comment_downvote",
+            "post_comment",
+            "match_post" -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        this, android.Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED) return
+
+                val pending = PendingIntent.getActivity(
+                    this, 6,
+                    Intent(this, MainActivity::class.java).apply {
+                        putExtra("open_notifications", true)
+                        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    },
+                    PendingIntent.FLAG_IMMUTABLE
+                )
+                ensureChannel()
+                val message = data["message"] ?: getString(R.string.notification_post_update)
+                NotificationManagerCompat.from(this).notify(
+                    93,
+                    NotificationCompat.Builder(this, CHANNEL_ID)
+                        .setSmallIcon(R.drawable.kupidx_notification)
+                        .setContentTitle(getString(R.string.app_name))
+                        .setContentText(message)
+                        .setAutoCancel(true)
+                        .setContentIntent(pending)
+                        .build()
+                )
+            }
             else -> return
         }
     }

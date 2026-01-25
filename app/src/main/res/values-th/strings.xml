@@ -10,6 +10,12 @@
     <string name="admob_interstitial_india">ca-app-pub-5266481866342618/8454532406</string>
     <string name="notification_like_received">คุณมีไลก์ใหม่!</string>
     <string name="notification_like_accepted">ไลก์ของคุณได้รับการยอมรับแล้ว!</string>
+    <string name="notification_new_message">คุณมีข้อความใหม่</string>
+    <string name="notification_post_update">คุณมีอัปเดตใหม่</string>
+    <string name="upvotes_list_title">โหวตบวก</string>
+    <string name="downvotes_list_title">โหวตลบ</string>
+    <string name="upvotes_list_empty">ยังไม่มีโหวตบวก</string>
+    <string name="downvotes_list_empty">ยังไม่มีโหวตลบ</string>
     <string name="create_post_title">สร้างโพสต์ใหม่</string>
     <string name="text_post_label">โพสต์ตัวอักษร</string>
     <string name="voice_post_label">โพสต์เสียง</string>

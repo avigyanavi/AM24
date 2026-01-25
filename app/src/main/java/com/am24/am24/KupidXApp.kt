@@ -62,6 +62,7 @@ class KupidXAppActivity : AppCompatActivity(),
     // deep-link flag
     private var pendingOpenNotifications = false
     private var pendingOpenUpgradeLanding = false
+    private var pendingOpenChatUserId: String? = null
     private val interstitialAdManager by lazy { InterstitialAdManager(this) }
     private fun setupPresence(uid: String) {
         val ref = FirebaseRefs.db.getReference("presence").child(uid)
@@ -107,6 +108,8 @@ class KupidXAppActivity : AppCompatActivity(),
             intent?.getBooleanExtra("open_notifications", false) ?: false
         pendingOpenUpgradeLanding =
             intent?.getBooleanExtra("open_upgrade_landing", false) ?: false
+        pendingOpenChatUserId =
+            intent?.getStringExtra("open_chat_user_id")
 
         auth.currentUser?.uid?.let { uid ->
             val currentUserId = uid
@@ -125,8 +128,10 @@ class KupidXAppActivity : AppCompatActivity(),
                         aiPartnerViewModel = aiPartnerViewModel,
                         openNotifications = pendingOpenNotifications,
                         openUpgradeLanding = pendingOpenUpgradeLanding,
+                        openChatUserId = pendingOpenChatUserId,
                         onNotificationsConsumed = { pendingOpenNotifications = false },
                         onUpgradeConsumed = { pendingOpenUpgradeLanding = false },
+                        onOpenChatConsumed = { pendingOpenChatUserId = null },
                         onLogout = {
                             PushService.updateLastActive()
                             presenceRef?.removeValue()
@@ -186,6 +191,10 @@ class KupidXAppActivity : AppCompatActivity(),
         }
         if (intent.getBooleanExtra("open_upgrade_landing", false)) {
             pendingOpenUpgradeLanding = true
+            changed = true
+        }
+        if (intent.hasExtra("open_chat_user_id")) {
+            pendingOpenChatUserId = intent.getStringExtra("open_chat_user_id")
             changed = true
         }
         if (changed) recreate()
@@ -338,8 +347,10 @@ fun KupidXApp(
     aiPartnerViewModel: AIPartnerViewModel,
     openNotifications: Boolean,
     openUpgradeLanding: Boolean,
+    openChatUserId: String?,
     onNotificationsConsumed: () -> Unit,
     onUpgradeConsumed: () -> Unit,
+    onOpenChatConsumed: () -> Unit,
     onLogout: () -> Unit,
     locationManager: LocationManager
 ) {
@@ -362,6 +373,14 @@ fun KupidXApp(
                 navController.navigate("subscription")
             }
             onUpgradeConsumed()
+        }
+    }
+
+    LaunchedEffect(openChatUserId) {
+        val targetId = openChatUserId
+        if (!targetId.isNullOrBlank()) {
+            navController.navigate("chat/$targetId")
+            onOpenChatConsumed()
         }
     }
 

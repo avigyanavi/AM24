@@ -5782,6 +5782,10 @@
     <string name="college_college_of_art_du">College of Art, University of Delhi</string>
     <string name="college_sir_jj_school_of_art">Sir J.J. School of Art, Mumbai</string>
     <string name="college_faculty_visual_arts_bhu">Faculty of Visual Arts, BHU</string>
+    <string name="upvotes_list_title">Lượt bình chọn ủng hộ</string>
+    <string name="downvotes_list_title">Lượt bình chọn phản đối</string>
+    <string name="upvotes_list_empty">Chưa có lượt bình chọn ủng hộ</string>
+    <string name="downvotes_list_empty">Chưa có lượt bình chọn phản đối</string>
     <string name="college_msu_fine_arts_vadodara">MSU Faculty of Fine Arts, Vadodara</string>
     <string name="college_govt_college_art_craft_kolkata">Govt. College of Art &amp; Craft, Kolkata</string>
     <string name="college_chennai_govt_fine_arts">Chennai Govt. College of Fine Arts</string>
@@ -5794,6 +5798,8 @@
     <string name="college_nsd">National School of Drama</string>
     <string name="notification_like_received">Bạn có một lượt thích mới!</string>
     <string name="notification_like_accepted">Lượt thích của bạn đã được chấp nhận!</string>
+    <string name="notification_new_message">Bạn có một tin nhắn mới.</string>
+    <string name="notification_post_update">Bạn có một cập nhật mới.</string>
     <string name="college_ftii_pune">FTII, Pune</string>
     <string name="college_srfti_kolkata">SRFTI, Kolkata</string>
     <string name="college_kathak_kendra">Kathak Kendra</string>

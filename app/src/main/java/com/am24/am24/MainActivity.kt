@@ -126,7 +126,7 @@ class MainActivity : ComponentActivity() {
 
         val openNotifications = intent?.getBooleanExtra("open_notifications", false) ?: false
         val openUpgradeLanding = intent?.getBooleanExtra("open_upgrade_landing", false) ?: false
-
+        val openChatUserId = intent?.getStringExtra("open_chat_user_id")
         setContent {
             AppTheme {
                 AskNotificationPermission()
@@ -153,7 +153,8 @@ class MainActivity : ComponentActivity() {
                             routeBasedOnUid(
                                 user = user,
                                 openNotifications = openNotifications,
-                                openUpgradeLanding = openUpgradeLanding
+                                openUpgradeLanding = openUpgradeLanding,
+                                openChatUserId = openChatUserId
                             )
                         }
 
@@ -220,7 +221,8 @@ class MainActivity : ComponentActivity() {
     private fun routeBasedOnUid(
         user: FirebaseUser,
         openNotifications: Boolean,
-        openUpgradeLanding: Boolean
+        openUpgradeLanding: Boolean,
+        openChatUserId: String?
     ) {
         if (isNavigationInProgress) return
         isNavigationInProgress = true
@@ -281,6 +283,7 @@ class MainActivity : ComponentActivity() {
                 Intent(this@MainActivity, KupidXAppActivity::class.java)
                     .putExtra("open_notifications", openNotifications)
                     .putExtra("open_upgrade_landing", openUpgradeLanding)
+                    .putExtra("open_chat_user_id", openChatUserId)
             } else {
                 Intent(this@MainActivity, RegistrationActivity::class.java)
                     .putExtra("requestedStartStep", step)
