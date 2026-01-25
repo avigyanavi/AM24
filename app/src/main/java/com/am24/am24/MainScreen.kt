@@ -267,35 +267,33 @@ fun MainScreen(
             )
         }
         if (showInterstitialPrompt) {
+            LaunchedEffect(showInterstitialPrompt) {
+                host?.showDailyInterstitial(
+                    isFreeTier = isFreeTier,
+                    onDismissed = {
+                        val now = System.currentTimeMillis()
+                        lastInterstitialShownMs = now
+                        adPrefs.edit().putLong(KEY_LAST_INTERSTITIAL_SHOWN, now).apply()
+                        showInterstitialPrompt = false
+                    },
+                    onFailed = {
+                        Toast.makeText(
+                            context,
+                            R.string.toast_ad_not_ready,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        showInterstitialPrompt = false
+                    }
+                ) ?: run {
+                    showInterstitialPrompt = false
+                }
+            }
             AlertDialog(
                 onDismissRequest = {},
                 title = { Text(stringResource(R.string.ad_prompt_title)) },
                 text = { Text(stringResource(R.string.ad_prompt_message)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        host?.showDailyInterstitial(
-                            isFreeTier = isFreeTier,
-                            onDismissed = {
-                                val now = System.currentTimeMillis()
-                                lastInterstitialShownMs = now
-                                adPrefs.edit().putLong(KEY_LAST_INTERSTITIAL_SHOWN, now).apply()
-                                showInterstitialPrompt = false
-                            },
-                            onFailed = {
-                                Toast.makeText(
-                                    context,
-                                    R.string.toast_ad_not_ready,
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                showInterstitialPrompt = false
-                            }
-                        ) ?: run {
-                            showInterstitialPrompt = false
-                        }
-                    }) {
-                        Text(stringResource(R.string.ad_prompt_confirm))
-                    }
-                }
+                confirmButton = {},
+                dismissButton = {}
             )
         }
     }

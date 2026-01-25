@@ -26,7 +26,6 @@ class InterstitialAdManager(private val context: Context) {
         }
 
         if (isLoading) {
-            onFailed(null)
             return
         }
 
