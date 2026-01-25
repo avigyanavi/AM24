@@ -8,6 +8,8 @@
     <string name="admob_app_id">ca-app-pub-5266481866342618~3563725191</string>
     <string name="admob_interstitial_main">ca-app-pub-5266481866342618/6026963354</string>
     <string name="admob_interstitial_india">ca-app-pub-5266481866342618/8454532406</string>
+    <string name="notification_like_received">คุณมีไลก์ใหม่!</string>
+    <string name="notification_like_accepted">ไลก์ของคุณได้รับการยอมรับแล้ว!</string>
     <string name="create_post_title">สร้างโพสต์ใหม่</string>
     <string name="text_post_label">โพสต์ตัวอักษร</string>
     <string name="voice_post_label">โพสต์เสียง</string>

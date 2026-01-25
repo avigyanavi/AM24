@@ -5792,6 +5792,8 @@
     <string name="college_bharatiya_kala_kendra">Bharatiya Kala Kendra</string>
     <string name="college_gandharva_mahavidyalaya">Gandharva Mahavidyalaya</string>
     <string name="college_nsd">National School of Drama</string>
+    <string name="notification_like_received">Bạn có một lượt thích mới!</string>
+    <string name="notification_like_accepted">Lượt thích của bạn đã được chấp nhận!</string>
     <string name="college_ftii_pune">FTII, Pune</string>
     <string name="college_srfti_kolkata">SRFTI, Kolkata</string>
     <string name="college_kathak_kendra">Kathak Kendra</string>

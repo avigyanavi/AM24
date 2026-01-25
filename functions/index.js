@@ -3886,27 +3886,50 @@ exports.createScreenTrackingReport = functions
   .runWith({ timeoutSeconds: 540, memory: '1GB' })
   .https.onRequest(async (req, res) => {
     try {
-      const targetUid = 'VHnQOhWFyBSV1gPN4ePBQu87P5A2';
-      const usersSnap = await admin.database().ref(`users/${targetUid}`).once('value');
+      const limitRaw = Number(req.query.limit ?? req.body?.limit);
+      const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.floor(limitRaw) : 200;
       const capturedAt = Date.now();
       const reportRef = admin.database().ref(`reports/screenTracking/${capturedAt}`);
       const countryCounts = {};
       const countryNames = {};
-      let totalUsers = 0;
-      let updates = {};
-      let pending = 0;
-      const flushes = [];
+      const countries = {};
 
-      const queueFlush = () => {
-        if (pending === 0) return;
-        flushes.push(reportRef.update(updates));
-        updates = {};
-        pending = 0;
-      };
+      const listSnap = await admin.database()
+        .ref(`${ACTIVE_FEED_PATH}/list`)
+        .orderByKey()
+        .limitToFirst(limit)
+        .get();
 
-      const user = usersSnap.val() || {};
-      const uid = usersSnap.key;
-      if (uid) {
+      if (!listSnap.exists()) {
+        res.status(404).send('No active users found.');
+        return;
+      }
+
+      const activeRows = [];
+      listSnap.forEach((child) => {
+        const row = child.val() || {};
+        if (!row.uid) return;
+        activeRows.push({ uid: row.uid, lastActive: Number(row.lastActive) || 0 });
+      });
+
+      if (!activeRows.length) {
+        res.status(404).send('No active users found.');
+        return;
+      }
+
+      const userMap = new Map();
+      const batches = chunk(activeRows.map((row) => row.uid), 50);
+      for (const batch of batches) {
+        const snaps = await Promise.all(
+          batch.map((uid) => admin.database().ref(`users/${uid}`).get())
+        );
+        snaps.forEach((snap) => {
+          if (snap.exists()) userMap.set(snap.key, snap.val() || {});
+        });
+      }
+
+      const users = activeRows.map(({ uid, lastActive }) => {
+        const user = userMap.get(uid) || {};
         const country = user.country || 'Unknown';
         const countryKey = sanitizeRtdbKey(country);
         const row = {
@@ -3917,28 +3940,26 @@ exports.createScreenTrackingReport = functions
           currentScreen: user.currentScreen || '',
           lastScreenBeforeClose: user.lastScreenBeforeClose || '',
           lastScreenOnAppOpen: user.lastScreenOnAppOpen || '',
-          lastActive: user.lastActive || 0,
+          lastActive: user.lastActive || lastActive || 0,
         };
 
-        updates[`users/${uid}`] = row;
-        updates[`countries/${countryKey}/${uid}`] = row;
         countryCounts[countryKey] = (countryCounts[countryKey] || 0) + 1;
         countryNames[countryKey] = country;
-        totalUsers += 1;
-        pending += 1;
+        if (!countries[countryKey]) countries[countryKey] = {};
+        countries[countryKey][uid] = row;
+        return row;
+      });
 
-        if (pending >= 500) {
-          queueFlush();
-        }
-      }
-
-      queueFlush();
-      await Promise.all(flushes);
-      await reportRef.child('meta').set({
+      await reportRef.set({
         capturedAt,
-        totalUsers,
-        countryCounts,
-        countryNames,
+        users,
+        countries,
+        meta: {
+          capturedAt,
+          totalUsers: users.length,
+          countryCounts,
+          countryNames,
+        },
       });
       await admin.database().ref('reports/screenTrackingLatest').set({ capturedAt });
 
@@ -3952,10 +3973,16 @@ exports.createScreenTrackingReport = functions
       res.status(500).send(err.message);
     }
   });
+
+
 exports.screenTrackingReport = functions
   .region('asia-south1')
+  .runWith({ timeoutSeconds: 540, memory: '1GB' })
   .https.onRequest(async (req, res) => {
     try {
+      const pageSize = Math.min(Number(req.query.pageSize) || 100, 500);
+      const countryFilter = req.query.country ? String(req.query.country) : '';
+      const startAfter = req.query.startAfter ? String(req.query.startAfter) : '';
       const timestamp = Number(req.query.ts);
       const latestSnap = await admin.database().ref('reports/screenTrackingLatest').get();
       const latest = latestSnap.val()?.capturedAt;
@@ -3966,65 +3993,122 @@ exports.screenTrackingReport = functions
         return;
       }
 
-      const reportSnap = await admin.database()
-        .ref(`reports/screenTracking/${capturedAt}`)
-        .get();
+      const reportRef = admin.database().ref(`reports/screenTracking/${capturedAt}`);
+      const reportSnap = await reportRef.child('meta').get();
       if (!reportSnap.exists()) {
         res.status(404).send('Report not found.');
         return;
       }
 
       const report = reportSnap.val() || {};
-      const users = Array.isArray(report.users) ? report.users : [];
-      const grouped = users.reduce((acc, user) => {
-        const country = user.country || 'Unknown';
-        if (!acc[country]) acc[country] = [];
-        acc[country].push(user);
-        return acc;
-      }, {});
-
       const capturedAtIso = new Date(report.capturedAt || capturedAt).toISOString();
-      const countriesHtml = Object.keys(grouped)
-        .sort((a, b) => a.localeCompare(b))
-        .map((country) => {
-          const rows = grouped[country]
-            .map((user) => `
-              <tr>
-                <td>${escapeHtml(user.uid)}</td>
-                <td>${escapeHtml(user.username)}</td>
-                <td>${escapeHtml(user.name)}</td>
-                <td>${escapeHtml(user.currentScreen)}</td>
-                <td>${escapeHtml(user.lastScreenBeforeClose)}</td>
-                <td>${escapeHtml(user.lastScreenOnAppOpen)}</td>
-                <td>${escapeHtml(user.lastActive)}</td>
-              </tr>
-            `)
-            .join('');
-          return `
-            <details>
-              <summary>${escapeHtml(country)} (${grouped[country].length})</summary>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>UID</th>
-                      <th>Username</th>
-                      <th>Name</th>
-                      <th>Current Screen</th>
-                      <th>Last Screen Before Close</th>
-                      <th>Last Screen On App Open</th>
-                      <th>Last Active (ms)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${rows}
-                  </tbody>
-                </table>
-              </div>
-            </details>
-          `;
-        })
-        .join('');
+      let countryCounts = report.countryCounts || {};
+      let countryNames = report.countryNames || {};
+      if (Object.keys(countryCounts).length === 0) {
+        const usersSnap = await reportRef.child('users').get();
+        if (usersSnap.exists()) {
+          const inferredCounts = {};
+          const inferredNames = {};
+          usersSnap.forEach((snap) => {
+            const user = snap.val() || {};
+            const country = user.country || 'Unknown';
+            const countryKey = sanitizeRtdbKey(country);
+            inferredCounts[countryKey] = (inferredCounts[countryKey] || 0) + 1;
+            inferredNames[countryKey] = country;
+          });
+          countryCounts = inferredCounts;
+          countryNames = inferredNames;
+        }
+      }
+      let contentHtml = '';
+
+      if (!countryFilter) {
+        const countriesHtml = Object.keys(countryCounts)
+          .sort((a, b) => a.localeCompare(b))
+          .map((countryKey) => {
+            const count = countryCounts[countryKey] || 0;
+            const label = countryNames[countryKey] || countryKey;
+            const link = `?ts=${capturedAt}&country=${encodeURIComponent(countryKey)}`;
+            return `
+              <details>
+                <summary>${escapeHtml(label)} (${count})</summary>
+                <div class="meta">
+                  <a href="${escapeHtml(link)}">View users</a>
+                </div>
+              </details>
+            `;
+          })
+          .join('');
+        contentHtml = countriesHtml || '<p>No users found.</p>';
+      } else {
+        const countryLabel = countryNames[countryFilter] || countryFilter;
+        let query = reportRef.child(`countries/${countryFilter}`).orderByKey();
+        if (startAfter) {
+          query = query.startAt(startAfter);
+        }
+        query = query.limitToFirst(pageSize + 1);
+        const usersSnap = await query.get();
+        const rows = [];
+        let keys = [];
+
+        usersSnap.forEach((snap) => {
+          keys.push(snap.key);
+          rows.push(snap.val());
+        });
+
+        if (startAfter && keys[0] === startAfter) {
+          keys = keys.slice(1);
+          rows.shift();
+        }
+
+        const hasNextPage = rows.length > pageSize;
+        if (hasNextPage) {
+          rows.pop();
+          keys.pop();
+        }
+
+        const nextPageToken = hasNextPage ? keys[keys.length - 1] : '';
+        const nextLink = nextPageToken
+          ? `?ts=${capturedAt}&country=${encodeURIComponent(countryFilter)}&startAfter=${encodeURIComponent(nextPageToken)}&pageSize=${pageSize}`
+          : '';
+
+        const tableRows = rows
+          .map((user) => `
+            <tr>
+              <td>${escapeHtml(user.uid)}</td>
+              <td>${escapeHtml(user.username)}</td>
+              <td>${escapeHtml(user.name)}</td>
+              <td>${escapeHtml(user.currentScreen)}</td>
+              <td>${escapeHtml(user.lastScreenBeforeClose)}</td>
+              <td>${escapeHtml(user.lastScreenOnAppOpen)}</td>
+              <td>${escapeHtml(user.lastActive)}</td>
+            </tr>
+          `)
+          .join('');
+
+        contentHtml = `
+          <h2>${escapeHtml(countryLabel)}</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>UID</th>
+                  <th>Username</th>
+                  <th>Name</th>
+                  <th>Current Screen</th>
+                  <th>Last Screen Before Close</th>
+                  <th>Last Screen On App Open</th>
+                  <th>Last Active (ms)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRows}
+              </tbody>
+            </table>
+          </div>
+          ${nextLink ? `<div class="meta"><a href="${escapeHtml(nextLink)}">Next page</a></div>` : ''}
+        `;
+      }
 
       const html = `<!doctype html>
         <html lang="en">
@@ -4047,7 +4131,7 @@ exports.screenTrackingReport = functions
           <body>
             <h1>Screen Tracking Report</h1>
             <div class="meta">Captured at: ${escapeHtml(capturedAtIso)}</div>
-            ${countriesHtml || '<p>No users found.</p>'}
+            ${contentHtml}
           </body>
         </html>`;
 
@@ -4058,6 +4142,55 @@ exports.screenTrackingReport = functions
     }
   });
 
+exports.pushLikeNotification = functions
+  .region('asia-south1')
+  .database.instance(DB)
+  .ref('/notifications/{uid}/{nid}')
+  .onCreate(async (snapshot, ctx) => {
+    const notification = snapshot.val() || {};
+    const type = notification.type;
+    if (type !== 'new_like' && type !== 'new_match') return null;
+
+    const uid = ctx.params.uid;
+    const tokenSnap = await admin.database()
+      .ref(`users/${uid}/fcmTokens`)
+      .once('value');
+    const tokens = Object.keys(tokenSnap.val() || {});
+    if (!tokens.length) return null;
+
+    const message = typeof notification.message === 'string' && notification.message.trim()
+      ? notification.message
+      : (type === 'new_like' ? 'You have a new like!' : 'Your like was accepted!');
+
+    const res = await admin.messaging().sendEachForMulticast({
+      tokens,
+      data: {
+        type,
+        message,
+      },
+      android: { priority: 'high' },
+    });
+
+    const updates = {};
+    res.responses.forEach((r, i) => {
+      if (!r.success &&
+          r.error?.code === 'messaging/registration-token-not-registered') {
+        updates[tokens[i]] = null;
+      }
+    });
+    if (Object.keys(updates).length) {
+      await admin.database().ref(`users/${uid}/fcmTokens`).update(updates);
+    }
+
+    logger.info('pushLikeNotification result', {
+      uid,
+      type,
+      success: res.successCount,
+      failure: res.failureCount,
+    });
+
+    return null;
+  });
 
 exports.backfillScreenTrackingFieldsForUser = functions
   .region('asia-south1')

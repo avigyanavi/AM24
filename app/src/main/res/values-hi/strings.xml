@@ -4473,7 +4473,8 @@
     <string name="locality_secunderabad_kandlakoya">Kandlakoya</string>
     <string name="locality_secunderabad_bolarum">Bolarum</string>
     <string name="locality_secunderabad_other">Other</string>
-
+    <string name="notification_like_received">आपको एक नया लाइक मिला!</string>
+    <string name="notification_like_accepted">आपका लाइक स्वीकार कर लिया गया!</string>
         <string name="upgrade_to_plus_to_unlock">अनलॉक करने के लिए Plus पर अपग्रेड करें</string>
         <string name="upgrade_to_premium_to_unlock">अनलॉक करने के लिए Premium पर अपग्रेड करें</string>
     <string name="ad_prompt_title">Watch an ad to keep using the app</string>

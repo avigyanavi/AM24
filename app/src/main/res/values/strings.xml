@@ -42,6 +42,8 @@
     <string name="whats_on_your_mind">What is on your mind?</string>
     <string name="add_tags_comma_separated">Add Tags (comma separated)</string>
     <string name="add_location_optional">Add a location (optional)</string>
+    <string name="notification_like_received">You have a new like!</string>
+    <string name="notification_like_accepted">Your like was accepted!</string>
     <string name="online_users">Online Users</string>
     <string name="roles_compatible">Roles align</string>
     <string name="shared_tribes_prefix">Shared tribes: %1$s</string>
