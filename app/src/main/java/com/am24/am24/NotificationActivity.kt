@@ -103,7 +103,7 @@ fun ActiveNotificationsView(
             TopAppBar(
                 title = { Text(stringResource(R.string.notifications_title), color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = stringResource(R.string.back),
@@ -204,21 +204,22 @@ fun NotificationCard(
         /* ——— POSTS ——— */
         "match_post", "match_checkin" ->
             Icons.Default.Notifications to
-                    notification.postId?.let { "post/$it" }          // deep-link
+                    notification.postId?.takeIf { it.isNotBlank() }?.let { "post/$it" }          // deep-link
 
         /* ——— COMMENTS ——— */
         "post_comment" ->
             Icons.Default.ChatBubbleOutline to
-                    notification.postId?.let { "post/$it" }
+                    notification.postId?.takeIf { it.isNotBlank() }?.let { "post/$it" }
 
         "comment_upvote", "comment_downvote" ->
             Icons.Default.ChatBubbleOutline to
-                    notification.postId?.let { post ->
+                    notification.postId?.takeIf { it.isNotBlank() }?.let { post ->
                         val c  = notification.commentId             // may be null
-                        if (c != null) "post/$post/comment/$c" else "post/$post"
+                        if (!c.isNullOrBlank()) "post/$post/comment/$c" else "post/$post"
                     }
         /* ─── POST-related ─── */
-        "chat_message" -> Icons.Default.ChatBubbleOutline to "chat/${notification.senderId}"
+        "chat_message" -> Icons.Default.ChatBubbleOutline to
+                notification.senderId.takeIf { it.isNotBlank() }?.let { "chat/$it" }
         "new_like"       -> Icons.Default.Favorite      to "peopleWhoLikedMe"
         "new_compliment" -> Icons.Default.EmojiEmotions to "peopleWhoLikedMe"          // or a “compliments” inbox
         "streak_plus"    -> Icons.Default.Favorite      to "peopleWhoLikedMe"
@@ -243,7 +244,7 @@ fun NotificationCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    onClickRoute?.let { navController.navigate(it) }
+                    onClickRoute?.let { navController.safeNavigate(it) }
                     onAction()
                 },
             colors = CardDefaults.cardColors(containerColor = bgColor),

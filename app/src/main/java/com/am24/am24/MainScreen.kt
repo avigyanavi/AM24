@@ -328,6 +328,7 @@ fun TopNavBar(
     val isProfileScreen = currentRoute == "profile"
     val isDMScreen = currentRoute == "dms"
     val isGroupChat = currentDestination?.route?.startsWith("groupChat") == true
+    val isAiPartner = currentRoute == "aiPartner" || currentRoute?.startsWith("aiImageFull/") == true
 
     // 🔸 NEW: are we on any bottom nav root screen?
     val isOnBottomNavRoot = currentDestination
@@ -626,12 +627,18 @@ fun TopNavBar(
                         }
                     }
 
-                    if (isOnExplore || isOnHome || isDMScreen || isProfileScreen) {
-                        IconButton(onClick = { navController.navigate("aiPartner") }) {
+                    if (isOnExplore || isOnHome || isDMScreen || isProfileScreen || isAiPartner) {
+                        IconButton(onClick = {
+                            if (isAiPartner) {
+                                navController.popBackStack()
+                            } else {
+                                navController.navigate("aiPartner")
+                            }
+                        }) {
                             Icon(
                                 imageVector = Icons.Default.SmartToy,
                                 contentDescription = stringResource(R.string.cd_ai_partner),
-                                tint = Color.White,
+                                tint = if (isAiPartner) Color(0xFFFF6F00) else Color.White,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
