@@ -64,7 +64,7 @@ fun MainScreen(
     locationManager: LocationManager
 ) {
     val items = listOf(
-        BottomNavItem("AI Partner", Icons.Default.SmartToy, "aiPartner"),
+        BottomNavItem(stringResource(R.string.explore), Icons.Default.GridOn, "explore"),
         BottomNavItem(stringResource(R.string.feed), Icons.Outlined.RssFeed, "home"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
@@ -333,7 +333,7 @@ fun TopNavBar(
     val isOnBottomNavRoot = currentDestination
         ?.hierarchy
         ?.any { dest ->
-            dest.route in listOf("profile", "home", "map", "dms", "aiPartner")
+            dest.route in listOf("profile", "home", "map", "dms", "explore", "aiPartner")
         } == true
 
     val unreadCount = mainUiState.unreadNotifications
@@ -377,6 +377,9 @@ fun TopNavBar(
     val isOnHome = currentDestination
         ?.hierarchy
         ?.any { it.route == "home" } == true
+    val isOnExplore = currentDestination
+        ?.hierarchy
+        ?.any { it.route == "explore" } == true
     val isOnMap = currentDestination
         ?.hierarchy
         ?.any { it.route == "map" } == true
@@ -620,6 +623,17 @@ fun TopNavBar(
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
+                        }
+                    }
+
+                    if (isOnExplore || isOnHome || isDMScreen || isProfileScreen) {
+                        IconButton(onClick = { navController.navigate("aiPartner") }) {
+                            Icon(
+                                imageVector = Icons.Default.SmartToy,
+                                contentDescription = stringResource(R.string.cd_ai_partner),
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
                     }
 

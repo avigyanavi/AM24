@@ -27,11 +27,7 @@ import kotlinx.coroutines.tasks.await
 import androidx.compose.foundation.lazy.LazyRow
 import android.content.Context
 import android.os.Build
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import android.util.Base64

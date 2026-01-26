@@ -21,7 +21,8 @@ import android.content.Context
 private const val TAG = "MainViewModel"
 private const val PREF_LAST_BOTTOM_NAV_ROUTE = "last_bottom_nav_route"
 const val DEFAULT_BOTTOM_NAV_ROUTE = "map"
-private val bottomNavRoutes = setOf("profile", "home", "map", "dms", "aiPartner")
+private val bottomNavRoutes = setOf("profile", "home", "map", "dms", "explore")
+
 /**
  * Container for UI state managed by [MainViewModel].
  */

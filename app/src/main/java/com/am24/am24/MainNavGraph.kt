@@ -413,7 +413,12 @@ fun MainNavGraph(
                 voteType = voteType
             )
         }
-
+        composable("explore") {
+            ExploreScreen(
+                postViewModel = postViewModel,
+                profileViewModel = profileViewModel
+            )
+        }
         composable(
             route = "groupChat/{groupId}",
             arguments = listOf(navArgument("groupId") { type = NavType.StringType })
