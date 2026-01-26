@@ -50,6 +50,7 @@
     <string name="downvotes_list_title">Downvotes</string>
     <string name="upvotes_list_empty">No upvotes yet</string>
     <string name="downvotes_list_empty">No downvotes yet</string>
+    <string name="page_of">Page %1$d of %2$d</string>
     <string name="online_users">Online Users</string>
     <string name="roles_compatible">Roles align</string>
     <string name="shared_tribes_prefix">Shared tribes: %1$s</string>

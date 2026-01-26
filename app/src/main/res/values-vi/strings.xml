@@ -5804,6 +5804,7 @@
     <string name="college_srfti_kolkata">SRFTI, Kolkata</string>
     <string name="college_kathak_kendra">Kathak Kendra</string>
     <string name="college_drama_thrissur">School of Drama &amp; Fine Arts, Thrissur</string>
+    <string name="page_of">Trang %1$d trên %2$d</string>
     <string name="college_ramjas_college">Ramjas College, Delhi</string>
     <string name="college_st_xaviers_mumbai">St. Xavier’s College, Mumbai</string>
     <string name="upgrade_to_plus_to_unlock">Nâng cấp lên Plus để mở khóa</string>

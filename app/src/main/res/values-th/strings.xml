@@ -16,6 +16,7 @@
     <string name="downvotes_list_title">โหวตลบ</string>
     <string name="upvotes_list_empty">ยังไม่มีโหวตบวก</string>
     <string name="downvotes_list_empty">ยังไม่มีโหวตลบ</string>
+    <string name="page_of">หน้า %1$d จาก %2$d</string>
     <string name="create_post_title">สร้างโพสต์ใหม่</string>
     <string name="text_post_label">โพสต์ตัวอักษร</string>
     <string name="voice_post_label">โพสต์เสียง</string>

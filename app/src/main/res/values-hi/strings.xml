@@ -4483,6 +4483,7 @@
     <string name="downvotes_list_title">डाउनवोट</string>
     <string name="upvotes_list_empty">अभी तक कोई अपवोट नहीं</string>
     <string name="downvotes_list_empty">अभी तक कोई डाउनवोट नहीं</string>
+    <string name="page_of">पृष्ठ %1$d / %2$d</string>
     <string name="ad_prompt_title">Watch an ad to keep using the app</string>
     <string name="ad_prompt_message">We show one short ad per day to support free users.</string>
     <string name="ad_prompt_confirm">Watch ad</string>

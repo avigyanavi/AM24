@@ -16,6 +16,7 @@
     <string name="downvotes_list_title">Votos negativos</string>
     <string name="upvotes_list_empty">Aún no hay votos positivos</string>
     <string name="downvotes_list_empty">Aún no hay votos negativos</string>
+    <string name="page_of">Página %1$d de %2$d</string>
     <string name="create_post_title">Crear nueva publicación</string>
     <string name="text_post_label">Publicación de texto</string>
     <string name="voice_post_label">Publicación de voz</string>

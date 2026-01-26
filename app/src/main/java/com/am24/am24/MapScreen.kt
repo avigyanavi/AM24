@@ -1018,6 +1018,82 @@ fun MapScreen(
     } else {
         tabResultsCache[SortMode.NEARBY].orEmpty()
     }
+    val peoplePages = remember { mutableStateListOf<List<NearbyUser>>() }
+    val cardsPages = remember { mutableStateListOf<List<NearbyUser>>() }
+    var peoplePageIndex by rememberSaveable { mutableStateOf(0) }
+    var cardsPageIndex by rememberSaveable { mutableStateOf(0) }
+    var peoplePendingNext by remember { mutableStateOf(false) }
+    var cardsPendingNext by remember { mutableStateOf(false) }
+
+    LaunchedEffect(peopleTabUsers) {
+        if (peoplePendingNext) {
+            if (peopleTabUsers.isEmpty()) {
+                return@LaunchedEffect
+            }
+            if (peoplePages.isEmpty()) {
+                peoplePages += peopleTabUsers
+                peoplePageIndex = 0
+                peoplePendingNext = false
+                return@LaunchedEffect
+            }
+            val currentIds = peopleTabUsers.map { it.userId }.toSet()
+            val lastIds = peoplePages.last().map { it.userId }.toSet()
+            if (currentIds != lastIds) {
+                peoplePages.add(peopleTabUsers)
+                peoplePageIndex = peoplePages.lastIndex
+                peoplePendingNext = false
+                return@LaunchedEffect
+            }
+            return@LaunchedEffect
+        }
+        if (peoplePages.isEmpty()) {
+            if (peopleTabUsers.isNotEmpty()) {
+                peoplePages += peopleTabUsers
+                peoplePageIndex = 0
+            }
+            return@LaunchedEffect
+        }
+        val safeIndex = peoplePageIndex.coerceIn(0, peoplePages.lastIndex)
+        if (peoplePageIndex != safeIndex) {
+            peoplePageIndex = safeIndex
+        }
+        peoplePages[safeIndex] = peopleTabUsers
+    }
+
+    LaunchedEffect(cardsTabUsers) {
+        if (cardsPendingNext) {
+            if (cardsTabUsers.isEmpty()) {
+                return@LaunchedEffect
+            }
+            if (cardsPages.isEmpty()) {
+                cardsPages += cardsTabUsers
+                cardsPageIndex = 0
+                cardsPendingNext = false
+                return@LaunchedEffect
+            }
+            val currentIds = cardsTabUsers.map { it.userId }.toSet()
+            val lastIds = cardsPages.last().map { it.userId }.toSet()
+            if (currentIds != lastIds) {
+                cardsPages.add(cardsTabUsers)
+                cardsPageIndex = cardsPages.lastIndex
+                cardsPendingNext = false
+                return@LaunchedEffect
+            }
+            return@LaunchedEffect
+        }
+        if (cardsPages.isEmpty()) {
+            if (cardsTabUsers.isNotEmpty()) {
+                cardsPages += cardsTabUsers
+                cardsPageIndex = 0
+            }
+            return@LaunchedEffect
+        }
+        val safeIndex = cardsPageIndex.coerceIn(0, cardsPages.lastIndex)
+        if (cardsPageIndex != safeIndex) {
+            cardsPageIndex = safeIndex
+        }
+        cardsPages[safeIndex] = cardsTabUsers
+    }
 
     LaunchedEffect(selectedTab, sortedPeople, matchUids) {
         if (selectedTab != 2) return@LaunchedEffect
@@ -1351,9 +1427,14 @@ fun MapScreen(
                                     autoPagedPeople = false
                                 }
                             }
+                            val peoplePageCount = max(1, peoplePages.size)
+                            val peopleDisplayUsers =
+                                peoplePages.getOrNull(peoplePageIndex) ?: peopleTabUsers
                             PeopleGrid(
-                                users = peopleTabUsers,
+                                users = peopleDisplayUsers,
                                 isLoading = peopleTabLoading,
+                                pageIndex = peoplePageIndex,
+                                pageCount = peoplePageCount,
                                 onClick = {
                                     if (swipesLoaded && remainingSwipes <= 0) {
                                         showSwipeLimitOverlay = true
@@ -1378,8 +1459,17 @@ fun MapScreen(
                                     }
                                     removeUserFromCaches(uid)
                                 },
+                                onBackPage = {
+                                    if (peoplePageIndex > 0) {
+                                        peoplePageIndex--
+                                    }
+                                },
                                 onNextPage = {
-                                    if (peopleTabUsers.isNotEmpty()) {
+                                    if (peoplePageIndex < peoplePageCount - 1) {
+                                        peoplePageIndex++
+                                        return@PeopleGrid
+                                    }
+                                    if (peopleTabUsers.isNotEmpty() && !isPlus && !isPremium) {
                                         Toast.makeText(
                                             ctx,
                                             R.string.toast_swipe_existing_nearby_first,
@@ -1387,6 +1477,7 @@ fun MapScreen(
                                         ).show()
                                     } else {
                                         userLatLng?.let {
+                                            peoplePendingNext = true
                                             nearbyViewModel.loadNextPage(
                                                 8,
                                                 userId,
@@ -1425,8 +1516,11 @@ fun MapScreen(
                                     autoPagedCards = false
                                 }
                             }
+                            val cardsPageCount = max(1, cardsPages.size)
+                            val cardsDisplayUsers =
+                                cardsPages.getOrNull(cardsPageIndex) ?: cardsTabUsers
                             CardsList(
-                                users = cardsTabUsers,
+                                users = cardsDisplayUsers,
                                 isLoading =
                                     cardsTabUsers.isEmpty() && (
                                             !hasLoadedFirstResult ||
@@ -1434,6 +1528,8 @@ fun MapScreen(
                                                     userLatLng == null ||
                                                     !hasAttemptedInitialLoad
                                             ),
+                                pageIndex = cardsPageIndex,
+                                pageCount = cardsPageCount,
                                 useMiles = useMiles,          // <-- pass through
                                 onLike = { user ->
                                     if (swipesLoaded && remainingSwipes <= 0) {
@@ -1484,8 +1580,17 @@ fun MapScreen(
                                     }
                                     removeUserFromCaches(uid)
                                 },
+                                onBackPage = {
+                                    if (cardsPageIndex > 0) {
+                                        cardsPageIndex--
+                                    }
+                                },
                                 onNextPage = {
-                                    if (cardsTabUsers.isNotEmpty()) {
+                                    if (cardsPageIndex < cardsPageCount - 1) {
+                                        cardsPageIndex++
+                                        return@CardsList
+                                    }
+                                    if (cardsTabUsers.isNotEmpty() && !isPlus && !isPremium) {
                                         Toast.makeText(
                                             ctx,
                                             R.string.toast_swipe_existing_cards_first,
@@ -1493,6 +1598,7 @@ fun MapScreen(
                                         ).show()
                                     } else {
                                         userLatLng?.let {
+                                            cardsPendingNext = true
                                             nearbyViewModel.loadNextPage(
                                                 5,
                                                 userId,
@@ -2188,12 +2294,15 @@ private fun FilmText(
 private fun CardsList(
     users: List<NearbyUser>,
     isLoading: Boolean,
+    pageIndex: Int,
+    pageCount: Int,
     useMiles: Boolean,
     onLike: (NearbyUser) -> Unit,
     onDislike: (NearbyUser) -> Unit,
     onCardClick: (NearbyUser) -> Unit,
     onRemove: (String) -> Unit,
     onBlock: (String) -> Unit,
+    onBackPage: () -> Unit,
     onNextPage: () -> Unit
 ) {
 //    if (users.isEmpty()) {
@@ -2265,13 +2374,30 @@ private fun CardsList(
         }
         if (!isLoading || users.isNotEmpty()) {
             item {
-                Button(
-                    onClick = onNextPage,
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(stringResource(R.string.next_page))
+                    Button(
+                        onClick = onBackPage,
+                        enabled = pageIndex > 0
+                    ) {
+                        Text(stringResource(R.string.back))
+                    }
+                    Text(
+                        text = stringResource(
+                            R.string.page_of,
+                            pageIndex + 1,
+                            max(1, pageCount)
+                        ),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Button(onClick = onNextPage) {
+                        Text(stringResource(R.string.next_page))
+                    }
                 }
             }
         }
@@ -2630,10 +2756,13 @@ private fun ProfileCard(
 private fun PeopleGrid(
     users: List<NearbyUser>,
     isLoading: Boolean,
+    pageIndex: Int,
+    pageCount: Int,
     onClick: (NearbyUser) -> Unit,
     useMiles: Boolean,
     onRemove: (String) -> Unit,
     onBlock: (String) -> Unit,
+    onBackPage: () -> Unit,
     onNextPage: () -> Unit
 ) {
     val gridState = rememberLazyGridState()
@@ -2695,13 +2824,30 @@ private fun PeopleGrid(
         }
         if (!isLoading || users.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Button(
-                    onClick = onNextPage,
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(stringResource(R.string.next_page))
+                    Button(
+                        onClick = onBackPage,
+                        enabled = pageIndex > 0
+                    ) {
+                        Text(stringResource(R.string.back))
+                    }
+                    Text(
+                        text = stringResource(
+                            R.string.page_of,
+                            pageIndex + 1,
+                            max(1, pageCount)
+                        ),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Button(onClick = onNextPage) {
+                        Text(stringResource(R.string.next_page))
+                    }
                 }
             }
         }
