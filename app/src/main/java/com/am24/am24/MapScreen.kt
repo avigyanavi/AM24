@@ -153,6 +153,61 @@ data class NearbyUser(
     val politics: String = "",
     val totalLikes: Int? = null
 )
+private const val BOOST_ONLINE_THRESHOLD_MS = 5 * 60 * 1000L
+
+private fun normalizeLastActive(raw: Long): Long {
+    if (raw <= 0) return 0L
+    return if (raw < 10_000_000_000L) raw * 1000 else raw
+}
+
+private fun isBoostedUserOnline(lastActiveAt: Long): Boolean {
+    if (lastActiveAt <= 0L) return false
+    return System.currentTimeMillis() - lastActiveAt < BOOST_ONLINE_THRESHOLD_MS
+}
+
+private fun Profile.toNearbyUser(userLatLng: LatLng?): NearbyUser? {
+    val uid = userId
+    if (uid.isBlank()) return null
+    val lastActiveAt = normalizeLastActive(lastActive)
+    val profileLatLng = if (latitude == 0.0 && longitude == 0.0) {
+        null
+    } else {
+        LatLng(latitude, longitude)
+    }
+    val distanceMeters = if (userLatLng != null && profileLatLng != null) {
+        distanceMeters(userLatLng, profileLatLng)
+    } else {
+        Double.POSITIVE_INFINITY
+    }
+    val rolesForCard = if (showRolesOnProfile) roles else emptyList()
+    val tribesForCard = if (showTribesOnProfile) tribes else emptyList()
+    val kinksForCard = if (showKinksOnProfile) kinks else emptyList()
+    return NearbyUser(
+        userId = uid,
+        username = username.ifBlank { name },
+        age = calculateAge(dob),
+        gender = canonicalGender(gender),
+        photoUrl = profilepicUrl ?: profilepicThumbnailUrl,
+        lastActiveAt = lastActiveAt,
+        isOnline = isBoostedUserOnline(lastActiveAt),
+        latLng = profileLatLng,
+        distanceMeters = distanceMeters,
+        isPremium = isPremium,
+        isPlus = isPlus,
+        interests = interests,
+        roles = rolesForCard,
+        tribes = tribesForCard,
+        kinks = kinksForCard,
+        sexualOrientation = sexualOrientation,
+        compatibilityPct = null,
+        randomDetail = null,
+        loveLanguage = loveLanguage,
+        socialCauses = socialCauses,
+        politics = politics,
+        totalLikes = totalDatingLikes
+    )
+}
+
 
 private data class GenderFilterOption(val canonicalValue: String, val labelRes: Int)
 
@@ -295,7 +350,7 @@ fun MapScreen(
     var sortMode by nearbyViewModel::sortMode
     var radiusKm by nearbyViewModel::radiusKm
     var lastActiveHours by nearbyViewModel::lastActiveHours
-    var selectedTab by rememberSaveable { mutableStateOf(0) } // 0: People, 1: Cards, 2: Map
+    var selectedTab by rememberSaveable { mutableStateOf(0) } // 0: People, 1: Cards, 2: Boosted, 3: Map
     var datingFilters by nearbyViewModel::datingFilters
     val defaultDatingFilters = remember { DatingFilterSettings() }
     var showOverflowMenu by remember { mutableStateOf(false) }
@@ -330,6 +385,7 @@ fun MapScreen(
     val isRefreshing by nearbyViewModel.isRefreshing.collectAsState()
     val hasAttemptedInitialLoad by nearbyViewModel.hasAttemptedInitialLoad.collectAsState()
     val hasLoadedFirstResult by nearbyViewModel.hasLoadedFirstResult.collectAsState()
+    val isBoostedLoading by datingViewModel.isLoading.collectAsState()
     fun setSliderInteraction(active: Boolean) {
         sliderInteractionJob?.cancel()
         if (active) {
@@ -342,7 +398,7 @@ fun MapScreen(
         }
     }
     fun toggleSortMode() {
-        if (selectedTab == 2) return
+        if (selectedTab >= 2) return
         selectedTab = when (selectedTab) {
             0 -> 1
             1 -> 0
@@ -496,7 +552,7 @@ fun MapScreen(
     }
 
     LaunchedEffect(isPremium) {
-        if (!(isPremium) && selectedTab == 2) {
+        if (!(isPremium) && selectedTab == 3) {
             selectedTab = 0
         }
     }
@@ -1024,6 +1080,19 @@ fun MapScreen(
     var cardsPageIndex by rememberSaveable { mutableStateOf(0) }
     var peoplePendingNext by remember { mutableStateOf(false) }
     var cardsPendingNext by remember { mutableStateOf(false) }
+    val boostedProfiles by datingViewModel.boostedUsers.collectAsState()
+    val hiddenBoostedIds = remember { mutableStateListOf<String>() }
+    val boostedUsers = remember(boostedProfiles, userLatLng, hiddenBoostedIds.toList()) {
+        boostedProfiles
+            .sortedByDescending { it.boostedAt ?: 0L }
+            .filterNot { it.userId in hiddenBoostedIds }
+            .mapNotNull { it.toNearbyUser(userLatLng) }
+    }
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == 2) {
+            datingViewModel.refreshBoostedUsers()
+        }
+    }
 
     LaunchedEffect(peopleTabUsers) {
         if (peoplePendingNext) {
@@ -1288,11 +1357,11 @@ fun MapScreen(
                     .fillMaxSize()
             ) {
 
-                if (!(isPremium) && selectedTab == 2) {
+                if (!(isPremium) && selectedTab == 3) {
                     selectedTab = 0
                 }
 
-                // Tabs: People | Cards | Map (Map only for Plus/Premium)
+                // Tabs: People | Cards | Boosted | Map (Map only for Plus/Premium)
                 TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = Color.Transparent,
@@ -1326,12 +1395,23 @@ fun MapScreen(
                         unselectedContentColor = Color.Gray,
                         text = { Text(stringResource(R.string.tab_cards)) }
                     )
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = {
+                            if (!isAdjustingSlider) {
+                                selectedTab = 2
+                            }
+                        },
+                        selectedContentColor = KupidxOrange,
+                        unselectedContentColor = Color.Gray,
+                        text = { Text(stringResource(R.string.tab_boosted_users)) }
+                    )
                     if (isPremium) {
                         Tab(
-                            selected = selectedTab == 2,
+                            selected = selectedTab == 3,
                             onClick = {
                                 if (!isAdjustingSlider) {
-                                    selectedTab = 2
+                                    selectedTab = 3
                                 }
                             },
                             selectedContentColor = KupidxOrange,
@@ -1612,8 +1692,52 @@ fun MapScreen(
                         }
                     }
 
-                    /* ======================= MAP TAB (old map restored) ======================= */
+                    /* ======================= BOOSTED USERS TAB ======================= */
                     2 -> {
+                        val boostedLoading = boostedUsers.isEmpty() && isBoostedLoading
+                        PeopleGrid(
+                            users = boostedUsers,
+                            isLoading = boostedLoading,
+                            pageIndex = 0,
+                            pageCount = 1,
+                            onClick = {
+                                if (swipesLoaded && remainingSwipes <= 0) {
+                                    showSwipeLimitOverlay = true
+                                } else {
+                                    navController.navigate("previewUserProfile/${it.userId}")
+                                }
+                            },
+                            useMiles = useMiles,
+                            onRemove = { uid ->
+                                scope.launch {
+                                    nearbyViewModel.addExcluded(uid)
+                                    FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid")
+                                        .setValue(true)
+                                }
+                                removeUserFromCaches(uid)
+                                if (uid !in hiddenBoostedIds) {
+                                    hiddenBoostedIds += uid
+                                }
+                            },
+                            onBlock = { uid ->
+                                scope.launch {
+                                    FirebaseRefs.db.getReference("blocks/$userId/$uid")
+                                        .setValue(true)
+                                    nearbyViewModel.addExcluded(uid)
+                                }
+                                removeUserFromCaches(uid)
+                                if (uid !in hiddenBoostedIds) {
+                                    hiddenBoostedIds += uid
+                                }
+                            },
+                            onBackPage = {},
+                            onNextPage = {},
+                            showPagination = false
+                        )
+                    }
+
+                    /* ======================= MAP TAB (old map restored) ======================= */
+                    3 -> {
                         Box(Modifier.fillMaxSize()) {
                             Column(Modifier.fillMaxSize()) {
 
@@ -2763,7 +2887,8 @@ private fun PeopleGrid(
     onRemove: (String) -> Unit,
     onBlock: (String) -> Unit,
     onBackPage: () -> Unit,
-    onNextPage: () -> Unit
+    onNextPage: () -> Unit,
+    showPagination: Boolean = true
 ) {
     val gridState = rememberLazyGridState()
     LazyVerticalGrid(
@@ -2822,7 +2947,7 @@ private fun PeopleGrid(
                 }
             }
         }
-        if (!isLoading || users.isNotEmpty()) {
+        if (showPagination && (!isLoading || users.isNotEmpty())) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Row(
                     modifier = Modifier

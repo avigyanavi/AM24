@@ -5310,9 +5310,15 @@
     <string name="feature_people_liked_me">ปลดล็อกคนที่ถูกใจฉัน</string>
     <string name="feature_picture_voice_posts">ปลดล็อกโพสต์รูปและเสียง</string>
     <string name="feature_50_swipes">สไวป์ได้ 50 ครั้งต่อวัน</string>
+    <string name="action_leave_groups">ออกจากกลุ่ม</string>
+    <string name="dm_leave_groups_title">ออกจากกลุ่ม</string>
+    <string name="dm_leave_groups_empty">คุณยังไม่ได้เข้าร่วมกลุ่มใด</string>
+    <string name="dm_remove_group">ลบกลุ่ม</string>
+    <string name="dm_group_left">คุณออกจาก %1$s แล้ว</string>
+    <string name="tab_boosted_users">ผู้ใช้ที่ถูกโปรโมต</string>
     <string name="feature_3_compliments">คำชม 3 ครั้งต่อสัปดาห์</string>
     <string name="feature_3_boosts">บูสต์ 3 ครั้งต่อสัปดาห์</string>
-    <string name="feature_video_rank_section">ปลดล็อกโพสต์วิดีโอและส่วนจัดอันดับ</string>
+    <string name="feature_video_rank_section">ปลดล็อกส่วนการจัดอันดับ</string>
     <string name="feature_unlimited_swipes">สไวป์ไม่จำกัด</string>
     <string name="feature_5_compliments">คำชม 5 ครั้งต่อสัปดาห์</string>
     <string name="feature_5_boosts">บูสต์ 5 ครั้งต่อสัปดาห์</string>

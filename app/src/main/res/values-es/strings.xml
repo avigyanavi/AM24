@@ -527,7 +527,7 @@
     <string name="feature_50_swipes">50 deslizamientos al día</string>
     <string name="feature_3_compliments">3 cumplidos por semana</string>
     <string name="feature_3_boosts">3 impulsos por semana</string>
-    <string name="feature_video_rank_section">Desbloquear publicaciones de video y sección de clasificación</string>
+    <string name="feature_video_rank_section">Desbloquear la sección de clasificación</string>
     <string name="feature_unlimited_swipes">Deslizamientos ilimitados</string>
     <string name="feature_5_compliments">5 cumplidos por semana</string>
     <string name="feature_5_boosts">5 impulsos por semana</string>
@@ -538,6 +538,12 @@
     <string name="searching">Buscando...</string>
     <string name="saved_posts_title">Publicaciones guardadas</string>
     <string name="saved_posts_empty">Aún no hay publicaciones guardadas.</string>
+    <string name="action_leave_groups">Salir de los grupos</string>
+    <string name="dm_leave_groups_title">Salir de los grupos</string>
+    <string name="dm_leave_groups_empty">Aún no estás en ningún grupo.</string>
+    <string name="dm_remove_group">Eliminar grupo</string>
+    <string name="dm_group_left">Has salido de %1$s.</string>
+    <string name="tab_boosted_users">Usuarios destacados</string>
 
     <!-- LA Quick Tags (labels) -->
     <string name="la_tag_dtla_rooftops_label">Azoteas en DTLA</string>

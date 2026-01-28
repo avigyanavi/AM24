@@ -4673,14 +4673,20 @@
         <string name="feature_50_swipes">दिन में 20 स्वाइप्स</string>
         <string name="feature_3_compliments">हर हफ़्ते 3 Compliments</string>
         <string name="feature_3_boosts">हर हफ़्ते 3 Boosts</string>
-        <string name="feature_video_rank_section">वीडियो पोस्ट और Rank सेक्शन अनलॉक करें</string>
+        <string name="feature_video_rank_section">रैंकिंग अनुभाग अनलॉक करें</string>
         <string name="feature_unlimited_swipes">अनलिमिटेड Swipes</string>
         <string name="feature_5_compliments">हर हफ़्ते 5 Compliments</string>
         <string name="feature_5_boosts">हर हफ़्ते 5 Boosts</string>
         <string name="feature_performance_metrics_rank">हर प्रोफाइल के लिए Performance Metrics और Rank अनलॉक</string>
         <string name="feature_everything_plus">Plus में जो है, सब शामिल</string>
+    <string name="action_leave_groups">समूह छोड़ें</string>
+    <string name="dm_leave_groups_title">समूह छोड़ें</string>
+    <string name="dm_leave_groups_empty">आप अभी किसी भी समूह में नहीं हैं।</string>
+    <string name="dm_remove_group">समूह हटाएँ</string>
+    <string name="dm_group_left">आपने %1$s छोड़ दिया।</string>
+    <string name="tab_boosted_users">बूस्ट किए गए उपयोगकर्ता</string>
 
-        <string name="app_name">Kupidx</string>
+    <string name="app_name">Kupidx</string>
         <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
         <string name="languages">भाषाएँ</string>
         <string name="cd_search_feed">फ़ीड में सर्च करें</string>

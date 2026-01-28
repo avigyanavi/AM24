@@ -67,7 +67,7 @@ import com.am24.am24.FirebaseRefs
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.Job
-
+import androidx.compose.material.icons.filled.Delete
 private fun canonicalLocationId(name: String): String {
     val normalized = Normalizer.normalize(name, Normalizer.Form.NFD)
         .replace("\\p{Mn}+".toRegex(), "")              // strip accents/diacritics
@@ -123,6 +123,7 @@ fun DMScreenContent(
     var showUnmatchDialog by remember { mutableStateOf(false) }
     var profileToUnmatch by remember { mutableStateOf<Profile?>(null) }
     var showSmartMatchDialog by remember { mutableStateOf(false) }
+    var showLeaveGroupsDialog by remember { mutableStateOf(false) }
     var selectedSmartMatchGender by remember { mutableStateOf("Both") }
     var isLoadingMatches by remember { mutableStateOf(true) }
     var matchesInitialized by remember { mutableStateOf(false) }
@@ -190,16 +191,21 @@ fun DMScreenContent(
 
 
 // 1️⃣  Build the chip list
-    val groupChatTitles = remember(profile) {
-        buildList {
+    val groupChatTitles = remember { mutableStateListOf<String>() }
+    LaunchedEffect(profile) {
+        val groups = buildList {
             profile.country
                 .takeIf { it.isNotBlank() }
                 ?.let { add(it) }
             profile.city
-                .takeIf { it.isNotBlank() }?.let { add(it) }
+                .takeIf { it.isNotBlank() }
+                ?.let { add(it) }
             profile.hometown
-                .takeIf { it.isNotBlank() }?.let { add(it) }
+                .takeIf { it.isNotBlank() }
+                ?.let { add(it) }
         }.distinct()
+        groupChatTitles.clear()
+        groupChatTitles.addAll(groups)
     }
 
 
@@ -444,6 +450,20 @@ fun DMScreenContent(
                             fontSize = 10.sp
                         )
                     }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = { showLeaveGroupsDialog = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2B2B2B)
+                    ),
+                ) {
+                    Text(
+                        stringResource(R.string.action_leave_groups),
+                        color = Color.White,
+                        fontSize = 10.sp
+                    )
                 }
             }
 
@@ -804,6 +824,76 @@ fun DMScreenContent(
                         Text(stringResource(R.string.cancel), color = Color.Gray)
                     }
                 }
+            )
+        }
+
+        if (showLeaveGroupsDialog) {
+            AlertDialog(
+                onDismissRequest = { showLeaveGroupsDialog = false },
+                title = {
+                    Text(
+                        text = stringResource(R.string.dm_leave_groups_title),
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                text = {
+                    if (groupChatTitles.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.dm_leave_groups_empty),
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 260.dp)
+                        ) {
+                            groupChatTitles.forEach { groupName ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = groupName,
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            groupChatTitles.remove(groupName)
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.dm_group_left, groupName),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Delete,
+                                            contentDescription = stringResource(R.string.dm_remove_group),
+                                            tint = Color(0xFFFF6B6B)
+                                        )
+                                    }
+                                }
+                                Divider(color = Color(0xFF3A3A3A))
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLeaveGroupsDialog = false }) {
+                        Text(
+                            text = stringResource(R.string.action_done),
+                            color = Color(0xFFFF4500)
+                        )
+                    }
+                },
+                containerColor = Color(0xFF1E1E1E)
             )
         }
 

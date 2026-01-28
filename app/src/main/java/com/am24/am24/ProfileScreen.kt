@@ -74,9 +74,7 @@ import androidx.compose.runtime.snapshotFlow
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    profileViewModel: ProfileViewModel,
-    postViewModel: PostViewModel,
-    modifier: Modifier = Modifier
+    profileViewModel: ProfileViewModel
 ) {
     val context        = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -91,7 +89,6 @@ fun ProfileScreen(
     var isSendingEmail   by remember { mutableStateOf(false) }
 
     // —— your existing state & loading logic ——
-    val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
@@ -100,19 +97,6 @@ fun ProfileScreen(
         Log.d("ProfileScreen", "Fetching profile for userId: $currentUserId")
         profileViewModel.fetchCurrentUserProfile()
     }
-
-    if (!filtersLoaded) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color(0xFFFF6F00))
-        }
-        return
-    }
-
-    val allPosts by postViewModel.filteredPosts.collectAsState()
-    val myPosts = allPosts.filter { it.userId == currentUserId }
-    val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
-    val featuredPosts = sortedByUpvotes.take(5)
-    val remainingPosts = sortedByUpvotes.drop(5)
 
     when {
         currentUserProfile == null -> {
@@ -124,8 +108,6 @@ fun ProfileScreen(
             ProfileLazyScreen(
                 navController    = navController,
                 profile          = currentUserProfile!!,
-                featuredPosts = featuredPosts,
-                remainingPosts = remainingPosts,
                 profileViewModel = profileViewModel
             )
 
@@ -240,13 +222,10 @@ fun ProfileScreen(
 fun ProfileLazyScreen(
     navController: NavController,
     profile: Profile,
-    featuredPosts: List<Post>,
-    remainingPosts: List<Post>,
     profileViewModel: ProfileViewModel,
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    var showPostsOverlay by remember { mutableStateOf(false) }
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
 
     // Use ViewModel's profile if available, otherwise fall back to initial profile
@@ -361,8 +340,7 @@ fun ProfileLazyScreen(
             item {
                 PhotoCarouselWithOverlay(
                     profile = currentProfile,
-                    onEditProfileClick = { navController.navigate("editPicAndVoiceBio") },
-                    onPostsClick = { showPostsOverlay = true },
+                    onEditProfileClick = { navController.navigate("editPicAndVoiceBio") }
                 )
             }
             item {
@@ -418,40 +396,6 @@ fun ProfileLazyScreen(
                     }
                 )
             }
-            if (featuredPosts.isNotEmpty()) {
-                item {
-                    Text(
-                        text = stringResource(id = R.string.featured_posts),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-                items(featuredPosts) { post ->
-                    PostItemInProfile(post)
-                }
-            }
-            if (remainingPosts.isNotEmpty()) {
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Button(
-                            onClick = { showPostsOverlay = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
-                        ) {
-                            Text(text = stringResource(R.string.view_more_posts), color = Color.White)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
-        }
-        if (showPostsOverlay) {
-            PostsOverlay(
-                posts = featuredPosts + remainingPosts,
-                onDismiss = { showPostsOverlay = false }
-            )
         }
     }
 }
@@ -703,7 +647,6 @@ fun CollapsibleSection(
 fun PhotoCarouselWithOverlay(
     profile: Profile,
     onEditProfileClick: () -> Unit,
-    onPostsClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val firstPhoto = profile.profilepicUrl.takeIf { !it.isNullOrBlank() }
@@ -776,19 +719,6 @@ fun PhotoCarouselWithOverlay(
                         )
                     )
             ) {
-                IconButton(
-                    onClick  = onPostsClick,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(top = 16.dp, start = 16.dp)
-                        .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
-                        .size(28.dp)
-                ) {
-                    Icon(Icons.Default.PostAdd,
-                        stringResource(R.string.posts_button),
-                        tint = Color.White
-                    )
-                }
                 IconButton(
                     onClick  = onEditProfileClick,
                     modifier = Modifier

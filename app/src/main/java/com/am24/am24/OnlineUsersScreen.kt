@@ -203,7 +203,7 @@ fun OnlineUsersScreen(navController: NavController) {
             val match = waitingMatch!!
             waitingMatch = null
             waitingStatus = "pending"
-            navController.safePopBackStack("omegleUsers", inclusive = true)
+            navController.safePopBackStack("explore", inclusive = true)
             navController.navigate("omegleChat/${match.chatId}/${match.otherUserId}")
         } else if (waitingStatus == "rejected" && waitingMatch != null) {
             cancelInvite()

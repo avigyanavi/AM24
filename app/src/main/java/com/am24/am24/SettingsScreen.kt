@@ -145,6 +145,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
     var swipes by remember { mutableStateOf(0) }
     var compliments by remember { mutableStateOf(0) }
     var aiMessages    by remember { mutableStateOf(0) }       // ★ NEW ★
+    var boosts by remember { mutableStateOf(0) }
     var freeTrialExpiry by remember { mutableStateOf<Long?>(null) }
     var hasUsedFreeTrial by remember { mutableStateOf(false) }
     var freeTrialCompleted by remember { mutableStateOf(false) }
@@ -243,7 +244,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
         swipes = remainingSwipesCount
         compliments = complimentsCount
         aiMessages = aiMessagesCount
-
+        boosts = profile.availableBoosts
         entryFeePaid = entryFeePaidFlag
         entryFeeOfferExpiry = offerActive ?: 0L
 
@@ -482,6 +483,21 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                             }
                         }
                     )
+                    Divider(Modifier.padding(start = 56.dp))
+
+                    SettingsRow(
+                        icon         = { Icon(Icons.Default.FlashOn, null) },
+                        title        = stringResource(R.string.settings_get_more_boosts),
+                        trailingText = boosts.toString(),
+                        onClick = {
+                            if (isIndian) {
+                                navController.navigate("buyBoosts")
+                            } else {
+                                navController.navigate("subscription?allowIfSubscribed=true&force=false")
+                            }
+                        }
+                    )
+                    Divider(Modifier.padding(start = 56.dp))
 
                     /* AI messages  ★ NEW ★ */
                     SettingsRow(

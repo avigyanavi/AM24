@@ -34,9 +34,6 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import android.content.Context
 import androidx.activity.compose.BackHandler
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.RssFeed
 import androidx.compose.ui.draw.shadow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -64,8 +61,6 @@ fun MainScreen(
     locationManager: LocationManager
 ) {
     val items = listOf(
-        BottomNavItem(stringResource(R.string.explore), Icons.Default.GridOn, "explore"),
-        BottomNavItem(stringResource(R.string.feed), Icons.Outlined.RssFeed, "home"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
 //        BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
@@ -167,7 +162,6 @@ fun MainScreen(
                     navController = navController,
                     profileViewModel = profileViewModel,
                     currentUserId = currentUserId,
-                    postViewModel = postViewModel,
                     onLogout = onLogout,
                     isPremium = isPremium,
                     isPlus = isPlus,
@@ -305,7 +299,6 @@ fun TopNavBar(
     navController: NavController,
     profileViewModel: ProfileViewModel,
     currentUserId: String,
-    postViewModel: PostViewModel,
     onLogout: () -> Unit,
     isPremium: Boolean,
     isPlus: Boolean,
@@ -328,15 +321,15 @@ fun TopNavBar(
     val isProfileScreen = currentRoute == "profile"
     val isDMScreen = currentRoute == "dms"
     val isGroupChat = currentDestination?.route?.startsWith("groupChat") == true
-    val isAiPartner = currentRoute == "aiPartner" || currentRoute?.startsWith("aiImageFull/") == true
-
+    val isAiPartner = currentRoute == "home" ||
+            currentRoute == "aiPartner" ||
+            currentRoute?.startsWith("aiImageFull/") == true
     // 🔸 NEW: are we on any bottom nav root screen?
     val isOnBottomNavRoot = currentDestination
         ?.hierarchy
         ?.any { dest ->
-            dest.route in listOf("profile", "home", "map", "dms", "explore", "aiPartner")
+            dest.route in listOf("profile", "map", "dms", "home", "aiPartner", "omegleUsers")
         } == true
-
     val unreadCount = mainUiState.unreadNotifications
     val allowLocationForMatches = mainUiState.allowLocationForMatches
     val allowLocationPublic = mainUiState.allowLocationPublic
@@ -359,9 +352,6 @@ fun TopNavBar(
     val selectedCountry = mainUiState.selectedCountry
     var cityMenuExpanded by remember { mutableStateOf(false) }
     val selectedCity = mainUiState.selectedCity
-    val feedFilterState by postViewModel.feedFilters.collectAsState()
-    val homeSelectedCountry = feedFilterState.feedFilters.country
-
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val hasLocationSpoofAccess = mainUiState.hasLocationSpoofAccess
@@ -371,16 +361,6 @@ fun TopNavBar(
         savedStateHandle?.set("mapOrientationFilter", savedOrientation)
     }
 
-    LaunchedEffect(homeSelectedCountry) {
-        prefs.edit().putString("home_country_filter", homeSelectedCountry).apply()
-    }
-
-    val isOnHome = currentDestination
-        ?.hierarchy
-        ?.any { it.route == "home" } == true
-    val isOnExplore = currentDestination
-        ?.hierarchy
-        ?.any { it.route == "explore" } == true
     val isOnMap = currentDestination
         ?.hierarchy
         ?.any { it.route == "map" } == true
@@ -388,7 +368,6 @@ fun TopNavBar(
         ?.hierarchy
         ?.any { it.route == "omegleUsers" } == true
     val isAdmin by profileViewModel.isAdmin.collectAsState()
-    val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()
     val groupId = navBackStackEntry?.arguments?.getString("groupId")
 
     TopAppBar(
@@ -402,7 +381,7 @@ fun TopNavBar(
                         color = Color.White
                     )
                 }
-                currentRoute == "aiPartner" -> {
+                isAiPartner -> {
                     Column {
                         Text(
                             text = "Your AI Partner 💕",
@@ -467,117 +446,116 @@ fun TopNavBar(
                     }
 
                     if (currentRoute == "map") {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(start = 6.dp)
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    if (hasLocationSpoofAccess) {
-                                        cityMenuExpanded = !cityMenuExpanded
-                                    } else {
-                                        cityMenuExpanded = false
-                                        navController.navigate("subscription")
-                                    }
-                                }
+                        val canonicalSpoofCountry = canonicalCountry(
+                            selectedCountry.takeIf { it.isNotBlank() }
+                        )
+                        val isCityFilterSupported = canonicalSpoofCountry == "Mexico" ||
+                                canonicalSpoofCountry == "United States" ||
+                                canonicalSpoofCountry == "India"
+                        if (isCityFilterSupported) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(start = 6.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocationCity,
-                                    contentDescription = stringResource(R.string.cd_city_filter),
-                                    tint = when {
-                                        !hasLocationSpoofAccess -> Color(0x66FFFFFF)
-                                        selectedCity.isNotBlank() -> Color(0xFFFF6F00)
-                                        else -> Color.White
-                                    },
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-
-                            if (hasLocationSpoofAccess) {
-                                val canonicalSpoofCountry = canonicalCountry(
-                                    selectedCountry.takeIf { it.isNotBlank() }
-                                        ?: homeSelectedCountry?.takeIf { it.isNotBlank() }
-                                        ?: "India"
-                                )
-                                val cityOptions = when (canonicalSpoofCountry) {
-                                    "Mexico" -> stringArrayResource(R.array.mexico_cities).toList()
-                                    "United States" -> stringArrayResource(R.array.usa_cities).toList()
-                                    else -> stringArrayResource(R.array.india_cities).toList()
-                                }
-                                val resolvedSpoofCountry = when (canonicalSpoofCountry) {
-                                    "Mexico" -> "Mexico"
-                                    "United States" -> "United States"
-                                    else -> "India"
-                                }
-                                val cityLatLngLookup: (String) -> Pair<Double, Double>? = when (resolvedSpoofCountry) {
-                                    "Mexico" -> { city -> MexicoCityLatLngMap.getLatLng(city) }
-                                    "United States" -> { city -> UsaCityLatLngMap.getLatLng(city) }
-                                    else -> { city -> IndiaCityLatLngMap.getLatLng(city) }
-                                }
-                                DropdownMenu(
-                                    expanded = cityMenuExpanded,
-                                    onDismissRequest = { cityMenuExpanded = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.clear_city_filter)) },
-                                        onClick = {
+                                IconButton(
+                                    onClick = {
+                                        if (hasLocationSpoofAccess) {
+                                            cityMenuExpanded = !cityMenuExpanded
+                                        } else {
                                             cityMenuExpanded = false
-                                            if (selectedCountry.isBlank()) {
-                                                onClearLocationSpoofing()
-                                                locationManager.resumeUpdates()
-                                            } else {
-                                                val countryLatLng =
-                                                    CountryLatLngMap.getLatLng(selectedCountry)
-                                                if (countryLatLng != null) {
-                                                    locationManager.pauseUpdates()
-                                                    locationManager.setCustomLocation(
-                                                        currentUserId,
-                                                        countryLatLng.first,
-                                                        countryLatLng.second
-                                                    )
-                                                }
-                                                onSetLocationSpoofing(selectedCountry, "")
-                                            }
-                                            savedStateHandle?.set("mapCountryChanged", true)
+                                            navController.navigate("subscription")
                                         }
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationCity,
+                                        contentDescription = stringResource(R.string.cd_city_filter),
+                                        tint = when {
+                                            !hasLocationSpoofAccess -> Color(0x66FFFFFF)
+                                            selectedCity.isNotBlank() -> Color(0xFFFF6F00)
+                                            else -> Color.White
+                                        },
+                                        modifier = Modifier.size(24.dp)
                                     )
-                                    cityOptions.forEach { city ->
+                                }
+
+                                if (hasLocationSpoofAccess) {
+                                    val cityOptions = when (canonicalSpoofCountry) {
+                                        "Mexico" -> stringArrayResource(R.array.mexico_cities).toList()
+                                        "United States" -> stringArrayResource(R.array.usa_cities).toList()
+                                        else -> stringArrayResource(R.array.india_cities).toList()
+                                    }
+                                    val resolvedSpoofCountry = canonicalSpoofCountry
+                                    val cityLatLngLookup: (String) -> Pair<Double, Double>? = when (resolvedSpoofCountry) {
+                                        "Mexico" -> { city -> MexicoCityLatLngMap.getLatLng(city) }
+                                        "United States" -> { city -> UsaCityLatLngMap.getLatLng(city) }
+                                        else -> { city -> IndiaCityLatLngMap.getLatLng(city) }
+                                    }
+                                    DropdownMenu(
+                                        expanded = cityMenuExpanded,
+                                        onDismissRequest = { cityMenuExpanded = false }
+                                    ) {
                                         DropdownMenuItem(
-                                            text = { Text(city) },
+                                            text = { Text(stringResource(R.string.clear_city_filter)) },
                                             onClick = {
                                                 cityMenuExpanded = false
-                                                val latLng = cityLatLngLookup(city)
-                                                if (latLng != null) {
-                                                    locationManager.pauseUpdates()
-                                                    locationManager.setCustomLocation(
-                                                        currentUserId,
-                                                        latLng.first,
-                                                        latLng.second
-                                                    )
-                                                    onSetLocationSpoofing(resolvedSpoofCountry, city)
-                                                    savedStateHandle?.set("mapCountryChanged", true)
+                                                if (selectedCountry.isBlank()) {
+                                                    onClearLocationSpoofing()
+                                                    locationManager.resumeUpdates()
                                                 } else {
-                                                    Toast.makeText(
-                                                        context,
-                                                        context.getString(
-                                                            R.string.city_coords_unavailable,
-                                                            city
-                                                        ),
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
+                                                    val countryLatLng =
+                                                        CountryLatLngMap.getLatLng(selectedCountry)
+                                                    if (countryLatLng != null) {
+                                                        locationManager.pauseUpdates()
+                                                        locationManager.setCustomLocation(
+                                                            currentUserId,
+                                                            countryLatLng.first,
+                                                            countryLatLng.second
+                                                        )
+                                                    }
+                                                    onSetLocationSpoofing(selectedCountry, "")
                                                 }
+                                                savedStateHandle?.set("mapCountryChanged", true)
                                             }
                                         )
+                                        cityOptions.forEach { city ->
+                                            DropdownMenuItem(
+                                                text = { Text(city) },
+                                                onClick = {
+                                                    cityMenuExpanded = false
+                                                    val latLng = cityLatLngLookup(city)
+                                                    if (latLng != null) {
+                                                        locationManager.pauseUpdates()
+                                                        locationManager.setCustomLocation(
+                                                            currentUserId,
+                                                            latLng.first,
+                                                            latLng.second
+                                                        )
+                                                        onSetLocationSpoofing(resolvedSpoofCountry, city)
+                                                        savedStateHandle?.set("mapCountryChanged", true)
+                                                    } else {
+                                                        Toast.makeText(
+                                                            context,
+                                                            context.getString(
+                                                                R.string.city_coords_unavailable,
+                                                                city
+                                                            ),
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
+                                                }
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            if (hasLocationSpoofAccess && selectedCity.isNotBlank()) {
-                                Text(
-                                    selectedCity,
-                                    color = Color(0xFFFF6F00),
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.padding(horizontal = 6.dp)
-                                )
+                                if (hasLocationSpoofAccess && selectedCity.isNotBlank()) {
+                                    Text(
+                                        selectedCity,
+                                        color = Color(0xFFFF6F00),
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.padding(horizontal = 6.dp)
+                                    )
+                                }
                             }
                         }
 
@@ -592,47 +570,12 @@ fun TopNavBar(
                             }
                         }
                     }
-
-                    if (isOnHome) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = {
-                                if (isFeedSearchVisible) {
-                                    postViewModel.hideFeedSearch()
-                                } else {
-                                    postViewModel.showFeedSearchBar()
-                                }
-                            }) {
-                                Icon(
-                                    imageVector = if (isFeedSearchVisible) Icons.Default.Close else Icons.Default.Search,
-                                    contentDescription = if (isFeedSearchVisible) {
-                                        stringResource(R.string.cd_close_search)
-                                    } else {
-                                        stringResource(R.string.cd_search_feed)
-                                    },
-                                    tint = if (isFeedSearchVisible) KupidxOrange else Color.White,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-
-                            IconButton(
-                                onClick = { navController.navigate("create_post") }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = stringResource(R.string.cd_create_post),
-                                    tint = KupidxOrange,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    if (isOnExplore || isOnHome || isDMScreen || isProfileScreen || isAiPartner) {
+                    if (isOnMap || isDMScreen || isProfileScreen || isAiPartner) {
                         IconButton(onClick = {
                             if (isAiPartner) {
                                 navController.popBackStack()
                             } else {
-                                navController.navigate("aiPartner")
+                                navController.navigate("home")
                             }
                         }) {
                             Icon(

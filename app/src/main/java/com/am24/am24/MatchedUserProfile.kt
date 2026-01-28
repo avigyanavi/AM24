@@ -6,25 +6,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.media3.common.util.Log
 import androidx.navigation.NavController
-import com.am24.am24.Post
 import com.am24.am24.ui.CompatibilityMeter
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
@@ -35,7 +30,6 @@ import kotlinx.coroutines.tasks.await
 fun MatchedUserProfileScreen(
     profile: Profile,
     geoFire: GeoFire,
-    postViewModel: PostViewModel,
     profileViewModel: ProfileViewModel,
     navController: NavController,
     isMatch: Boolean = false,
@@ -44,9 +38,6 @@ fun MatchedUserProfileScreen(
 ) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
-    val allPosts by postViewModel.profilePosts.collectAsState() // Changed to profilePosts
-    val isLoading by postViewModel.isLoading.collectAsState()
-    var postsLoaded by remember { mutableStateOf(false) }
     val context = LocalContext.current // ✅ declare at the top of the Composable
 
     var userDistance by remember { mutableStateOf<Float?>(null) }
@@ -59,17 +50,8 @@ fun MatchedUserProfileScreen(
     // Fetch data on initial load
     LaunchedEffect(Unit) {
         println("MatchedUserProfileScreen: Starting initial fetch")
-        postViewModel.fetchPosts()
         profileViewModel.fetchCurrentUserProfile()
         println("MatchedUserProfileScreen: Fetch requests dispatched")
-    }
-
-    // Update postsLoaded when fetch completes
-    LaunchedEffect(isLoading) {
-        if (!isLoading && !postsLoaded) {
-            postsLoaded = true
-            println("MatchedUserProfileScreen: Posts loaded, size=${allPosts.size}")
-        }
     }
 
     // Fetch distance and AI match result
@@ -126,25 +108,10 @@ fun MatchedUserProfileScreen(
         }
     }
 
-    // Filter posts
-    val myPosts = allPosts.filter { it.userId == profile.userId } // Adjust to "userId" if needed
-    val sortedByUpvotes = myPosts.sortedByDescending { it.upvotes }
-    val featuredPosts = sortedByUpvotes.take(5)
-    val remainingPosts = sortedByUpvotes.drop(5)
-    val isBoosted = false
-
     // Main layout
     Box(modifier = modifier.fillMaxSize()) {
-        println("Rendering UI: isLoading=$isLoading, allPosts.size=${allPosts.size}, myPosts.size=${myPosts.size}, postsLoaded=$postsLoaded")
         when {
-            isLoading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color(0xFFFF6F00)
-                )
-            }
-            userDistance != null && currentUserProfile != null && postsLoaded -> {
-                Card(
+            userDistance != null && currentUserProfile != null -> {                Card(
                     modifier = Modifier
                         .fillMaxSize(),
                     backgroundColor = Color.Black,
@@ -193,50 +160,17 @@ fun MatchedUserProfileScreen(
                                 profile = profile,
                                 userDistance = userDistance!!,
                                 aiMatchResult = aiMatchResult,
-                                sortedByUpvotes = sortedByUpvotes,
-                            currentProfile = currentUserProfile
+                                currentProfile = currentUserProfile
                             )
                         }
                         item {
                             DatingProfileHeader(
                                 profile = profile,
-                                userDistance = userDistance!!,
-                                sortedByUpvotes = sortedByUpvotes,
+                                userDistance = userDistance!!
                             )
                         }
                         item {
                             ProfileCollapsibleSectionsAll(profile, currentUserProfile, aiMatchResult, showLocation)
-                        }
-                        if (featuredPosts.isNotEmpty()) {
-                            item {
-                                Text(
-                                    text = "Featured Posts",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                )
-                            }
-                            items(featuredPosts) { post ->
-                                PostItemInProfile(post)
-                            }
-                        }
-                        if (remainingPosts.isNotEmpty()) {
-                            item {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Box(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Button(
-                                        onClick = { navController.navigate("userPosts/${profile.userId}") },
-                                        colors = ButtonDefaults.buttonColors(Color(0xFFFF6F00))
-                                    ) {
-                                        Text("View More Posts", color = Color.White)
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(16.dp))
-                            }
                         }
                     }
                 }

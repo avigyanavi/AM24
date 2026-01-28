@@ -265,13 +265,18 @@
     <string name="feature_50_swipes">20 swipes a day</string>
     <string name="feature_3_compliments">3 compliments per week</string>
     <string name="feature_3_boosts">3 boosts per week</string>
-    <string name="feature_video_rank_section">Unlock Video posts and Rank section</string>
+    <string name="feature_video_rank_section">Unlock Rank section</string>
     <string name="feature_unlimited_swipes">Unlimited Swipes</string>
     <string name="feature_5_compliments">5 compliments per week</string>
     <string name="feature_5_boosts">5 boosts per week</string>
     <string name="feature_performance_metrics_rank">Unlocked Performance Metrics and Rank per profile</string>
     <string name="feature_everything_plus">Everything in Plus</string>
-
+    <string name="action_leave_groups">Leave groups</string>
+    <string name="dm_leave_groups_title">Leave groups</string>
+    <string name="dm_leave_groups_empty">You are not in any groups yet.</string>
+    <string name="dm_remove_group">Remove group</string>
+    <string name="dm_group_left">You left %1$s.</string>
+    <string name="tab_boosted_users">Boosted Users</string>
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">Languages</string>

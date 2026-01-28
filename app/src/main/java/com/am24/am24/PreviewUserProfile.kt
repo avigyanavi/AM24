@@ -44,7 +44,6 @@ fun PreviewUserProfileScreen(
     currentUserId    : String,
     geoFire          : GeoFire,
     profileViewModel : ProfileViewModel   = viewModel(),
-    postViewModel    : PostViewModel      = viewModel(),   // re-use for posts inside the card
     datingViewModel  : DatingViewModel,   // pass from Activity
 ) {
     var profile      by remember { mutableStateOf<Profile?>(null) }
@@ -222,7 +221,6 @@ fun PreviewUserProfileScreen(
                     MatchedUserProfileScreen(
                         profile          = activeProfile,
                         geoFire          = geoFire,
-                        postViewModel    = postViewModel,
                         profileViewModel = profileViewModel,
                         navController    = navController,
                         showBackButton   = true,

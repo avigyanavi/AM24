@@ -6042,6 +6042,12 @@
     <string name="request_sent_waiting">Đã gửi yêu cầu – chờ người dùng tham gia</string>
     <string name="request_rejected">Yêu cầu bị từ chối</string>
     <string name="user_left_chat">Người dùng đã rời cuộc chat</string>
+    <string name="action_leave_groups">Rời nhóm</string>
+    <string name="dm_leave_groups_title">Rời nhóm</string>
+    <string name="dm_leave_groups_empty">Bạn chưa tham gia nhóm nào.</string>
+    <string name="dm_remove_group">Xóa nhóm</string>
+    <string name="dm_group_left">Bạn đã rời khỏi %1$s.</string>
+    <string name="tab_boosted_users">Người dùng được tăng cường</string>
 
     <!-- Subscription feature bullet points -->
     <string name="feature_no_ads">Không quảng cáo</string>
@@ -6051,7 +6057,7 @@
     <string name="feature_50_swipes">50 lượt vuốt mỗi ngày</string>
     <string name="feature_3_compliments">3 lời khen mỗi tuần</string>
     <string name="feature_3_boosts">3 boost mỗi tuần</string>
-    <string name="feature_video_rank_section">Mở khóa bài viết Video và mục Xếp hạng</string>
+    <string name="feature_video_rank_section">Mở khóa mục xếp hạng</string>
     <string name="feature_unlimited_swipes">Vuốt không giới hạn</string>
     <string name="feature_5_compliments">5 lời khen mỗi tuần</string>
     <string name="feature_5_boosts">5 boost mỗi tuần</string>

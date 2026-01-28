@@ -479,29 +479,50 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** rebuilds `_boostedUsers`, dropping any >6 h old and notifying owners */
+    /** rebuilds `_boostedUsers`, dropping any >1 h old and notifying owners */
     private fun updateBoostedUsers(currentUserId: String) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
+            val snapshot = usersRef
+                .orderByChild("isBoosted")
+                .equalTo(true)
+                .get()
+                .await()
 
+            val blocked = _blockedUsers.value.toSet()
+            val boostedProfiles = snapshot.children.mapNotNull { child ->
+                val profile = child.getValue(Profile::class.java) ?: return@mapNotNull null
+                val uid = child.key.orEmpty()
+                if (uid.isBlank() || uid == currentUserId || uid in blocked) return@mapNotNull null
+                profile.userId = profile.userId.ifBlank { uid }
+                profile
+            }
             /* 1️⃣  Find boosts that just expired */
-            val expiredUids = _allProfiles.value
-                .filter { it.isBoosted && (it.boostedAt == null || now - it.boostedAt!! > BOOST_DURATION_MS) }
-                .map { it.userId }
+            val expired = boostedProfiles.filter {
+                it.boostedAt == null || now - it.boostedAt!! > BOOST_DURATION_MS
+            }
 
             /* 2️⃣  Clear their isBoosted flag and notify them */
-            expiredUids.forEach { uid ->
-                usersRef.child(uid).child("isBoosted").setValue(false)
-                pushBoostOverNotification(uid)              // 🔔
+            expired.forEach { profile ->
+                val uid = profile.userId
+                if (uid.isNotBlank()) {
+                    usersRef.child(uid).child("isBoosted").setValue(false)
+                    pushBoostOverNotification(uid)              // 🔔
+                }
             }
 
             /* 3️⃣  Keep only still-valid boosts for the deck UI */
-            val boosted = _allProfiles.value.filter {
-                it.isBoosted && it.boostedAt != null && now - it.boostedAt!! <= BOOST_DURATION_MS
+            val boosted = boostedProfiles.filter {
+                it.boostedAt != null && now - it.boostedAt!! <= BOOST_DURATION_MS
             }
 
-            _boostedUsers.value = boosted // preserve arrival/boostedAt order
+            _boostedUsers.value = boosted.sortedByDescending { it.boostedAt ?: 0L }
         }
+    }
+
+    fun refreshBoostedUsers() {
+        val me = FirebaseAuth.getInstance().uid ?: return
+        updateBoostedUsers(me)
     }
 
     private suspend fun pushBoostOverNotification(receiverId: String) {

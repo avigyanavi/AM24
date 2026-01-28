@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -70,8 +69,7 @@ import java.util.Calendar
 @Composable
 fun DatingProfileHeader(
     profile: Profile,
-    userDistance: Float,
-    sortedByUpvotes: List<Post>
+    userDistance: Float
 ) {
     val community = profile.community
     val religion = profile.religion
@@ -201,7 +199,6 @@ fun PhotoWithTwoOverlays(
     profile: Profile,
     userDistance: Float,
     aiMatchResult: AiMatchCheckResult?,
-    sortedByUpvotes: List<Post>,
     currentProfile: Profile? = null,
     onCompliment: () -> Unit = {}
 ) {
@@ -217,7 +214,6 @@ fun PhotoWithTwoOverlays(
         datingViewModel.complimentsReceived.value[profile.userId]
     }
     val age = calculateAge(profile.dob)
-    var showPostsOverlay by remember { mutableStateOf(false) }
     val interestsTexts = profile.interests.map { "${it.emoji} ${it.name}" }
     val preferencesTexts = listOfNotNull(
         profile.lookingFor.takeIf(String::isNotBlank)?.let { "🎯 $it" },
@@ -399,10 +395,6 @@ fun PhotoWithTwoOverlays(
             }
         }
 
-        if (showPostsOverlay) {
-            PostsOverlay(sortedByUpvotes) { showPostsOverlay = false }
-        }
-
         Row(
             Modifier
                 .fillMaxWidth()
@@ -418,18 +410,6 @@ fun PhotoWithTwoOverlays(
                 color = Color.White,
                 fontSize = 18.sp
             )
-            IconButton(
-                onClick  = { showPostsOverlay = true },
-                modifier = Modifier
-                    .padding(end = 4.dp)
-                    .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
-                    .size(28.dp)
-            ) {
-                Icon(Icons.Default.PostAdd,
-                    stringResource(R.string.posts_button),
-                    tint = Color.White
-                )
-            }
         }
     }
 }

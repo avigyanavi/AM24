@@ -78,13 +78,6 @@ fun MainNavGraph(
             }
         })
     }
-
-    LaunchedEffect(currentUserId) {
-        if (currentUserId.isNotBlank()) {
-            postViewModel.setCurrentUserId(currentUserId)
-        }
-    }
-
     // Initialize LocationManager reference (already passed from Activity)
     val context = LocalContext.current
     val locationManagerRemembered = remember { locationManager }
@@ -115,9 +108,9 @@ fun MainNavGraph(
             LeaderboardScreen(navController)
         }
         composable("home") {
-            HomeScreen(
+            AIPartnerScreen(
                 navController = navController,
-                postViewModel = postViewModel,
+                aiPartnerViewModel = aiPartnerViewModel,
                 profileViewModel = profileViewModel
             )
         }
@@ -143,8 +136,7 @@ fun MainNavGraph(
         composable("profile") {
             ProfileScreen(
                 navController = navController,
-                profileViewModel = profileViewModel,
-                postViewModel = postViewModel
+                profileViewModel = profileViewModel
             )
         }
         composable("feedback_list") {
@@ -412,12 +404,6 @@ fun MainNavGraph(
                 voteType = voteType
             )
         }
-        composable("explore") {
-            ExploreScreen(
-                postViewModel = postViewModel,
-                profileViewModel = profileViewModel
-            )
-        }
         composable(
             route = "groupChat/{groupId}",
             arguments = listOf(navArgument("groupId") { type = NavType.StringType })
@@ -506,7 +492,6 @@ fun MainNavGraph(
                     MatchedUserProfileScreen(
                         profile = matchedProfile!!,
                         geoFire = geoFire,
-                        postViewModel = postViewModel,
                         profileViewModel = profileViewModel,
                         navController = navController,
                         isMatch = true
@@ -540,7 +525,6 @@ fun MainNavGraph(
                 currentUserId = currentUid,
                 geoFire = geoFire,
                 profileViewModel = profileViewModel,
-                postViewModel = postViewModel,
                 datingViewModel  = datingViewModel
             )
         }
