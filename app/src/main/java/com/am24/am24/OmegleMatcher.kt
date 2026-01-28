@@ -11,7 +11,7 @@ data class OmegleMatch(
 suspend fun matchRandomOmegleUser(): OmegleMatch? {
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return null
     val db = FirebaseRefs.db.reference
-    val presenceSnap = db.child("presence").get().await()
+    val presenceSnap = db.child("presence").limitToLast(200).get().await()
     val onlineUsers = presenceSnap.children.mapNotNull { it.key }.filter { it != uid }
     if (onlineUsers.isEmpty()) return null
     val partnerId = onlineUsers.random()

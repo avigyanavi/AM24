@@ -35,8 +35,6 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.math.min
@@ -48,63 +46,93 @@ fun OnlineUsersScreen(navController: NavController) {
     val currentUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val db = FirebaseRefs.db.reference
 
-    var users by remember { mutableStateOf<List<Profile>>(emptyList()) }
+    val profilesById = remember { mutableStateMapOf<String, Profile>() }
     var loading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    var retrySignal by remember { mutableStateOf(0) }
 
     // --- Listen to presence and load profiles (concurrently) ---
-    DisposableEffect(Unit) {
+    DisposableEffect(retrySignal) {
         val presenceRef = db.child("presence")
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val ids = snapshot.children.mapNotNull { it.key }.filter { it != currentUid }
-                loading = true
-                scope.launch {
-                    try {
-                        val profiles = ids.map { id ->
-                            async {
-                                try {
-                                    val snap = db.child("users").child(id).get().await()
-                                    if (UserDeletionCache.isDeleted(FirebaseRefs.db, id, snap)) {
-                                        return@async null
-                                    }
-                                    val profile = snap.getValue(Profile::class.java)?.copy(userId = id)
-                                    if (profile != null && profile.username.isNullOrBlank()) {
-                                        UserDeletionCache.markDeleted(id)
-                                        return@async null
-                                    }
-                                    UserDeletionCache.markActive(id)
-                                    profile
-                                } catch (e: Exception) {
-                                    Log.e("OnlineUsersScreen", "Failed to load profile $id", e)
-                                    null
-                                }
-                            }
-                        }.awaitAll().filterNotNull()
-                            .sortedBy { it.username?.lowercase() ?: "" }
+        profilesById.clear()
+        errorMessage = null
+        loading = true
 
-                        users = profiles
-                        errorMessage = null
-                    } catch (e: Exception) {
-                        Log.e("OnlineUsersScreen", "Error loading users", e)
-                        errorMessage = e.message ?: "Unknown error"
-                    } finally {
-                        loading = false
+        fun loadProfile(userId: String) {
+            if (userId == currentUid) return
+            scope.launch {
+                try {
+                    val snap = db.child("users").child(userId).get().await()
+                    if (UserDeletionCache.isDeleted(FirebaseRefs.db, userId, snap)) {
+                        profilesById.remove(userId)
+                        return@launch
                     }
+                    val profile = snap.getValue(Profile::class.java)?.copy(userId = userId)
+                    if (profile != null && profile.username.isBlank()) {
+                        UserDeletionCache.markDeleted(userId)
+                        profilesById.remove(userId)
+                        return@launch
+                    }
+                    UserDeletionCache.markActive(userId)
+                    profile?.let { profilesById[userId] = it }
+                } catch (e: Exception) {
+                    Log.e("OnlineUsersScreen", "Failed to load profile $userId", e)
+                } finally {
+                    loading = false
                 }
             }
+        }
+
+        val childListener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                snapshot.key?.let { loadProfile(it) }
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                snapshot.key?.let { loadProfile(it) }
+            }
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {
+                snapshot.key?.let { profilesById.remove(it) }
+            }
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) = Unit
+
             override fun onCancelled(error: DatabaseError) {
                 Log.e("OnlineUsersScreen", "Presence listener canceled: ${error.message}")
                 errorMessage = error.message
                 loading = false
             }
         }
-        presenceRef.addValueEventListener(listener)
-        onDispose { presenceRef.removeEventListener(listener) }
+
+        val initialListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (profilesById.isEmpty()) {
+                    loading = false
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("OnlineUsersScreen", "Presence listener canceled: ${error.message}")
+                errorMessage = error.message
+                loading = false
+            }
+        }
+
+        presenceRef.addChildEventListener(childListener)
+        presenceRef.limitToFirst(1).addListenerForSingleValueEvent(initialListener)
+        onDispose {
+            presenceRef.removeEventListener(childListener)
+        }
     }
 
     // --- Grouped lists (derived for perf) ---
+    val users: List<Profile> by remember {
+        derivedStateOf {
+            profilesById.values.sortedBy { profile -> profile.username.lowercase() }
+        }
+    }
     val pageSize = 20
     var visibleCount by remember { mutableStateOf(pageSize) }
 
@@ -112,7 +140,7 @@ fun OnlineUsersScreen(navController: NavController) {
         visibleCount = min(visibleCount.coerceAtLeast(pageSize), users.size)
     }
 
-    val visibleUsers = remember(users, visibleCount) {
+    val visibleUsers: List<Profile> = remember(users, visibleCount) {
         if (visibleCount >= users.size) users else users.take(visibleCount)
     }
 
@@ -237,98 +265,99 @@ fun OnlineUsersScreen(navController: NavController) {
                 .padding(paddingValues)
                 .background(Color.Black)
         ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 8.dp, vertical = 6.dp)
-        ) {
-            stickyHeader {
-                ScreenTitleHeader(stringResource(R.string.online_users))
-            }
-
-            if (!loading && users.isEmpty() && errorMessage == null) {
-                item {
-                    EmptyState(
-                        text = stringResource(R.string.no_users_online)
-                    )
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+            ) {
+                stickyHeader {
+                    ScreenTitleHeader(stringResource(R.string.online_users))
                 }
-            }
 
-            if (maleUsers.isNotEmpty()) {
-                stickyHeader { SectionHeader(stringResource(R.string.male_header), maleUsers.size) }
-                items(maleUsers, key = { it.userId ?: it.username ?: it.hashCode().toString() }) { prof ->
-                    OnlineUserRow(
-                        profile = prof,
-                        onClick = {
-                            scope.launch {
-                                val match = inviteOmegleUser(prof.userId)
-                                if (match != null) waitingMatch = match
-                            }
-                        }
-                    )
-                }
-            }
-
-            if (femaleUsers.isNotEmpty()) {
-                stickyHeader { SectionHeader(stringResource(R.string.female_header), femaleUsers.size) }
-                items(femaleUsers, key = { it.userId ?: it.username ?: it.hashCode().toString() }) { prof ->
-                    OnlineUserRow(
-                        profile = prof,
-                        onClick = {
-                            scope.launch {
-                                val match = inviteOmegleUser(prof.userId)
-                                if (match != null) waitingMatch = match
-                            }
-                        }
-                    )
-                }
-            }
-
-            if (otherUsers.isNotEmpty()) {
-                stickyHeader { SectionHeader(stringResource(R.string.other_header), otherUsers.size) }
-                items(otherUsers, key = { it.userId ?: it.username ?: it.hashCode().toString() }) { prof ->
-                    OnlineUserRow(
-                        profile = prof,
-                        onClick = {
-                            scope.launch {
-                                val match = inviteOmegleUser(prof.userId)
-                                if (match != null) waitingMatch = match
-                            }
-                        }
-                    )
-                }
-            }
-            if (hasMoreUsers) {
-                item {
-                    Button(
-                        onClick = {
-                            visibleCount = min(visibleCount + pageSize, users.size)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Text(stringResource(R.string.next_page))
+                if (!loading && users.isEmpty() && errorMessage == null) {
+                    item {
+                        EmptyState(
+                            text = stringResource(R.string.no_users_online)
+                        )
                     }
                 }
-            }
-            if (errorMessage != null) {
-                item {
-                    ErrorState(
-                        message = errorMessage!!,
-                        onRetry = {
-                            // Force a refresh by toggling loading; presence listener will repopulate
-                            loading = true
-                        }
-                    )
-                }
-            }
-            item { Spacer(Modifier.height(12.dp)) }
-        }
 
-        if (loading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        }
+                if (maleUsers.isNotEmpty()) {
+                    stickyHeader { SectionHeader(stringResource(R.string.male_header), maleUsers.size) }
+                    items(maleUsers, key = { it.userId ?: it.username ?: it.hashCode().toString() }) { prof ->
+                        OnlineUserRow(
+                            profile = prof,
+                            onClick = {
+                                scope.launch {
+                                    val match = inviteOmegleUser(prof.userId)
+                                    if (match != null) waitingMatch = match
+                                }
+                            }
+                        )
+                    }
+                }
+
+                if (femaleUsers.isNotEmpty()) {
+                    stickyHeader { SectionHeader(stringResource(R.string.female_header), femaleUsers.size) }
+                    items(femaleUsers, key = { it.userId ?: it.username ?: it.hashCode().toString() }) { prof ->
+                        OnlineUserRow(
+                            profile = prof,
+                            onClick = {
+                                scope.launch {
+                                    val match = inviteOmegleUser(prof.userId)
+                                    if (match != null) waitingMatch = match
+                                }
+                            }
+                        )
+                    }
+                }
+
+                if (otherUsers.isNotEmpty()) {
+                    stickyHeader { SectionHeader(stringResource(R.string.other_header), otherUsers.size) }
+                    items(otherUsers, key = { it.userId ?: it.username ?: it.hashCode().toString() }) { prof ->
+                        OnlineUserRow(
+                            profile = prof,
+                            onClick = {
+                                scope.launch {
+                                    val match = inviteOmegleUser(prof.userId)
+                                    if (match != null) waitingMatch = match
+                                }
+                            }
+                        )
+                    }
+                }
+                if (hasMoreUsers) {
+                    item {
+                        Button(
+                            onClick = {
+                                visibleCount = min(visibleCount + pageSize, users.size)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Text(stringResource(R.string.next_page))
+                        }
+                    }
+                }
+                if (errorMessage != null) {
+                    item {
+                        ErrorState(
+                            message = errorMessage!!,
+                            onRetry = {
+                                errorMessage = null
+                                loading = true
+                                retrySignal += 1
+                            }
+                        )
+                    }
+                }
+                item { Spacer(Modifier.height(12.dp)) }
+            }
+
+            if (loading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
         }
     }
 

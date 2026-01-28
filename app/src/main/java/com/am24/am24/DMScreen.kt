@@ -104,6 +104,7 @@ fun DMScreenContent(
     val messagesRootRef = remember { database.getReference("messages") }
     val ratingsRef = remember { database.getReference("ratings") }
     val dmBootstrap by datingViewModel.dmBootstrap.collectAsState()
+    val dmMatchCache by datingViewModel.dmMatchCache.collectAsState()
     val sessionReady by SessionDataRepository.sessionReady.collectAsState(initial = false)
     val matchIds by SessionDataRepository.matchIds.collectAsState()
     val blockedIds by SessionDataRepository.blockedUserIds.collectAsState()
@@ -319,7 +320,7 @@ fun DMScreenContent(
         }
     }
 
-    fun refreshMatches(userIds: List<String>) {
+    fun refreshMatches(userIds: List<String>, matchKey: String, likesKey: String) {
         matchesLoadJob?.cancel()
         matchesLoadJob = coroutineScope.launch {
             try {
@@ -328,6 +329,7 @@ fun DMScreenContent(
                     matchedUsers.clear()
                     nonInitiatedMatches.clear()
                     attachMessageListenersForProfiles(emptyList())
+                    datingViewModel.clearDmMatchCache()
                     return@launch
                 }
                 val fetchedProfiles = fetchProfiles(usersRef, userIds)
@@ -343,6 +345,12 @@ fun DMScreenContent(
                 nonInitiatedMatches.addAll(nonInitiated)
                 prefetchProfileImages(fetchedProfiles)
                 attachMessageListenersForProfiles(fetchedProfiles)
+                datingViewModel.cacheDmMatches(
+                    matchKey = matchKey,
+                    likesKey = likesKey,
+                    matchedUsers = fetchedProfiles,
+                    nonInitiatedMatches = nonInitiated
+                )
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 Log.e("DMScreen", "Failed to refresh matches", e)
@@ -353,9 +361,23 @@ fun DMScreenContent(
         }
     }
 
-    LaunchedEffect(matchIds) {
-        refreshMatches(matchIds.toList())
-        datingViewModel.refreshDmBootstrap(currentUserId, force = true)
+    LaunchedEffect(matchIds, likesMap) {
+        val matchKey = matchIds.sorted().joinToString(",")
+        val likesKey = likesMap.keys.sorted().joinToString(",")
+        val cache = dmMatchCache
+        if (cache != null && cache.matchKey == matchKey && cache.likesKey == likesKey) {
+            matchedUsers.clear()
+            matchedUsers.addAll(cache.matchedUsers)
+            nonInitiatedMatches.clear()
+            nonInitiatedMatches.addAll(cache.nonInitiatedMatches)
+            prefetchProfileImages(cache.matchedUsers)
+            attachMessageListenersForProfiles(cache.matchedUsers)
+            isLoadingMatches = false
+            matchesInitialized = true
+            return@LaunchedEffect
+        }
+        refreshMatches(matchIds.toList(), matchKey, likesKey)
+        datingViewModel.refreshDmBootstrap(currentUserId)
     }
 
     LaunchedEffect(likesMap) {

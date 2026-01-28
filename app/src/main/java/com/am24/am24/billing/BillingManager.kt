@@ -14,7 +14,6 @@ import com.am24.am24.MyApp
 import com.facebook.appevents.AppEventsLogger
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.MutableData
 import com.google.firebase.database.Transaction
 import com.google.firebase.functions.FirebaseFunctions

@@ -18,7 +18,7 @@ import kotlinx.coroutines.tasks.await
 import com.google.firebase.functions.FirebaseFunctions
 import java.util.concurrent.TimeUnit
 import com.google.gson.Gson
-
+import com.google.firebase.database.Query
 data class ChatUiState(
     val otherUserProfile: Profile? = null,
     val messages: List<Message> = emptyList(),
@@ -31,7 +31,9 @@ data class ChatUiState(
 )
 
 class ChatViewModel : ViewModel() {
-
+    companion object {
+        private const val MESSAGE_HISTORY_LIMIT = 300
+    }
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
@@ -42,6 +44,7 @@ class ChatViewModel : ViewModel() {
     private val gson = Gson()
 
     private var messagesRef: DatabaseReference? = null
+    private var messagesQuery: Query? = null
     private var typingRef: DatabaseReference? = null
     private var messagesListener: ValueEventListener? = null
     private var typingListener: ValueEventListener? = null
@@ -180,6 +183,7 @@ class ChatViewModel : ViewModel() {
 
     private fun observeMessages() {
         val ref = messagesRef ?: return
+        val query = ref.limitToLast(MESSAGE_HISTORY_LIMIT)
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val list = snapshot.children.mapNotNull { child ->
@@ -214,7 +218,8 @@ class ChatViewModel : ViewModel() {
             }
         }
         messagesListener = listener
-        ref.addValueEventListener(listener)
+        messagesQuery = query
+        query.addValueEventListener(listener)
     }
 
     private fun fetchRatings(otherUid: String) {
@@ -260,11 +265,12 @@ class ChatViewModel : ViewModel() {
     )
 
     private fun clearListeners() {
-        messagesListener?.let { listener -> messagesRef?.removeEventListener(listener) }
+        messagesListener?.let { listener -> messagesQuery?.removeEventListener(listener) }
         typingListener?.let { listener -> typingRef?.removeEventListener(listener) }
         messagesListener = null
         typingListener = null
         messagesRef = null
+        messagesQuery = null
         typingRef = null
     }
 

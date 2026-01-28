@@ -225,6 +225,11 @@ fun ChatScreenContent(
     LaunchedEffect(currentUserId, otherUserId) {
         profileViewModel.fetchCurrentUserProfile()
         chatViewModel.startSession(currentUserId, otherUserId)
+        markChatNotificationsRead(
+            notificationsRef = notificationsRef,
+            currentUserId = currentUserId,
+            otherUserId = otherUserId
+        )
     }
     var aiRequestLaunched by rememberSaveable(otherUserId) { mutableStateOf(false) }
     LaunchedEffect(currentUserProfile, otherUserProfile, aiMatchResult) {
@@ -2545,6 +2550,38 @@ fun updateUserRating(ratingsRef: DatabaseReference, usersRef: DatabaseReference,
 
 fun getChatId(userId1: String, userId2: String): String = if (userId1 < userId2) "${userId1}_$userId2" else "${userId2}_$userId1"
 
+suspend fun markChatNotificationsRead(
+    notificationsRef: DatabaseReference,
+    currentUserId: String,
+    otherUserId: String
+) {
+    withContext(Dispatchers.IO) {
+        try {
+            val snapshot = notificationsRef.child(currentUserId)
+                .orderByChild("senderId")
+                .equalTo(otherUserId)
+                .get()
+                .await()
+            if (!snapshot.exists()) return@withContext
+            val updates = mutableMapOf<String, Any>()
+            snapshot.children.forEach { child ->
+                val type = child.child("type").getValue(String::class.java)
+                val isRead = child.child("isRead").getValue(String::class.java)
+                if (type == "chat_message" && isRead != "true") {
+                    child.key?.let { key ->
+                        updates["$key/isRead"] = "true"
+                    }
+                }
+            }
+            if (updates.isNotEmpty()) {
+                notificationsRef.child(currentUserId).updateChildren(updates).await()
+            }
+        } catch (e: Exception) {
+            Log.e("ChatScreen", "Failed to mark chat notifications read: ${e.message}")
+        }
+    }
+}
+
 fun postNotification(
     notificationsRef: DatabaseReference,
     toUserId: String,
@@ -2552,6 +2589,8 @@ fun postNotification(
     fromUsername: String,
     message: String
 ) {
+    Log.i("Notifications", "Message notifications disabled; skipping notification for $toUserId.")
+    return
     val notificationId = notificationsRef.child(toUserId).push().key ?: return
     val noti = Notification(
         id = notificationId,

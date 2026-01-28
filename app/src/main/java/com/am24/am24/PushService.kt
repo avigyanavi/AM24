@@ -78,7 +78,7 @@ class PushService : FirebaseMessagingService() {
                 NotificationManagerCompat.from(this).notify(
                     99,
                     NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.kupidx_notification)
+                        .setSmallIcon(R.drawable.kupidx_logo1_round)
                         .setContentTitle(getString(R.string.app_name))
                         .setContentText(
                             resources.getQuantityString(
@@ -112,7 +112,7 @@ class PushService : FirebaseMessagingService() {
                 NotificationManagerCompat.from(this).notify(
                     98,
                     NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.kupidx_notification)
+                       .setSmallIcon(R.drawable.kupidx_logo1_round)
                         .setContentTitle(getString(R.string.app_name))
                         .setContentText(getString(R.string.notification_upgrade_prompt))
                         .setAutoCancel(true)
@@ -169,7 +169,7 @@ class PushService : FirebaseMessagingService() {
                 NotificationManagerCompat.from(this).notify(
                     96,
                     NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.kupidx_notification)
+                       .setSmallIcon(R.drawable.kupidx_logo1_round)
                         .setContentTitle(getString(R.string.app_name))
                         .setContentText(message)
                         .setAutoCancel(true)
@@ -196,7 +196,7 @@ class PushService : FirebaseMessagingService() {
                 NotificationManagerCompat.from(this).notify(
                     95,
                     NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.kupidx_notification)
+                       .setSmallIcon(R.drawable.kupidx_logo1_round)
                         .setContentTitle(getString(R.string.app_name))
                         .setContentText(message)
                         .setAutoCancel(true)
@@ -224,7 +224,7 @@ class PushService : FirebaseMessagingService() {
                 NotificationManagerCompat.from(this).notify(
                     94,
                     NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.kupidx_notification)
+                       .setSmallIcon(R.drawable.kupidx_logo1_round)
                         .setContentTitle(getString(R.string.app_name))
                         .setContentText(message)
                         .setAutoCancel(true)
@@ -256,7 +256,7 @@ class PushService : FirebaseMessagingService() {
                 NotificationManagerCompat.from(this).notify(
                     93,
                     NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.kupidx_notification)
+                       .setSmallIcon(R.drawable.kupidx_logo1_round)
                         .setContentTitle(getString(R.string.app_name))
                         .setContentText(message)
                         .setAutoCancel(true)

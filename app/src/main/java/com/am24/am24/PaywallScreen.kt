@@ -175,13 +175,13 @@ fun PaywallScreen(onPaid: () -> Unit) {
 
     val formattedEntryPrice = entryOffer?.formattedPrice
 
-    val entryFeeMessage = when {
-        formattedEntryPrice != null && isIndia -> stringResource(R.string.paywall_entry_fee_message_india, formattedEntryPrice)
-        formattedEntryPrice != null && isMexico -> stringResource(R.string.paywall_entry_fee_message_mexico, formattedEntryPrice)
-        formattedEntryPrice != null && isUnitedStates -> stringResource(R.string.paywall_entry_fee_message_us, formattedEntryPrice)
-        formattedEntryPrice != null -> stringResource(R.string.paywall_entry_fee_message_generic, formattedEntryPrice)
-        else -> stringResource(R.string.paywall_entry_fee_loading)
-    }
+//    val entryFeeMessage = when {
+//        formattedEntryPrice != null && isIndia -> stringResource(R.string.paywall_entry_fee_message_india, formattedEntryPrice)
+//        formattedEntryPrice != null && isMexico -> stringResource(R.string.paywall_entry_fee_message_mexico, formattedEntryPrice)
+//        formattedEntryPrice != null && isUnitedStates -> stringResource(R.string.paywall_entry_fee_message_us, formattedEntryPrice)
+//        formattedEntryPrice != null -> stringResource(R.string.paywall_entry_fee_message_generic, formattedEntryPrice)
+//        else -> stringResource(R.string.paywall_entry_fee_loading)
+//    }
 
     val buttonLabel = when {
         isProcessing -> stringResource(R.string.paywall_button_processing)
@@ -207,60 +207,45 @@ fun PaywallScreen(onPaid: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            stringResource(R.string.paywall_title),
-            color = Color.White,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Text("Just another step")
         Spacer(Modifier.height(16.dp))
-        Text(text = entryFeeMessage, color = Color.White)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(R.string.paywall_opening_offer_message),
-            color = Color.White,
-            fontSize = 14.sp
-        )
-        trialStatusText?.let {
-            Spacer(Modifier.height(12.dp))
-            Text(it, color = Color.White, fontSize = 12.sp)
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Just one last step…",
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                text = "Finalizing your access.",
-                color = Color.White,
-                fontSize = 16.sp
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Text(
-                text = "This will only take a moment.",
-                color = Color.Gray,
-                fontSize = 13.sp
-            )
-
-            Spacer(Modifier.height(32.dp))
-
-            CircularProgressIndicator(
-                color = Color(0xFFFF6F00),
-                strokeWidth = 3.dp
-            )
-        }
+//        Text(text = entryFeeMessage, color = Color.White)
+//        Column(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .padding(24.dp),
+//            horizontalAlignment = Alignment.CenterHorizontally,
+//            verticalArrangement = Arrangement.Center
+//        ) {
+//            Text(
+//                text = "Just one last step…",
+//                color = Color.White,
+//                fontSize = 24.sp,
+//                fontWeight = FontWeight.Bold
+//            )
+//
+//            Spacer(Modifier.height(16.dp))
+//
+//            Text(
+//                text = "Finalizing your access.",
+//                color = Color.White,
+//                fontSize = 16.sp
+//            )
+//
+//            Spacer(Modifier.height(8.dp))
+//
+//            Text(
+//                text = "This will only take a moment.",
+//                color = Color.Gray,
+//                fontSize = 13.sp
+//            )
+//
+//            Spacer(Modifier.height(32.dp))
+//
+//            CircularProgressIndicator(
+//                color = Color(0xFFFF6F00),
+//                strokeWidth = 3.dp
+//            )
+//        }
     }
 }

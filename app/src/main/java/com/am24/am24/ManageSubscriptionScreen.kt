@@ -353,7 +353,7 @@ private fun CurrentMembershipCard(
                 color = Color.White
             )
             Text(
-                text = "Renews on: $expiry",
+                text = "Expires: $expiry",
                 color = Color.White,
                 fontSize = 14.sp
             )

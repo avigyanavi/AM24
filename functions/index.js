@@ -4149,6 +4149,7 @@ exports.pushLikeNotification = functions
   .onCreate(async (snapshot, ctx) => {
     const notification = snapshot.val() || {};
     const type = notification.type;
+
     const supportedTypes = new Set([
       'new_like',
       'new_match',
@@ -4160,29 +4161,39 @@ exports.pushLikeNotification = functions
       'post_comment',
       'match_post',
     ]);
+
     if (!supportedTypes.has(type)) return null;
 
+    // ✅ HARD DISABLE: do nothing for chat messages (no tokens, no send, nothing)
+    if (type === 'chat_message') {
+      logger.info('pushLikeNotification: chat_message suppressed', {
+        uid: ctx.params.uid,
+        nid: ctx.params.nid,
+      });
+      return null;
+    }
+
     const uid = ctx.params.uid;
+
     const tokenSnap = await admin.database()
       .ref(`users/${uid}/fcmTokens`)
       .once('value');
+
     const tokens = Object.keys(tokenSnap.val() || {});
     if (!tokens.length) return null;
 
     const message = typeof notification.message === 'string' && notification.message.trim()
       ? notification.message
       : (() => {
-        switch (type) {
-          case 'new_like':
-            return 'You have a new like!';
-          case 'new_match':
-            return 'Your like was accepted!';
-          case 'chat_message':
-            return 'You have a new message.';
-          default:
-            return 'You have a new update.';
-        }
-      })();
+          switch (type) {
+            case 'new_like':
+              return 'You have a new like!';
+            case 'new_match':
+              return 'Your like was accepted!';
+            default:
+              return 'You have a new update.';
+          }
+        })();
 
     const res = await admin.messaging().sendEachForMulticast({
       tokens,
@@ -4198,11 +4209,14 @@ exports.pushLikeNotification = functions
 
     const updates = {};
     res.responses.forEach((r, i) => {
-      if (!r.success &&
-          r.error?.code === 'messaging/registration-token-not-registered') {
+      if (
+        !r.success &&
+        r.error?.code === 'messaging/registration-token-not-registered'
+      ) {
         updates[tokens[i]] = null;
       }
     });
+
     if (Object.keys(updates).length) {
       await admin.database().ref(`users/${uid}/fcmTokens`).update(updates);
     }
@@ -4216,6 +4230,7 @@ exports.pushLikeNotification = functions
 
     return null;
   });
+
 
 exports.backfillScreenTrackingFieldsForUser = functions
   .region('asia-south1')

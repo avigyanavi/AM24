@@ -636,5 +636,33 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             Log.d(TAG, "VM – reportUser complete")
         }
     }
+
+    data class DmMatchCache(
+        val matchKey: String,
+        val likesKey: String,
+        val matchedUsers: List<Profile>,
+        val nonInitiatedMatches: List<Profile>
+    )
+
+    private val _dmMatchCache = MutableStateFlow<DmMatchCache?>(null)
+    val dmMatchCache: StateFlow<DmMatchCache?> = _dmMatchCache.asStateFlow()
+
+    fun cacheDmMatches(
+        matchKey: String,
+        likesKey: String,
+        matchedUsers: List<Profile>,
+        nonInitiatedMatches: List<Profile>
+    ) {
+        _dmMatchCache.value = DmMatchCache(
+            matchKey = matchKey,
+            likesKey = likesKey,
+            matchedUsers = matchedUsers,
+            nonInitiatedMatches = nonInitiatedMatches
+        )
+    }
+
+    fun clearDmMatchCache() {
+        _dmMatchCache.value = null
+    }
 }
 
