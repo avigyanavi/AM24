@@ -511,7 +511,6 @@ fun MapScreen(
             isPlus = state.isPlus
             isPremium = state.isPremium
             userCountry = state.userCountry
-            isIndian = state.isIndian
             remainingSwipes = state.remainingSwipes
             swipesLoaded = true
             loginPlusExpiry = state.loginPlusExpiry
@@ -618,7 +617,6 @@ fun MapScreen(
                 isPlus = isPlusFlag,
                 isPremium = isPremiumFlag,
                 userCountry = userCountry,
-                isIndian = isIndian,
                 remainingSwipes = remaining,
                 loginPlusExpiry = loginPlusExpiry,
                 entryFeePaidAt = entryFeePaidAt,
@@ -1695,45 +1693,74 @@ fun MapScreen(
                     /* ======================= BOOSTED USERS TAB ======================= */
                     2 -> {
                         val boostedLoading = boostedUsers.isEmpty() && isBoostedLoading
-                        PeopleGrid(
-                            users = boostedUsers,
-                            isLoading = boostedLoading,
-                            pageIndex = 0,
-                            pageCount = 1,
-                            onClick = {
-                                if (swipesLoaded && remainingSwipes <= 0) {
-                                    showSwipeLimitOverlay = true
-                                } else {
-                                    navController.navigate("previewUserProfile/${it.userId}")
+                        val boostsAvailable = currentUserProfile?.availableBoosts ?: 0
+                        if (boostedUsers.isEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(24.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.no_boosted_users_yet),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Button(
+                                    onClick = {
+                                        if (boostsAvailable > 0) {
+                                            datingViewModel.boostUser(userId)
+                                        } else {
+                                            navController.navigate("buyBoosts")
+                                        }
+                                    }
+                                ) {
+                                    Text(stringResource(R.string.boost_me))
                                 }
-                            },
-                            useMiles = useMiles,
-                            onRemove = { uid ->
-                                scope.launch {
-                                    nearbyViewModel.addExcluded(uid)
-                                    FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid")
-                                        .setValue(true)
-                                }
-                                removeUserFromCaches(uid)
-                                if (uid !in hiddenBoostedIds) {
-                                    hiddenBoostedIds += uid
-                                }
-                            },
-                            onBlock = { uid ->
-                                scope.launch {
-                                    FirebaseRefs.db.getReference("blocks/$userId/$uid")
-                                        .setValue(true)
-                                    nearbyViewModel.addExcluded(uid)
-                                }
-                                removeUserFromCaches(uid)
-                                if (uid !in hiddenBoostedIds) {
-                                    hiddenBoostedIds += uid
-                                }
-                            },
-                            onBackPage = {},
-                            onNextPage = {},
-                            showPagination = false
-                        )
+                            }
+                        } else {
+                            PeopleGrid(
+                                users = boostedUsers,
+                                isLoading = boostedLoading,
+                                pageIndex = 0,
+                                pageCount = 1,
+                                onClick = {
+                                    if (swipesLoaded && remainingSwipes <= 0) {
+                                        showSwipeLimitOverlay = true
+                                    } else {
+                                        navController.navigate("previewUserProfile/${it.userId}")
+                                    }
+                                },
+                                useMiles = useMiles,
+                                onRemove = { uid ->
+                                    scope.launch {
+                                        nearbyViewModel.addExcluded(uid)
+                                        FirebaseRefs.db.getReference("users/$userId/permanentExcludes/$uid")
+                                            .setValue(true)
+                                    }
+                                    removeUserFromCaches(uid)
+                                    if (uid !in hiddenBoostedIds) {
+                                        hiddenBoostedIds += uid
+                                    }
+                                },
+                                onBlock = { uid ->
+                                    scope.launch {
+                                        FirebaseRefs.db.getReference("blocks/$userId/$uid")
+                                            .setValue(true)
+                                        nearbyViewModel.addExcluded(uid)
+                                    }
+                                    removeUserFromCaches(uid)
+                                    if (uid !in hiddenBoostedIds) {
+                                        hiddenBoostedIds += uid
+                                    }
+                                },
+                                onBackPage = {},
+                                onNextPage = {},
+                                showPagination = false
+                            )
+                        }
                     }
 
                     /* ======================= MAP TAB (old map restored) ======================= */
@@ -2268,13 +2295,8 @@ fun MapScreen(
                 remainingSwipes = remainingSwipes,
                 isPlus = isPlus,
                 isPremium = isPremium,
-                isIndian = isIndian,
                 onUpgrade = {
-                    if (isIndian) {
-                        navController.navigate("buySwipes")
-                    } else {
-                        navController.navigate("subscription?allowIfSubscribed=true&force=false")
-                    }
+                    navController.navigate("buySwipes")
                     showSwipeLimitOverlay = false
                 }
             )

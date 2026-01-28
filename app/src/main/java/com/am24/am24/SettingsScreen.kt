@@ -461,11 +461,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                         title        = stringResource(R.string.settings_get_more_swipes),
                         trailingText = "$swipes",
                         onClick = {
-                            if (isIndian) {
-                                navController.navigate("buySwipes")
-                            } else {
-                                navController.navigate("subscription?allowIfSubscribed=true&force=false")
-                            }
+                            navController.navigate("buySwipes")
                         }
                     )
                     Divider(Modifier.padding(start = 56.dp))
@@ -476,11 +472,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                         title        = stringResource(R.string.settings_get_more_compliments),
                         trailingText = "$compliments",
                         onClick = {
-                            if (isIndian) {
-                                navController.navigate("buyCompliments")
-                            } else {
-                                navController.navigate("subscription?allowIfSubscribed=true&force=false")
-                            }
+                            navController.navigate("buyBoosts")
                         }
                     )
                     Divider(Modifier.padding(start = 56.dp))
@@ -490,11 +482,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                         title        = stringResource(R.string.settings_get_more_boosts),
                         trailingText = boosts.toString(),
                         onClick = {
-                            if (isIndian) {
-                                navController.navigate("buyBoosts")
-                            } else {
-                                navController.navigate("subscription?allowIfSubscribed=true&force=false")
-                            }
+                            navController.navigate("buyBoosts")
                         }
                     )
                     Divider(Modifier.padding(start = 56.dp))

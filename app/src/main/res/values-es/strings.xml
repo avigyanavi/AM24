@@ -544,6 +544,8 @@
     <string name="dm_remove_group">Eliminar grupo</string>
     <string name="dm_group_left">Has salido de %1$s.</string>
     <string name="tab_boosted_users">Usuarios destacados</string>
+    <string name="no_boosted_users_yet">Aún no hay usuarios impulsados</string>
+    <string name="boost_me">Impulsarme</string>
 
     <!-- LA Quick Tags (labels) -->
     <string name="la_tag_dtla_rooftops_label">Azoteas en DTLA</string>

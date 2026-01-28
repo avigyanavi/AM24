@@ -277,6 +277,8 @@
     <string name="dm_remove_group">Remove group</string>
     <string name="dm_group_left">You left %1$s.</string>
     <string name="tab_boosted_users">Boosted Users</string>
+    <string name="no_boosted_users_yet">No boosted users yet</string>
+    <string name="boost_me">Boost me</string>
     <string name="app_name">Kupidx</string>
     <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
     <string name="languages">Languages</string>

@@ -6048,6 +6048,8 @@
     <string name="dm_remove_group">Xóa nhóm</string>
     <string name="dm_group_left">Bạn đã rời khỏi %1$s.</string>
     <string name="tab_boosted_users">Người dùng được tăng cường</string>
+    <string name="no_boosted_users_yet">Chưa có người dùng được boost</string>
+    <string name="boost_me">Boost tôi</string>
 
     <!-- Subscription feature bullet points -->
     <string name="feature_no_ads">Không quảng cáo</string>

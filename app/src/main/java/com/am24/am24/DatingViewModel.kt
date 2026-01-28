@@ -493,7 +493,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             val boostedProfiles = snapshot.children.mapNotNull { child ->
                 val profile = child.getValue(Profile::class.java) ?: return@mapNotNull null
                 val uid = child.key.orEmpty()
-                if (uid.isBlank() || uid == currentUserId || uid in blocked) return@mapNotNull null
+                if (uid.isBlank() || uid in blocked) return@mapNotNull null
                 profile.userId = profile.userId.ifBlank { uid }
                 profile
             }

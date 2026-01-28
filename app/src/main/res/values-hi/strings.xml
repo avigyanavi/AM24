@@ -4685,6 +4685,8 @@
     <string name="dm_remove_group">समूह हटाएँ</string>
     <string name="dm_group_left">आपने %1$s छोड़ दिया।</string>
     <string name="tab_boosted_users">बूस्ट किए गए उपयोगकर्ता</string>
+    <string name="no_boosted_users_yet">अभी तक कोई बूस्ट किए गए उपयोगकर्ता नहीं हैं</string>
+    <string name="boost_me">मुझे बूस्ट करें</string>
 
     <string name="app_name">Kupidx</string>
         <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>

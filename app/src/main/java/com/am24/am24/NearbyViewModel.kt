@@ -39,7 +39,6 @@ data class MapBootstrapState(
     val isPlus: Boolean,
     val isPremium: Boolean,
     val userCountry: String?,
-    val isIndian: Boolean,
     val remainingSwipes: Int,
     val loginPlusExpiry: Long,
     val entryFeePaidAt: Long,

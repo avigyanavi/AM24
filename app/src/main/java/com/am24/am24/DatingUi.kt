@@ -489,7 +489,6 @@ fun SwipeLimitOverlay(
     remainingSwipes: Int,
     isPlus: Boolean,
     isPremium: Boolean,
-    isIndian: Boolean,
     onUpgrade: () -> Unit
 ) {
     val quota = when {
@@ -548,12 +547,10 @@ fun SwipeLimitOverlay(
                         onClick = onUpgrade,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F00))
                     ) {
-                        val labelRes = if (isIndian) {
-                            R.string.swipe_overlay_buy_swipes_button
-                        } else {
-                            R.string.swipe_overlay_upgrade_button
-                        }
-                        Text(stringResource(labelRes), color = Color.Black)
+                        Text(
+                            stringResource(R.string.swipe_overlay_buy_swipes_button),
+                            color = Color.Black
+                        )
                     }
                 }
             }

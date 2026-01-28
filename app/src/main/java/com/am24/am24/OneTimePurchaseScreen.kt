@@ -33,13 +33,12 @@ import com.am24.am24.R
 enum class PurchaseType(
     val apiType: String,
     val displayName: String,
-    val unitPricePaise: Int,
-    val unitPriceUsd: Double
+    val unitPricePaise: Int
 ) {
-    Swipes      ("swipes",      "Swipes",       100, 0.29),
-    Boosts      ("boosts",      "Boosts",       200, 1.99),
-    Compliments ("compliments", "Compliments",  150, 0.29),
-    AiMessages  ("aiMessages",  "AI messages",  200, 1.99);
+    Swipes      ("swipes",      "Swipes",       100),
+    Boosts      ("boosts",      "Boosts",       200),
+    Compliments ("compliments", "Compliments",  150),
+    AiMessages  ("aiMessages",  "AI messages",  200);
 
     fun skuFor(qty: Int): String = "${apiType.lowercase()}_${qty}"
     fun skuPrefix(): String = "${apiType.lowercase()}_"
@@ -119,12 +118,11 @@ fun OneTimePurchaseScreen(
     }
 
     val totalInrPaise = ui.selectedQty * type.unitPricePaise
-    val totalUsd      = ui.selectedQty * type.unitPriceUsd
     val selectedProduct = products.firstOrNull { it.productId == selectedSku }
     val displayPrice = when {
         isIndia -> "₹%.2f".format(totalInrPaise / 100.0)
         playPrice != null -> playPrice
-        else -> "$%.2f".format(totalUsd)
+        else -> ""
     }
 
     Scaffold(

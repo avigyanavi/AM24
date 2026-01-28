@@ -80,6 +80,14 @@ private fun canonicalLocationId(name: String): String {
     return cleaned.ifBlank { "general" }
 }
 
+private fun groupChatIdForTitle(title: String): String {
+    return when (title) {
+        "India" -> "group_india"
+        "United States" -> "group_usa"
+        else -> "group_${canonicalLocationId(title)}"
+    }
+}
+
 @Composable
 fun DMScreen(
     navController: NavController,
@@ -191,9 +199,13 @@ fun DMScreenContent(
 
 
 // 1️⃣  Build the chip list
-    val groupChatTitles = remember { mutableStateListOf<String>() }
-    LaunchedEffect(profile) {
-        val groups = buildList {
+    val groupChatTitles = remember(
+        profile.country,
+        profile.city,
+        profile.hometown,
+        profile.leftGroupChatIds
+    ) {
+        buildList {
             profile.country
                 .takeIf { it.isNotBlank() }
                 ?.let { add(it) }
@@ -203,9 +215,9 @@ fun DMScreenContent(
             profile.hometown
                 .takeIf { it.isNotBlank() }
                 ?.let { add(it) }
-        }.distinct()
-        groupChatTitles.clear()
-        groupChatTitles.addAll(groups)
+        }
+            .distinct()
+            .filterNot { title -> profile.leftGroupChatIds.contains(groupChatIdForTitle(title)) }
     }
 
 
@@ -408,12 +420,8 @@ fun DMScreenContent(
                 // 2️⃣  Map chip → chat-room ID
                 groupChatTitles.forEach { title ->
                     GroupChatChip(title) {
-                        val id = when (title) {
-                            "India" -> "group_india"
-                            "United States" -> "group_usa"
-                            else -> "group_${canonicalLocationId(title)}"
-                        }
-                        navController.navigate("groupChat/$id")
+                        val groupId = groupChatIdForTitle(title)
+                        navController.navigate("groupChat/$groupId")
                     }
 
                     Spacer(Modifier.width(6.dp))
@@ -452,7 +460,6 @@ fun DMScreenContent(
                     }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-
                 Button(
                     onClick = { showLeaveGroupsDialog = true },
                     colors = ButtonDefaults.buttonColors(
@@ -826,7 +833,6 @@ fun DMScreenContent(
                 }
             )
         }
-
         if (showLeaveGroupsDialog) {
             AlertDialog(
                 onDismissRequest = { showLeaveGroupsDialog = false },
@@ -865,7 +871,8 @@ fun DMScreenContent(
                                     )
                                     IconButton(
                                         onClick = {
-                                            groupChatTitles.remove(groupName)
+                                            val groupId = groupChatIdForTitle(groupName)
+                                            profileViewModel.leaveGroupChat(groupId)
                                             Toast.makeText(
                                                 context,
                                                 context.getString(R.string.dm_group_left, groupName),
@@ -896,7 +903,6 @@ fun DMScreenContent(
                 containerColor = Color(0xFF1E1E1E)
             )
         }
-
         if (matchesInitialized && !isLoadingMatches) {
             FloatingActionButton(
                 onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },

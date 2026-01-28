@@ -31,7 +31,7 @@ data class Profile(
     var freeTrialStartedAt: Long? = null,
     var freeTrialExpiry: Long? = null,
     var freeTrialCompleted: Boolean = false,
-
+    val leftGroupChatIds: List<String> = emptyList(),
     // Keep this: what the user is interested in (Men, Women, etc.)
     val interestedIn: List<String> = emptyList(),
     val preferredLanguage: String = "",
