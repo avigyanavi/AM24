@@ -114,6 +114,7 @@ fun ExploreScreen(
     val posts by postViewModel.filteredPosts.collectAsState()
     val hasMorePosts by postViewModel.hasMorePosts.collectAsState()
     val isLoadingMore by postViewModel.isLoadingMore.collectAsState()
+    val feedErrorMessage by postViewModel.feedErrorMessage.collectAsState()
     val currentUserId by postViewModel.currentUserIdFlow.collectAsState(initial = null)
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
 
@@ -175,7 +176,15 @@ fun ExploreScreen(
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
 
-        if (explorePosts.isEmpty() && filtersLoaded && !isInitialFeedLoading) {
+        if (feedErrorMessage != null && explorePosts.isEmpty() && filtersLoaded && !isInitialFeedLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = feedErrorMessage ?: "",
+                    color = Color.White.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else if (explorePosts.isEmpty() && filtersLoaded && !isInitialFeedLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = stringResource(R.string.explore_empty_prompt),

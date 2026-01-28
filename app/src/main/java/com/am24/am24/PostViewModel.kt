@@ -45,7 +45,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _hasMorePosts = MutableStateFlow(true)
     val hasMorePosts: StateFlow<Boolean> = _hasMorePosts.asStateFlow()
-
+    private val _feedErrorMessage = MutableStateFlow<String?>(null)
+    val feedErrorMessage: StateFlow<String?> = _feedErrorMessage.asStateFlow()
     private val _isLoadingMore = MutableStateFlow(false)
     val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
     // Firebase Storage reference
@@ -757,6 +758,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         oldestLoadedTimestamp = null
         _hasMorePosts.value = true
         _isLoadingMore.value = false
+        _feedErrorMessage.value = null
         detachPostsListener()
         postsListener = null
         observePosts() // Re-attach listener
@@ -813,6 +815,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
                 override fun onCancelled(error: DatabaseError) {
                     Log.e(TAG, "Failed to observe posts: ${error.message}")
+                    _feedErrorMessage.value = "Posts couldn't be loaded"
                     _isInitialFeedLoading.value = false
                 }
             }
@@ -850,6 +853,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 _isInitialFeedLoading.value = false
             } catch (e: Exception) {
                 Log.e(TAG, "One-time fetch failed: ${e.message}")
+                _feedErrorMessage.value = "Posts couldn't be loaded"
                 _isInitialFeedLoading.value = false
             }
         }

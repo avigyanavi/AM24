@@ -121,6 +121,7 @@ fun HomeScreen(
     // Wait for filters to load.
     val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
     val isInitialFeedLoading by postViewModel.isInitialFeedLoading.collectAsState()
+    val feedErrorMessage by postViewModel.feedErrorMessage.collectAsState()
     val isLoadingState = !filtersLoaded || isInitialFeedLoading
     var showLoadingFallback by remember { mutableStateOf(false) }
     LaunchedEffect(isLoadingState) {
@@ -148,46 +149,59 @@ fun HomeScreen(
         val posts by postViewModel.filteredPosts.collectAsState()
         Log.d("HomeScreen", "Filtered Posts Count in HomeScreen: ${posts.size}")
 
-        val userProfiles by postViewModel.userProfiles.collectAsState()
-        val filterSettings by postViewModel.filterSettings.collectAsState()
-        val myMatches by SessionDataRepository.matchIds.collectAsState()
-        val userProfile by profileViewModel.currentUserProfile.collectAsState()
-        val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()
-        val isFeedSearchMode by postViewModel.isFeedSearchMode.collectAsState()
-        val isFeedSearchLoading by postViewModel.isFeedSearchLoading.collectAsState()
-        val feedSearchQuery by postViewModel.feedSearchQuery.collectAsState()
-        val feedSearchResults by postViewModel.feedSearchResults.collectAsState()
-        val feedSearchTab by postViewModel.feedSearchSelectedTab.collectAsState()
+        if (feedErrorMessage != null && posts.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = feedErrorMessage ?: "",
+                    color = Color.White.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else {
+            val userProfiles by postViewModel.userProfiles.collectAsState()
+            val filterSettings by postViewModel.filterSettings.collectAsState()
+            val myMatches by SessionDataRepository.matchIds.collectAsState()
+            val userProfile by profileViewModel.currentUserProfile.collectAsState()
+            val isFeedSearchVisible by postViewModel.isFeedSearchVisible.collectAsState()
+            val isFeedSearchMode by postViewModel.isFeedSearchMode.collectAsState()
+            val isFeedSearchLoading by postViewModel.isFeedSearchLoading.collectAsState()
+            val feedSearchQuery by postViewModel.feedSearchQuery.collectAsState()
+            val feedSearchResults by postViewModel.feedSearchResults.collectAsState()
+            val feedSearchTab by postViewModel.feedSearchSelectedTab.collectAsState()
 
-        // Show HomeScreenContent with the updated data.
-        HomeScreenContent(
-            navController = navController,
-            modifier = modifier,
-            posts = posts,
-            postViewModel = postViewModel,
-            userProfiles = userProfiles,
-            matches      = myMatches.toList(),
-            filterOption = filterSettings.filterOption,
-            filterValue = "",  // if extra parameter needed
-            searchQuery = feedSearchQuery,
-            isSearchBarVisible = isFeedSearchVisible,
-            isSearchMode = isFeedSearchMode,
-            searchResults = feedSearchResults,
-            searchTabIndex = feedSearchTab,
-            isSearchLoading = isFeedSearchLoading,
-            onSearchTabSelected = { postViewModel.setFeedSearchSelectedTab(it) },
-            onFilterOptionChanged = { newOption -> postViewModel.setFilterOption(newOption) },
-            onSearchQueryChanged = { newQuery -> postViewModel.updateFeedSearchQuery(newQuery) },
-            onSearchRequest = { postViewModel.performFeedSearch() },
-            onShowSearch = { postViewModel.showFeedSearchBar() },
-            userId = userId,
-            userProfile = userProfile,
-            sortOption = filterSettings.sortOption,
-            onSortOptionChanged = { newSortOption -> postViewModel.setSortOption(newSortOption) },
-            listState = rememberLazyListState(), // Pass listState for scroll control
-            isPremium = isPremium,           // NEW
-            isPlus = isPlus                  // NEW
-        )
+            // Show HomeScreenContent with the updated data.
+            HomeScreenContent(
+                navController = navController,
+                modifier = modifier,
+                posts = posts,
+                postViewModel = postViewModel,
+                userProfiles = userProfiles,
+                matches      = myMatches.toList(),
+                filterOption = filterSettings.filterOption,
+                filterValue = "",  // if extra parameter needed
+                searchQuery = feedSearchQuery,
+                isSearchBarVisible = isFeedSearchVisible,
+                isSearchMode = isFeedSearchMode,
+                searchResults = feedSearchResults,
+                searchTabIndex = feedSearchTab,
+                isSearchLoading = isFeedSearchLoading,
+                onSearchTabSelected = { postViewModel.setFeedSearchSelectedTab(it) },
+                onFilterOptionChanged = { newOption -> postViewModel.setFilterOption(newOption) },
+                onSearchQueryChanged = { newQuery -> postViewModel.updateFeedSearchQuery(newQuery) },
+                onSearchRequest = { postViewModel.performFeedSearch() },
+                onShowSearch = { postViewModel.showFeedSearchBar() },
+                userId = userId,
+                userProfile = userProfile,
+                sortOption = filterSettings.sortOption,
+                onSortOptionChanged = { newSortOption -> postViewModel.setSortOption(newSortOption) },
+                listState = rememberLazyListState(), // Pass listState for scroll control
+                isPremium = isPremium,           // NEW
+                isPlus = isPlus                  // NEW
+            )
+        }
     }
 }
 
