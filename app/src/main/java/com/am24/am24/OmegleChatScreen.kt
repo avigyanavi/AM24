@@ -25,6 +25,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.tasks.await
 
+private const val OMEGLE_CHAT_HISTORY_LIMIT = 200
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: String) {
@@ -51,7 +53,10 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
             }
             override fun onCancelled(error: DatabaseError) {}
         }
-        dbRef.child("messages").addValueEventListener(msgListener)
+        val messagesQuery = dbRef.child("messages")
+            .orderByChild("timestamp")
+            .limitToLast(OMEGLE_CHAT_HISTORY_LIMIT)
+        messagesQuery.addValueEventListener(msgListener)
         val endListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val ended = snapshot.getValue(Boolean::class.java) == true
@@ -63,7 +68,7 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
         }
         dbRef.child("ended").addValueEventListener(endListener)
         onDispose {
-            dbRef.child("messages").removeEventListener(msgListener)
+            messagesQuery.removeEventListener(msgListener)
             dbRef.child("ended").removeEventListener(endListener)
         }
     }

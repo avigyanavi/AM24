@@ -96,7 +96,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.ServerValue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
+import androidx.compose.ui.platform.LocalDensity
+import coil.request.ImageRequest
 @Composable
 fun ExploreScreen(
     postViewModel: PostViewModel,
@@ -249,6 +250,13 @@ private fun ExploreGrid(
     posts: List<Post>,
     onPostClick: (Int) -> Unit
 ) {
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val gridImageSizePx = remember(configuration, density) {
+        val sizeDp = configuration.screenWidthDp.dp / 3
+        with(density) { sizeDp.roundToPx() }
+    }
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         modifier = Modifier.fillMaxSize(),
@@ -270,7 +278,10 @@ private fun ExploreGrid(
                     }
                     !post.mediaUrl.isNullOrBlank() -> {
                         AsyncImage(
-                            model = post.mediaThumb?.takeIf { it.isNotBlank() } ?: post.mediaUrl,
+                            model = ImageRequest.Builder(context)
+                                .data(post.mediaThumb?.takeIf { it.isNotBlank() } ?: post.mediaUrl)
+                                .size(gridImageSizePx)
+                                .build(),
                             contentDescription = stringResource(R.string.explore_media_grid_desc),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
@@ -318,7 +329,15 @@ private fun ExploreMediaQueueDialog(
     onComments: (String) -> Unit
 ) {
     val listState = rememberLazyListState()
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val screenWidthPx = remember(configuration, density) {
+        with(density) { configuration.screenWidthDp.dp.roundToPx() }
+    }
+    val screenHeightPx = remember(configuration, density) {
+        with(density) { configuration.screenHeightDp.dp.roundToPx() }
+    }
 
     val initialIndex = remember(posts, initialPostId) {
         posts.indexOfFirst { it.postId == initialPostId }.coerceAtLeast(0)
@@ -343,6 +362,8 @@ private fun ExploreMediaQueueDialog(
                     ExploreQueueItem(
                         post = post,
                         screenHeight = screenHeight,
+                        screenWidthPx = screenWidthPx,
+                        screenHeightPx = screenHeightPx,
                         currentUserId = currentUserId,
                         onLike = { onLike(post.postId) },
                         onComments = { onComments(post.postId) }
@@ -421,10 +442,13 @@ private fun ExploreVoiceGridTile(post: Post) {
 private fun ExploreQueueItem(
     post: Post,
     screenHeight: Dp,
+    screenWidthPx: Int,
+    screenHeightPx: Int,
     currentUserId: String?,
     onLike: () -> Unit,
     onComments: () -> Unit
 ) {
+    val context = LocalContext.current
     val mediaUrl = post.mediaUrl
     val scope = rememberCoroutineScope()
     var showHeart by remember { mutableStateOf(false) }
@@ -479,7 +503,10 @@ private fun ExploreQueueItem(
             }
             !mediaUrl.isNullOrBlank() -> {
                 AsyncImage(
-                    model = post.mediaThumb?.takeIf { it.isNotBlank() } ?: mediaUrl,
+                    model = ImageRequest.Builder(context)
+                        .data(post.mediaThumb?.takeIf { it.isNotBlank() } ?: mediaUrl)
+                        .size(screenWidthPx, screenHeightPx)
+                        .build(),
                     contentDescription = stringResource(R.string.explore_media_queue_desc),
                     modifier = Modifier
                         .fillMaxSize()

@@ -509,9 +509,7 @@ private fun tryRegister(
     onError: (String) -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
-    val db   = FirebaseDatabase
-        .getInstance("https://kupidxdefault.asia-southeast1.firebasedatabase.app/")
-        .getReference()
+    val db = FirebaseRefs.database().getReference()
 
     // 1) See if an email/password account already exists for this email
     auth.fetchSignInMethodsForEmail(typedEmail)
@@ -2347,9 +2345,7 @@ fun EnterUsernameScreen(
     val emptyUsernameMessage = stringResource(R.string.username_empty_error)
     val context = LocalContext.current
     val auth    = FirebaseAuth.getInstance()
-    val db      = FirebaseDatabase
-        .getInstance("https://kupidxdefault.asia-southeast1.firebasedatabase.app/")
-        .getReference()
+    val db = FirebaseRefs.database().getReference()
 
     var usernameTf by remember { mutableStateOf(registrationViewModel.username) }
     var isValid    by remember { mutableStateOf(true) }

@@ -641,7 +641,14 @@ fun FeedItem(
     onDelete: (Post) -> Unit,
 ) {
     val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
     val screenWidth = configuration.screenWidthDp.dp
+    val screenWidthPx = remember(configuration, density) {
+        with(density) { configuration.screenWidthDp.dp.roundToPx() }
+    }
+    val videoHeightPx = remember(screenWidthPx) {
+        (screenWidthPx * 9f / 16f).toInt()
+    }
     var mediaDuration by remember { mutableStateOf(0L) }
 
     val hapticFeedback = LocalHapticFeedback.current
@@ -784,12 +791,15 @@ fun FeedItem(
                     // User profile picture
                     val placeholder = painterResource(R.drawable.local_placeholder)
                     val context = LocalContext.current
+                    val profileSizeDp = if (screenWidth < 360.dp) 32.dp else 40.dp
+                    val profileSizePx = with(density) { profileSizeDp.roundToPx() }
                     val model = authorPicUrl?.let { url ->
                         val pathKey = Uri.parse(url).path
                         ImageRequest.Builder(context)
                             .data(url)
                             .diskCacheKey(pathKey)
                             .memoryCacheKey(pathKey)
+                            .size(profileSizePx)
                             .build()
                     }
                     AsyncImage(
@@ -798,7 +808,7 @@ fun FeedItem(
                         placeholder = placeholder,
                         error = placeholder,
                         modifier = Modifier
-                            .size(if (screenWidth < 360.dp) 32.dp else 40.dp)
+                            .size(profileSizeDp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     )
@@ -962,7 +972,10 @@ fun FeedItem(
                                 ) {
                                     if (isMediaRevealed) {
                                         AsyncImage(
-                                            model = post.mediaUrl,
+                                            model = ImageRequest.Builder(context)
+                                                .data(post.mediaUrl)
+                                                .size(screenWidthPx)
+                                                .build(),
                                             contentDescription = "Post photo",
                                             modifier = Modifier.matchParentSize(),
                                             contentScale = ContentScale.Crop,
@@ -1013,7 +1026,10 @@ fun FeedItem(
                                 ) {
                                     if (isMediaRevealed) {
                                         AsyncImage(
-                                            model = post.mediaThumb ?: post.mediaUrl,
+                                            model = ImageRequest.Builder(context)
+                                                .data(post.mediaThumb ?: post.mediaUrl)
+                                                .size(screenWidthPx, videoHeightPx)
+                                                .build(),
                                             contentDescription = "Video thumbnail",
                                             modifier = Modifier.matchParentSize(),
                                             contentScale = ContentScale.Crop

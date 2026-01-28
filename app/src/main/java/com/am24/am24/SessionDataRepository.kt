@@ -5,7 +5,7 @@ import com.am24.am24.FirebaseRefs.db
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.Query
 import com.google.firebase.database.MutableData
 import com.google.firebase.database.ServerValue
 import com.google.firebase.database.Transaction
@@ -26,7 +26,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 object SessionDataRepository {
 
     private val TAG = "SessionDataRepo"
-
+    private const val MAX_BLOCKS = 1000
+    private const val MAX_MATCHES = 1000
+    private const val MAX_LIKES_RECEIVED = 1000
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _currentUserId = MutableStateFlow<String?>(null)
@@ -54,7 +56,7 @@ object SessionDataRepository {
     val sessionReady: StateFlow<Boolean> = _sessionReady
 
     private val started = AtomicBoolean(false)
-    private val listeners = mutableListOf<Pair<DatabaseReference, ValueEventListener>>()
+    private val listeners = mutableListOf<Pair<Query, ValueEventListener>>()
 
     fun ensureStarted() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
@@ -122,9 +124,12 @@ object SessionDataRepository {
     }
 
     private fun attachBlocksListener(userId: String) {
-        val ref = db.getReference("blocks/$userId")
+        val ref = db.getReference("blocks/$userId").orderByKey().limitToLast(MAX_BLOCKS)
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.childrenCount >= MAX_BLOCKS) {
+                    Log.w(TAG, "Blocks listener limited to last $MAX_BLOCKS entries for $userId.")
+                }
                 val ids = snapshot.children.mapNotNull { it.key }.toSet()
                 _blockedUserIds.value = ids
                 recomputeLikeDerivedState()
@@ -139,9 +144,12 @@ object SessionDataRepository {
     }
 
     private fun attachMatchesListener(userId: String) {
-        val ref = db.getReference("matches/$userId")
+        val ref = db.getReference("matches/$userId").orderByKey().limitToLast(MAX_MATCHES)
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.childrenCount >= MAX_MATCHES) {
+                    Log.w(TAG, "Matches listener limited to last $MAX_MATCHES entries for $userId.")
+                }
                 val ids = snapshot.children.mapNotNull { it.key }.toSet()
                 _matchIds.value = ids
                 recomputeLikeDerivedState()
@@ -156,10 +164,13 @@ object SessionDataRepository {
     }
 
     private fun attachLikesListener(userId: String) {
-        val ref = db.getReference("likesReceived/$userId")
+        val ref = db.getReference("likesReceived/$userId").orderByKey().limitToLast(MAX_LIKES_RECEIVED)
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
+                    if (snapshot.childrenCount >= MAX_LIKES_RECEIVED) {
+                        Log.w(TAG, "likesReceived listener limited to last $MAX_LIKES_RECEIVED entries for $userId.")
+                    }
                     // Debug: log raw child values (trim in prod)
                     Log.d(TAG, "likesReceived snapshot for $userId children: ${snapshot.children.map { it.key to it.value }}")
 

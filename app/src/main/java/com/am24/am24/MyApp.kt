@@ -22,7 +22,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.SupervisorJob
-
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 class MyApp : Application() {
 
@@ -42,12 +43,15 @@ class MyApp : Application() {
         FacebookSdk.setAutoLogAppEventsEnabled(true)
         FacebookSdk.setAdvertiserIDCollectionEnabled(true)
 
-// Kick off init synchronously
-        FacebookSdk.sdkInitialize(applicationContext)
-        AppEventsLogger.activateApp(this) // safe even if called multiple times
-
-        Log.d("MyApp", "Facebook SDK initialized synchronously")
-        MobileAds.initialize(this)
+//// Kick off init synchronously
+//        FacebookSdk.sdkInitialize(applicationContext)
+//        AppEventsLogger.activateApp(this) // safe even if called multiple times
+//
+//        Log.d("MyApp", "Facebook SDK initialized synchronously")
+//        MobileAds.initialize(this)
+        appScope.launch {
+            initializeThirdPartySdks()
+        }
         // ───────── Firebase App Check ─────────
         appScope.launch {
             runCatching {
@@ -67,7 +71,33 @@ class MyApp : Application() {
         }
 
         // ───────── Realtime DB persistence ─────────
-//        FirebaseRefs.warmUp()
+        FirebaseRefs.database()
+
+//        // ───────── Storage bucket ─────────
+//        appScope.launch(Dispatchers.IO) {
+//            try {
+//                val referrerDetails = fetchInstallReferrer()
+//                referrerDetails?.installReferrer?.let { installReferrer ->
+//                    GclidStorageManager.cacheFromQueryString(
+//                        this@MyApp,
+//                        installReferrer
+//                    )
+//                }
+//            } catch (e: Exception) {
+//                Log.w("MyApp", "Unable to initialise install referrer", e)
+//            }
+//        }
+    }
+
+    private suspend fun initializeThirdPartySdks() {
+        delay(500)
+
+        withContext(Dispatchers.Main) {
+            FacebookSdk.sdkInitialize(applicationContext)
+            AppEventsLogger.activateApp(this@MyApp) // safe even if called multiple times
+            Log.d("MyApp", "Facebook SDK initialized asynchronously")
+            MobileAds.initialize(this@MyApp)
+        }
 
         // ───────── Play Billing: INAPP packs + SUBS ─────────
         val packQuantities = listOf(5, 10, 20)

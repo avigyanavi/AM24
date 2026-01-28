@@ -41,7 +41,7 @@ import kotlinx.coroutines.withContext
  *   messages/{groupId}
  * and reuses the same visual style as one‑to‑one ChatScreen.
  */
-
+private const val GROUP_CHAT_HISTORY_LIMIT = 200
 data class GroupChatMessage(
     val id: String = "",
     val senderId: String = "",
@@ -198,9 +198,10 @@ fun GroupChatScreen(
                 }
             }
         }
-        messagesRef.addValueEventListener(listener)
+        val messagesQuery = messagesRef.orderByChild("timestamp").limitToLast(GROUP_CHAT_HISTORY_LIMIT)
+        messagesQuery.addValueEventListener(listener)
         onDispose {
-            messagesRef.removeEventListener(listener)
+            messagesQuery.removeEventListener(listener)
             processingJob.cancel()
         }
     }
