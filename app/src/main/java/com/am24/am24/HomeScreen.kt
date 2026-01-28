@@ -76,7 +76,7 @@ import coil.request.ImageRequest
 import com.am24.am24.util.TextureFullscreenVideoPlayer
 import kotlinx.coroutines.CancellationException
 import androidx.compose.runtime.saveable.rememberSaveable
-
+import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -414,6 +414,25 @@ fun FeedSection(
 
     val hasMorePosts by postViewModel.hasMorePosts.collectAsState()
     val isLoadingMore by postViewModel.isLoadingMore.collectAsState()
+    val pageSize = postViewModel.feedPageSize
+    var pageIndex by rememberSaveable { mutableStateOf(0) }
+    var pendingNext by remember { mutableStateOf(false) }
+    val pagedPosts = remember(posts, pageSize) {
+        if (posts.isEmpty()) listOf(emptyList()) else posts.chunked(pageSize)
+    }
+    val pageCount = max(1, pagedPosts.size)
+    val displayPosts = pagedPosts.getOrNull(pageIndex) ?: posts
+
+    LaunchedEffect(pagedPosts.size, pendingNext) {
+        if (pendingNext && pagedPosts.size - 1 > pageIndex) {
+            pageIndex = pagedPosts.lastIndex
+            pendingNext = false
+        }
+        val safeIndex = pageIndex.coerceIn(0, pagedPosts.lastIndex)
+        if (pageIndex != safeIndex) {
+            pageIndex = safeIndex
+        }
+    }
 
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
@@ -456,7 +475,8 @@ fun FeedSection(
                 }
             }
 
-            itemsIndexed(posts, key = { idx, post -> post.postId.ifEmpty { "post_$idx" } }) { index, post ->                val profile = userProfiles[post.userId]
+            itemsIndexed(displayPosts, key = { idx, post -> post.postId.ifEmpty { "post_$idx" } }) { index, post ->
+                val profile = userProfiles[post.userId]
                 val isSaved = savedPostIds.contains(post.postId)
                 FeedItem(
                     post = post,
@@ -577,20 +597,47 @@ fun FeedSection(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            if (hasMorePosts && posts.isNotEmpty()) {
+            if (posts.isNotEmpty() || isLoadingMore) {
                 item {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Button(
-                            onClick = { postViewModel.loadMorePosts() },
-                            enabled = !isLoadingMore,
-                            modifier = Modifier.fillMaxWidth()
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(stringResource(R.string.next_page))
+                            Button(
+                                onClick = { if (pageIndex > 0) pageIndex-- },
+                                enabled = pageIndex > 0
+                            ) {
+                                Text(stringResource(R.string.back))
+                            }
+                            Text(
+                                text = stringResource(
+                                    R.string.page_of,
+                                    pageIndex + 1,
+                                    max(1, pageCount)
+                                ),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            val canAdvance = pageIndex < pageCount - 1 || hasMorePosts
+                            Button(
+                                onClick = {
+                                    if (pageIndex < pageCount - 1) {
+                                        pageIndex++
+                                    } else if (hasMorePosts && !isLoadingMore) {
+                                        pendingNext = true
+                                        postViewModel.loadMorePosts()
+                                    }
+                                },
+                                enabled = canAdvance && !isLoadingMore
+                            ) {
+                                Text(stringResource(R.string.next_page))
+                            }
                         }
                         if (isLoadingMore) {
                             Spacer(modifier = Modifier.height(12.dp))
@@ -602,18 +649,18 @@ fun FeedSection(
                         }
                     }
                 }
-            } else {
-                // No more posts indicator
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = stringResource(R.string.no_more_older_posts), color = Color.Gray, fontSize = 12.sp)
-                    }
-                }
+//            } else {
+//                // No more posts indicator
+//                item {
+//                    Box(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(16.dp),
+//                        contentAlignment = Alignment.Center
+//                    ) {
+//                        Text(text = stringResource(R.string.no_more_older_posts), color = Color.Gray, fontSize = 12.sp)
+//                    }
+//                }
             }
         }
     }

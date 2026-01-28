@@ -98,6 +98,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalDensity
 import coil.request.ImageRequest
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.material3.Button
+import androidx.compose.runtime.saveable.rememberSaveable
+import kotlin.math.max
 @Composable
 fun ExploreScreen(
     postViewModel: PostViewModel,
@@ -108,6 +112,8 @@ fun ExploreScreen(
     val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
     val isInitialFeedLoading by postViewModel.isInitialFeedLoading.collectAsState()
     val posts by postViewModel.filteredPosts.collectAsState()
+    val hasMorePosts by postViewModel.hasMorePosts.collectAsState()
+    val isLoadingMore by postViewModel.isLoadingMore.collectAsState()
     val currentUserId by postViewModel.currentUserIdFlow.collectAsState(initial = null)
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
 
@@ -135,6 +141,25 @@ fun ExploreScreen(
                     !it.contentText.isNullOrBlank()
         }
     }
+    val pageSize = postViewModel.feedPageSize
+    var pageIndex by rememberSaveable { mutableStateOf(0) }
+    var pendingNext by remember { mutableStateOf(false) }
+    val pagedPosts = remember(explorePosts, pageSize) {
+        if (explorePosts.isEmpty()) listOf(emptyList()) else explorePosts.chunked(pageSize)
+    }
+    val pageCount = max(1, pagedPosts.size)
+    val pagePosts = pagedPosts.getOrNull(pageIndex) ?: explorePosts
+
+    LaunchedEffect(pagedPosts.size, pendingNext) {
+        if (pendingNext && pagedPosts.size - 1 > pageIndex) {
+            pageIndex = pagedPosts.lastIndex
+            pendingNext = false
+        }
+        val safeIndex = pageIndex.coerceIn(0, pagedPosts.lastIndex)
+        if (pageIndex != safeIndex) {
+            pageIndex = safeIndex
+        }
+    }
 
     var selectedPostId by remember { mutableStateOf<String?>(null) }
     var queuedPostIds by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -160,17 +185,31 @@ fun ExploreScreen(
             }
         } else {
             ExploreGrid(
-                posts = explorePosts,
+                posts = pagePosts,
+                pageIndex = pageIndex,
+                pageCount = pageCount,
+                canGoBack = pageIndex > 0,
+                canGoNext = pageIndex < pageCount - 1 || hasMorePosts,
+                isLoadingMore = isLoadingMore,
+                onBackPage = { if (pageIndex > 0) pageIndex-- },
+                onNextPage = {
+                    if (pageIndex < pageCount - 1) {
+                        pageIndex++
+                    } else if (hasMorePosts && !isLoadingMore) {
+                        pendingNext = true
+                        postViewModel.loadMorePosts()
+                    }
+                },
                 onPostClick = { index ->
-                    queuedPostIds = explorePosts.map { it.postId }
-                    selectedPostId = explorePosts.getOrNull(index)?.postId
+                    queuedPostIds = pagePosts.map { it.postId }
+                    selectedPostId = pagePosts.getOrNull(index)?.postId
                 }
             )
         }
 
         selectedPostId?.let { postId ->
-            val queuedPosts = remember(posts, queuedPostIds) {
-                queuedPostIds.mapNotNull { id -> posts.firstOrNull { it.postId == id } }
+            val queuedPosts = remember(pagePosts, queuedPostIds) {
+                queuedPostIds.mapNotNull { id -> pagePosts.firstOrNull { it.postId == id } }
             }
             ExploreMediaQueueDialog(
                 posts = queuedPosts,
@@ -248,6 +287,13 @@ fun ExploreScreen(
 @Composable
 private fun ExploreGrid(
     posts: List<Post>,
+    pageIndex: Int,
+    pageCount: Int,
+    canGoBack: Boolean,
+    canGoNext: Boolean,
+    isLoadingMore: Boolean,
+    onBackPage: () -> Unit,
+    onNextPage: () -> Unit,
     onPostClick: (Int) -> Unit
 ) {
     val context = LocalContext.current
@@ -312,6 +358,47 @@ private fun ExploreGrid(
                             tint = Color.White.copy(alpha = 0.7f),
                             modifier = Modifier.size(24.dp)
                         )
+                    }
+                }
+            }
+        }
+        if (posts.isNotEmpty() || isLoadingMore) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = onBackPage,
+                            enabled = canGoBack
+                        ) {
+                            Text(stringResource(R.string.back))
+                        }
+                        Text(
+                            text = stringResource(
+                                R.string.page_of,
+                                pageIndex + 1,
+                                max(1, pageCount)
+                            ),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Button(
+                            onClick = onNextPage,
+                            enabled = canGoNext && !isLoadingMore
+                        ) {
+                            Text(stringResource(R.string.next_page))
+                        }
+                    }
+                    if (isLoadingMore) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
                 }
             }

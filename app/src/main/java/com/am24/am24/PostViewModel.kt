@@ -40,6 +40,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private var postsQuery: Query? = null
 
     private val FEED_PAGE_SIZE = 40
+    val feedPageSize: Int = FEED_PAGE_SIZE
     private var oldestLoadedTimestamp: Long? = null
 
     private val _hasMorePosts = MutableStateFlow(true)
