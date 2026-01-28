@@ -41,6 +41,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     private val FEED_PAGE_SIZE = 40
     val feedPageSize: Int = FEED_PAGE_SIZE
+    private val MAX_FEED_CACHE = FEED_PAGE_SIZE * 5
     private var oldestLoadedTimestamp: Long? = null
 
     private val _hasMorePosts = MutableStateFlow(true)
@@ -771,6 +772,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             _posts.value = filtered
         }
     }
+    private fun trimFeedCache(posts: List<Post>): List<Post> {
+        if (posts.size <= MAX_FEED_CACHE) return posts
+        return posts.take(MAX_FEED_CACHE)
+    }
     /**
      * Sets up a real-time listener to observe changes in "posts" node.
      */
@@ -791,9 +796,11 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                         val hadExistingPosts = existingPosts.isNotEmpty()
                         val recentIds = sortedPosts.map { it.postId }.toSet()
                         val remainingOldPosts = existingPosts.filterNot { recentIds.contains(it.postId) }
-                        val mergedPosts = (sortedPosts + remainingOldPosts)
-                            .distinctBy { it.postId }
-                            .sortedByDescending { it.getTimestampLong() }
+                        val mergedPosts = trimFeedCache(
+                            (sortedPosts + remainingOldPosts)
+                                .distinctBy { it.postId }
+                                .sortedByDescending { it.getTimestampLong() }
+                        )
 
                         val combinedProfiles = _userProfiles.value.toMutableMap().apply { putAll(profiles) }
 
@@ -839,9 +846,11 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 val existingPosts = _rawPosts.value
                 val recentIds = sortedPosts.map { it.postId }.toSet()
                 val remainingOldPosts = existingPosts.filterNot { recentIds.contains(it.postId) }
-                val mergedPosts = (sortedPosts + remainingOldPosts)
-                    .distinctBy { it.postId }
-                    .sortedByDescending { it.getTimestampLong() }
+                val mergedPosts = trimFeedCache(
+                    (sortedPosts + remainingOldPosts)
+                        .distinctBy { it.postId }
+                        .sortedByDescending { it.getTimestampLong() }
+                )
 
                 val combinedProfiles = _userProfiles.value.toMutableMap().apply { putAll(profiles) }
 
@@ -886,9 +895,11 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     val userIds = newPosts.map { it.userId }.toSet()
                     val profiles = fetchUserProfiles(userIds)
                     val combinedProfiles = _userProfiles.value.toMutableMap().apply { putAll(profiles) }
-                    val mergedPosts = (_rawPosts.value + newPosts)
-                        .distinctBy { it.postId }
-                        .sortedByDescending { it.getTimestampLong() }
+                    val mergedPosts = trimFeedCache(
+                        (_rawPosts.value + newPosts)
+                            .distinctBy { it.postId }
+                            .sortedByDescending { it.getTimestampLong() }
+                    )
 
                     _userProfiles.value = combinedProfiles
                     _rawPosts.value = mergedPosts
