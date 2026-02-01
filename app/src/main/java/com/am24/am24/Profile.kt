@@ -44,7 +44,8 @@ data class Profile(
     var lastSmartMatchWeekOfYear: Int? = null,
     var rewardedAdsToday: Int? = null,
     var lastRewardAdDayOfYear: Int? = null,
-
+    /** when we last notified the user that their boost ended (ms since epoch) */
+    var lastBoostOverNotifiedAt: Long? = null,
     // The user's own gender (Male/Female/Other)
     val gender: String = "",
     // Sexual orientation (e.g. straight, gay, etc.)

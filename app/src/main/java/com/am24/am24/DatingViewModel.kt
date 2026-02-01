@@ -491,7 +491,8 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
             val blocked = _blockedUsers.value.toSet()
             val boostedProfiles = snapshot.children.mapNotNull { child ->
-                val profile = child.getValue(Profile::class.java) ?: return@mapNotNull null
+                val profileMap = child.value as? Map<*, *> ?: return@mapNotNull null
+                val profile = profileMap.toProfile()
                 val uid = child.key.orEmpty()
                 if (uid.isBlank() || uid in blocked) return@mapNotNull null
                 profile.userId = profile.userId.ifBlank { uid }
@@ -502,12 +503,23 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
                 it.boostedAt == null || now - it.boostedAt!! > BOOST_DURATION_MS
             }
 
-            /* 2️⃣  Clear their isBoosted flag and notify them */
+            /* 2️⃣  Clear your own isBoosted flag and notify you */
             expired.forEach { profile ->
                 val uid = profile.userId
-                if (uid.isNotBlank()) {
-                    usersRef.child(uid).child("isBoosted").setValue(false)
-                    pushBoostOverNotification(uid)              // 🔔
+                if (uid.isNotBlank() && uid == currentUserId) {
+                    val boostedAt = profile.boostedAt
+                    val shouldNotify = boostedAt != null && profile.lastBoostOverNotifiedAt != boostedAt
+                    val updates = mutableMapOf<String, Any?>(
+                        "isBoosted" to false,
+                        "boostedAt" to null
+                    )
+                    if (shouldNotify) {
+                        updates["lastBoostOverNotifiedAt"] = boostedAt
+                    }
+                    usersRef.child(uid).updateChildren(updates).await()
+                    if (shouldNotify) {
+                        pushBoostOverNotification(uid)              // 🔔
+                    }
                 }
             }
 

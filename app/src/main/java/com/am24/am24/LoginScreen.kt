@@ -123,13 +123,17 @@ class LoginActivity : ComponentActivity() {
     }
 
     private fun handlePhoneLogin(input: String) {
+        val trimmed = input.trim()
+        val isPhoneNumber = trimmed.startsWith("+") &&
+                trimmed.length > 2 &&
+                trimmed.drop(1).all { it.isDigit() }
         // If it's a phone number, start OTP
-        if (input.all { it.isDigit() } && input.length >= 10) {
-            startPhoneNumberVerification("+91$input")
+        if (isPhoneNumber) {
+            startPhoneNumberVerification(trimmed)
         }
         // If it's an OTP, verify
-        else if (input.length == 6 && storedVerificationId != null) {
-            verifyPhoneNumberWithCode(storedVerificationId!!, input)
+        else if (trimmed.length == 6 && trimmed.all { it.isDigit() } && storedVerificationId != null) {
+            verifyPhoneNumberWithCode(storedVerificationId!!, trimmed)
         } else {
             toast("Invalid input")
         }
@@ -376,7 +380,7 @@ fun LoginScreen(
     var phoneForOtp  by remember { mutableStateOf("") }
 
     var phoneNumber by remember { mutableStateOf("") }
-
+    var countryCode by remember { mutableStateOf("+91") }
     var userOrEmail by remember { mutableStateOf(initialUserOrEmail) }
     var password    by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }   // ⬅ NEW
@@ -601,24 +605,48 @@ fun LoginScreen(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
 
-                OutlinedTextField(
-                    value = phoneNumber,
-                    onValueChange = { phoneNumber = it },
-                    label = { Text("Phone Number", color = Color(0xFFFF6600)) },
-                    singleLine = true,
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp),
-                    colors = orangeOutlinedColors()
-                )
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = countryCode,
+                        onValueChange = { input ->
+                            val digits = input.filter { it.isDigit() }.take(2)
+                            countryCode = if (digits.isEmpty()) "+" else "+$digits"
+                        },
+                        label = { Text("Code", color = Color(0xFFFF6600)) },
+                        singleLine = true,
+                        modifier = Modifier.weight(0.7f),
+                        colors = orangeOutlinedColors()
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = phoneNumber,
+                        onValueChange = { input ->
+                            phoneNumber = input.filter { it.isDigit() }
+                        },
+                        label = { Text("Phone Number", color = Color(0xFFFF6600)) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1.8f),
+                        colors = orangeOutlinedColors()
+                    )
+                }
                 Spacer(Modifier.height(16.dp))
 
                 OutlinedButton(
                     onClick = {
+                        val trimmedNumber = phoneNumber.trim()
+                        val trimmedCode = countryCode.trim()
+                        val fullNumber = "$trimmedCode$trimmedNumber"
                         // You can validate and start OTP flow here
-                        if (phoneNumber.length >= 10) {
-                            onPhoneLogin(phoneNumber)
-                            phoneForOtp = phoneNumber
+                        if (trimmedCode.matches(Regex("^\\+[0-9]{1,2}$")) &&
+                            trimmedNumber.length in 6..15
+                        ) {
+                            onPhoneLogin(fullNumber)
+                            phoneForOtp = fullNumber
                             showOtpDialog = true   // Show OTP dialog for user input
                         } else {
                             Toast.makeText(context, "Enter valid phone number", Toast.LENGTH_SHORT)
