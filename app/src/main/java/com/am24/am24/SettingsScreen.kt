@@ -164,10 +164,10 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
     var country by remember { mutableStateOf("") }
 
     var subscriptionId by remember { mutableStateOf<String?>(null) }
-    var showFeedbackDialog by remember { mutableStateOf(false) }
-    var showDeleteDialog  by remember { mutableStateOf(false) }
+//    var showFeedbackDialog by remember { mutableStateOf(false) }
+//    var showDeleteDialog  by remember { mutableStateOf(false) }
     var showResetExcludesDialog by remember { mutableStateOf(false) }
-    var feedbackText      by remember { mutableStateOf("") }
+//    var feedbackText      by remember { mutableStateOf("") }
     var working           by remember { mutableStateOf(false) }
     var pendingLocationToggle by remember { mutableStateOf<LocationVisibilityToggle?>(null) }
     var seededProfile by remember { mutableStateOf(false) }
@@ -581,15 +581,15 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                 }
             }
 
-            item {
-                SettingsSection {
-                    SettingsRow(
-                        icon = { Icon(Icons.Default.Feedback, null, tint = Color(0xFFFF6F00)) },
-                        title = stringResource(R.string.settings_give_feedback),
-                        showChevron = false
-                    ) { showFeedbackDialog = true }
-                }
-            }
+//            item {
+//                SettingsSection {
+//                    SettingsRow(
+//                        icon = { Icon(Icons.Default.Feedback, null, tint = Color(0xFFFF6F00)) },
+//                        title = stringResource(R.string.settings_give_feedback),
+//                        showChevron = false
+//                    ) { showFeedbackDialog = true }
+//                }
+//            }
             /* ───── Policies & Support ───── */
             item {
                 SettingsSection {
@@ -600,17 +600,17 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                     )
                 }
             }
-            /* ───── Delete Account ───── */
-            item {
-                SettingsSection {
-                    SettingsRow(
-                        icon = { Icon(Icons.Default.Delete, null, tint = Color(0xFFFF6F00)) },
-                        title = stringResource(R.string.settings_delete_account),
-                        showChevron = false,
-                        onClick = { showDeleteDialog = true }
-                    )
-                }
-            }
+//            /* ───── Delete Account ───── */
+//            item {
+//                SettingsSection {
+//                    SettingsRow(
+//                        icon = { Icon(Icons.Default.Delete, null, tint = Color(0xFFFF6F00)) },
+//                        title = stringResource(R.string.settings_delete_account),
+//                        showChevron = false,
+//                        onClick = { showDeleteDialog = true }
+//                    )
+//                }
+//            }
 
 
             /*──────────────── footer ─────────────────────────────────*/
@@ -635,59 +635,59 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
             }
         }
         val kupidxOrange = Color(0xFFFF6F00)
-
-        if (showFeedbackDialog) {
-            AlertDialog(
-                onDismissRequest = { if (!working) showFeedbackDialog = false },
-                title = { Text("Send Feedback", color = kupidxOrange) },
-                text = {
-                    OutlinedTextField(
-                        value = feedbackText,
-                        onValueChange = { feedbackText = it },
-                        placeholder = { Text("Your feedback") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp),
-                        colors = TextFieldDefaults.colors(
-                            unfocusedContainerColor       = Color(0xFF1A1A1A),
-                            cursorColor          = Color.White,
-                            focusedIndicatorColor   = kupidxOrange,   // ← orange outline (focused)
-                            unfocusedIndicatorColor = kupidxOrange.copy(alpha = 0.4f), // ← subtler outline (unfocused)
-                            focusedLabelColor    = kupidxOrange
-                        )
-                    )
-                },
-                confirmButton = {
-                    // button NEVER vanishes; just gets disabled
-                    TextButton(
-                        onClick = {
-                            working = true
-                            scope.launch {
-                                try {
-                                    submitFeedback(uid, feedbackText)
-                                    Toast.makeText(ctx, "Feedback sent", Toast.LENGTH_SHORT).show()
-                                    showFeedbackDialog = false
-                                } catch (e: Exception) {
-                                    if (e is CancellationException) throw e
-                                } finally {
-                                    working = false
-                                    feedbackText = ""
-                                }
-                            }
-                        },
-                        enabled = feedbackText.isNotBlank() && !working
-                    ) {
-                        Text(stringResource(R.string.send), color = kupidxOrange)        // ← orange text
-                    }
-                },
-                dismissButton = {
-                    if (!working)
-                        TextButton(onClick = { showFeedbackDialog = false }) {
-                            Text(stringResource(R.string.cancel), color = kupidxOrange)
-                        }
-                }
-            )
-        }
+//
+//        if (showFeedbackDialog) {
+//            AlertDialog(
+//                onDismissRequest = { if (!working) showFeedbackDialog = false },
+//                title = { Text("Send Feedback", color = kupidxOrange) },
+//                text = {
+//                    OutlinedTextField(
+//                        value = feedbackText,
+//                        onValueChange = { feedbackText = it },
+//                        placeholder = { Text("Your feedback") },
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(120.dp),
+//                        colors = TextFieldDefaults.colors(
+//                            unfocusedContainerColor       = Color(0xFF1A1A1A),
+//                            cursorColor          = Color.White,
+//                            focusedIndicatorColor   = kupidxOrange,   // ← orange outline (focused)
+//                            unfocusedIndicatorColor = kupidxOrange.copy(alpha = 0.4f), // ← subtler outline (unfocused)
+//                            focusedLabelColor    = kupidxOrange
+//                        )
+//                    )
+//                },
+//                confirmButton = {
+//                    // button NEVER vanishes; just gets disabled
+//                    TextButton(
+//                        onClick = {
+//                            working = true
+//                            scope.launch {
+//                                try {
+//                                    submitFeedback(uid, feedbackText)
+//                                    Toast.makeText(ctx, "Feedback sent", Toast.LENGTH_SHORT).show()
+//                                    showFeedbackDialog = false
+//                                } catch (e: Exception) {
+//                                    if (e is CancellationException) throw e
+//                                } finally {
+//                                    working = false
+//                                    feedbackText = ""
+//                                }
+//                            }
+//                        },
+//                        enabled = feedbackText.isNotBlank() && !working
+//                    ) {
+//                        Text(stringResource(R.string.send), color = kupidxOrange)        // ← orange text
+//                    }
+//                },
+//                dismissButton = {
+//                    if (!working)
+//                        TextButton(onClick = { showFeedbackDialog = false }) {
+//                            Text(stringResource(R.string.cancel), color = kupidxOrange)
+//                        }
+//                }
+//            )
+//        }
         if (showResetExcludesDialog) {
             AlertDialog(
                 onDismissRequest = { showResetExcludesDialog = false },
@@ -715,47 +715,47 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                 }
             )
         }
-        if (showDeleteDialog) {
-            AlertDialog(
-                onDismissRequest = { if (!working) showDeleteDialog = false },
-                title = { Text(stringResource(R.string.settings_delete_account), color = kupidxOrange) },
-                text = {
-                    Text(stringResource(R.string.account_delete_prompt))
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            working = true
-                            scope.launch {
-                                try {
-                                    AccountDeletion.deleteAccount()
-                                    Toast.makeText(ctx, R.string.account_deleted, Toast.LENGTH_LONG).show()
-                                    FirebaseAuth.getInstance().signOut()
-                                    TokenStorageManager.clearToken(ctx)
-                                    ctx.startActivity(Intent(ctx, LandingActivity::class.java))
-                                    (ctx as? ComponentActivity)?.finish()
-                                } catch (e: Exception) {
-                                    if (e is CancellationException) throw e
-                                } finally {
-                                    working = false
-                                    showDeleteDialog = false
-                                }
-                            }
-                        },
-                        enabled = !working
-                    ) {
-                        Text(stringResource(R.string.delete), color = kupidxOrange)
-                    }
-                },
-                dismissButton = {
-                    if (!working) {
-                        TextButton(onClick = { showDeleteDialog = false }) {
-                            Text(stringResource(R.string.cancel), color = kupidxOrange)
-                        }
-                    }
-                }
-            )
-        }
+//        if (showDeleteDialog) {
+//            AlertDialog(
+//                onDismissRequest = { if (!working) showDeleteDialog = false },
+//                title = { Text(stringResource(R.string.settings_delete_account), color = kupidxOrange) },
+//                text = {
+//                    Text(stringResource(R.string.account_delete_prompt))
+//                },
+//                confirmButton = {
+//                    TextButton(
+//                        onClick = {
+//                            working = true
+//                            scope.launch {
+//                                try {
+//                                    AccountDeletion.deleteAccount()
+//                                    Toast.makeText(ctx, R.string.account_deleted, Toast.LENGTH_LONG).show()
+//                                    FirebaseAuth.getInstance().signOut()
+//                                    TokenStorageManager.clearToken(ctx)
+//                                    ctx.startActivity(Intent(ctx, LandingActivity::class.java))
+//                                    (ctx as? ComponentActivity)?.finish()
+//                                } catch (e: Exception) {
+//                                    if (e is CancellationException) throw e
+//                                } finally {
+//                                    working = false
+//                                    showDeleteDialog = false
+//                                }
+//                            }
+//                        },
+//                        enabled = !working
+//                    ) {
+//                        Text(stringResource(R.string.delete), color = kupidxOrange)
+//                    }
+//                },
+//                dismissButton = {
+//                    if (!working) {
+//                        TextButton(onClick = { showDeleteDialog = false }) {
+//                            Text(stringResource(R.string.cancel), color = kupidxOrange)
+//                        }
+//                    }
+//                }
+//            )
+//        }
     }
     pendingLocationToggle?.let { target ->
         val (messageRes, confirmAction) = when (target) {

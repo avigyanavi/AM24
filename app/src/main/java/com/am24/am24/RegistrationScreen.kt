@@ -4767,6 +4767,7 @@ private suspend fun scenario3MarkUserPaid(): Boolean {
         "nextRenewal" to nextRenewal,
         "isPlus" to true,
         "availableAiMessages" to 5,
+        "availableBoosts" to 5,
     )
 
     return runCatching {

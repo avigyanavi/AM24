@@ -5,6 +5,7 @@
         <item name="android:windowBackground">@color/black</item>
         <item name="android:statusBarColor">@color/black</item>
         <item name="android:navigationBarColor">@color/black</item>
+        <item name="android:windowDisablePreview">true</item>
         <item name="android:windowSplashScreenAnimatedIcon">@null
         </item> <!-- Remove the animated icon -->
         <item name="android:windowSplashScreenBackground">@color/black

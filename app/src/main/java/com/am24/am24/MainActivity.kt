@@ -196,7 +196,11 @@ class MainActivity : ComponentActivity() {
         isNavigationInProgress = true
 
         startActivity(Intent(this@MainActivity, LandingActivity::class.java))
-        finish()
+        finishAfterTransitionDelay()
+    }
+
+    private fun finishAfterTransitionDelay() {
+        window.decorView.post { finish() }
     }
 
     @Composable
@@ -291,7 +295,7 @@ class MainActivity : ComponentActivity() {
             }
             withContext(Dispatchers.Main) {
                 startActivity(target)
-                finish()
+                finishAfterTransitionDelay()
             }
         }
     }
