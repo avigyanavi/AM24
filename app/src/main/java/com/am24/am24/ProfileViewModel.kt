@@ -760,19 +760,14 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     ) {
         usersRef.child(userId).get()
             .addOnSuccessListener { snapshot ->
-                try {
-                    val profile = snapshot.getValue(Profile::class.java)?.copy(
-                        // Ensure isMatrimonyMode has a default of false if not set in Firebase
-                        isMatrimonyMode = snapshot.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
-                    )
-                    if (profile != null) {
-                        onSuccess(profile)
-                    } else {
-                        onFailure("Profile not found")
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error parsing profile for userId $userId: ${e.message}")
-                    onFailure("Failed to parse profile data")
+                val profile = snapshot.safeGetProfile("fetchUserProfile/$userId")?.copy(
+                    // Ensure isMatrimonyMode has a default of false if not set in Firebase
+                    isMatrimonyMode = snapshot.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
+                )
+                if (profile != null) {
+                    onSuccess(profile)
+                } else {
+                    onFailure("Profile not found")
                 }
             }
             .addOnFailureListener { error ->

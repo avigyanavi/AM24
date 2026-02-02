@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import android.util.Base64
+import android.util.LruCache
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -72,22 +73,24 @@ fun AIPartnerMessageRemote.toLocal(): AIPartnerChatMessage {
     )
 }
 
-
+private const val AI_IMAGE_CACHE_MAX_BYTES = 10 * 1024 * 1024
 object AIPartnerImageCache {
-    private val cache = mutableMapOf<Long, ByteArray>()
-
-    fun put(timestamp: Long, bytes: ByteArray) {
-        cache[timestamp] = bytes
+    private val cache = object : LruCache<Long, ByteArray>(AI_IMAGE_CACHE_MAX_BYTES) {
+        override fun sizeOf(key: Long, value: ByteArray): Int = value.size
     }
 
-    fun get(timestamp: Long): ByteArray? = cache[timestamp]
+    fun put(timestamp: Long, bytes: ByteArray) {
+        cache.put(timestamp, bytes)
+    }
+
+    fun get(timestamp: Long): ByteArray? = cache.get(timestamp)
 
     fun remove(timestamp: Long) {
         cache.remove(timestamp)
     }
 
     fun clear() {
-        cache.clear()
+        cache.evictAll()
     }
 }
 

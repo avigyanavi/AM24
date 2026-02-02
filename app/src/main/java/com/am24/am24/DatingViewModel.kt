@@ -14,6 +14,8 @@ import com.am24.am24.ProfileViewModel
 import com.am24.am24.UserDeletionCache
 import com.am24.am24.calculateDistance
 import com.am24.am24.handleSwipeRight
+import com.am24.am24.safeGetProfile
+import com.am24.am24.safeMapToProfile
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -37,11 +39,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
-
-private val gson = com.google.gson.Gson()
-
-private fun Map<*, *>.toProfile(): Profile =
-    gson.fromJson(gson.toJson(this), Profile::class.java)
 
 private fun normalizeLastActive(raw: Any?): Long? {
     val numeric = when (raw) {
@@ -332,7 +329,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             runCatching {
                 val snap = usersRef.child(senderId).get().await()
                 if (UserDeletionCache.isDeleted(FirebaseRefs.db, senderId, snap)) return@mapNotNull null
-                val profile = snap.getValue(Profile::class.java) ?: return@mapNotNull null
+                val profile = snap.safeGetProfile("complimentsFallback/$senderId") ?: return@mapNotNull null
                 if (profile.username.isBlank()) {
                     UserDeletionCache.markDeleted(senderId)
                     return@mapNotNull null
@@ -347,7 +344,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
         val map = this as? Map<*, *> ?: return null
         val profileMap = map["profile"] as? Map<*, *> ?: return null
         val complimentMap = map["compliment"] as? Map<*, *> ?: return null
-        val profile = profileMap.toProfile()
+        val profile = profileMap.safeMapToProfile("compliment/profile") ?: return null
         val compliment = ComplimentData(
             text = complimentMap["text"] as? String ?: "",
             voiceUrl = complimentMap["voiceUrl"] as? String,
@@ -359,7 +356,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
     private fun Any?.toMatchSummary(): MatchSummary? {
         val map = this as? Map<*, *> ?: return null
         val profileMap = map["profile"] as? Map<*, *> ?: return null
-        val profile = profileMap.toProfile()
+        val profile = profileMap.safeMapToProfile("matches/profile") ?: return null
         val hasUnread = map["hasUnread"] as? Boolean ?: false
         val messageMap = map["lastMessage"] as? Map<*, *>
         val message = messageMap?.toMessage()
@@ -443,7 +440,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
             .await()
 
         snap.children.mapNotNull { child ->
-            val profile = child.getValue(Profile::class.java) ?: return@mapNotNull null
+            val profile = child.safeGetProfile("globalPremiumUsers/${child.key}") ?: return@mapNotNull null
             profile.userId = profile.userId.ifBlank { child.key.orEmpty() }
             if (profile.priority) profile else null
         }
@@ -491,8 +488,7 @@ class DatingViewModel(application: Application) : AndroidViewModel(application) 
 
             val blocked = _blockedUsers.value.toSet()
             val boostedProfiles = snapshot.children.mapNotNull { child ->
-                val profileMap = child.value as? Map<*, *> ?: return@mapNotNull null
-                val profile = profileMap.toProfile()
+                val profile = child.value.safeMapToProfile("boostedUsers/${child.key}") ?: return@mapNotNull null
                 val uid = child.key.orEmpty()
                 if (uid.isBlank() || uid in blocked) return@mapNotNull null
                 profile.userId = profile.userId.ifBlank { uid }

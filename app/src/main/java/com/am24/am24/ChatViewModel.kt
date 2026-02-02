@@ -17,7 +17,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.google.firebase.functions.FirebaseFunctions
 import java.util.concurrent.TimeUnit
-import com.google.gson.Gson
 import com.google.firebase.database.Query
 data class ChatUiState(
     val otherUserProfile: Profile? = null,
@@ -41,7 +40,6 @@ class ChatViewModel : ViewModel() {
     private val usersRef: DatabaseReference = database.getReference("users")
     private val ratingsRef: DatabaseReference = database.getReference("ratings")
     private val functions = FirebaseFunctions.getInstance("asia-south1")
-    private val gson = Gson()
 
     private var messagesRef: DatabaseReference? = null
     private var messagesQuery: Query? = null
@@ -120,7 +118,7 @@ class ChatViewModel : ViewModel() {
                     _uiState.update { it.copy(isLoadingProfiles = false, isLoadingMessages = false) }
                     return@launch
                 }
-                val profile = (data["profile"] as? Map<*, *>)?.toProfile()
+                val profile = (data["profile"] as? Map<*, *>)?.safeMapToProfile("chatBootstrap/profile")
                 val messages = (data["messages"] as? List<*>)
                     ?.mapNotNull { (it as? Map<*, *>)?.toMessage() }
                     ?: emptyList()
@@ -145,7 +143,7 @@ class ChatViewModel : ViewModel() {
     private fun loadOtherUserProfileFallback(otherUid: String) {
         usersRef.child(otherUid).get()
             .addOnSuccessListener { snapshot ->
-                val profile = snapshot.getValue(Profile::class.java)
+                val profile = snapshot.safeGetProfile("chatProfileFallback/$otherUid")
                 _uiState.update {
                     it.copy(
                         otherUserProfile = profile,
@@ -247,8 +245,6 @@ class ChatViewModel : ViewModel() {
             }
         }
     }
-    private fun Map<*, *>.toProfile(): Profile =
-        gson.fromJson(gson.toJson(this), Profile::class.java)
 
     private fun Map<*, *>.toMessage(): Message = Message(
         id = this["id"] as? String ?: "",
