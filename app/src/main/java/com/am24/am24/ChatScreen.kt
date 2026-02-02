@@ -152,6 +152,7 @@ fun ChatScreen(
     profileViewModel: ProfileViewModel,
     chatViewModel: ChatViewModel        // NEW
 ) {
+    TrackScreenPerformance("ChatScreen")
     // If ChatScreenContent needs currentUserId, pass it too; otherwise ignore.
     ChatScreenContent(
         navController    = navController,
@@ -170,6 +171,7 @@ fun ChatScreenContent(
     chatViewModel: ChatViewModel,
     currentUserId: String
     ) {
+    TrackScreenPerformance("ChatScreenContent")
     val ENABLE_CHAT_RATING_UI = false
 
     var selectedMessage by remember { mutableStateOf<Message?>(null) }

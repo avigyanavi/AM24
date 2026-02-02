@@ -6050,6 +6050,11 @@
     <string name="tab_boosted_users">Người dùng được tăng cường</string>
     <string name="no_boosted_users_yet">Chưa có người dùng được boost</string>
     <string name="boost_me">Boost tôi</string>
+    <string name="action_join_groups">Tham gia nhóm</string>
+    <string name="dm_join_groups_title">Tham gia nhóm</string>
+    <string name="dm_join_groups_empty">Hiện chưa có nhóm nào để tham gia.</string>
+    <string name="dm_add_group">Thêm nhóm</string>
+    <string name="dm_group_joined">Bạn đã tham gia %1$s.</string>
 
     <!-- Subscription feature bullet points -->
     <string name="feature_no_ads">Không quảng cáo</string>

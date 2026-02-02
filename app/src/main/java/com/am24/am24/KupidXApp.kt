@@ -40,6 +40,7 @@ class KupidXAppActivity : AppCompatActivity(),
     PaymentResultListenerHost {
 
     /* ------------------------------------------------------------------ state */
+    private var startupTrace: com.google.firebase.perf.metrics.Trace? = null
     private lateinit var auth: FirebaseAuth
     private lateinit var locationManager: LocationManager
 
@@ -101,7 +102,7 @@ class KupidXAppActivity : AppCompatActivity(),
     @RequiresApi(Build.VERSION_CODES.O_MR1)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        startupTrace = startPerfTrace("kupidx_app_startup", mapOf("entry" to "KupidXAppActivity"))
         auth = FirebaseAuth.getInstance()
 
         pendingOpenNotifications =
@@ -225,6 +226,10 @@ class KupidXAppActivity : AppCompatActivity(),
 
     override fun onStart() {
         super.onStart()
+        startupTrace?.let {
+            stopPerfTrace(it)
+            startupTrace = null
+        }
         profileViewModel.prepareForAppOpenTracking()
     }
 

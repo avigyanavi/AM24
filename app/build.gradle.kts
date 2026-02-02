@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.firebase.perf)
     kotlin("plugin.noarg") version "1.8.0"
     alias(libs.plugins.compose.compiler)
 }
@@ -15,8 +16,8 @@ android {
         applicationId = "com.am24.am24"
         minSdk = 26
         targetSdk = 35
-        versionCode = 333
-        versionName = "1.5"
+        versionCode = 334
+        versionName = "1.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -76,6 +77,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("com.google.firebase:firebase-perf:21.0.1")
     implementation(libs.firebase.analytics)
     implementation("androidx.lifecycle:lifecycle-process:2.8.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")

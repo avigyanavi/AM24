@@ -97,6 +97,7 @@ class AuthViewModel(
 // ---------- MAIN ACTIVITY ----------
 
 class MainActivity : ComponentActivity() {
+    private var startupTrace: com.google.firebase.perf.metrics.Trace? = null
 
     private fun currentProvider(): String {
         val providers = FirebaseAuth.getInstance().currentUser?.providerData
@@ -123,7 +124,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         GclidStorageManager.cacheFromUri(this, intent?.data)
-
+        startupTrace = startPerfTrace("main_activity_startup", mapOf("entry" to "MainActivity"))
         val openNotifications = intent?.getBooleanExtra("open_notifications", false) ?: false
         val openUpgradeLanding = intent?.getBooleanExtra("open_upgrade_landing", false) ?: false
         val openChatUserId = intent?.getStringExtra("open_chat_user_id")
@@ -184,7 +185,13 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
+    override fun onStart() {
+        super.onStart()
+        startupTrace?.let {
+            stopPerfTrace(it)
+            startupTrace = null
+        }
+    }
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)

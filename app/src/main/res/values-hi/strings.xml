@@ -4687,7 +4687,11 @@
     <string name="tab_boosted_users">बूस्ट किए गए उपयोगकर्ता</string>
     <string name="no_boosted_users_yet">अभी तक कोई बूस्ट किए गए उपयोगकर्ता नहीं हैं</string>
     <string name="boost_me">मुझे बूस्ट करें</string>
-
+    <string name="action_join_groups">समूहों में शामिल हों</string>
+    <string name="dm_join_groups_title">समूहों में शामिल हों</string>
+    <string name="dm_join_groups_empty">अभी शामिल होने के लिए कोई समूह नहीं है।</string>
+    <string name="dm_add_group">समूह जोड़ें</string>
+    <string name="dm_group_joined">आप %1$s में शामिल हो गए हैं।</string>
     <string name="app_name">Kupidx</string>
         <string name="default_web_client_id">412327263-uuj1hml7rs1aitvcegpvrh6a09kr6qub.apps.googleusercontent.com</string>
         <string name="languages">भाषाएँ</string>

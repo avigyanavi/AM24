@@ -68,6 +68,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.Job
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Add
 private fun canonicalLocationId(name: String): String {
     val normalized = Normalizer.normalize(name, Normalizer.Form.NFD)
         .replace("\\p{Mn}+".toRegex(), "")              // strip accents/diacritics
@@ -95,6 +96,7 @@ fun DMScreen(
     profileViewModel: ProfileViewModel,
     datingViewModel: DatingViewModel,        // NEW
 ) {
+    TrackScreenPerformance("AIPartnerScreen")
     DMScreenContent(navController, nearbyViewModel, profileViewModel, datingViewModel)
 }
 
@@ -105,6 +107,7 @@ fun DMScreenContent(
     profileViewModel: ProfileViewModel,
     datingViewModel: DatingViewModel,        // NEW
 ) {
+    TrackScreenPerformance("DMScreenContent")
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
     val database = remember { FirebaseRefs.db }
@@ -133,6 +136,7 @@ fun DMScreenContent(
     var showSmartMatchDialog by remember { mutableStateOf(false) }
     var showLeaveGroupsDialog by remember { mutableStateOf(false) }
     var selectedSmartMatchGender by remember { mutableStateOf("Both") }
+    var showJoinGroupsDialog by remember { mutableStateOf(false) }
     var isLoadingMatches by remember { mutableStateOf(true) }
     var matchesInitialized by remember { mutableStateOf(false) }
     var likesInitialized by remember { mutableStateOf(false) }
@@ -199,11 +203,10 @@ fun DMScreenContent(
 
 
 // 1️⃣  Build the chip list
-    val groupChatTitles = remember(
+    val allGroupTitles = remember(
         profile.country,
         profile.city,
-        profile.hometown,
-        profile.leftGroupChatIds
+        profile.hometown
     ) {
         buildList {
             profile.country
@@ -217,7 +220,18 @@ fun DMScreenContent(
                 ?.let { add(it) }
         }
             .distinct()
-            .filterNot { title -> profile.leftGroupChatIds.contains(groupChatIdForTitle(title)) }
+    }
+
+    val groupChatTitles = remember(allGroupTitles, profile.leftGroupChatIds) {
+        allGroupTitles.filterNot { title ->
+            profile.leftGroupChatIds.contains(groupChatIdForTitle(title))
+        }
+    }
+
+    val joinableGroupTitles = remember(allGroupTitles, profile.leftGroupChatIds) {
+        allGroupTitles.filter { title ->
+            profile.leftGroupChatIds.contains(groupChatIdForTitle(title))
+        }
     }
 
 
@@ -458,6 +472,19 @@ fun DMScreenContent(
                             fontSize = 10.sp
                         )
                     }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = { showJoinGroupsDialog = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2B2B2B)
+                    ),
+                ) {
+                    Text(
+                        stringResource(R.string.action_join_groups),
+                        color = Color.White,
+                        fontSize = 10.sp
+                    )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
@@ -894,6 +921,76 @@ fun DMScreenContent(
                 },
                 confirmButton = {
                     TextButton(onClick = { showLeaveGroupsDialog = false }) {
+                        Text(
+                            text = stringResource(R.string.action_done),
+                            color = Color(0xFFFF4500)
+                        )
+                    }
+                },
+                containerColor = Color(0xFF1E1E1E)
+            )
+        }
+        if (showJoinGroupsDialog) {
+            AlertDialog(
+                onDismissRequest = { showJoinGroupsDialog = false },
+                title = {
+                    Text(
+                        text = stringResource(R.string.dm_join_groups_title),
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                text = {
+                    if (joinableGroupTitles.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.dm_join_groups_empty),
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 260.dp)
+                        ) {
+                            joinableGroupTitles.forEach { groupName ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = groupName,
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            val groupId = groupChatIdForTitle(groupName)
+                                            profileViewModel.joinGroupChat(groupId)
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.dm_group_joined, groupName),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Add,
+                                            contentDescription = stringResource(R.string.dm_add_group),
+                                            tint = Color(0xFF6BCB77)
+                                        )
+                                    }
+                                }
+                                Divider(color = Color(0xFF3A3A3A))
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showJoinGroupsDialog = false }) {
                         Text(
                             text = stringResource(R.string.action_done),
                             color = Color(0xFFFF4500)

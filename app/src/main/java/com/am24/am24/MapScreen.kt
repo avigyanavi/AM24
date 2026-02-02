@@ -307,6 +307,7 @@ fun MapScreen(
     datingViewModel: DatingViewModel,         // NEW
     radiusKmDefault: Double = 50.0
 ) {
+    TrackScreenPerformance("MapScreen")
     val ctx = LocalContext.current
     val isDarkTheme by ThemeManager.isDarkTheme.collectAsState()
     val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -351,6 +352,13 @@ fun MapScreen(
     var radiusKm by nearbyViewModel::radiusKm
     var lastActiveHours by nearbyViewModel::lastActiveHours
     var selectedTab by rememberSaveable { mutableStateOf(0) } // 0: People, 1: Cards, 2: Boosted, 3: Map
+    val selectedTabName = when (selectedTab) {
+        0 -> "people"
+        1 -> "cards"
+        2 -> "boosted"
+        else -> "map"
+    }
+    TrackTabPerformance("MapScreen", selectedTabName)
     var datingFilters by nearbyViewModel::datingFilters
     val defaultDatingFilters = remember { DatingFilterSettings() }
     var showOverflowMenu by remember { mutableStateOf(false) }
