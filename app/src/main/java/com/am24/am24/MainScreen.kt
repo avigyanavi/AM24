@@ -61,6 +61,8 @@ fun MainScreen(
     locationManager: LocationManager
 ) {
     val items = listOf(
+        BottomNavItem(stringResource(R.string.feed), Icons.Default.Home, "home"),
+        BottomNavItem(stringResource(R.string.explore), Icons.Default.Explore, "explore"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
 //        BottomNavItem(stringResource(R.string.settings), Icons.Default.Settings, "settings")
@@ -323,14 +325,13 @@ fun TopNavBar(
     val isProfileScreen = currentRoute == "profile"
     val isDMScreen = currentRoute == "dms"
     val isGroupChat = currentDestination?.route?.startsWith("groupChat") == true
-    val isAiPartner = currentRoute == "home" ||
-            currentRoute == "aiPartner" ||
+    val isAiPartner = currentRoute == "aiPartner" ||
             currentRoute?.startsWith("aiImageFull/") == true
     // 🔸 NEW: are we on any bottom nav root screen?
     val isOnBottomNavRoot = currentDestination
         ?.hierarchy
         ?.any { dest ->
-            dest.route in listOf("profile", "map", "dms", "home", "aiPartner", "omegleUsers")
+            dest.route in listOf("profile", "map", "dms", "home", "explore", "aiPartner", "omegleUsers")
         } == true
     val unreadCount = mainUiState.unreadNotifications
     val allowLocationForMatches = mainUiState.allowLocationForMatches

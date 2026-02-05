@@ -26,7 +26,7 @@ fun UserPostsScreen(
     navController: NavController,
     postViewModel: PostViewModel
 ) {
-    LaunchedEffect(Unit) { postViewModel.fetchPosts() }
+    LaunchedEffect(userId) { postViewModel.fetchPosts(userId) }
     val allPosts by postViewModel.profilePosts.collectAsState()
     val posts = allPosts.filter { it.userId == userId }
 

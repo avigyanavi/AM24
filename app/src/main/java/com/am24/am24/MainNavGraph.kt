@@ -108,9 +108,15 @@ fun MainNavGraph(
             LeaderboardScreen(navController)
         }
         composable("home") {
-            AIPartnerScreen(
+            HomeScreen(
                 navController = navController,
-                aiPartnerViewModel = aiPartnerViewModel,
+                postViewModel = postViewModel,
+                profileViewModel = profileViewModel
+            )
+        }
+        composable("explore") {
+            ExploreScreen(
+                postViewModel = postViewModel,
                 profileViewModel = profileViewModel
             )
         }

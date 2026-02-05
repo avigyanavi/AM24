@@ -593,7 +593,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             .addOnFailureListener { onFailure(it.message ?: "Failed to save post") }
     }
 
-    fun fetchPosts() {
+    fun fetchPosts(userId: String? = null) {
         viewModelScope.launch {
             Log.d("PostViewModel", "Starting fetchPosts")
             _isLoading.value = true
@@ -606,6 +606,11 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             try {
+                val query = if (userId.isNullOrBlank()) {
+                    postsCollection
+                } else {
+                    postsCollection.whereEqualTo("userId", userId)
+                }
                 val snapshot = postsCollection.get().await()
                 val postsList = snapshot.documents.mapNotNull { it.toPost() }
                 Log.d("PostViewModel", "Setting _profilePosts to ${postsList.size} posts: $postsList")
