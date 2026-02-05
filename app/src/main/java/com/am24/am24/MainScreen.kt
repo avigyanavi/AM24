@@ -60,7 +60,6 @@ fun MainScreen(
     aiPartnerViewModel: AIPartnerViewModel,
     locationManager: LocationManager
 ) {
-    TrackScreenPerformance("MainScreen")
     val items = listOf(
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
         BottomNavItem(stringResource(R.string.chat), Icons.Default.MailOutline, "dms"),
@@ -73,7 +72,6 @@ fun MainScreen(
     val currentBottomTab = items.firstOrNull { route ->
         currentRoute?.startsWith(route.route) == true
     }?.route ?: (currentRoute ?: "unknown")
-    TrackTabPerformance("MainScreen", currentBottomTab)
     // MainViewModel is now injected, not created here
     val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
 

@@ -77,7 +77,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation("com.google.firebase:firebase-perf:21.0.1")
+    implementation("com.google.firebase:firebase-perf:22.0.4")
     implementation(libs.firebase.analytics)
     implementation("androidx.lifecycle:lifecycle-process:2.8.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")

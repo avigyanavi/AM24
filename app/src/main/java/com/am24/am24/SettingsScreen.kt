@@ -66,7 +66,6 @@ fun SettingsRow(
     enabled: Boolean = true,
     onClick: () -> Unit = {}
 ) {
-    TrackScreenPerformance("SettingsScreen")
     val titleColor = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
     val iconTint = if (enabled) tint else MaterialTheme.colorScheme.onSurfaceVariant
     val trailingColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)

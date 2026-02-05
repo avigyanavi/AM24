@@ -96,7 +96,6 @@ fun DMScreen(
     profileViewModel: ProfileViewModel,
     datingViewModel: DatingViewModel,        // NEW
 ) {
-    TrackScreenPerformance("AIPartnerScreen")
     DMScreenContent(navController, nearbyViewModel, profileViewModel, datingViewModel)
 }
 
@@ -107,7 +106,6 @@ fun DMScreenContent(
     profileViewModel: ProfileViewModel,
     datingViewModel: DatingViewModel,        // NEW
 ) {
-    TrackScreenPerformance("DMScreenContent")
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
     val database = remember { FirebaseRefs.db }

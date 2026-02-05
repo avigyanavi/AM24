@@ -86,7 +86,6 @@ fun HomeScreen(
     profileViewModel: ProfileViewModel,
     modifier: Modifier = Modifier
 ) {
-    TrackScreenPerformance("HomeScreen")
     // Get the current user ID from FirebaseAuth.
     val userId = FirebaseAuth.getInstance().currentUser?.uid
     val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
@@ -305,7 +304,6 @@ fun HomeScreenContent(
     isPremium: Boolean,              // NEW
     isPlus: Boolean                  // NEW
 ) {
-    TrackScreenPerformance("HomeScreenContent")
     val focusManager = LocalFocusManager.current
     val feedTabs = listOf("everyone", "matches")
     var selectedTab by remember {                   // keeps UI and VM in sync

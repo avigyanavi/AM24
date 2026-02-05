@@ -100,7 +100,6 @@ fun AIPartnerScreen(
     aiPartnerViewModel: AIPartnerViewModel,
     profileViewModel: ProfileViewModel
 ) {
-    TrackScreenPerformance("AIPartnerScreen")
     val profile by profileViewModel.currentUserProfile.collectAsState()
     val aiResp by aiPartnerViewModel.aiResponse.collectAsState()
 
