@@ -983,10 +983,11 @@ fun MapScreen(
     LaunchedEffect(userLatLng, selectedTab) {
         if (userLatLng == null || selectedTab != 2) return@LaunchedEffect
         try {
-            val snap = FirebaseRefs.db.getReference("posts")
-                .orderByChild("checkIn/placeId")
-                .limitToLast(50)
-                .get().await()
+            val snap = FirebaseRefs.firestore.collection("posts")
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(50)
+                .get()
+                .await()
 
             clusters.clear()
             heatPoints.clear()
@@ -996,10 +997,9 @@ fun MapScreen(
             val nameCache = mutableMapOf<String, String>()              // placeId → placeName
             val profileCache = mutableMapOf<String, Profile?>()
 
-            snap.children.forEach { postSnap ->
-                val postId = postSnap.key ?: return@forEach
-                val authorId =
-                    postSnap.child("userId").getValue(String::class.java) ?: return@forEach
+            snap.documents.forEach { postSnap ->
+                val postId = postSnap.id
+                val authorId = postSnap.getString("userId") ?: return@forEach
 
                 // Load profile once per author to check location visibility toggles
                 var profile = profileCache[authorId]
@@ -1014,16 +1014,15 @@ fun MapScreen(
                     (isMatch && it.allowLocationForMatches) || (!isMatch && it.allowLocationPublic)
                 } ?: false
                 if (!allowed) return@forEach
-                val ci = postSnap.child("checkIn")
-                val placeId = ci.child("placeId").getValue(String::class.java) ?: return@forEach
-                val placeNm = ci.child("name").getValue(String::class.java)
-                    ?: ctx.getString(R.string.unknown_place)
+                val ci = postSnap.get("checkIn") as? Map<*, *> ?: return@forEach
+                val placeId = ci["placeId"] as? String ?: return@forEach
+                val placeNm = ci["name"] as? String ?: ctx.getString(R.string.unknown_place)
 
                 nameCache[placeId] = placeNm
                 grouped.getOrPut(placeId) { mutableListOf() }.add(postId)
 
-                val lat = ci.child("lat").getValue(Double::class.java)
-                val lng = ci.child("lng").getValue(Double::class.java)
+                val lat = (ci["lat"] as? Number)?.toDouble()
+                val lng = (ci["lng"] as? Number)?.toDouble()
                 if (lat != null && lng != null) {
                     val ll = LatLng(lat, lng)
                     clusterLatLngs[placeId] = ll

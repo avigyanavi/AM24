@@ -1,7 +1,6 @@
 package com.am24.am24
 
-import android.util.Log
-import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.Timestamp
 import com.google.firebase.database.Exclude
 import com.google.firebase.database.ServerValue
 import com.google.gson.Gson
@@ -46,6 +45,7 @@ data class Post(
         return when (val time = timestamp) {
             is Long -> time
             is Double -> time.toLong()
+            is Timestamp -> time.toDate().time
             is Map<*, *> -> {
                 // Handle unresolved ServerValue.TIMESTAMP
                 // You can choose to return 0L or current system time
@@ -70,7 +70,11 @@ data class Comment(
     val mediaUrl: String? = null
 ) {
     fun getCommentTimestamp(): Long {
-        return (timestamp as? Number)?.toLong() ?: 0L
+        return when (val time = timestamp) {
+            is Number -> time.toLong()
+            is Timestamp -> time.toDate().time
+            else -> 0L
+        }
     }
     // Serialize the Comment object to JSON
     fun toJson(): String = Gson().toJson(this)

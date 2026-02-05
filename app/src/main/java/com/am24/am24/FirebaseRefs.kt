@@ -2,6 +2,7 @@ package com.am24.am24
 
 import android.util.Log
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 
 object FirebaseRefs {
@@ -13,7 +14,7 @@ object FirebaseRefs {
     private val primaryDb: FirebaseDatabase = FirebaseDatabase.getInstance(PRIMARY_DB_URL)
 
     val storage: FirebaseStorage by lazy { FirebaseStorage.getInstance(STORAGE_BUCKET) }
-
+    val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     init {
         enableOfflinePersistence(primaryDb, "primary")
         warmUp()

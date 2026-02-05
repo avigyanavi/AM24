@@ -76,6 +76,7 @@ import coil.request.ImageRequest
 import com.am24.am24.util.TextureFullscreenVideoPlayer
 import kotlinx.coroutines.CancellationException
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -2277,7 +2278,7 @@ fun handleAddVoiceComment(
     voiceUri: Uri,
     userId: String,
     username: String,
-    database: DatabaseReference = FirebaseRefs.db.getReference("posts"),
+    firestore: FirebaseFirestore = FirebaseRefs.firestore,
     storage: FirebaseStorage = FirebaseRefs.storage,
     onSuccess: () -> Unit,
     onFailure: (String) -> Unit
@@ -2291,11 +2292,8 @@ fun handleAddVoiceComment(
             // Get the download URL for the uploaded voice file
             voiceRef.downloadUrl.addOnSuccessListener { downloadUrl ->
                 // Prepare the comment data with the download URL
-                val commentId = database.child(postId).child("comments").push().key
-                if (commentId == null) {
-                    onFailure("Failed to generate comment ID.")
-                    return@addOnSuccessListener
-                }
+                val postRef = firestore.collection("posts").document(postId)
+                val commentId = postRef.collection("comments").document().id
 
                 val commentData = mapOf(
                     "commentId" to commentId,
@@ -2304,18 +2302,31 @@ fun handleAddVoiceComment(
                     "mediaUrl" to downloadUrl.toString(),
                     "upvotes" to 0,
                     "downvotes" to 0,
-                    "timestamp" to ServerValue.TIMESTAMP // Capture the server-side timestamp
+                    "timestamp" to System.currentTimeMillis()
                 )
 
-                // Save the comment data to the database
-                database.child(postId).child("comments").child(commentId)
-                    .setValue(commentData)
-                    .addOnSuccessListener {
-                        onSuccess()
+                firestore.runTransaction { transaction ->
+                    val snapshot = transaction.get(postRef)
+                    if (!snapshot.exists()) {
+                        throw IllegalStateException("Post no longer exists.")
                     }
-                    .addOnFailureListener { exception ->
-                        onFailure(exception.message ?: "Failed to add comment to database.")
+                    val rawComments = snapshot.get("comments") as? Map<String, Any?> ?: emptyMap()
+                    val updatedComments = rawComments.toMutableMap().apply {
+                        this[commentId] = commentData
                     }
+                    val totalComments = (snapshot.getLong("totalComments") ?: 0L) + 1L
+                    transaction.update(
+                        postRef,
+                        mapOf(
+                            "comments" to updatedComments,
+                            "totalComments" to totalComments
+                        )
+                    )
+                }.addOnSuccessListener {
+                    onSuccess()
+                }.addOnFailureListener { exception ->
+                    onFailure(exception.message ?: "Failed to add comment to database.")
+                }
             }.addOnFailureListener { exception ->
                 onFailure(exception.message ?: "Failed to get download URL.")
             }

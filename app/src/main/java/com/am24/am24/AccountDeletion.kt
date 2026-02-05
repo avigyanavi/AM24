@@ -4,6 +4,7 @@ import android.util.Log
 import com.firebase.geofire.GeoFire
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
@@ -14,17 +15,20 @@ object AccountDeletion {
     suspend fun deleteAccount(
         auth: FirebaseAuth = FirebaseAuth.getInstance(),
         db: FirebaseDatabase = FirebaseRefs.db,
+        firestore: FirebaseFirestore = FirebaseRefs.firestore,
         storage: FirebaseStorage = FirebaseRefs.storage
     ) {
         val user = auth.currentUser ?: return
         val uid = user.uid
         try {
             // Remove user posts
-            val postsRef = db.getReference("posts")
-            val postsSnap = postsRef.orderByChild("userId").equalTo(uid).get().await()
-            for (child in postsSnap.children) {
-                val mediaUrl = child.child("mediaUrl").getValue(String::class.java)
-                val mediaThumb = child.child("mediaThumb").getValue(String::class.java)
+            val postsSnap = firestore.collection("posts")
+                .whereEqualTo("userId", uid)
+                .get()
+                .await()
+            for (child in postsSnap.documents) {
+                val mediaUrl = child.getString("mediaUrl")
+                val mediaThumb = child.getString("mediaThumb")
 
                 listOfNotNull(mediaUrl, mediaThumb).forEach { url ->
                     try {
@@ -35,7 +39,7 @@ object AccountDeletion {
                 }
 
                 try {
-                    child.ref.removeValue().await()
+                    child.reference.delete().await()
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to delete post", e)
                 }

@@ -8,8 +8,17 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.am24.am24.FirebaseRefs.db
-import com.google.firebase.database.*
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ServerValue
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.getValue
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
@@ -35,14 +44,16 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private val sessionRepository = SessionDataRepository
 
     private var isFeedPaused = false
-    // Firebase Realtime Database reference to "posts"
-    private val postsRef = FirebaseRefs.db.getReference("posts")
+    // Firestore reference to "posts"
+    private val firestore: FirebaseFirestore = FirebaseRefs.firestore
+    private val postsCollection = firestore.collection("posts")
     private var postsQuery: Query? = null
 
     private val FEED_PAGE_SIZE = 40
     val feedPageSize: Int = FEED_PAGE_SIZE
     private val MAX_FEED_CACHE = FEED_PAGE_SIZE * 5
     private var oldestLoadedTimestamp: Long? = null
+    private var oldestLoadedSnapshot: DocumentSnapshot? = null
 
     private val _hasMorePosts = MutableStateFlow(true)
     val hasMorePosts: StateFlow<Boolean> = _hasMorePosts.asStateFlow()
@@ -306,8 +317,45 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             .sortedBy { it.value.lowercase() }
     }
 
+    private fun DocumentSnapshot.toPost(): Post? {
+        val basePost = try {
+            toObject(Post::class.java)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to decode post ${id}: ${e.message}", e)
+            null
+        } ?: return null
+
+        val comments = parseComments(get("comments") as? Map<String, Any?>)
+        return basePost.copy(
+            postId = id,
+            comments = if (comments.isNotEmpty()) comments else basePost.comments
+        )
+    }
+
+    private fun parseComments(raw: Map<String, Any?>?): Map<String, Comment> {
+        if (raw.isNullOrEmpty()) return emptyMap()
+        return raw.mapNotNull { (key, value) ->
+            val map = value as? Map<*, *> ?: return@mapNotNull null
+            val comment = Comment(
+                commentId = (map["commentId"] as? String) ?: key,
+                userId = map["userId"] as? String ?: "",
+                username = map["username"] as? String ?: "",
+                commentText = map["commentText"] as? String ?: "",
+                timestamp = map["timestamp"] ?: System.currentTimeMillis(),
+                upvotes = (map["upvotes"] as? Number)?.toInt() ?: 0,
+                downvotes = (map["downvotes"] as? Number)?.toInt() ?: 0,
+                upvotedUsers = (map["upvotedUsers"] as? Map<String, Boolean>)?.toMutableMap()
+                    ?: mutableMapOf(),
+                downvotedUsers = (map["downvotedUsers"] as? Map<String, Boolean>)?.toMutableMap()
+                    ?: mutableMapOf(),
+                mediaUrl = map["mediaUrl"] as? String
+            )
+            key to comment
+        }.toMap()
+    }
+
     private var currentPostId: String? = null          // <— NEW
-    private var singlePostListener: ValueEventListener? = null
+    private var singlePostListener: ListenerRegistration? = null
     private var savedPostIdsRef: DatabaseReference? = null
     private var savedPostIdsListener: ValueEventListener? = null
 
@@ -318,28 +366,23 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         if (currentPostId == postId && singlePostListener != null) return
 
         // 1️⃣  Detach the old listener (if any)
-        singlePostListener?.let { listener ->
-            currentPostId?.let { postsRef.child(it).removeEventListener(listener) }
-        }
+        singlePostListener?.remove()
 
         // 2️⃣  Attach a fresh listener to the requested post
         currentPostId = postId
-        singlePostListener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                _postFlow.value = snapshot.getValue(Post::class.java)
+        singlePostListener = postsCollection.document(postId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "post listener cancelled", error)
+                    return@addSnapshotListener
+                }
+                _postFlow.value = snapshot?.toPost()
             }
-            override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "post listener cancelled", error.toException())
-            }
-        }
-        postsRef.child(postId).addValueEventListener(singlePostListener!!)
     }
 
     /** Call when the screen/ViewModel is done */
     private fun stopPostListener() {
-        singlePostListener?.let { listener ->
-            currentPostId?.let { postsRef.child(it).removeEventListener(listener) }
-        }
+        singlePostListener?.remove()
         singlePostListener = null
         currentPostId     = null
     }
@@ -352,9 +395,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         postsListener = null
 
         // ─── 2. single-post listener we added for PostDetailScreen ────
-        singlePostListener?.let { listener ->
-            currentPostId?.let { postsRef.child(it).removeEventListener(listener) }
-        }
+        singlePostListener?.remove()
         singlePostListener = null
         currentPostId     = null          // <- also clear the flag
 
@@ -372,8 +413,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     private fun refreshSinglePost(postId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val snap   = postsRef.child(postId).get().await()
-                val latest = snap.getValue(Post::class.java)
+                val snap   = postsCollection.document(postId).get().await()
+                val latest = snap.toPost()
                 if (latest != null) _postFlow.value = latest
             } catch (_: Exception) { /* ignore – listener will catch up */ }
         }
@@ -386,29 +427,26 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      * Return only those posts whose checkIn.placeId matches.
      */
     fun checkInPosts(placeId: String): Flow<List<Post>> = callbackFlow {
-        val query = FirebaseRefs.db.getReference("posts")
-            .orderByChild("checkIn/placeId")
-            .equalTo(placeId)
-            .limitToLast(50)
+        val query = postsCollection
+            .whereEqualTo("checkIn.placeId", placeId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(50)
 
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val posts = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                val filtered = posts.filter { it.checkIn?.placeId == placeId }
-
-                Log.d("PostViewModel", "🔍 checkInPosts($placeId): full posts size = ${posts.size}")
-                Log.d("PostViewModel", "✅ checkInPosts($placeId) → filtered size = ${filtered.size}")
-
-                trySend(posts)
-            }
-
-            override fun onCancelled(error: DatabaseError) {
+        val listener = query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
                 Log.e("PostViewModel", "checkInPosts error: ${error.message}")
+                return@addSnapshotListener
             }
+            val posts = snapshot?.documents?.mapNotNull { it.toPost() }.orEmpty()
+            val filtered = posts.filter { it.checkIn?.placeId == placeId }
+
+            Log.d("PostViewModel", "🔍 checkInPosts($placeId): full posts size = ${posts.size}")
+            Log.d("PostViewModel", "✅ checkInPosts($placeId) → filtered size = ${filtered.size}")
+
+            trySend(filtered)
         }
 
-        query.addValueEventListener(listener)
-        awaitClose { query.removeEventListener(listener) }
+        awaitClose { listener.remove() }
     }
 
 
@@ -521,22 +559,18 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun fetchSavedPosts(postIds: List<String>) {
-        val postsRef = FirebaseRefs.db.getReference("posts")
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val savedPostsList = mutableListOf<Post>()
             postIds.forEach { postId ->
-                postsRef.child(postId).addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        snapshot.getValue(Post::class.java)?.let { post ->
-                            savedPostsList.add(post)
-                            _savedPosts.value = savedPostsList.sortedByDescending { it.getTimestampLong() }
-                        }
+                try {
+                    val snapshot = postsCollection.document(postId).get().await()
+                    snapshot.toPost()?.let { post ->
+                        savedPostsList.add(post)
+                        _savedPosts.value = savedPostsList.sortedByDescending { it.getTimestampLong() }
                     }
-
-                    override fun onCancelled(error: DatabaseError) {
-                        Log.e("PostViewModel", "Failed to fetch post $postId: ${error.message}")
-                    }
-                })
+                } catch (e: Exception) {
+                    Log.e("PostViewModel", "Failed to fetch post $postId: ${e.message}")
+                }
             }
         }
     }
@@ -571,37 +605,21 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 _postsLoaded.value = true
             }
 
-            postsRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val postsList = mutableListOf<Post>()
-                    for (postSnapshot in snapshot.children) {
-                        try {
-                            val post = postSnapshot.getValue(Post::class.java)
-                            if (post != null) {
-                                postsList.add(post)
-                                Log.d("PostViewModel", "Added post: $post")
-                            } else if (post == null) {
-                                Log.w("PostViewModel", "Failed to deserialize post at ${postSnapshot.key}: ${postSnapshot.value}")
-                            }
-                        } catch (e: Exception) {
-                            Log.e("PostViewModel", "Error deserializing post at ${postSnapshot.key}: ${e.message}")
-                        }
-                    }
-                    Log.d("PostViewModel", "Setting _profilePosts to ${postsList.size} posts: $postsList")
-                    _profilePosts.value = postsList
-                    _rawPosts.value = postsList
-                    applyPostFilters()
-                    _isLoading.value = false
-                    _postsLoaded.value = true      // ✅ finished – even if list is empty
-                    Log.d("PostViewModel", "Fetched ${postsList.size} posts, _profilePosts.value.size=${_profilePosts.value.size}")
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    _isLoading.value = false
-                    _postsLoaded.value = true      // ✅ finished – even if list is empty
-                    Log.e("PostViewModel", "Failed to fetch posts: ${error.message}")
-                }
-            })
+            try {
+                val snapshot = postsCollection.get().await()
+                val postsList = snapshot.documents.mapNotNull { it.toPost() }
+                Log.d("PostViewModel", "Setting _profilePosts to ${postsList.size} posts: $postsList")
+                _profilePosts.value = postsList
+                _rawPosts.value = postsList
+                applyPostFilters()
+                _isLoading.value = false
+                _postsLoaded.value = true      // ✅ finished – even if list is empty
+                Log.d("PostViewModel", "Fetched ${postsList.size} posts, _profilePosts.value.size=${_profilePosts.value.size}")
+            } catch (e: Exception) {
+                _isLoading.value = false
+                _postsLoaded.value = true      // ✅ finished – even if list is empty
+                Log.e("PostViewModel", "Failed to fetch posts: ${e.message}")
+            }
         }
     }
 
@@ -653,14 +671,15 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 val country = fetchUserCountry(userId)
 
                 // ─── push post object ────────────────────────────────────────
-                val postId = postsRef.push().key ?: throw Exception("No postId")
+                val postRef = postsCollection.document()
+                val postId = postRef.id
                 val post   = mapOf(
                     "postId"       to postId,
                     "userId"       to userId,
                     "username"     to username,
                     "country"      to country,
                     "contentText"  to caption.ifBlank { null },
-                    "timestamp"    to ServerValue.TIMESTAMP,
+                    "timestamp"    to FieldValue.serverTimestamp(),
                     "userTags"     to userTags,
                     "mediaType"    to mediaType,
                     "mediaUrl"     to mediaUrl,
@@ -681,7 +700,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     "downvotedUsers" to emptyMap<String, Boolean>(),
                     "totalComments"  to 0
                 )
-                postsRef.child(postId).setValue(post).await()
+                postRef.set(post).await()
                 clearUploadingFlag() // <─── ② LOWER FLAG
                 refreshPosts()
                 withContext(Dispatchers.Main) { onDone() }
@@ -742,12 +761,10 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     } catch(_: Exception){ null }
 
     // Listener registration to remove when ViewModel is cleared
-    private var postsListener: ValueEventListener? = null
+    private var postsListener: ListenerRegistration? = null
 
     private fun detachPostsListener() {
-        postsListener?.let { listener ->
-            postsQuery?.removeEventListener(listener)
-        }
+        postsListener?.remove()
         postsQuery = null
     }
 
@@ -757,6 +774,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         val shouldShowLoading = _currentUserId.value != null && _rawPosts.value.isEmpty()
         _isInitialFeedLoading.value = shouldShowLoading
         oldestLoadedTimestamp = null
+        oldestLoadedSnapshot = null
         _hasMorePosts.value = true
         _isLoadingMore.value = false
         _feedErrorMessage.value = null
@@ -780,65 +798,60 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
      * Sets up a real-time listener to observe changes in "posts" node.
      */
     private fun observePosts() {
-        isFeedPaused = false                // ← add this
-        val query = postsRef.orderByChild("timestamp").limitToLast(FEED_PAGE_SIZE)
-        if (postsListener == null) { // Avoid re-adding listener if already active
-            postsListener = object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    viewModelScope.launch(Dispatchers.IO) {
+        isFeedPaused = false
+        val query = postsCollection
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(FEED_PAGE_SIZE.toLong())
 
-                        val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                        val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
-                        val userIds = sortedPosts.map { it.userId }.toSet()
-                        val profiles = fetchUserProfiles(userIds)
+        detachPostsListener()
+        postsQuery = query
+        postsListener = query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.e(TAG, "Failed to observe posts: ${error.message}")
+                _feedErrorMessage.value = "Posts couldn't be loaded"
+                _isInitialFeedLoading.value = false
+                return@addSnapshotListener
+            }
 
-                        val existingPosts = _rawPosts.value
-                        val hadExistingPosts = existingPosts.isNotEmpty()
-                        val recentIds = sortedPosts.map { it.postId }.toSet()
-                        val remainingOldPosts = existingPosts.filterNot { recentIds.contains(it.postId) }
-                        val mergedPosts = trimFeedCache(
-                            (sortedPosts + remainingOldPosts)
-                                .distinctBy { it.postId }
-                                .sortedByDescending { it.getTimestampLong() }
-                        )
+            val documents = snapshot?.documents.orEmpty()
+            viewModelScope.launch(Dispatchers.IO) {
+                val postsList = documents.mapNotNull { it.toPost() }
+                val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
+                val userIds = sortedPosts.map { it.userId }.toSet()
+                val profiles = fetchUserProfiles(userIds)
+                val existingPosts = _rawPosts.value
+                val hadExistingPosts = existingPosts.isNotEmpty()
+                val recentIds = sortedPosts.map { it.postId }.toSet()
+                val remainingOldPosts = existingPosts.filterNot { recentIds.contains(it.postId) }
+                val mergedPosts = trimFeedCache(
+                    (sortedPosts + remainingOldPosts)
+                        .distinctBy { it.postId }
+                        .sortedByDescending { it.getTimestampLong() }
+                )
 
-                        val combinedProfiles = _userProfiles.value.toMutableMap().apply { putAll(profiles) }
+                val combinedProfiles = _userProfiles.value.toMutableMap().apply { putAll(profiles) }
 
-                        _userProfiles.value = combinedProfiles
-                        _rawPosts.value = mergedPosts
-                        applyPostFilters()
-                        oldestLoadedTimestamp = mergedPosts.lastOrNull()?.getTimestampLong()
-                        if (!hadExistingPosts) {
-                            _hasMorePosts.value = sortedPosts.size >= FEED_PAGE_SIZE
-                        }
-                        if (_isInitialFeedLoading.value) {
-                            _isInitialFeedLoading.value = false
-                        }
-
-                        // Confirm StateFlow update
-                        Log.d(TAG, "Updated _posts with ${mergedPosts.size} posts")
-                    }
+                _userProfiles.value = combinedProfiles
+                _rawPosts.value = mergedPosts
+                applyPostFilters()
+                oldestLoadedTimestamp = mergedPosts.lastOrNull()?.getTimestampLong()
+                oldestLoadedSnapshot = documents.lastOrNull()
+                if (!hadExistingPosts) {
+                    _hasMorePosts.value = sortedPosts.size >= FEED_PAGE_SIZE
                 }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e(TAG, "Failed to observe posts: ${error.message}")
-                    _feedErrorMessage.value = "Posts couldn't be loaded"
+                if (_isInitialFeedLoading.value) {
                     _isInitialFeedLoading.value = false
                 }
+
+                // Confirm StateFlow update
+                Log.d(TAG, "Updated _posts with ${mergedPosts.size} posts")
             }
         }
-
-        postsListener?.let { listener ->
-            postsQuery?.removeEventListener(listener)
-            postsQuery = query
-            query.addValueEventListener(listener)
-        }
-
-        // Trigger a one-time fetch for immediate data availability
         viewModelScope.launch {
             try {
                 val snapshot = query.get().await()
-                val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
+                val docs = snapshot.documents
+                val postsList = docs.mapNotNull { it.toPost() }
                 val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
                 val userIds = sortedPosts.map { it.userId }.toSet()
                 val profiles = fetchUserProfiles(userIds)
@@ -858,6 +871,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 _rawPosts.value = mergedPosts
                 applyPostFilters()
                 oldestLoadedTimestamp = mergedPosts.lastOrNull()?.getTimestampLong()
+                oldestLoadedSnapshot = docs.lastOrNull()
                 _hasMorePosts.value = sortedPosts.size >= FEED_PAGE_SIZE
                 _isInitialFeedLoading.value = false
             } catch (e: Exception) {
@@ -870,25 +884,20 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadMorePosts() {
         if (_isLoadingMore.value || !_hasMorePosts.value) return
-        if (oldestLoadedTimestamp == null) return
+        if (oldestLoadedSnapshot == null) return
 
         _isLoadingMore.value = true
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val lastPost = _rawPosts.value.lastOrNull()
-                if (lastPost == null) {
-                    _isLoadingMore.value = false
-                    return@launch
-                }
-                val snapshot = postsRef.orderByChild("timestamp")
-                    .endAt(lastPost.getTimestampLong().toDouble(), lastPost.postId)
-                    .limitToLast(FEED_PAGE_SIZE + 1)
+                val snapshot = postsCollection
+                    .orderBy("timestamp", Query.Direction.DESCENDING)
+                    .startAfter(oldestLoadedSnapshot!!)
+                    .limit(FEED_PAGE_SIZE.toLong())
                     .get()
                     .await()
 
-                val postsList = snapshot.children.mapNotNull { it.getValue(Post::class.java) }
-                    .filter { it.postId != lastPost.postId }
+                val postsList = snapshot.documents.mapNotNull { it.toPost() }
                 val sortedPosts = postsList.sortedByDescending { it.getTimestampLong() }
                 val newPosts = sortedPosts.filterNot { post -> _rawPosts.value.any { it.postId == post.postId } }
                 if (newPosts.isNotEmpty()) {
@@ -905,6 +914,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     _rawPosts.value = mergedPosts
                     applyPostFilters()
                     oldestLoadedTimestamp = mergedPosts.lastOrNull()?.getTimestampLong()
+                    oldestLoadedSnapshot = snapshot.documents.lastOrNull() ?: oldestLoadedSnapshot
                 }
 
                 _hasMorePosts.value = newPosts.size >= FEED_PAGE_SIZE
@@ -1083,8 +1093,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch(Dispatchers.IO) {
             _isUploading.value = true
-            val postId = postsRef.push().key
-            if (postId == null) {
+            val postRef = postsCollection.document()
+            val postId = postRef.id
+            if (postId.isBlank()) {
                 onFailure("Unable to generate post ID."); return@launch
             }
 
@@ -1095,7 +1106,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 "username"    to username,
                 "country"     to country,
                 "contentText" to contentText,
-                "timestamp"   to ServerValue.TIMESTAMP,
+                "timestamp"   to FieldValue.serverTimestamp(),
                 "userTags"    to userTags,
                 "fontFamily"  to fontFamily,
                 "fontSize"    to fontSize,
@@ -1120,7 +1131,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             try {
-                postsRef.child(postId).setValue(post).await()
+                postRef.set(post).await()
                 clearUploadingFlag()
                 refreshPosts()
                 onSuccess()
@@ -1190,8 +1201,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 // Generate post ID
-                val postId = postsRef.push().key
-                if (postId == null) {
+                val postRef = postsCollection.document()
+                val postId = postRef.id
+                if (postId.isBlank()) {
                     onFailure("Unable to generate post ID.")
                     clearUploadingFlag()
                     return@launch
@@ -1205,7 +1217,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     "username" to username,
                     "country" to country,
                     "contentText" to null,
-                    "timestamp" to ServerValue.TIMESTAMP, // Pass the special map for server timestamp
+                    "timestamp" to FieldValue.serverTimestamp(),
                     "userTags" to userTags,
                     "mediaType" to "voice",
                     "mediaUrl" to downloadUrl,
@@ -1218,7 +1230,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 )
 
                 // Save post to Realtime Database
-                postsRef.child(postId).setValue(post).await()
+                postRef.set(post).await()
                 clearUploadingFlag()
                 refreshPosts()
                 onSuccess()
@@ -1313,78 +1325,62 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         onFailure: (String) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val postReference = postsRef.child(postId)
             try {
-                postReference.runTransaction(object : Transaction.Handler {
-                    override fun doTransaction(currentData: MutableData): Transaction.Result {
-                        if (currentData.value == null) {
-                            return Transaction.success(currentData)
-                        }
+                val postRef = postsCollection.document(postId)
+                val postOwnerId = firestore.runTransaction { transaction ->
+                    val snapshot = transaction.get(postRef)
+                    if (!snapshot.exists()) return@runTransaction null
 
-                        val post = currentData.getValue(Post::class.java) ?: return Transaction.success(currentData)
-                        // Ensure timestamp is correctly handled
-                        val originalTimestamp = post.timestamp
+                    val upvotes = (snapshot.getLong("upvotes") ?: 0L).toInt()
+                    val downvotes = (snapshot.getLong("downvotes") ?: 0L).toInt()
+                    val upvotedUsers = (snapshot.get("upvotedUsers") as? Map<String, Boolean>)?.toMutableMap()
+                        ?: mutableMapOf()
+                    val downvotedUsers = (snapshot.get("downvotedUsers") as? Map<String, Boolean>)?.toMutableMap()
+                        ?: mutableMapOf()
 
-                        // Read the current values
-                        var upvotes = currentData.child("upvotes").getValue(Int::class.java) ?: 0
-                        var downvotes = currentData.child("downvotes").getValue(Int::class.java) ?: 0
-                        val upvotedUsers = currentData.child("upvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
-                        val downvotedUsers = currentData.child("downvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+                    var updatedUpvotes = upvotes
+                    var updatedDownvotes = downvotes
 
-
-                        // Modify the vote counts and user lists
-                        if (upvotedUsers.containsKey(userId)) {
-                            upvotedUsers.remove(userId)
-                            upvotes -= 1
-                        } else {
-                            upvotedUsers[userId] = true
-                            upvotes += 1
-                            if (downvotedUsers.containsKey(userId)) {
-                                downvotedUsers.remove(userId)
-                                downvotes -= 1
-                            }
-                        }
-
-                        // Update only the necessary fields
-                        currentData.child("upvotes").value = upvotes
-                        currentData.child("downvotes").value = downvotes
-                        currentData.child("upvotedUsers").value = upvotedUsers
-                        currentData.child("downvotedUsers").value = downvotedUsers
-                        currentData.child("timestamp").value = originalTimestamp
-
-                        // Do not modify other fields like timestamp
-                        return Transaction.success(currentData)
-                    }
-
-                    override fun onComplete(
-                        error: DatabaseError?,
-                        committed: Boolean,
-                        currentData: DataSnapshot?
-                    ) {
-                        viewModelScope.launch(Dispatchers.Main) {
-                            if (error != null) {
-                                onFailure("Upvote failed: ${error.message}")
-                            } else if (committed) {
-                                onSuccess()
-                                refreshSinglePost(postId)                //  ← ★ NEW
-                                // Send notification to post owner
-                                val post = currentData?.getValue(Post::class.java)
-                                if (post != null && post.userId != userId) {
-                                    val upvoterUsername = fetchUsernameById(userId)
-                                    val message = "$upvoterUsername upvoted your post."
-                                    sendNotification(
-                                        receiverId     = post.userId,
-                                        type           = "post_upvote",
-                                        senderId       = userId,
-                                        senderUsername = upvoterUsername,
-                                        message        = message,
-                                        postId         = postId
-                                    )
-                                }
-                            }
+                    if (upvotedUsers.containsKey(userId)) {
+                        upvotedUsers.remove(userId)
+                        updatedUpvotes -= 1
+                    } else {
+                        upvotedUsers[userId] = true
+                        updatedUpvotes += 1
+                        if (downvotedUsers.containsKey(userId)) {
+                            downvotedUsers.remove(userId)
+                            updatedDownvotes -= 1
                         }
                     }
-                })
+
+                    transaction.update(
+                        postRef,
+                        mapOf(
+                            "upvotes" to updatedUpvotes,
+                            "downvotes" to updatedDownvotes,
+                            "upvotedUsers" to upvotedUsers,
+                            "downvotedUsers" to downvotedUsers
+                        )
+                    )
+                    snapshot.getString("userId")
+                }.await()
+
+                withContext(Dispatchers.Main) {
+                    onSuccess()
+                    refreshSinglePost(postId)
+                    if (!postOwnerId.isNullOrBlank() && postOwnerId != userId) {
+                        val upvoterUsername = fetchUsernameById(userId)
+                        val message = "$upvoterUsername upvoted your post."
+                        sendNotification(
+                            receiverId     = postOwnerId,
+                            type           = "post_upvote",
+                            senderId       = userId,
+                            senderUsername = upvoterUsername,
+                            message        = message,
+                            postId         = postId
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     onFailure(e.message ?: "Upvote failed.")
@@ -1404,77 +1400,61 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         onFailure: (String) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val postReference = postsRef.child(postId)
             try {
-                postReference.runTransaction(object : Transaction.Handler {
-                    override fun doTransaction(currentData: MutableData): Transaction.Result {
-                        if (currentData.value == null) {
-                            return Transaction.success(currentData)
-                        }
-                        val post = currentData.getValue(Post::class.java) ?: return Transaction.success(currentData)
-                        // Ensure timestamp is correctly handled
-                        val originalTimestamp = post.timestamp
+                val postRef = postsCollection.document(postId)
+                val postOwnerId = firestore.runTransaction { transaction ->
+                    val snapshot = transaction.get(postRef)
+                    if (!snapshot.exists()) return@runTransaction null
 
-                        // Read the current values
-                        var upvotes = currentData.child("upvotes").getValue(Int::class.java) ?: 0
-                        var downvotes = currentData.child("downvotes").getValue(Int::class.java) ?: 0
-                        val upvotedUsers = currentData.child("upvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
-                        val downvotedUsers = currentData.child("downvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+                    val upvotes = (snapshot.getLong("upvotes") ?: 0L).toInt()
+                    val downvotes = (snapshot.getLong("downvotes") ?: 0L).toInt()
+                    val upvotedUsers = (snapshot.get("upvotedUsers") as? Map<String, Boolean>)?.toMutableMap()
+                        ?: mutableMapOf()
+                    val downvotedUsers = (snapshot.get("downvotedUsers") as? Map<String, Boolean>)?.toMutableMap()
+                        ?: mutableMapOf()
 
+                    var updatedUpvotes = upvotes
+                    var updatedDownvotes = downvotes
 
-                        // Modify the vote counts and user lists
-                        if (downvotedUsers.containsKey(userId)) {
-                            downvotedUsers.remove(userId)
-                            downvotes -= 1
-                        } else {
-                            downvotedUsers[userId] = true
-                            downvotes += 1
-                            if (upvotedUsers.containsKey(userId)) {
-                                upvotedUsers.remove(userId)
-                                upvotes -= 1
-                            }
-                        }
-
-                        // Update only the necessary fields
-                        currentData.child("upvotes").value = upvotes
-                        currentData.child("downvotes").value = downvotes
-                        currentData.child("upvotedUsers").value = upvotedUsers
-                        currentData.child("downvotedUsers").value = downvotedUsers
-                        currentData.child("timestamp").value = originalTimestamp
-
-                        // Do not modify other fields like timestamp
-                        return Transaction.success(currentData)
-                    }
-
-                    override fun onComplete(
-                        error: DatabaseError?,
-                        committed: Boolean,
-                        currentData: DataSnapshot?
-                    ) {
-                        viewModelScope.launch(Dispatchers.Main) {
-                            if (error != null) {
-                                onFailure("Downvote failed: ${error.message}")
-                            } else if (committed) {
-                                onSuccess()
-                                refreshSinglePost(postId)                //  ← ★ NEW
-                                // Send notification to post owner
-                                val post = currentData?.getValue(Post::class.java)
-                                if (post != null && post.userId != userId) {
-                                    val downvoterUsername = fetchUsernameById(userId)
-                                    val message = "$downvoterUsername downvoted your post."
-                                    sendNotification(
-                                        receiverId     = post.userId,
-                                        type           = "post_downvote",
-                                        senderId       = userId,
-                                        senderUsername = downvoterUsername,
-                                        message        = message,
-                                        postId         = postId
-                                    )
-                                }
-                            }
+                    if (downvotedUsers.containsKey(userId)) {
+                        downvotedUsers.remove(userId)
+                        updatedDownvotes -= 1
+                    } else {
+                        downvotedUsers[userId] = true
+                        updatedDownvotes += 1
+                        if (upvotedUsers.containsKey(userId)) {
+                            upvotedUsers.remove(userId)
+                            updatedUpvotes -= 1
                         }
                     }
-                })
+                    transaction.update(
+                        postRef,
+                        mapOf(
+                            "upvotes" to updatedUpvotes,
+                            "downvotes" to updatedDownvotes,
+                            "upvotedUsers" to upvotedUsers,
+                            "downvotedUsers" to downvotedUsers
+                        )
+                    )
+                    snapshot.getString("userId")
+                }.await()
+
+                withContext(Dispatchers.Main) {
+                    onSuccess()
+                    refreshSinglePost(postId)
+                    if (!postOwnerId.isNullOrBlank() && postOwnerId != userId) {
+                        val downvoterUsername = fetchUsernameById(userId)
+                        val message = "$downvoterUsername downvoted your post."
+                        sendNotification(
+                            receiverId     = postOwnerId,
+                            type           = "post_downvote",
+                            senderId       = userId,
+                            senderUsername = downvoterUsername,
+                            message        = message,
+                            postId         = postId
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     onFailure(e.message ?: "Downvote failed.")
@@ -1495,75 +1475,68 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         onFailure: (String) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val commentReference = postsRef.child(postId).child("comments").child(commentId)
             try {
-                commentReference.runTransaction(object : Transaction.Handler {
-                    override fun doTransaction(currentData: MutableData): Transaction.Result {
-                        if (currentData.value == null) {
-                            return Transaction.success(currentData)
-                        }
+                val postRef = postsCollection.document(postId)
+                val commentOwnerId = firestore.runTransaction { transaction ->
+                    val snapshot = transaction.get(postRef)
+                    val rawComments = snapshot.get("comments") as? Map<String, Any?> ?: emptyMap()
+                    val commentData = rawComments[commentId] as? Map<*, *> ?: return@runTransaction null
 
-                        // Read the current values
-                        var upvotes = currentData.child("upvotes").getValue(Int::class.java) ?: 0
-                        var downvotes = currentData.child("downvotes").getValue(Int::class.java) ?: 0
-                        val upvotedUsers = currentData.child("upvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
-                        val downvotedUsers = currentData.child("downvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+                    val upvotes = (commentData["upvotes"] as? Number)?.toInt() ?: 0
+                    val downvotes = (commentData["downvotes"] as? Number)?.toInt() ?: 0
+                    val upvotedUsers = (commentData["upvotedUsers"] as? Map<String, Boolean>)?.toMutableMap()
+                        ?: mutableMapOf()
+                    val downvotedUsers = (commentData["downvotedUsers"] as? Map<String, Boolean>)?.toMutableMap()
+                        ?: mutableMapOf()
 
-                        // Modify the vote counts and user lists
-                        if (upvotedUsers.containsKey(userId)) {
-                            upvotedUsers.remove(userId)
-                            upvotes -= 1
-                        } else {
-                            upvotedUsers[userId] = true
-                            upvotes += 1
-                            if (downvotedUsers.containsKey(userId)) {
-                                downvotedUsers.remove(userId)
-                                downvotes -= 1
-                            }
-                        }
+                    var updatedUpvotes = upvotes
+                    var updatedDownvotes = downvotes
 
-                        // Update only the necessary fields
-                        currentData.child("upvotes").value = upvotes
-                        currentData.child("downvotes").value = downvotes
-                        currentData.child("upvotedUsers").value = upvotedUsers
-                        currentData.child("downvotedUsers").value = downvotedUsers
-
-                        // Do not modify other fields like timestamp
-                        return Transaction.success(currentData)
-                    }
-
-                    override fun onComplete(
-                        error: DatabaseError?,
-                        committed: Boolean,
-                        currentData: DataSnapshot?
-                    ) {
-                        viewModelScope.launch(Dispatchers.Main) {
-                            if (error != null) {
-                                onFailure("Upvote failed: ${error.message}")
-                            } else if (committed) {
-                                onSuccess()
-                                refreshSinglePost(postId)                //  ← ★ NEW
-                                // Send notification to comment owner
-                                val comment = currentData?.getValue(Comment::class.java)
-                                if (comment != null && comment.userId != userId) {
-                                    val upvoterUsername = fetchUsernameById(userId)
-                                    val relationship = getRelationship(userId, comment.userId)
-                                    val relationshipText = if (relationship.isNotEmpty()) " - your $relationship" else ""
-                                    val message = "$upvoterUsername$relationshipText upvoted your comment."
-                                    sendNotification(
-                                        receiverId     = comment.userId,
-                                        type           = "comment_upvote",
-                                        senderId       = userId,
-                                        senderUsername = upvoterUsername,
-                                        message        = message,
-                                        postId         = postId,
-                                        commentId      = commentId
-                                    )
-                                }
-                            }
+                    if (upvotedUsers.containsKey(userId)) {
+                        upvotedUsers.remove(userId)
+                        updatedUpvotes -= 1
+                    } else {
+                        upvotedUsers[userId] = true
+                        updatedUpvotes += 1
+                        if (downvotedUsers.containsKey(userId)) {
+                            downvotedUsers.remove(userId)
+                            updatedDownvotes -= 1
                         }
                     }
-                })
+                        val updatedComment = commentData.toMutableMap().apply {
+                            this["upvotes"] = updatedUpvotes
+                            this["downvotes"] = updatedDownvotes
+                            this["upvotedUsers"] = upvotedUsers
+                            this["downvotedUsers"] = downvotedUsers
+                        }
+
+                    val updatedComments = rawComments.toMutableMap().apply {
+                        this[commentId] = updatedComment
+                    }
+
+                    transaction.update(postRef, "comments", updatedComments)
+                    commentData["userId"] as? String
+                }.await()
+
+                withContext(Dispatchers.Main) {
+                    onSuccess()
+                    refreshSinglePost(postId)
+                    if (!commentOwnerId.isNullOrBlank() && commentOwnerId != userId) {
+                        val upvoterUsername = fetchUsernameById(userId)
+                        val relationship = getRelationship(userId, commentOwnerId)
+                        val relationshipText = if (relationship.isNotEmpty()) " - your $relationship" else ""
+                        val message = "$upvoterUsername$relationshipText upvoted your comment."
+                        sendNotification(
+                            receiverId     = commentOwnerId,
+                            type           = "comment_upvote",
+                            senderId       = userId,
+                            senderUsername = upvoterUsername,
+                            message        = message,
+                            postId         = postId,
+                            commentId      = commentId
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     onFailure(e.message ?: "Upvote failed.")
@@ -1584,76 +1557,68 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         onFailure: (String) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val commentReference = postsRef.child(postId).child("comments").child(commentId)
             try {
-                commentReference.runTransaction(object : Transaction.Handler {
-                    override fun doTransaction(currentData: MutableData): Transaction.Result {
-                        if (currentData.value == null) {
-                            return Transaction.success(currentData)
-                        }
+                val postRef = postsCollection.document(postId)
+                val commentOwnerId = firestore.runTransaction { transaction ->
+                    val snapshot = transaction.get(postRef)
+                    val rawComments = snapshot.get("comments") as? Map<String, Any?> ?: emptyMap()
+                    val commentData = rawComments[commentId] as? Map<*, *> ?: return@runTransaction null
 
-                        // Read the current values
-                        var upvotes = currentData.child("upvotes").getValue(Int::class.java) ?: 0
-                        var downvotes = currentData.child("downvotes").getValue(Int::class.java) ?: 0
-                        val upvotedUsers = currentData.child("upvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
-                        val downvotedUsers = currentData.child("downvotedUsers").getValue<HashMap<String, Boolean>>()?.toMutableMap() ?: mutableMapOf()
+                    val upvotes = (commentData["upvotes"] as? Number)?.toInt() ?: 0
+                    val downvotes = (commentData["downvotes"] as? Number)?.toInt() ?: 0
+                    val upvotedUsers = (commentData["upvotedUsers"] as? Map<String, Boolean>)?.toMutableMap()
+                        ?: mutableMapOf()
+                    val downvotedUsers = (commentData["downvotedUsers"] as? Map<String, Boolean>)?.toMutableMap()
+                        ?: mutableMapOf()
 
-                        // Modify the vote counts and user lists
-                        if (downvotedUsers.containsKey(userId)) {
-                            downvotedUsers.remove(userId)
-                            downvotes -= 1
-                        } else {
-                            downvotedUsers[userId] = true
-                            downvotes += 1
-                            if (upvotedUsers.containsKey(userId)) {
-                                upvotedUsers.remove(userId)
-                                upvotes -= 1
-                            }
-                        }
+                    var updatedUpvotes = upvotes
+                    var updatedDownvotes = downvotes
 
-                        // Update only the necessary fields
-                        currentData.child("upvotes").value = upvotes
-                        currentData.child("downvotes").value = downvotes
-                        currentData.child("upvotedUsers").value = upvotedUsers
-                        currentData.child("downvotedUsers").value = downvotedUsers
-
-
-                        // Do not modify other fields like timestamp
-                        return Transaction.success(currentData)
-                    }
-
-                    override fun onComplete(
-                        error: DatabaseError?,
-                        committed: Boolean,
-                        currentData: DataSnapshot?
-                    ) {
-                        viewModelScope.launch(Dispatchers.Main) {
-                            if (error != null) {
-                                onFailure("Downvote failed: ${error.message}")
-                            } else if (committed) {
-                                onSuccess()
-                                refreshSinglePost(postId)                //  ← ★ NEW
-                                // Send notification to comment owner
-                                val comment = currentData?.getValue(Comment::class.java)
-                                if (comment != null && comment.userId != userId) {
-                                    val downvoterUsername = fetchUsernameById(userId)
-                                    val relationship = getRelationship(userId, comment.userId)
-                                    val relationshipText = if (relationship.isNotEmpty()) " - your $relationship" else ""
-                                    val message = "$downvoterUsername$relationshipText downvoted your comment."
-                                    sendNotification(
-                                        receiverId     = comment.userId,
-                                        type           = "comment_downvote",
-                                        senderId       = userId,
-                                        senderUsername = downvoterUsername,
-                                        message        = message,
-                                        postId         = postId,
-                                        commentId      = commentId
-                                    )
-                                }
-                            }
+                    if (downvotedUsers.containsKey(userId)) {
+                        downvotedUsers.remove(userId)
+                        updatedDownvotes -= 1
+                    } else {
+                        downvotedUsers[userId] = true
+                        updatedDownvotes += 1
+                        if (upvotedUsers.containsKey(userId)) {
+                            upvotedUsers.remove(userId)
+                            updatedUpvotes -= 1
                         }
                     }
-                })
+                    val updatedComment = commentData.toMutableMap().apply {
+                        this["upvotes"] = updatedUpvotes
+                        this["downvotes"] = updatedDownvotes
+                        this["upvotedUsers"] = upvotedUsers
+                        this["downvotedUsers"] = downvotedUsers
+                    }
+
+                    val updatedComments = rawComments.toMutableMap().apply {
+                        this[commentId] = updatedComment
+                    }
+
+                    transaction.update(postRef, "comments", updatedComments)
+                    commentData["userId"] as? String
+                }.await()
+
+                withContext(Dispatchers.Main) {
+                    onSuccess()
+                    refreshSinglePost(postId)
+                    if (!commentOwnerId.isNullOrBlank() && commentOwnerId != userId) {
+                        val downvoterUsername = fetchUsernameById(userId)
+                        val relationship = getRelationship(userId, commentOwnerId)
+                        val relationshipText = if (relationship.isNotEmpty()) " - your $relationship" else ""
+                        val message = "$downvoterUsername$relationshipText downvoted your comment."
+                        sendNotification(
+                            receiverId     = commentOwnerId,
+                            type           = "comment_downvote",
+                            senderId       = userId,
+                            senderUsername = downvoterUsername,
+                            message        = message,
+                            postId         = postId,
+                            commentId      = commentId
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     onFailure(e.message ?: "Downvote failed.")
@@ -1674,59 +1639,58 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val commentsRef = postsRef.child(postId).child("comments")
-                val commentId = commentsRef.push().key
-                if (commentId == null) {
-                    onFailure("Unable to generate comment ID.")
-                    return@launch
+                val postRef = postsCollection.document(postId)
+                val commentId = postRef.collection("comments").document().id
+                val newComment = comment.copy(commentId = commentId, timestamp = System.currentTimeMillis())
+
+                val postOwnerId = firestore.runTransaction { transaction ->
+                    val snapshot = transaction.get(postRef)
+                    if (!snapshot.exists()) return@runTransaction null
+
+                    val rawComments = snapshot.get("comments") as? Map<String, Any?> ?: emptyMap()
+                    val updatedComments = rawComments.toMutableMap().apply {
+                        this[commentId] = mapOf(
+                            "commentId" to newComment.commentId,
+                            "userId" to newComment.userId,
+                            "username" to newComment.username,
+                            "commentText" to newComment.commentText,
+                            "timestamp" to newComment.timestamp,
+                            "upvotes" to newComment.upvotes,
+                            "downvotes" to newComment.downvotes,
+                            "upvotedUsers" to newComment.upvotedUsers,
+                            "downvotedUsers" to newComment.downvotedUsers,
+                            "mediaUrl" to newComment.mediaUrl
+                        )
+                    }
+
+                    val totalComments = (snapshot.getLong("totalComments") ?: 0L) + 1L
+                    transaction.update(
+                        postRef,
+                        mapOf(
+                            "comments" to updatedComments,
+                            "totalComments" to totalComments
+                        )
+                    )
+                    snapshot.getString("userId")
+                }.await()
+
+                withContext(Dispatchers.Main) {
+                    onSuccess()
+                    refreshSinglePost(postId)
+                    if (!postOwnerId.isNullOrBlank() && postOwnerId != comment.userId) {
+                        val commenterUsername = fetchUsernameById(comment.userId)
+                        val message = "$commenterUsername commented on your post."
+                        sendNotification(
+                            receiverId     = postOwnerId,
+                            type           = "post_comment",
+                            senderId       = comment.userId,
+                            senderUsername = commenterUsername,
+                            message        = message,
+                            postId         = postId,
+                            commentId      = commentId
+                        )
+                    }
                 }
-
-                val newComment = comment.copy(commentId = commentId)
-                commentsRef.child(commentId).setValue(newComment).await()
-
-                // Optionally, update totalComments count
-                val totalCommentsRef = postsRef.child(postId).child("totalComments")
-                totalCommentsRef.runTransaction(object : Transaction.Handler {
-                    override fun doTransaction(currentData: MutableData): Transaction.Result {
-                        var total = currentData.getValue(Int::class.java) ?: 0
-                        total += 1
-                        currentData.value = total
-                        return Transaction.success(currentData)
-                    }
-
-                    override fun onComplete(
-                        error: DatabaseError?,
-                        committed: Boolean,
-                        currentData: DataSnapshot?
-                    ) {
-                        if (error != null) {
-                            Log.e(TAG, "Updating total comments failed: ${error.message}")
-                            onFailure("Failed to update comment count.")
-                        } else if (committed) {
-                            onSuccess()
-                            refreshSinglePost(postId)                //  ← ★ NEW
-                            // Send notification to post owner
-                            viewModelScope.launch(Dispatchers.Main) {
-                                val postSnapshot = postsRef.child(postId).get().await()
-                                val post = postSnapshot.getValue(Post::class.java)
-                                if (post != null && post.userId != comment.userId) {
-                                    // Fetch the commenter's username
-                                    val commenterUsername = fetchUsernameById(comment.userId)
-                                    val message = "$commenterUsername commented on your post."
-                                    sendNotification(
-                                        receiverId     = post.userId,
-                                        type           = "post_comment",
-                                        senderId       = comment.userId,
-                                        senderUsername = commenterUsername,
-                                        message        = message,
-                                        postId         = postId,
-                                        commentId      = commentId
-                                    )
-                                }
-                            }
-                        }
-                    }
-                })
             } catch (e: Exception) {
                 Log.e(TAG, "Error adding comment: ${e.message}", e)
                 onFailure(e.message ?: "Failed to add comment.")
@@ -1751,8 +1715,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
 
-                val postSnapshot = postsRef.child(postId).get().await()
-                val post = postSnapshot.getValue(Post::class.java) ?: run {
+                val postSnapshot = postsCollection.document(postId).get().await()
+                val post = postSnapshot.toPost() ?: run {
                     onFailure("Post not found")
                     return@launch
                 }
@@ -2026,8 +1990,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val postRef = FirebaseRefs.db.getReference("posts").child(postId)
-                postRef.removeValue().await()
+                postsCollection.document(postId).delete().await()
                 refreshPosts()
                 onSuccess()
             } catch (e: Exception) {
