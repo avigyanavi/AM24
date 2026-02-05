@@ -45,7 +45,7 @@ fun PostDetailScreen(
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.post_action)) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(Icons.Default.ArrowBack, null, tint = Color.White)
                     }
                 },
@@ -124,7 +124,7 @@ fun PostDetailScreen(
                     currentUserProfile = myProfile,
                     onDelete      = { delPost ->
                         postViewModel.deletePost(delPost.postId, {}, {})
-                        navController.popBackStack()
+                        navController.safePopBackStack()
                     }
                 )
             }

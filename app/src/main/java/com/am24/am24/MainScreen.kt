@@ -173,7 +173,7 @@ fun MainScreen(
                     showOnlineUsers = showOnlineUsers,
                     onToggleOnlineUsers = {
                         if (showOnlineUsers) {
-                            navController.popBackStack()
+                            navController.safePopBackStack()
                         } else {
                             navController.navigate("omegleUsers")
                         }
@@ -403,7 +403,7 @@ fun TopNavBar(
         },
         navigationIcon = {
             if (isGroupChat) {
-                IconButton(onClick = { navController.popBackStack() }) {
+                IconButton(onClick = { navController.safePopBackStack() }) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",
@@ -577,7 +577,7 @@ fun TopNavBar(
                     if (isOnMap || isDMScreen || isProfileScreen || isAiPartner) {
                         IconButton(onClick = {
                             if (isAiPartner) {
-                                navController.popBackStack()
+                                navController.safePopBackStack()
                             } else {
                                 navController.navigate("home")
                             }
@@ -595,7 +595,7 @@ fun TopNavBar(
                     if (isOnBottomNavRoot || isUserSettings) {
                         IconButton(onClick = {
                             if (isUserSettings) {
-                                navController.popBackStack()
+                                navController.safePopBackStack()
                             } else {
                                 navController.navigate("settings")
                             }
@@ -628,7 +628,7 @@ fun TopNavBar(
 
                 IconButton(onClick = {
                     if (isNotificationsSelected) {
-                        navController.popBackStack()
+                        navController.safePopBackStack()
                     } else {
                         navController.navigate("notifications")
                     }

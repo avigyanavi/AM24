@@ -97,7 +97,7 @@ fun CreatePostScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.create_post_title), color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
                     }
                 },
@@ -301,7 +301,7 @@ fun TextPostComposable(
             TopAppBar(
                 title = { Text("New Text Post", color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
                     }
                 },
@@ -611,7 +611,7 @@ fun ImagePostComposable(
             TopAppBar(
                 title = { Text("New Image Post", color = Color.White) },
                 navigationIcon = {
-                    IconButton({ navController.popBackStack() }) {
+                    IconButton({ navController.safePopBackStack() }) {
                         Icon(Icons.Default.Close, null, tint = Color.White)
                     }
                 },
@@ -975,7 +975,7 @@ fun VideoPostComposable(
             TopAppBar(
                 title = { Text("New Video Post", color = Color.White) },
                 navigationIcon = {
-                    IconButton({ navController.popBackStack() }) {
+                    IconButton({ navController.safePopBackStack() }) {
                         Icon(Icons.Default.Close, null, tint = Color.White)
                     }
                 },

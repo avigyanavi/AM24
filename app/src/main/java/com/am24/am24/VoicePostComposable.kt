@@ -185,7 +185,7 @@ fun VoicePostComposable(
             TopAppBar(
                 title = { Text("New Voice Post", color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
                     }
                 },
@@ -237,7 +237,7 @@ fun VoicePostComposable(
                                                 "Voice post created successfully.",
                                                 Toast.LENGTH_SHORT
                                             ).show()
-                                            navController.popBackStack()
+                                            navController.safePopBackStack()
                                             localPosting = false
                                         }
                                     },

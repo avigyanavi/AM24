@@ -237,7 +237,7 @@ fun OnlineUsersScreen(navController: NavController) {
 
     BackHandler {
         if (waitingMatch != null) cancelInvite()
-        navController.popBackStack()
+        navController.safePopBackStack()
     }
 
     // --- UI ---
@@ -246,7 +246,7 @@ fun OnlineUsersScreen(navController: NavController) {
             TopAppBar(
                 title = { Text(stringResource(R.string.online_users), color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = stringResource(R.string.back),

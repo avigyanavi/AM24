@@ -132,7 +132,7 @@ fun MatchedUserProfileScreen(
                             ) {
                                 // keep the compatibility meter centered to match the legacy swipe UI
                                 if (showBackButton) {
-                                    IconButton(onClick = { navController.popBackStack() }) {
+                                    IconButton(onClick = { navController.safePopBackStack() }) {
                                         Icon(
                                             Icons.Filled.ArrowBack,
                                             contentDescription = "Back",

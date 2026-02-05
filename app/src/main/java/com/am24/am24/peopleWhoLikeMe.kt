@@ -107,7 +107,7 @@ fun PeopleWhoLikeMeScreen(
                     .makeText(context, "Upgrade to Plus to see who liked you", Toast.LENGTH_SHORT)
                     .show()
                 likedUsers.clear()
-                navController.popBackStack()
+                navController.safePopBackStack()
             }
             isLoading = false
             return@LaunchedEffect
@@ -192,7 +192,7 @@ fun PeopleWhoLikeMeScreen(
                 TopAppBar(
                     title = { Text(stringResource(R.string.people_who_like_me_title), color = Color.White) },
                     navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
+                        IconButton(onClick = { navController.safePopBackStack() }) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = stringResource(R.string.back),

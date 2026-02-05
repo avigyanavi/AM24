@@ -688,7 +688,7 @@ fun SubscriptionScreen(
 
         Spacer(Modifier.height(24.dp))
         if (!forceSubscription) {
-            TextButton(onClick = { navController.popBackStack() }) {
+            TextButton(onClick = { navController.safePopBackStack() }) {
                 Text(
                     stringResource(R.string.subscription_not_now),
                     color = kupidxOrange

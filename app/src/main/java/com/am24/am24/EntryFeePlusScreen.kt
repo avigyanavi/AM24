@@ -107,7 +107,7 @@ fun EntryFeePlusScreen(navController: NavController) {
                         }
                         isProcessing = false
                         Toast.makeText(ctx, ctx.getString(R.string.entry_fee_plus_success_toast), Toast.LENGTH_LONG).show()
-                        navController.popBackStack()
+                        navController.safePopBackStack()
                     }
                     .addOnFailureListener {
                         isProcessing = false
@@ -128,7 +128,7 @@ fun EntryFeePlusScreen(navController: NavController) {
             TopAppBar(
                 title = { Text(text = stringResource(R.string.entry_fee_plus_title)) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(imageVector = arrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },

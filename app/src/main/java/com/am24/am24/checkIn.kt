@@ -48,7 +48,7 @@ fun CheckInFeedScreen(
             TopAppBar(
                 title = { Text("Check-in Feed") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }

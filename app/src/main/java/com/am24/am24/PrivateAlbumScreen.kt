@@ -77,7 +77,7 @@ fun PrivateAlbumScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.private_album_title), color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
                     }
                 },

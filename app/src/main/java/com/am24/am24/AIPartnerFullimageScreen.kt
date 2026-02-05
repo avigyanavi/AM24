@@ -149,7 +149,7 @@ fun AIPartnerFullImageScreen(
                 .align(Alignment.TopCenter)
         ) {
             IconButton(
-                onClick = { navController.popBackStack() },
+                onClick = { navController.safePopBackStack() },
                 modifier = Modifier
                     .padding(8.dp)
                     .size(38.dp)

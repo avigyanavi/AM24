@@ -682,7 +682,7 @@ fun ChatScreenContent(
                     .orderByChild("senderId").equalTo(currentUserId)
                     .get().await().children.forEach { it.ref.removeValue() }
 
-                navController.popBackStack()
+                navController.safePopBackStack()
                 Toast.makeText(context, unmatchmsg, Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Log.e("ChatScreen", "Unmatch failed: ${e.message}")
@@ -789,7 +789,7 @@ fun ChatScreenContent(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(
                             Icons.Default.ArrowBack,
                             nav_back,
@@ -1693,7 +1693,7 @@ fun ChatScreenContent(
                                         // 5️⃣ Finally, update UI on the main thread:
                                         withContext(Dispatchers.Main) {
                                             showReportDialog = false
-                                            navController.popBackStack()
+                                            navController.safePopBackStack()
                                             Toast.makeText(context, userreported, Toast.LENGTH_SHORT).show()
                                         }
                                     } catch (e: Exception) {

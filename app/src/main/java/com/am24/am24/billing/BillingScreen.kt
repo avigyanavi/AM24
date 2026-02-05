@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.am24.am24.safePopBackStack
 import com.android.billingclient.api.ProductDetails
 import com.google.firebase.auth.FirebaseAuth
 import java.time.Period
@@ -105,7 +106,7 @@ fun BillingScreen(
     LaunchedEffect(Unit) {
         BillingManager.purchaseFlowFinished.collect {
             if (selectedBasePlanId != null) {
-                navController?.popBackStack()
+                navController?.safePopBackStack()
             }
         }
     }

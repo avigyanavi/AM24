@@ -105,7 +105,7 @@ fun PostVoteUserListScreen(
             TopAppBar(
                 title = { Text(stringResource(titleRes), color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = stringResource(R.string.back),

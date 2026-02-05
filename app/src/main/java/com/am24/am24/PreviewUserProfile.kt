@@ -155,7 +155,7 @@ fun PreviewUserProfileScreen(
     //   - Queue is now empty.
     LaunchedEffect(cardQueue.size, isDeckLoading, isPurePreview, hasShownCard) {
         if (isPurePreview && hasShownCard && !isDeckLoading && cardQueue.isEmpty()) {
-            navController.popBackStack()
+            navController.safePopBackStack()
         }
     }
 
@@ -402,7 +402,7 @@ fun PreviewUserProfileScreen(
                 },
                 onClose = {
                     profileViewModel.clearMatchPopUp()
-                    navController.popBackStack()
+                    navController.safePopBackStack()
                 }
             )
         }

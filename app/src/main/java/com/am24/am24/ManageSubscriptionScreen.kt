@@ -77,7 +77,7 @@ private val PREMIUM_FEATURES = listOf(
 //        try {
 //            fx.getHttpsCallable("cancelKupidxPlusSub").call().await()
 //            Toast.makeText(ctx, "Subscription cancelled", Toast.LENGTH_LONG).show()
-//            nav.popBackStack()
+//            nav.safePopBackStack()
 //        } catch (e: Exception) {
 //            /* ► Razorpay could not cancel –  show reason & open UPI AutoPay */
 //            val msg = (e as? FirebaseFunctionsException)?.message
@@ -206,7 +206,7 @@ fun ManageSubscriptionScreen(navController: NavController) {
             CenterAlignedTopAppBar(
                 title = { Text("Manage Plan") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },

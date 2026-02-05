@@ -81,7 +81,7 @@ fun UsernameSearchScreen(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(),
                 title = { Text(stringResource(R.string.settings_search_username_title)) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = null)
                     }
                 }

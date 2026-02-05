@@ -107,7 +107,7 @@ fun LeaderboardScreen(
             TopAppBar(
                 title = { Text("Leaderboard", color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },

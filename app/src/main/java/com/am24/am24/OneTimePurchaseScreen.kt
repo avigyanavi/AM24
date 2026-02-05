@@ -29,6 +29,7 @@ import com.am24.am24.billing.BillingViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.am24.am24.FirebaseRefs
 import com.am24.am24.R
+import com.am24.am24.safePopBackStack
 
 enum class PurchaseType(
     val apiType: String,
@@ -98,7 +99,7 @@ fun OneTimePurchaseScreen(
                             val inc = ui.selectedQty.toLong()
                             userRoot.updateChildren(mapOf(qtyField(type) to increment(inc)))
                             Toast.makeText(ctx,"Added $inc ${type.displayName}", Toast.LENGTH_LONG).show()
-                            navController.popBackStack()
+                            navController.safePopBackStack()
                         } else {
                             Toast.makeText(ctx, "Verification failed", Toast.LENGTH_LONG).show()
                         }
@@ -218,7 +219,7 @@ fun OneTimePurchaseScreen(
             val qty = productId.removePrefix(prefix).toIntOrNull() ?: 1
             userRoot.updateChildren(mapOf(qtyField(type) to increment(qty.toLong())))
             Toast.makeText(ctx, "Added $qty ${type.displayName}", Toast.LENGTH_LONG).show()
-            navController.popBackStack()
+            navController.safePopBackStack()
             ui = ui.copy(isProcessing = false)
         }
     }

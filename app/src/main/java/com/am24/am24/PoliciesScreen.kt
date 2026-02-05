@@ -25,7 +25,7 @@ fun PoliciesScreen(navController: NavController) {
             TopAppBar(
                 title = { Text("Policies & Support") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.safePopBackStack() }) {
                         Icon(Icons.Default.ArrowBack, null)
                     }
                 }

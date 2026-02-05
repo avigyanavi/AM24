@@ -208,7 +208,7 @@ fun GovtIdVerificationScreen(
                                         if (ok) {
                                             profileViewModel.uploadGovtSelfie(uid, selfieU) { ok2, _ ->
                                                 isSubmitting = false
-                                                if (ok2) navController.popBackStack()
+                                                if (ok2) navController.safePopBackStack()
                                             }
                                         } else isSubmitting = false
                                     }
