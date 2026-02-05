@@ -92,10 +92,12 @@ fun ProfileScreen(
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-    // Fetch profile on screen entry
-    LaunchedEffect(currentUserId) {
-        Log.d("ProfileScreen", "Fetching profile for userId: $currentUserId")
-        profileViewModel.fetchCurrentUserProfile()
+    // Fetch profile on screen entry only if not already loaded
+    LaunchedEffect(currentUserId, currentUserProfile) {
+        if (currentUserProfile == null) {
+            Log.d("ProfileScreen", "Fetching profile for userId: $currentUserId")
+            profileViewModel.fetchCurrentUserProfile()
+        }
     }
 
     when {

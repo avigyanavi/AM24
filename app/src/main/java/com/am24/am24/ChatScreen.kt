@@ -213,10 +213,7 @@ fun ChatScreenContent(
     val aiMatchResult = chatUiState.aiMatchResult
 
     val currentUserProfileState by profileViewModel.currentUserProfile.collectAsState()
-    var currentUserProfile by remember { mutableStateOf<Profile?>(null) }
-    LaunchedEffect(currentUserProfileState) {
-        currentUserProfile = currentUserProfileState
-    }
+    var currentUserProfile = currentUserProfileState
     val privateAlbumSharedMe      = currentUserProfile?.allowExplicitPics == true
     val privateAlbumSharedPartner = otherUserProfile?.allowExplicitPics == true
     var deleteForever by remember { mutableStateOf(currentUserProfile?.deleteTimerOverride == true) }
@@ -224,8 +221,10 @@ fun ChatScreenContent(
         deleteForever = currentUserProfile?.deleteTimerOverride == true
     }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(currentUserId, otherUserId) {
-        profileViewModel.fetchCurrentUserProfile()
+    LaunchedEffect(currentUserId, otherUserId, currentUserProfileState) {
+        if (currentUserProfileState == null) {
+            profileViewModel.fetchCurrentUserProfile()
+        }
         chatViewModel.startSession(currentUserId, otherUserId)
         markChatNotificationsRead(
             notificationsRef = notificationsRef,
@@ -362,7 +361,7 @@ fun ChatScreenContent(
     DisposableEffect(Unit) {
         onDispose {
             currentUserProfile?.userId?.let { uid ->
-                currentUserProfile = currentUserProfile?.copy(allowExplicitPics = false)
+                currentUserProfile = currentUserProfile!!.copy(allowExplicitPics = false)
                 FirebaseRefs.db.getReference("users/$uid")
                     .child("allowExplicitPics")
                     .setValue(false)

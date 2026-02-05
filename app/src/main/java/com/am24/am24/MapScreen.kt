@@ -479,8 +479,10 @@ fun MapScreen(
         labels
     }
 
-    LaunchedEffect(userId) {
-        profileViewModel.fetchCurrentUserProfile()
+    LaunchedEffect(userId, currentUserProfile) {
+        if (currentUserProfile == null) {
+            profileViewModel.fetchCurrentUserProfile()
+        }
     }
 
     LaunchedEffect(userLatLng) {

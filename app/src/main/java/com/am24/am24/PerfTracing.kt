@@ -15,15 +15,19 @@ private fun heapUsedMb(): Long {
     return usedBytes / 1024 / 1024
 }
 
-fun startPerfTrace(name: String, attributes: Map<String, String> = emptyMap()): Trace {
-    val trace = FirebasePerformance.getInstance().newTrace(name)
+fun startPerfTrace(name: String, attributes: Map<String, String> = emptyMap()): Trace? {
+    val app = runCatching {
+        FirebaseApp.getApps(MyApp.instance).firstOrNull() ?: FirebaseApp.initializeApp(MyApp.instance)
+    }.getOrNull() ?: return null
+    val trace = FirebasePerformance.getInstance(app).newTrace(name)
     attributes.forEach { (key, value) -> trace.putAttribute(key, value) }
     trace.start()
     trace.putMetric("heap_used_mb_start", heapUsedMb())
     return trace
 }
 
-fun stopPerfTrace(trace: Trace) {
+fun stopPerfTrace(trace: Trace?) {
+    if (trace == null) return
     trace.putMetric("heap_used_mb_end", heapUsedMb())
     trace.stop()
 }

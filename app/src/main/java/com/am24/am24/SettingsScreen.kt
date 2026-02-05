@@ -175,8 +175,10 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
 
     val isIndian = remember(country) { canonicalCountry(country) == "India" }
 
-    LaunchedEffect(uid) {
-        profileViewModel.fetchCurrentUserProfile()
+    LaunchedEffect(uid, currentProfile) {
+        if (currentProfile == null) {
+            profileViewModel.fetchCurrentUserProfile()
+        }
     }
 
     LaunchedEffect(blockedIds) {
