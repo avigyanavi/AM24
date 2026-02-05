@@ -611,7 +611,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     postsCollection.whereEqualTo("userId", userId)
                 }
-                val snapshot = postsCollection.get().await()
+                val snapshot = query.get().await()
                 val postsList = snapshot.documents.mapNotNull { it.toPost() }
                 Log.d("PostViewModel", "Setting _profilePosts to ${postsList.size} posts: $postsList")
                 _profilePosts.value = postsList

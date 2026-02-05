@@ -170,6 +170,20 @@ fun MatchedUserProfileScreen(
                             )
                         }
                         item {
+                            Button(
+                                onClick = { navController.navigate("userPosts/${profile.userId}") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = Color(0xFFFF6F00),
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Text(text = "View posts", fontSize = 14.sp)
+                            }
+                        }
+                        item {
                             ProfileCollapsibleSectionsAll(profile, currentUserProfile, aiMatchResult, showLocation)
                         }
                     }

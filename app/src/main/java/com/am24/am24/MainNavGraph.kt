@@ -242,7 +242,8 @@ fun MainNavGraph(
             UserPostsScreen(
                 userId = uid,
                 navController = navController,
-                postViewModel = postViewModel
+                postViewModel = postViewModel,
+                profileViewModel = profileViewModel
             )
         }
         composable("razorpay_web") {

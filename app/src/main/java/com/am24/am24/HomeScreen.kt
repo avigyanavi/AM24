@@ -161,17 +161,17 @@ fun HomeScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-        } else if (posts.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.explore_empty_prompt),
-                    color = Color.White.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+//        } else if (posts.isEmpty()) {
+//            Box(
+//                modifier = Modifier.fillMaxSize(),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Text(
+//                    text = stringResource(R.string.explore_empty_prompt),
+//                    color = Color.White.copy(alpha = 0.7f),
+//                    style = MaterialTheme.typography.bodyMedium
+//                )
+//            }
         } else {
             val userProfiles by postViewModel.userProfiles.collectAsState()
             val filterSettings by postViewModel.filterSettings.collectAsState()
@@ -498,6 +498,23 @@ fun FeedSection(
                             ),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
                     ) {}
+                }
+            }
+
+            if (posts.isEmpty() && !isPosting) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.explore_empty_prompt),
+                            color = Color.White.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
 
