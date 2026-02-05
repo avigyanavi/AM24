@@ -316,6 +316,18 @@ fun HomeScreenContent(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { navController.navigate("create_post") },
+                containerColor = Color(0xFFFF6F00),
+                contentColor = Color.White
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.cd_create_post)
+                )
+            }
+        }
     ) {
         Column(
             modifier = Modifier
