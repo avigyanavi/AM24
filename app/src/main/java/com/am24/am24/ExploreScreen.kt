@@ -117,6 +117,8 @@ fun ExploreScreen(
     val feedErrorMessage by postViewModel.feedErrorMessage.collectAsState()
     val currentUserId by postViewModel.currentUserIdFlow.collectAsState(initial = null)
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
+    val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
+    val isPlus by profileViewModel.isPlus.collectAsState(initial = false)
 
     LaunchedEffect(userId) {
         postViewModel.setCurrentUserId(userId)
@@ -145,6 +147,8 @@ fun ExploreScreen(
     val pageSize = postViewModel.feedPageSize
     var pageIndex by rememberSaveable { mutableStateOf(0) }
     var pendingNext by remember { mutableStateOf(false) }
+    val isFreeTier = !isPremium && !isPlus
+    var freeNextUsed by rememberSaveable { mutableStateOf(false) }
     val pagedPosts = remember(explorePosts, pageSize) {
         if (explorePosts.isEmpty()) listOf(emptyList()) else explorePosts.chunked(pageSize)
     }
@@ -202,13 +206,17 @@ fun ExploreScreen(
                 isLoadingMore = isLoadingMore,
                 onBackPage = { if (pageIndex > 0) pageIndex-- },
                 onNextPage = {
+                    if (isFreeTier && freeNextUsed) return@ExploreGrid
                     if (pageIndex < pageCount - 1) {
                         pageIndex++
+                        freeNextUsed = isFreeTier
                     } else if (hasMorePosts && !isLoadingMore) {
                         pendingNext = true
                         postViewModel.loadMorePosts()
+                        freeNextUsed = isFreeTier
                     }
                 },
+                canUseNext = !isFreeTier || !freeNextUsed,
                 onPostClick = { index ->
                     queuedPostIds = pagePosts.map { it.postId }
                     selectedPostId = pagePosts.getOrNull(index)?.postId
@@ -300,6 +308,7 @@ private fun ExploreGrid(
     pageCount: Int,
     canGoBack: Boolean,
     canGoNext: Boolean,
+    canUseNext: Boolean,
     isLoadingMore: Boolean,
     onBackPage: () -> Unit,
     onNextPage: () -> Unit,
@@ -400,7 +409,7 @@ private fun ExploreGrid(
                         )
                         Button(
                             onClick = onNextPage,
-                            enabled = canGoNext && !isLoadingMore
+                            enabled = canGoNext && canUseNext && !isLoadingMore
                         ) {
                             Text(stringResource(R.string.next_page))
                         }

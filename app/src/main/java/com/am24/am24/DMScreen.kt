@@ -69,6 +69,9 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.Job
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Add
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 private fun canonicalLocationId(name: String): String {
     val normalized = Normalizer.normalize(name, Normalizer.Form.NFD)
         .replace("\\p{Mn}+".toRegex(), "")              // strip accents/diacritics
@@ -86,6 +89,37 @@ private fun groupChatIdForTitle(title: String): String {
         "India" -> "group_india"
         "United States" -> "group_usa"
         else -> "group_${canonicalLocationId(title)}"
+    }
+}
+
+suspend fun markChatMessagesRead(
+    messagesRootRef: DatabaseReference,
+    currentUserId: String,
+    otherUserId: String
+) {
+    withContext(Dispatchers.IO) {
+        try {
+            val chatId = getChatId(currentUserId, otherUserId)
+            val snapshot = messagesRootRef.child(chatId)
+                .orderByChild("receiverId")
+                .equalTo(currentUserId)
+                .get()
+                .await()
+            if (!snapshot.exists()) return@withContext
+            val updates = mutableMapOf<String, Any>()
+            snapshot.children.forEach { child ->
+                val read = child.child("read").getValue(Boolean::class.java) ?: false
+                val senderId = child.child("senderId").getValue(String::class.java) ?: ""
+                if (!read && senderId == otherUserId) {
+                    child.key?.let { key -> updates["$key/read"] = true }
+                }
+            }
+            if (updates.isNotEmpty()) {
+                messagesRootRef.child(chatId).updateChildren(updates).await()
+            }
+        } catch (e: Exception) {
+            Log.e("DMScreen", "Failed to mark messages read: ${e.message}")
+        }
     }
 }
 
@@ -111,6 +145,7 @@ fun DMScreenContent(
     val database = remember { FirebaseRefs.db }
     val usersRef = remember { database.getReference("users") }
     val messagesRootRef = remember { database.getReference("messages") }
+    val notificationsRef = remember { database.getReference("notifications") }
     val dmBootstrap by datingViewModel.dmBootstrap.collectAsState()
     val sessionReady by SessionDataRepository.sessionReady.collectAsState(initial = false)
     val matchIds by SessionDataRepository.matchIds.collectAsState()
@@ -278,7 +313,13 @@ fun DMScreenContent(
     val focusManager = LocalFocusManager.current
 
     val messageListeners = remember { mutableMapOf<String, ValueEventListener>() }
-
+    fun openChat(profile: Profile) {
+        coroutineScope.launch {
+            markChatMessagesRead(messagesRootRef, currentUserId, profile.userId)
+            markChatNotificationsRead(notificationsRef, currentUserId, profile.userId)
+        }
+        navController.navigate("chat/${profile.userId}")
+    }
     val reportsRef = remember { database.getReference("reports") }
     var showReportDialog by remember { mutableStateOf(false) }
     var profileToReport by remember { mutableStateOf<Profile?>(null) }
@@ -587,7 +628,7 @@ fun DMScreenContent(
                                     .size(60.dp)
                                     .clip(CircleShape)
                                     .background(Color.Gray)
-                                    .clickable { navController.navigate("chat/${profile.userId}") }
+                                    .clickable { openChat(profile) }
                             )
                             Spacer(Modifier.width(6.dp))
                         }
@@ -614,7 +655,7 @@ fun DMScreenContent(
                         val lastMsg = lastMessages[profile.userId] ?: Triple("", false, true)
                         DMUserCard(
                             profile = profile,
-                            navController = navController,
+                            onChatOpen = { openChat(profile) },
                             lastMessage = lastMsg.first,
                             lastMessageFromCurrentUser = lastMsg.second,
                             lastMessageRead = lastMsg.third,
@@ -1148,7 +1189,7 @@ private fun DMMiniProfileSkeletonRow(placeholders: Int = 4) {
 @Composable
 fun DMUserCard(
     profile: Profile,
-    navController: NavController,
+    onChatOpen: () -> Unit,
     lastMessage: String,
     lastMessageFromCurrentUser: Boolean,
     lastMessageRead: Boolean,
@@ -1210,7 +1251,7 @@ fun DMUserCard(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clip(RoundedCornerShape(16.dp))
-            .clickable { navController.navigate("chat/${profile.userId}") },
+            .clickable { onChatOpen() },
         color = Color(0xFF121212),
         tonalElevation = 2.dp,
         shadowElevation = 6.dp,

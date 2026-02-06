@@ -362,6 +362,8 @@ fun HomeScreenContent(
                     userProfile = userProfile,
                     postViewModel = postViewModel,
                     savedPostIds = savedIds,
+                    isPremium = isPremium,
+                    isPlus = isPlus,
                     onSearchQueryChanged = onSearchQueryChanged,
                     onSearchRequest = onSearchRequest,
                     onShowSearch = onShowSearch
@@ -422,7 +424,9 @@ fun HomeScreenContent(
                         onSearchRequest()
                     },
                     savedPostIds = savedIds,    // ← NEW
-                    listState = listState // Pass listState to FeedSection
+                    listState = listState, // Pass listState to FeedSection
+                    isPremium = isPremium,
+                    isPlus = isPlus
                 )
             }
         }
@@ -442,7 +446,9 @@ fun FeedSection(
     userProfiles: Map<String, Profile>,
     onTagClick: (String) -> Unit,
     savedPostIds: Set<String>,           // ← NEW
-    listState: LazyListState // Added listState parameter
+    listState: LazyListState, // Added listState parameter
+    isPremium: Boolean,
+    isPlus: Boolean
 ) {
     val context = LocalContext.current
 
@@ -460,6 +466,8 @@ fun FeedSection(
     }
     val pageCount = max(1, pagedPosts.size)
     val displayPosts = pagedPosts.getOrNull(pageIndex) ?: posts
+    val isFreeTier = !isPremium && !isPlus
+    var freeNextUsed by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(pagedPosts.size, pendingNext) {
         if (pendingNext && pagedPosts.size - 1 > pageIndex) {
@@ -680,16 +688,20 @@ fun FeedSection(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             val canAdvance = pageIndex < pageCount - 1 || hasMorePosts
+                            val canUseNext = canAdvance && (!isFreeTier || !freeNextUsed)
                             Button(
                                 onClick = {
+                                    if (isFreeTier && freeNextUsed) return@Button
                                     if (pageIndex < pageCount - 1) {
                                         pageIndex++
+                                        freeNextUsed = isFreeTier
                                     } else if (hasMorePosts && !isLoadingMore) {
                                         pendingNext = true
                                         postViewModel.loadMorePosts()
+                                        freeNextUsed = isFreeTier
                                     }
                                 },
-                                enabled = canAdvance && !isLoadingMore
+                                enabled = canUseNext && !isLoadingMore
                             ) {
                                 Text(stringResource(R.string.next_page))
                             }
@@ -2434,6 +2446,8 @@ fun FeedSearchResultsTabs(
     userProfile: Profile?,
     postViewModel: PostViewModel,
     savedPostIds: Set<String>,
+    isPremium: Boolean,
+    isPlus: Boolean,
     onSearchQueryChanged: (String) -> Unit,
     onSearchRequest: () -> Unit,
     onShowSearch: () -> Unit
@@ -2507,7 +2521,9 @@ fun FeedSearchResultsTabs(
                         onSearchRequest()
                     },
                     savedPostIds = savedPostIds,
-                    listState = rememberLazyListState()
+                    listState = rememberLazyListState(),
+                    isPremium = isPremium,
+                    isPlus = isPlus
                 )
 
                 else -> FeedSearchTagResults(

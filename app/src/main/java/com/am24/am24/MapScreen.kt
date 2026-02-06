@@ -376,6 +376,8 @@ fun MapScreen(
     var entryFeeOfferExpiry by remember { mutableStateOf(0L) }
     var entryFeeOfferSeen by remember { mutableStateOf(false) }
     var nextRenewal by remember { mutableStateOf(0L) }
+    val isFreeTier = !isPlus && !isPremium
+    var freeNextUsed by rememberSaveable { mutableStateOf(false) }
     var autoPagedPeople by remember { mutableStateOf(false) }
     var autoPagedCards by remember { mutableStateOf(false) }
     val sessionReady by SessionDataRepository.sessionReady.collectAsState(initial = false)
@@ -1520,6 +1522,7 @@ fun MapScreen(
                                 isLoading = peopleTabLoading,
                                 pageIndex = peoplePageIndex,
                                 pageCount = peoplePageCount,
+                                canUseNext = !isFreeTier || !freeNextUsed,
                                 onClick = {
                                     if (swipesLoaded && remainingSwipes <= 0) {
                                         showSwipeLimitOverlay = true
@@ -1550,8 +1553,10 @@ fun MapScreen(
                                     }
                                 },
                                 onNextPage = {
+                                    if (isFreeTier && freeNextUsed) return@PeopleGrid
                                     if (peoplePageIndex < peoplePageCount - 1) {
                                         peoplePageIndex++
+                                        freeNextUsed = isFreeTier
                                         return@PeopleGrid
                                     }
                                     if (peopleTabUsers.isNotEmpty() && !isPlus && !isPremium) {
@@ -1569,6 +1574,7 @@ fun MapScreen(
                                                 it,
                                                 geoFireDatabaseRef
                                             )
+                                            freeNextUsed = isFreeTier
                                         }
                                     }
                                 }
@@ -1616,6 +1622,7 @@ fun MapScreen(
                                 pageIndex = cardsPageIndex,
                                 pageCount = cardsPageCount,
                                 useMiles = useMiles,          // <-- pass through
+                                canUseNext = !isFreeTier || !freeNextUsed,
                                 onLike = { user ->
                                     if (swipesLoaded && remainingSwipes <= 0) {
                                         showSwipeLimitOverlay = true
@@ -1671,8 +1678,10 @@ fun MapScreen(
                                     }
                                 },
                                 onNextPage = {
+                                    if (isFreeTier && freeNextUsed) return@CardsList
                                     if (cardsPageIndex < cardsPageCount - 1) {
                                         cardsPageIndex++
+                                        freeNextUsed = isFreeTier
                                         return@CardsList
                                     }
                                     if (cardsTabUsers.isNotEmpty() && !isPlus && !isPremium) {
@@ -1690,6 +1699,7 @@ fun MapScreen(
                                                 it,
                                                 geoFireDatabaseRef
                                             )
+                                            freeNextUsed = isFreeTier
                                         }
                                     }
                                 }
@@ -1733,6 +1743,7 @@ fun MapScreen(
                                 isLoading = boostedLoading,
                                 pageIndex = 0,
                                 pageCount = 1,
+                                canUseNext = true,
                                 onClick = {
                                     if (swipesLoaded && remainingSwipes <= 0) {
                                         showSwipeLimitOverlay = true
@@ -2450,6 +2461,7 @@ private fun CardsList(
     pageIndex: Int,
     pageCount: Int,
     useMiles: Boolean,
+    canUseNext: Boolean,
     onLike: (NearbyUser) -> Unit,
     onDislike: (NearbyUser) -> Unit,
     onCardClick: (NearbyUser) -> Unit,
@@ -2548,7 +2560,10 @@ private fun CardsList(
                         ),
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    Button(onClick = onNextPage) {
+                    Button(
+                        onClick = onNextPage,
+                        enabled = canUseNext
+                    ) {
                         Text(stringResource(R.string.next_page))
                     }
                 }
@@ -2911,6 +2926,7 @@ private fun PeopleGrid(
     isLoading: Boolean,
     pageIndex: Int,
     pageCount: Int,
+    canUseNext: Boolean,
     onClick: (NearbyUser) -> Unit,
     useMiles: Boolean,
     onRemove: (String) -> Unit,
@@ -2999,7 +3015,10 @@ private fun PeopleGrid(
                         ),
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    Button(onClick = onNextPage) {
+                    Button(
+                        onClick = onNextPage,
+                        enabled = canUseNext
+                    ) {
                         Text(stringResource(R.string.next_page))
                     }
                 }

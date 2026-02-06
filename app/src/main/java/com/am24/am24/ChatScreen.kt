@@ -586,18 +586,18 @@ fun ChatScreenContent(
            ────────────────────────────────────────────────── */
         isSendingMessage = false
     }
-    LaunchedEffect(messages) {
-        messages.filter { !it.processed && it.senderId != currentUserId }.forEach { message ->
-            postNotification(
-                notificationsRef = notificationsRef,
-                toUserId = otherUserId,
-                fromUserId = message.senderId,
-                fromUsername = otherUserProfile?.username ?: "",
-                message = message.text ?: "[Media]"
-            )
-            messagesRef.child(message.id).child("processed").setValue(true)
-        }
-    }
+//    LaunchedEffect(messages) {
+//        messages.filter { !it.processed && it.senderId != currentUserId }.forEach { message ->
+//            postNotification(
+//                notificationsRef = notificationsRef,
+//                toUserId = otherUserId,
+//                fromUserId = message.senderId,
+//                fromUsername = otherUserProfile?.username ?: "",
+//                message = message.text ?: "[Media]"
+//            )
+//            messagesRef.child(message.id).child("processed").setValue(true)
+//        }
+//    }
 
     LaunchedEffect(deleteTimer, messages) {
         while (true) {
@@ -2588,21 +2588,75 @@ fun postNotification(
     fromUsername: String,
     message: String
 ) {
-    Log.i("Notifications", "Message notifications disabled; skipping notification for $toUserId.")
-    return
-    val notificationId = notificationsRef.child(toUserId).push().key ?: return
-    val noti = Notification(
-        id = notificationId,
-        type = "chat_message",
-        senderId = fromUserId,
-        senderUsername = fromUsername,
-        message = message,
-        timestamp = System.currentTimeMillis(),
-        isRead = "false"
-    )
-    notificationsRef.child(toUserId).child(notificationId).setValue(noti)
-        .addOnSuccessListener { Log.d("Notifications", "Notification posted: $message") }
-        .addOnFailureListener { Log.e("Notifications", "Failed to post notification: ${it.message}") }
+//    Log.i("Notifications", "Message notifications disabled; skipping notification for $toUserId.")
+//    return
+//    val notificationId = notificationsRef.child(toUserId).push().key ?: return
+//    val noti = Notification(
+//        id = notificationId,
+//        type = "chat_message",
+//        senderId = fromUserId,
+//        senderUsername = fromUsername,
+//        message = message,
+//        timestamp = System.currentTimeMillis(),
+//        isRead = "false"
+//    )
+//    notificationsRef.child(toUserId).child(notificationId).setValue(noti)
+//        .addOnSuccessListener { Log.d("Notifications", "Notification posted: $message") }
+//        .addOnFailureListener { Log.e("Notifications", "Failed to post notification: ${it.message}") }
+    if (toUserId.isBlank() || fromUserId.isBlank() || toUserId == fromUserId) return
+    val displayName = fromUsername.ifBlank { "Someone" }
+    notificationsRef.child(toUserId)
+        .orderByChild("senderId")
+        .equalTo(fromUserId)
+        .get()
+        .addOnSuccessListener { snapshot ->
+            var existingUnreadKey: String? = null
+            snapshot.children.forEach { child ->
+                val type = child.child("type").getValue(String::class.java)
+                val isRead = child.child("isRead").getValue(String::class.java)
+                if (type == "chat_message" && isRead != "true") {
+                    existingUnreadKey = child.key
+                    return@forEach
+                }
+            }
+
+            if (existingUnreadKey != null) {
+                val updates = mapOf(
+                    "message" to "$displayName sent you messages",
+                    "timestamp" to System.currentTimeMillis(),
+                    "senderUsername" to fromUsername
+                )
+                notificationsRef.child(toUserId).child(existingUnreadKey!!).updateChildren(updates)
+                    .addOnSuccessListener {
+                        Log.d("Notifications", "Notification updated for $fromUserId")
+                    }
+                    .addOnFailureListener {
+                        Log.e("Notifications", "Failed to update notification: ${it.message}")
+                    }
+                return@addOnSuccessListener
+            }
+
+            val notificationId = notificationsRef.child(toUserId).push().key ?: return@addOnSuccessListener
+            val noti = Notification(
+                id = notificationId,
+                type = "chat_message",
+                senderId = fromUserId,
+                senderUsername = fromUsername,
+                message = "$displayName sent you a message",
+                timestamp = System.currentTimeMillis(),
+                isRead = "false"
+            )
+            notificationsRef.child(toUserId).child(notificationId).setValue(noti)
+                .addOnSuccessListener {
+                    Log.d("Notifications", "Notification posted for $fromUserId")
+                }
+                .addOnFailureListener {
+                    Log.e("Notifications", "Failed to post notification: ${it.message}")
+                }
+        }
+        .addOnFailureListener {
+            Log.e("Notifications", "Failed to load existing notifications: ${it.message}")
+        }
 }
 
 fun sendMessage(currentUserId: String, otherUserId: String, chatId: String, messageText: String, messagesRef: DatabaseReference) {

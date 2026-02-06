@@ -4164,14 +4164,14 @@ exports.pushLikeNotification = functions
 
     if (!supportedTypes.has(type)) return null;
 
-    // ✅ HARD DISABLE: do nothing for chat messages (no tokens, no send, nothing)
-    if (type === 'chat_message') {
-      logger.info('pushLikeNotification: chat_message suppressed', {
-        uid: ctx.params.uid,
-        nid: ctx.params.nid,
-      });
-      return null;
-    }
+//    // ✅ HARD DISABLE: do nothing for chat messages (no tokens, no send, nothing)
+//    if (type === 'chat_message') {
+//      logger.info('pushLikeNotification: chat_message suppressed', {
+//        uid: ctx.params.uid,
+//        nid: ctx.params.nid,
+//      });
+//      return null;
+//    }
 
     const uid = ctx.params.uid;
 
