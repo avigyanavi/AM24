@@ -102,8 +102,7 @@ class LoginActivity : ComponentActivity() {
         window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
 
         val prefill = intent.getStringExtra("prefill_email") ?: ""
-        val deviceAllowsPhone = CountryUtil.isProbablyInIndia(this)
-        val allowPhoneAuthState = mutableStateOf(deviceAllowsPhone)
+        val allowPhoneAuthState = mutableStateOf(true)
 
         setContent {
             AppTheme {

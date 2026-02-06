@@ -687,6 +687,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                if (UserDeletionCache.isDeleted(database, senderId)) {
+                    Log.w(TAG, "Skipping like notification: sender $senderId is deleted.")
+                    return@launch
+                }
                 val timestamp = System.currentTimeMillis()
                 val notificationId = notificationsRef.child(receiverId).push().key
                     ?: throw Exception("Failed to generate notification ID")

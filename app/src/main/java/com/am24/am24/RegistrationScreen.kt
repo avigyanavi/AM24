@@ -2567,7 +2567,8 @@ suspend fun saveProfileToFirebase(
         }
           val storedGender = registrationViewModel.gender.toGenderCode()?.name
             ?: registrationViewModel.gender
-
+        val phoneNumber = FirebaseAuth.getInstance().currentUser?.phoneNumber
+            ?.takeIf { it.isNotBlank() }
         val profile = Profile(
             userId = userId,
             gclid = pendingGclid,
@@ -2632,7 +2633,8 @@ suspend fun saveProfileToFirebase(
             allowLocationPublic = registrationViewModel.allowLocationPublic,
             preferredLanguage = registrationViewModel.selectedLanguage, // NEW: Save language choice
             zodiac = registrationViewModel.zodiac, // Include zodiac in the profile
-            interestedIn = registrationViewModel.interestedIn.toList() // Include "interested in" data
+            interestedIn = registrationViewModel.interestedIn.toList(), // Include "interested in" data
+            phoneNumber = phoneNumber
         )
 
         val existingSnapshot = try {

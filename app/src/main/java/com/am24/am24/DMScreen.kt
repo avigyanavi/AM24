@@ -150,7 +150,7 @@ fun DMScreenContent(
     val sessionReady by SessionDataRepository.sessionReady.collectAsState(initial = false)
     val matchIds by SessionDataRepository.matchIds.collectAsState()
     val blockedIds by SessionDataRepository.blockedUserIds.collectAsState()
-    val likesMap by SessionDataRepository.likesReceived.collectAsState()
+    var likesMap by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
     val likedCount by SessionDataRepository.likedCount.collectAsState(initial = 0)
     val liveLikesCount by remember(likesMap, matchIds, blockedIds) {
         derivedStateOf {
@@ -175,6 +175,30 @@ fun DMScreenContent(
     var likesInitialized by remember { mutableStateOf(false) }
     LaunchedEffect(currentUserId) {
         profileViewModel.fetchCurrentUserProfile()
+    }
+
+    DisposableEffect(currentUserId) {
+        val ref = FirebaseRefs.db.getReference("likesReceived/$currentUserId")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val updated = mutableMapOf<String, Long>()
+                snapshot.children.forEach { child ->
+                    val key = child.key?.trim().orEmpty()
+                    if (key.isBlank()) return@forEach
+                    val value = when (val raw = child.value) {
+                        is Number -> raw.toLong()
+                        is String -> raw.toLongOrNull() ?: 0L
+                        else -> 0L
+                    }
+                    updated[key] = value
+                }
+                likesMap = updated
+            }
+
+            override fun onCancelled(error: DatabaseError) = Unit
+        }
+        ref.addValueEventListener(listener)
+        onDispose { ref.removeEventListener(listener) }
     }
 
     // Show loading UI while profile is being fetched

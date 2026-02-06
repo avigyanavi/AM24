@@ -17,22 +17,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.tasks.await
-import java.util.concurrent.TimeUnit
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.ui.res.stringResource
-import com.google.firebase.database.ServerValue
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
-
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.ui.res.stringResource
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleWhoLikeMeScreen(
@@ -43,12 +41,12 @@ fun PeopleWhoLikeMeScreen(
     val context = LocalContext.current
     var isLoading by remember { mutableStateOf(true) }
     var upgradePromptShown by remember { mutableStateOf(false) }
-
+    var likesMap by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
     val matchPopUpState by profileViewModel.matchPopUpState.collectAsState()
-    val sessionReady by SessionDataRepository.sessionReady.collectAsState()
-    val blockedIds by SessionDataRepository.blockedUserIds.collectAsState()
-    val likesMap by SessionDataRepository.likesReceived.collectAsState()
-    val matchIds by SessionDataRepository.matchIds.collectAsState()
+//    val sessionReady by SessionDataRepository.sessionReady.collectAsState()
+//    val blockedIds by SessionDataRepository.blockedUserIds.collectAsState()
+//    val likesMap by SessionDataRepository.likesReceived.collectAsState()
+//    val matchIds by SessionDataRepository.matchIds.collectAsState()
     val plusFlag by profileViewModel.isPlus.collectAsState()
     val premiumFlag by profileViewModel.isPremium.collectAsState()
     val loginPlusExpiry by profileViewModel.loginPlusExpiry.collectAsState()
@@ -62,16 +60,16 @@ fun PeopleWhoLikeMeScreen(
 
     LaunchedEffect(Unit) {
         if (currentUserId.isNotBlank()) {
-            SessionDataRepository.start(currentUserId)
+//            SessionDataRepository.start(currentUserId)
             profileViewModel.fetchCurrentUserProfile()
         }
     }
 
     LaunchedEffect(
-        sessionReady,
+//        sessionReady,
         likesMap,
-        blockedIds,
-        matchIds,
+//        blockedIds,
+//        matchIds,
         plusFlag,
         premiumFlag,
         loginPlusExpiry,
@@ -81,8 +79,8 @@ fun PeopleWhoLikeMeScreen(
         subscriptionStatus,
         nextRenewal
     ) {
-        if (currentUserId.isBlank() || !sessionReady) {
-            isLoading = currentUserId.isNotBlank()
+        if (currentUserId.isBlank()) {
+            isLoading = false
             return@LaunchedEffect
         }
 
@@ -122,47 +120,49 @@ fun PeopleWhoLikeMeScreen(
         }
 
         val sortedProfiles = withContext(Dispatchers.IO) {
-            val activeLikeIds = mutableListOf<String>()
-            likesMap.keys.forEach { userId ->
-                if (userId.isBlank()) return@forEach
-
-                val isDeleted = runCatching {
-                    UserDeletionCache.isDeleted(FirebaseRefs.db, userId)
-                }.getOrElse { false }
-
-                if (isDeleted) {
-                    runCatching {
-                        FirebaseRefs.db
-                            .getReference("likesReceived/$currentUserId/$userId")
-                            .removeValue()
-                            .await()
-                    }
-                    UserDeletionCache.markDeleted(userId)
-                } else {
-                    activeLikeIds += userId
-                }
-            }
+//            val activeLikeIds = mutableListOf<String>()
+//            likesMap.keys.forEach { userId ->
+//                if (userId.isBlank()) return@forEach
+//
+//                val isDeleted = runCatching {
+//                    UserDeletionCache.isDeleted(FirebaseRefs.db, userId)
+//                }.getOrElse { false }
+//
+//                if (isDeleted) {
+//                    runCatching {
+//                        FirebaseRefs.db
+//                            .getReference("likesReceived/$currentUserId/$userId")
+//                            .removeValue()
+//                            .await()
+//                    }
+//                    UserDeletionCache.markDeleted(userId)
+//                } else {
+//                    activeLikeIds += userId
+//                }
+//            }
+            val activeLikeIds = likesMap.keys.filter { it.isNotBlank() }
 
             if (activeLikeIds.isEmpty()) {
                 return@withContext emptyList<UserSummary>()
             }
 
             val fetched = UserSummaryCache.getSummaries(activeLikeIds)
-            val keepers = mutableListOf<UserSummary>()
-            fetched.forEach { (userId, summary) ->
-                if (summary.username.isBlank()) {
-                    runCatching {
-                        FirebaseRefs.db.getReference("likesReceivedCleanupRequests/$currentUserId/$userId").setValue(ServerValue.TIMESTAMP)
-                    }
-                    UserDeletionCache.markDeleted(userId)
-                } else {
-                    UserDeletionCache.markActive(userId)
-                    if (!matchIds.contains(userId) && !blockedIds.contains(userId)) {
-                        keepers += summary
-                    }
-                }
-            }
-            keepers.sortedWith(
+//            val keepers = mutableListOf<UserSummary>()
+//            fetched.forEach { (userId, summary) ->
+//                if (summary.username.isBlank()) {
+//                    runCatching {
+//                        FirebaseRefs.db.getReference("likesReceivedCleanupRequests/$currentUserId/$userId").setValue(ServerValue.TIMESTAMP)
+//                    }
+//                    UserDeletionCache.markDeleted(userId)
+//                } else {
+//                    UserDeletionCache.markActive(userId)
+//                    if (!matchIds.contains(userId) && !blockedIds.contains(userId)) {
+//                        keepers += summary
+//                    }
+//                }
+//            }
+//            keepers.sortedWith(
+            fetched.values.sortedWith(
                 compareByDescending<UserSummary> { profile ->
                     profile.likesReceivedCount
                 }.thenByDescending { profile ->
@@ -173,6 +173,34 @@ fun PeopleWhoLikeMeScreen(
         likedUsers.clear()
         likedUsers.addAll(sortedProfiles)
         isLoading = false
+    }
+
+    DisposableEffect(currentUserId) {
+        if (currentUserId.isBlank()) {
+            onDispose { }
+        } else {
+            val ref = FirebaseRefs.db.getReference("likesReceived/$currentUserId")
+            val listener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val updated = mutableMapOf<String, Long>()
+                    snapshot.children.forEach { child ->
+                        val key = child.key?.trim().orEmpty()
+                        if (key.isBlank()) return@forEach
+                        val value = when (val raw = child.value) {
+                            is Number -> raw.toLong()
+                            is String -> raw.toLongOrNull() ?: 0L
+                            else -> 0L
+                        }
+                        updated[key] = value
+                    }
+                    likesMap = updated
+                }
+
+                override fun onCancelled(error: DatabaseError) = Unit
+            }
+            ref.addValueEventListener(listener)
+            onDispose { ref.removeEventListener(listener) }
+        }
     }
 
     // For the scroll-to-top feature
