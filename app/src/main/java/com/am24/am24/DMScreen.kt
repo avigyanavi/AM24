@@ -151,7 +151,7 @@ fun DMScreenContent(
     val matchIds by SessionDataRepository.matchIds.collectAsState()
     val blockedIds by SessionDataRepository.blockedUserIds.collectAsState()
     var likesMap by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
-    val likedCount by SessionDataRepository.likedCount.collectAsState(initial = 0)
+//    val likedCount by SessionDataRepository.likedCount.collectAsState(initial = 0)
     val liveLikesCount by remember(likesMap, matchIds, blockedIds) {
         derivedStateOf {
             likesMap.keys.count { uid ->
@@ -637,7 +637,7 @@ fun DMScreenContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "+${likedCount}",
+                            "+${liveLikesCount}",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp
