@@ -4231,7 +4231,52 @@ exports.pushLikeNotification = functions
     return null;
   });
 
+exports.prunePresenceTree = functions
+  .region('asia-south1')
+  // Suggested cadence: hourly to clean up stale presence without heavy load.
+  .pubsub.schedule('every 60 minutes')
+  .timeZone('Asia/Kolkata')
+  .onRun(async () => {
+    const db = admin.database();
+    const NOW = Date.now();
+    const STALE_MS = 1 * 60 * 60 * 1000; // 1 hours
 
+    const presenceSnap = await db.ref('presence').get();
+    if (!presenceSnap.exists()) return null;
+
+    const updates = {};
+    const userLookups = [];
+
+    presenceSnap.forEach(child => {
+      const uid = child.key;
+      if (!uid) return;
+      userLookups.push(uid);
+    });
+
+    if (userLookups.length === 0) return null;
+
+    const CHUNK = 200;
+    for (let i = 0; i < userLookups.length; i += CHUNK) {
+      const slice = userLookups.slice(i, i + CHUNK);
+      const results = await Promise.all(
+        slice.map(uid => db.ref(`users/${uid}/lastActive`).get().then(snap => ({
+          uid,
+          lastActive: Number(snap.val()) || 0
+        })).catch(() => ({ uid, lastActive: 0 })))
+      );
+
+      results.forEach(({ uid, lastActive }) => {
+        if (!lastActive || NOW - lastActive > STALE_MS) {
+          updates[`presence/${uid}`] = null;
+        }
+      });
+    }
+
+    if (Object.keys(updates).length) {
+      await db.ref().update(updates);
+    }
+    return null;
+  });
 exports.backfillScreenTrackingFieldsForUser = functions
   .region('asia-south1')
   .runWith({ timeoutSeconds: 540, memory: '1GB' })

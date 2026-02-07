@@ -111,7 +111,7 @@ fun ExploreScreen(
     val userId = FirebaseAuth.getInstance().currentUser?.uid
     val filtersLoaded by postViewModel.filtersLoaded.collectAsState()
     val isInitialFeedLoading by postViewModel.isInitialFeedLoading.collectAsState()
-    val posts by postViewModel.filteredPosts.collectAsState()
+    val posts by postViewModel.explorePosts.collectAsState()
     val hasMorePosts by postViewModel.hasMorePosts.collectAsState()
     val isLoadingMore by postViewModel.isLoadingMore.collectAsState()
     val feedErrorMessage by postViewModel.feedErrorMessage.collectAsState()

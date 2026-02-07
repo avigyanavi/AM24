@@ -533,6 +533,40 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         finalFilteredPosts
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val exploreMaxAgeMs = 1000L * 60 * 60 * 24 * 30
+    private val exploreMatchBoost = 30.0
+    private val exploreUpvoteWeight = 4.0
+    private val exploreDownvoteWeight = 5.0
+    private val exploreCommentWeight = 3.0
+
+    val explorePosts: StateFlow<List<Post>> = combine(
+        _posts,
+        _userProfiles
+    ) { posts, profiles ->
+        val now = System.currentTimeMillis()
+        posts
+            .filter { post ->
+                val age = now - post.getTimestampLong()
+                age in 0..exploreMaxAgeMs
+            }
+            .sortedByDescending { post ->
+                val profile = profiles[post.userId]
+                val isMatch = profile?.relationship == "match"
+                val ageMs = (now - post.getTimestampLong()).coerceAtLeast(1L)
+                val ageHours = ageMs / (1000.0 * 60 * 60)
+                val recencyDecay = 1.0 / (1.0 + ageHours)
+                val upvotes = post.upvotes.toDouble()
+                val downvotes = post.downvotes.toDouble()
+                val comments = post.comments.size.toDouble()
+                val matchBoost = if (isMatch) exploreMatchBoost else 0.0
+                (upvotes * exploreUpvoteWeight) -
+                        (downvotes * exploreDownvoteWeight) +
+                        (comments * exploreCommentWeight) +
+                        matchBoost +
+                        (recencyDecay * 100.0)
+            }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // New StateFlow for profile screen posts
     private val _profilePosts = MutableStateFlow<List<Post>>(emptyList())
     val profilePosts: StateFlow<List<Post>> = _profilePosts.asStateFlow()
