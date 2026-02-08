@@ -70,6 +70,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.am24.am24.billing.BillingManager
 import com.am24.am24.ui.theme.AppTheme
 import com.yalantis.ucrop.UCrop
 import com.facebook.appevents.AppEventsConstants
@@ -4720,10 +4721,10 @@ private const val SCENARIO3_PLUS_DAYS = 2L
 
 private suspend fun scenario3MarkUserPaid(): Boolean {
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return false
-    val userRef = FirebaseRefs.db.reference.child("users").child(uid)
+    val userRef = FirebaseRefs.userProfiles.document(uid)
 
     val alreadyPaid = runCatching {
-        userRef.child("isEntryFeePaid").get().await().getValue(Boolean::class.java) == true
+        userRef.get().await().getBoolean("isEntryFeePaid") == true
     }.getOrDefault(false)
     if (alreadyPaid) return true
 
@@ -4735,12 +4736,12 @@ private suspend fun scenario3MarkUserPaid(): Boolean {
         "entryFeePaidAt" to now,
         "nextRenewal" to nextRenewal,
         "isPlus" to true,
-        "availableAiMessages" to 5,
         "availableBoosts" to 5,
     )
 
     return runCatching {
-        userRef.updateChildren(updates).await()
+        userRef.set(updates, SetOptions.merge()).await()
+        BillingManager.creditAiMessagesOnce(userRef, 5, nextRenewal)
         true
     }.getOrDefault(false)
 }
