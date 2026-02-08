@@ -102,6 +102,13 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.material3.Button
 import androidx.compose.runtime.saveable.rememberSaveable
 import kotlin.math.max
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import kotlinx.coroutines.CancellationException
+import android.widget.Toast
 @Composable
 fun ExploreScreen(
     postViewModel: PostViewModel,
@@ -119,7 +126,7 @@ fun ExploreScreen(
     val currentUserProfile by profileViewModel.currentUserProfile.collectAsState()
     val isPremium by profileViewModel.isPremium.collectAsState(initial = false)
     val isPlus by profileViewModel.isPlus.collectAsState(initial = false)
-
+    val context = LocalContext.current
     LaunchedEffect(userId) {
         postViewModel.setCurrentUserId(userId)
         if (userId == null) {
@@ -241,6 +248,26 @@ fun ExploreScreen(
                 onComments = { targetPostId ->
                     commentsPostId = targetPostId
                     scope.launch { sheetState.show() }
+                },
+                onReport = { targetPost, reason ->
+                    val reporterId = currentUserId ?: return@ExploreMediaQueueDialog
+                    scope.launch {
+                        try {
+                            postViewModel.reportAndBlock(
+                                postId = targetPost.postId,
+                                reporterId = reporterId,
+                                reportedUserId = targetPost.userId,
+                                reason = reason
+                            )
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.reported_blocked_unmatched),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } catch (e: Exception) {
+                            if (e is CancellationException) throw e
+                        }
+                    }
                 }
             )
         }
@@ -431,7 +458,8 @@ private fun ExploreMediaQueueDialog(
     currentUserId: String?,
     onClose: () -> Unit,
     onLike: (String) -> Unit,
-    onComments: (String) -> Unit
+    onComments: (String) -> Unit,
+    onReport: (Post, String) -> Unit
 ) {
     val listState = rememberLazyListState()
     val configuration = LocalConfiguration.current
@@ -471,7 +499,9 @@ private fun ExploreMediaQueueDialog(
                         screenHeightPx = screenHeightPx,
                         currentUserId = currentUserId,
                         onLike = { onLike(post.postId) },
-                        onComments = { onComments(post.postId) }
+                        onComments = { onComments(post.postId) },
+                        onReport = { reason -> onReport(post, reason)
+                        }
                     )
                 }
             }
@@ -551,13 +581,16 @@ private fun ExploreQueueItem(
     screenHeightPx: Int,
     currentUserId: String?,
     onLike: () -> Unit,
-    onComments: () -> Unit
+    onComments: () -> Unit,
+    onReport: (String) -> Unit
 ) {
     val context = LocalContext.current
     val mediaUrl = post.mediaUrl
     val scope = rememberCoroutineScope()
     var showHeart by remember { mutableStateOf(false) }
     var heartJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var showReportDialog by remember { mutableStateOf(false) }
+    var reportReason by remember { mutableStateOf("") }
     val heartScale by animateFloatAsState(
         targetValue = if (showHeart) 1f else 0.6f,
         animationSpec = spring(
@@ -695,6 +728,21 @@ private fun ExploreQueueItem(
                     style = MaterialTheme.typography.labelMedium
                 )
             }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButton(onClick = { showReportDialog = true }) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = stringResource(R.string.post_report),
+                        tint = Color.Red
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.post_report),
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
         }
 
         val caption = post.contentText?.takeIf { it.isNotBlank() }
@@ -713,6 +761,65 @@ private fun ExploreQueueItem(
                 )
             }
         }
+    }
+    if (showReportDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showReportDialog = false
+                reportReason = ""
+            },
+            title = { Text(stringResource(R.string.post_report)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.report_reason_prompt))
+                    Spacer(Modifier.height(8.dp))
+                    TextField(
+                        value = reportReason,
+                        onValueChange = { reportReason = it },
+                        placeholder = { Text(stringResource(R.string.report_reason_placeholder)) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        colors = TextFieldDefaults.colors(
+                            unfocusedContainerColor = Color.DarkGray,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            cursorColor = KupidxOrange
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                val reasonRequired = stringResource(R.string.reason_required)
+                Button(
+                    onClick = {
+                        if (reportReason.isBlank()) {
+                            Toast.makeText(context, reasonRequired, Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        onReport(reportReason)
+                        showReportDialog = false
+                        reportReason = ""
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text(stringResource(R.string.submit), color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        showReportDialog = false
+                        reportReason = ""
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text(stringResource(R.string.cancel), color = Color.White)
+                }
+            }
+        )
     }
 }
 
