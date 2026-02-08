@@ -35,7 +35,6 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -109,6 +108,9 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import kotlinx.coroutines.CancellationException
 import android.widget.Toast
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.navigation.NavController
 @Composable
 fun ExploreScreen(
@@ -380,7 +382,7 @@ private fun ExploreGrid(
                                 .build(),
                             contentDescription = stringResource(R.string.explore_media_grid_desc),
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Fit
                         )
 
                         if (post.mediaType == "video") {
@@ -513,15 +515,15 @@ private fun ExploreMediaQueueDialog(
                 }
             }
 
-            IconButton(
-                onClick = onClose,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(12.dp)
-                    .background(Color(0x66000000), CircleShape)
-            ) {
-                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_close))
-            }
+//            IconButton(
+//                onClick = onClose,
+//                modifier = Modifier
+//                    .align(Alignment.TopStart)
+//                    .padding(12.dp)
+//                    .background(Color(0x66000000), CircleShape)
+//            ) {
+//                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_close))
+//            }
         }
     }
 }
@@ -629,6 +631,7 @@ private fun ExploreQueueItem(
             .fillMaxWidth()
             .height(screenHeight)
             .background(Color.Black)
+            .windowInsetsPadding(WindowInsets.systemBars)
             .pointerInput(post.postId) {
                 detectTapGestures(onDoubleTap = { triggerLikeAnimation() })
             }
@@ -659,7 +662,7 @@ private fun ExploreQueueItem(
                         .pointerInput(post.postId) {
                             detectTapGestures(onDoubleTap = { triggerLikeAnimation() })
                         },
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
             }
             else -> {
@@ -761,7 +764,8 @@ private fun ExploreQueueItem(
                 color = Color(0x66000000),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
+                    .align(Alignment.TopStart)
+                    .windowInsetsPadding(WindowInsets.systemBars)
                     .padding(12.dp)
             ) {
                 Column(

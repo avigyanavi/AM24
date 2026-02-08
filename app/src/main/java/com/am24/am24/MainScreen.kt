@@ -61,6 +61,7 @@ fun MainScreen(
     locationManager: LocationManager
 ) {
     val items = listOf(
+        BottomNavItem(stringResource(R.string.cd_ai_partner), Icons.Default.SmartToy, "aiPartner"),
         BottomNavItem(stringResource(R.string.feed), Icons.Default.Home, "home"),
         BottomNavItem(stringResource(R.string.explore), Icons.Default.Explore, "explore"),
         BottomNavItem(stringResource(R.string.tab_nearby), Icons.Default.Favorite, "map"),
@@ -323,7 +324,7 @@ fun TopNavBar(
     val isNotificationsSelected = currentRoute == "notifications"
     val isUserSettings = currentRoute == "settings"
     val isProfileScreen = currentRoute == "profile"
-    val isDMScreen = currentRoute == "dms"
+//    val isDMScreen = currentRoute == "dms"
     val isGroupChat = currentDestination?.route?.startsWith("groupChat") == true
     val isAiPartner = currentRoute == "aiPartner" ||
             currentRoute?.startsWith("aiImageFull/") == true
@@ -573,22 +574,22 @@ fun TopNavBar(
                             }
                         }
                     }
-                    if (isOnMap || isDMScreen || isProfileScreen || isAiPartner) {
-                        IconButton(onClick = {
-                            if (isAiPartner) {
-                                navController.safePopBackStack()
-                            } else {
-                                navController.navigate("home")
-                            }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.SmartToy,
-                                contentDescription = stringResource(R.string.cd_ai_partner),
-                                tint = if (isAiPartner) Color(0xFFFF6F00) else Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
+//                    if (isOnMap || isDMScreen || isProfileScreen || isAiPartner) {
+//                        IconButton(onClick = {
+//                            if (isAiPartner) {
+//                                navController.safePopBackStack()
+//                            } else {
+//                                navController.navigate("home")
+//                            }
+//                        }) {
+//                            Icon(
+//                                imageVector = Icons.Default.SmartToy,
+//                                contentDescription = stringResource(R.string.cd_ai_partner),
+//                                tint = if (isAiPartner) Color(0xFFFF6F00) else Color.White,
+//                                modifier = Modifier.size(24.dp)
+//                            )
+//                        }
+//                    }
 
                     // 🔸 UPDATED: show settings on ALL bottom-nav roots + settings screen
                     if (isOnBottomNavRoot || isUserSettings) {
@@ -734,13 +735,15 @@ fun BottomNavigationBar(
                         modifier = Modifier.size(18.dp)
                     )
                 },
-                label = {
-                    Text(
-                        text = item.label,
-                        color = if (selected) Color(0xFFFF6F00) else Color.White,
-                        fontSize = 10.sp
-                    )
-                },
+//                label = {
+//                    Text(
+//                        text = item.label,
+//                        color = if (selected) Color(0xFFFF6F00) else Color.White,
+//                        fontSize = 10.sp
+//                    )
+//                },
+                label = null,
+                alwaysShowLabel = false,
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Color(0xFFFF6F00),
                     unselectedIconColor = Color.White,

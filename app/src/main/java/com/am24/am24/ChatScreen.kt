@@ -28,6 +28,7 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.compose.ui.window.DialogProperties
 import androidx.media3.transformer.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -348,9 +349,13 @@ fun ChatScreenContent(
         }
     }
 
-    LaunchedEffect(selectedMediaUri, selectedMediaType) {
-        if (selectedMediaUri != null && selectedMediaType != null) {
-            Log.d("ChatScreen", "Media preview shown: uri=$selectedMediaUri, type=$selectedMediaType")
+    val resolvedMediaType = remember(selectedMediaUri, selectedMediaType) {
+        selectedMediaType ?: selectedMediaUri?.let { resolveMediaType(context, it) }
+    }
+
+    LaunchedEffect(selectedMediaUri, resolvedMediaType) {
+        if (selectedMediaUri != null && resolvedMediaType != null) {
+            Log.d("ChatScreen", "Media preview shown: uri=$selectedMediaUri, type=$resolvedMediaType")
         } else {
             Log.d("ChatScreen", "Media preview cleared")
         }
@@ -504,13 +509,13 @@ fun ChatScreenContent(
         /* ──────────────────────────────────────────────────
            1.  PHOTO / VIDEO  (selectedMediaUri != null)
            ────────────────────────────────────────────────── */
-        if (selectedMediaUri != null && selectedMediaType != null) {
+        if (selectedMediaUri != null && resolvedMediaType != null) {
             scope.launch {
                 isUploadingMedia = true
                 try {
                     sendMediaMessage(
                         currentUserId, otherUserId, chatId,
-                        selectedMediaUri!!, selectedMediaType!!,
+                        selectedMediaUri!!, resolvedMediaType!!,
                         messagesRef, context
                     )
                     postNotification(
@@ -518,7 +523,7 @@ fun ChatScreenContent(
                         toUserId = otherUserId,
                         fromUserId = currentUserId,
                         fromUsername = currentUserProfile?.username ?: "",
-                        message = "[${selectedMediaType!!.replaceFirstChar { it.uppercase() }}" + mensaj,
+                        message = "[${resolvedMediaType!!.replaceFirstChar { it.uppercase() }}" + mensaj,
                     )
                 } finally {
                     selectedMediaUri = null
@@ -1264,7 +1269,7 @@ fun ChatScreenContent(
                 selectedMediaUri?.let { localUri ->
                     MediaPreviewBox(
                         uri = localUri,
-                        mediaType = selectedMediaType,
+                        mediaType = resolvedMediaType,
                         onCancel = {
                             selectedMediaUri = null
                             selectedMediaType = null
@@ -1304,10 +1309,10 @@ fun ChatScreenContent(
                         refreshKey = previewRefresh
                     )
                 }
-                if (fullScreenLocal && selectedMediaUri != null && selectedMediaType != null) {
+                if (fullScreenLocal && selectedMediaUri != null && resolvedMediaType != null) {
                     SelectedMediaFullScreen(
                         uri = selectedMediaUri!!,
-                        mediaType = selectedMediaType,
+                        mediaType = resolvedMediaType,
                         onDismiss = { fullScreenLocal = false }
                     )
                 }
@@ -2144,7 +2149,10 @@ fun FullscreenMediaViewer(
     val failedtoloadphoto = stringResource(R.string.photo_load_failed)
     val context = LocalContext.current
     if (target == null) return
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -2232,7 +2240,10 @@ fun FullscreenVideoPlayer(uri: Uri, onDismiss: () -> Unit) {
             exoPlayer.release()
         }
     }
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -2990,6 +3001,15 @@ fun captureWithPermission(
     }
 }
 
+fun resolveMediaType(context: Context, uri: Uri): String? {
+    val mimeType = context.contentResolver.getType(uri)
+    return when {
+        mimeType?.startsWith("image/") == true -> "photo"
+        mimeType?.startsWith("video/") == true -> "video"
+        else -> null
+    }
+}
+
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun SelectedMediaFullScreen(
@@ -3000,7 +3020,10 @@ fun SelectedMediaFullScreen(
     val context = LocalContext.current
     var videoReady by remember { mutableStateOf(mediaType != "video") }   // photo → ready instantly
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Box(Modifier.fillMaxSize().background(DarkGrayBackground)) {
 
             when (mediaType) {
