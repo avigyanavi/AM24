@@ -536,6 +536,7 @@
     <string name="paid_user_stack">Pila de usuarios de pago</string>
     <string name="back">Atrás</string>
     <string name="searching">Buscando...</string>
+    <string name="pic_sent">Foto enviada</string>
     <string name="saved_posts_title">Publicaciones guardadas</string>
     <string name="saved_posts_empty">Aún no hay publicaciones guardadas.</string>
     <string name="action_leave_groups">Salir de los grupos</string>

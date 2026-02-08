@@ -301,7 +301,19 @@ fun DMScreenContent(
     val complimentQueue = remember { mutableStateListOf<ComplimentWithProfile>() }
     var calledSweepOnce by remember { mutableStateOf(false) }
     var matchesLoadJob by remember { mutableStateOf<Job?>(null) }
-
+    val picSentLabel = stringResource(R.string.pic_sent)
+    fun buildMessagePreview(message: Message?): String {
+        if (message == null) return ""
+        val trimmed = message.text.trim()
+        if (trimmed.isNotBlank()) {
+            return if (trimmed.length > 30) "${trimmed.take(30)}..." else trimmed
+        }
+        return if (!message.mediaUrl.isNullOrBlank() || !message.mediaType.isNullOrBlank()) {
+            picSentLabel
+        } else {
+            ""
+        }
+    }
     LaunchedEffect(dmBootstrap) {
         val bootstrap = dmBootstrap ?: return@LaunchedEffect
         complimentProfiles.clear()
@@ -320,9 +332,7 @@ fun DMScreenContent(
             seededMatches = true
         }
         bootstrap.matches.forEach { summary ->
-            val previewText = summary.lastMessage?.text?.let { text ->
-                if (text.length > 30) "${text.take(30)}..." else text
-            }.orEmpty()
+            val previewText = buildMessagePreview(summary.lastMessage)
             val fromCurrentUser = summary.lastMessage?.senderId == currentUserId
             lastMessages[summary.profile.userId] = Triple(previewText, fromCurrentUser, !summary.hasUnread)
         }
@@ -387,9 +397,17 @@ fun DMScreenContent(
                     for (msgSnap in snapshot.children) {
                         val text = msgSnap.child("text").getValue(String::class.java) ?: ""
                         val senderId = msgSnap.child("senderId").getValue(String::class.java) ?: ""
+                        val mediaType = msgSnap.child("mediaType").getValue(String::class.java)
+                        val mediaUrl = msgSnap.child("mediaUrl").getValue(String::class.java)
                         val read = msgSnap.child("read").getValue(Boolean::class.java) ?: false
                         val fromCurrentUser = (senderId == uid)
-                        val displayText = if (text.length > 30) "${text.take(30)}..." else text
+                        val displayText = buildMessagePreview(
+                            Message(
+                                text = text,
+                                mediaType = mediaType,
+                                mediaUrl = mediaUrl
+                            )
+                        )
                         lastMessages[profile.userId] = Triple(displayText, fromCurrentUser, read)
                         Log.d("DMScreen", "Last message for ${profile.userId}: $displayText")
                     }

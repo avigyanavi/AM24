@@ -12,6 +12,7 @@
     <string name="create_post_title">Create New Post</string>
     <string name="text_post_label">Text Post</string>
     <string name="voice_post_label">Voice Post</string>
+    <string name="pic_sent">Pic sent</string>
     <string name="no_card_in_page">No card in this page</string>
     <string name="dont_show_location">Don\'t show location</string>
     <string name="private_album">Private album</string>

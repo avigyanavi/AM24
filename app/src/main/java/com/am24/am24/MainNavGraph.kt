@@ -116,6 +116,7 @@ fun MainNavGraph(
         }
         composable("explore") {
             ExploreScreen(
+                navController = navController,
                 postViewModel = postViewModel,
                 profileViewModel = profileViewModel
             )

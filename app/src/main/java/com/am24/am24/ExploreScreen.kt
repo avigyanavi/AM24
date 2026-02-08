@@ -109,8 +109,10 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import kotlinx.coroutines.CancellationException
 import android.widget.Toast
+import androidx.navigation.NavController
 @Composable
 fun ExploreScreen(
+    navController: NavController,
     postViewModel: PostViewModel,
     profileViewModel: ProfileViewModel,
     modifier: Modifier = Modifier
@@ -248,6 +250,9 @@ fun ExploreScreen(
                 onComments = { targetPostId ->
                     commentsPostId = targetPostId
                     scope.launch { sheetState.show() }
+                },
+                onUserClick = { userIdToOpen ->
+                    navController.navigate("previewUserProfile/$userIdToOpen")
                 },
                 onReport = { targetPost, reason ->
                     val reporterId = currentUserId ?: return@ExploreMediaQueueDialog
@@ -459,6 +464,7 @@ private fun ExploreMediaQueueDialog(
     onClose: () -> Unit,
     onLike: (String) -> Unit,
     onComments: (String) -> Unit,
+    onUserClick: (String) -> Unit,
     onReport: (Post, String) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -500,6 +506,7 @@ private fun ExploreMediaQueueDialog(
                         currentUserId = currentUserId,
                         onLike = { onLike(post.postId) },
                         onComments = { onComments(post.postId) },
+                        onUserClick = onUserClick,
                         onReport = { reason -> onReport(post, reason)
                         }
                     )
@@ -582,6 +589,7 @@ private fun ExploreQueueItem(
     currentUserId: String?,
     onLike: () -> Unit,
     onComments: () -> Unit,
+    onUserClick: (String) -> Unit,
     onReport: (String) -> Unit
 ) {
     val context = LocalContext.current
@@ -745,8 +753,10 @@ private fun ExploreQueueItem(
             }
         }
 
-        val caption = post.contentText?.takeIf { it.isNotBlank() }
-        if (caption != null) {
+        val hasMedia = !mediaUrl.isNullOrBlank() || post.mediaType == "video" || post.mediaType == "voice"
+        val caption = post.contentText?.takeIf { it.isNotBlank() && hasMedia }
+        val displayUsername = post.username.ifBlank { stringResource(R.string.default_username) }
+        if (displayUsername.isNotBlank() || caption != null) {
             Surface(
                 color = Color(0x66000000),
                 shape = RoundedCornerShape(12.dp),
@@ -754,11 +764,28 @@ private fun ExploreQueueItem(
                     .align(Alignment.BottomStart)
                     .padding(12.dp)
             ) {
-                Text(
-                    caption,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                )
+                Column(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = displayUsername,
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.clickable(enabled = post.userId.isNotBlank()) {
+                            if (post.userId.isNotBlank()) {
+                                onUserClick(post.userId)
+                            }
+                        }
+                    )
+                    if (caption != null) {
+                        Text(
+                            text = caption,
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
         }
     }

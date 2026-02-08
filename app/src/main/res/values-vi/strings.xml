@@ -6039,6 +6039,7 @@
     <string name="ignore_chat">Bỏ qua</string>
     <string name="accept_chat">Chấp nhận</string>
     <string name="reject_chat">Từ chối</string>
+    <string name="pic_sent">Đã gửi ảnh</string>
     <string name="request_sent_waiting">Đã gửi yêu cầu – chờ người dùng tham gia</string>
     <string name="request_rejected">Yêu cầu bị từ chối</string>
     <string name="user_left_chat">Người dùng đã rời cuộc chat</string>

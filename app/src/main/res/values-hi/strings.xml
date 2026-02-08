@@ -4677,7 +4677,8 @@
         <string name="feature_unlimited_swipes">अनलिमिटेड Swipes</string>
         <string name="feature_5_compliments">हर हफ़्ते 5 Compliments</string>
         <string name="feature_5_boosts">हर हफ़्ते 5 Boosts</string>
-        <string name="feature_performance_metrics_rank">हर प्रोफाइल के लिए Performance Metrics और Rank अनलॉक</string>
+    <string name="pic_sent">तस्वीर भेजी गई</string>
+    <string name="feature_performance_metrics_rank">हर प्रोफाइल के लिए Performance Metrics और Rank अनलॉक</string>
         <string name="feature_everything_plus">Plus में जो है, सब शामिल</string>
     <string name="action_leave_groups">समूह छोड़ें</string>
     <string name="dm_leave_groups_title">समूह छोड़ें</string>
