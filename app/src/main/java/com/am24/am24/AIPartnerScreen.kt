@@ -146,9 +146,9 @@ fun AIPartnerScreen(
 
     // 🔢 Shared AI message credits
     val currentUserId = remember { FirebaseAuth.getInstance().currentUser?.uid }
-    val userRef = remember(currentUserId) {
+    val userDoc = remember(currentUserId) {
         currentUserId?.let { uid ->
-            FirebaseRefs.db.getReference("users").child(uid)
+            FirebaseRefs.userProfiles.document(uid)
         }
     }
 
@@ -201,11 +201,10 @@ fun AIPartnerScreen(
     }
 
     LaunchedEffect(currentUserId) {
-        if (currentUserId == null || userRef == null) return@LaunchedEffect
+        if (currentUserId == null || userDoc == null) return@LaunchedEffect
         try {
-            val snap = userRef.get().await()
-            aiMessagesLeft = snap.child("availableAiMessages")
-                .getValue(Int::class.java) ?: 0
+            val snap = userDoc.get().await()
+            aiMessagesLeft = snap.getLong("availableAiMessages")?.toInt() ?: 0
         } catch (e: Exception) {
             Log.e("AIPartnerScreen", "Failed loading AiMessages", e)
         }
@@ -236,11 +235,11 @@ fun AIPartnerScreen(
                 timestamp = nowTs
             )
 
-            if (pendingDebit > 0 && aiMessagesLeft > 0 && userRef != null) {
+            if (pendingDebit > 0 && aiMessagesLeft > 0 && userDoc != null) {
                 pendingDebit -= 1
                 aiMessagesLeft -= 1
                 try {
-                    userRef.child("availableAiMessages").setValue(aiMessagesLeft)
+                    userDoc.update(mapOf("availableAiMessages" to aiMessagesLeft)).await()
                 } catch (e: Exception) {
                     Log.e("AIPartnerScreen", "Failed saving AiMessages", e)
                 }
@@ -279,11 +278,11 @@ fun AIPartnerScreen(
                 )
 
                 // <-- NEW: consume reserved credit on successful image
-                if (pendingDebit > 0 && aiMessagesLeft > 0 && userRef != null) {
+                if (pendingDebit > 0 && aiMessagesLeft > 0 && userDoc != null) {
                     pendingDebit -= 1
                     aiMessagesLeft -= 1
                     try {
-                        userRef.child("availableAiMessages").setValue(aiMessagesLeft)
+                        userDoc.update(mapOf("availableAiMessages" to aiMessagesLeft)).await()
                         Log.d("AIPartnerScreen", "Consumed 1 credit for image. aiMessagesLeft=$aiMessagesLeft, pendingDebit=$pendingDebit")
                     } catch (e: Exception) {
                         Log.e("AIPartnerScreen", "Failed saving AiMessages after image", e)

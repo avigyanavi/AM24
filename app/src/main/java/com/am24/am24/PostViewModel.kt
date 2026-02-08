@@ -1860,7 +1860,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             if (filters.gender.isNotBlank()) {
                 val targetId = canonicalGenderRes(filters.gender)
                 filteredList = filteredList.filter { post ->
-                    val profileGender = profiles[post.userId]?.gender
+                    val profile = profiles[post.userId] ?: return@filter true
+                    val profileGender = profile.gender
                     val profId = canonicalGenderRes(profileGender)
                     targetId == null || profId == targetId
                 }
@@ -1869,16 +1870,17 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             // Age range filter
             if (filters.ageStart != 0 && filters.ageEnd != 0) {
                 filteredList = filteredList.filter { post ->
-                    val age = profiles[post.userId]?.dob?.let { calculateAge(it) }
-                    age != null && (age in filters.ageStart..filters.ageEnd)
+                    val profile = profiles[post.userId] ?: return@filter true
+                    val age = profile.dob.let { calculateAge(it) }
+                    age != null && age in filters.ageStart..filters.ageEnd
                 }
             }
 
             // Rating filter
             if (filters.rating.isNotBlank()) {
                 filteredList = filteredList.filter { post ->
-                    val profile = profiles[post.userId]
-                    val averageRating = profile?.averageRating ?: 0.0
+                    val profile = profiles[post.userId] ?: return@filter true
+                    val averageRating = profile.averageRating
                     val ratingRange = when (filters.rating) {
                         "0-2" -> 0.0..2.0
                         "2-4" -> 2.0..4.0
@@ -1893,7 +1895,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             // Localities filter
             if (filters.localities.isNotEmpty()) {
                 filteredList = filteredList.filter { post ->
-                    val profileLocality = profiles[post.userId]?.hometown ?: ""
+                    val profile = profiles[post.userId] ?: return@filter true
+                    val profileLocality = profile.hometown
                     filters.localities.contains(profileLocality)
                 }
             }
@@ -1901,7 +1904,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             // High School filter
             if (filters.highSchool.isNotBlank()) {
                 filteredList = filteredList.filter { post ->
-                    val profileHighSchool = profiles[post.userId]?.highSchool ?: ""
+                    val profile = profiles[post.userId] ?: return@filter true
+                    val profileHighSchool = profile.highSchool
                     profileHighSchool.equals(filters.highSchool, ignoreCase = true)
                 }
             }
@@ -1909,7 +1913,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             // College filter
             if (filters.college.isNotBlank()) {
                 filteredList = filteredList.filter { post ->
-                    val profileCollege = profiles[post.userId]?.college ?: ""
+                    val profile = profiles[post.userId] ?: return@filter true
+                    val profileCollege = profile.college
                     profileCollege.equals(filters.college, ignoreCase = true)
                 }
             }
@@ -1917,7 +1922,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             // PostGrad filter
             if (filters.postGrad.isNotBlank()) {
                 filteredList = filteredList.filter { post ->
-                    val profilePostGrad = profiles[post.userId]?.postGraduation ?: ""
+                    val profile = profiles[post.userId] ?: return@filter true
+                    val profilePostGrad = profile.postGraduation ?: ""
                     profilePostGrad.equals(filters.postGrad, ignoreCase = true)
                 }
             }
@@ -1925,7 +1931,8 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
             // Work filter
             if (filters.work.isNotBlank()) {
                 filteredList = filteredList.filter { post ->
-                    val profileWork = profiles[post.userId]?.work ?: ""
+                    val profile = profiles[post.userId] ?: return@filter true
+                    val profileWork = profile.work
                     profileWork.equals(filters.work, ignoreCase = true)
                 }
             }

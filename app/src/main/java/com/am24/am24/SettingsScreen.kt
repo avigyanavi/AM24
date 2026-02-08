@@ -52,7 +52,7 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlin.coroutines.cancellation.CancellationException
-
+import com.google.firebase.firestore.SetOptions
 
 /* ───────────────────────────────────────────────  small helpers ── */
 
@@ -137,7 +137,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
     val blockedIds by SessionDataRepository.blockedUserIds.collectAsState()
 
     /* Firebase refs */
-    val userRef = FirebaseRefs.db.getReference("users").child(uid)
+    val userDoc = FirebaseRefs.userProfiles.document(uid)
     val blocksRef = FirebaseRefs.db.getReference("blocks").child(uid)
 
     var premiumTier by remember { mutableStateOf("Plus") }           // "Free" / "Plus" / "Premium"
@@ -507,12 +507,12 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
             /*──────────────── Global preferences ──────────────────────*/
             item {
                 GlobalPrefCard(
-                    userRef = userRef,
+                    userRef = userDoc,
                     lang = preferredLang,
                     onLangChange = { code ->
                         preferredLang = code
                         scope.launch {
-                            userRef.child("preferredLanguage").setValue(code)
+                            userDoc.set(mapOf("preferredLanguage" to code), SetOptions.merge())
                             ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
                                 .edit().putString("language", code).apply()
                             updateLocale(ctx, code)
@@ -524,7 +524,9 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                     isPrivate = isPrivate,
                     onPrivateChange = {
                         isPrivate = it
-                        scope.launch { userRef.child("isPrivate").setValue(it) }
+                        scope.launch {
+                            userDoc.set(mapOf("isPrivate" to it), SetOptions.merge())
+                        }
                     },
                     allowLoc = allowLoc,
                     onAllowLocChange = { enable ->
@@ -532,7 +534,12 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                             pendingLocationToggle = LocationVisibilityToggle.MATCHES
                         } else {
                             allowLoc = false
-                            scope.launch { userRef.child("allowLocationForMatches").setValue(false) }
+                            scope.launch {
+                                userDoc.set(
+                                    mapOf("allowLocationForMatches" to false),
+                                    SetOptions.merge()
+                                )
+                            }
                         }
                     },
                     allowPublic = allowPublic,
@@ -541,13 +548,20 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                             pendingLocationToggle = LocationVisibilityToggle.PUBLIC
                         } else {
                             allowPublic = false
-                            scope.launch { userRef.child("allowLocationPublic").setValue(false) }
+                            scope.launch {
+                                userDoc.set(
+                                    mapOf("allowLocationPublic" to false),
+                                    SetOptions.merge()
+                                )
+                            }
                         }
                     },
                     isMatrimony = isMatrimony,
                     onMatrimonyChange = {
                         isMatrimony = it
-                        scope.launch { userRef.child("isMatrimonyMode").setValue(it) }
+                        scope.launch {
+                            userDoc.set(mapOf("isMatrimonyMode" to it), SetOptions.merge())
+                        }
                     }
                 )
             }
@@ -764,13 +778,23 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
             LocationVisibilityToggle.MATCHES ->
                 R.string.location_sharing_warning_matches to {
                     allowLoc = true
-                    scope.launch { userRef.child("allowLocationForMatches").setValue(true) }
+                    scope.launch {
+                        userDoc.set(
+                            mapOf("allowLocationForMatches" to true),
+                            SetOptions.merge()
+                        )
+                    }
                 }
 
             LocationVisibilityToggle.PUBLIC ->
                 R.string.location_sharing_warning_public to {
                     allowPublic = true
-                    scope.launch { userRef.child("allowLocationPublic").setValue(true) }
+                    scope.launch {
+                        userDoc.set(
+                            mapOf("allowLocationPublic" to true),
+                            SetOptions.merge()
+                        )
+                    }
                 }
         }
 
@@ -803,7 +827,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
 private fun AccountCard(uid: String) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    val dbUser = FirebaseRefs.db.getReference("users").child(uid)
+    val userDoc = FirebaseRefs.userProfiles.document(uid)
 
     /* fields */
     var email by remember { mutableStateOf("") }
@@ -824,9 +848,9 @@ private fun AccountCard(uid: String) {
 
     /* load user data once */
     LaunchedEffect(uid) {
-        val snap = dbUser.get().await()
-        email = snap.child("email").getValue(String::class.java) ?: ""
-        username = snap.child("username").getValue(String::class.java) ?: ""
+        val snap = userDoc.get().await()
+        email = snap.getString("email") ?: ""
+        username = snap.getString("username") ?: ""
         oldUsername = username
     }
 
@@ -1091,7 +1115,7 @@ private fun AccountCard(uid: String) {
 
 @Composable
 private fun GlobalPrefCard(
-    userRef: com.google.firebase.database.DatabaseReference,
+    userRef: com.google.firebase.firestore.DocumentReference,
     lang: String,
     onLangChange: (String) -> Unit,
     isDarkTheme: Boolean,
@@ -1297,12 +1321,8 @@ private fun BlockedUsersCard(
             ids.map { userId ->
                 async {
                     try {
-                        val snap = FirebaseRefs.db.getReference("users")
-                            .child(userId)
-                            .child("username")
-                            .get()
-                            .await()
-                        userId to (snap.getValue(String::class.java) ?: userId)
+                        val snap = FirebaseRefs.userProfiles.document(userId).get().await()
+                        userId to (snap.getString("username") ?: userId)
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
                         Log.e("SettingsScreen", "Failed to load username for $userId", e)
@@ -1407,6 +1427,8 @@ suspend fun updateAccountSettingsNoEmail(
         usernames.child(validNew).setValue(userId).await()
     }
 
-    db.child("users").child(userId).child("username").setValue(trimmedNew).await()
+    FirebaseRefs.userProfiles.document(userId)
+        .set(mapOf("username" to trimmedNew), SetOptions.merge())
+        .await()
 }
 

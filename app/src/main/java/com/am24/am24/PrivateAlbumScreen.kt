@@ -34,7 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-
+import com.google.firebase.firestore.SetOptions
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun PrivateAlbumScreen(
@@ -57,7 +57,9 @@ fun PrivateAlbumScreen(
                     val updated = urls.toMutableList().apply { add(downloadUri.toString()) }
                     urls = updated
                     scope.launch {
-                        FirebaseRefs.db.getReference("users/$userId/privateAlbumUrls").setValue(updated)
+                        FirebaseRefs.userProfiles.document(userId)
+                            .set(mapOf("privateAlbumUrls" to updated), SetOptions.merge())
+                            .await()
                     }
                 }
             }
@@ -67,8 +69,10 @@ fun PrivateAlbumScreen(
     }
 
     LaunchedEffect(userId) {
-        val snap = FirebaseRefs.db.getReference("users").child(userId).get().await()
-        val profile = snap.getValue(Profile::class.java)
+        val firestoreSnap = FirebaseRefs.userProfiles.document(userId).get().await()
+        val profile = firestoreSnap.safeGetProfile("privateAlbum/$userId")
+            ?: FirebaseRefs.db.getReference("users").child(userId).get().await()
+                .safeGetProfile("privateAlbumFallback/$userId")
         urls = profile?.privateAlbumUrls ?: emptyList()
     }
 

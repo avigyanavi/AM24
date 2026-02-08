@@ -63,19 +63,22 @@ fun OnlineUsersScreen(navController: NavController) {
             if (userId == currentUid) return
             scope.launch {
                 try {
-                    val snap = db.child("users").child(userId).get().await()
-                    if (UserDeletionCache.isDeleted(FirebaseRefs.db, userId, snap)) {
+                    if (UserDeletionCache.isDeleted(FirebaseRefs.db, userId)) {
                         profilesById.remove(userId)
                         return@launch
                     }
-                    val profile = snap.getValue(Profile::class.java)?.copy(userId = userId)
+                    val firestoreSnap = FirebaseRefs.userProfiles.document(userId).get().await()
+                    val profile = firestoreSnap.safeGetProfile("onlineUsers/$userId")
+                        ?: db.child("users").child(userId).get().await()
+                            .safeGetProfile("onlineUsersFallback/$userId")
+                    val resolved = profile?.copy(userId = userId)
                     if (profile != null && profile.username.isBlank()) {
                         UserDeletionCache.markDeleted(userId)
                         profilesById.remove(userId)
                         return@launch
                     }
                     UserDeletionCache.markActive(userId)
-                    profile?.let { profilesById[userId] = it }
+                    resolved?.let { profilesById[userId] = it }
                 } catch (e: Exception) {
                     Log.e("OnlineUsersScreen", "Failed to load profile $userId", e)
                 } finally {

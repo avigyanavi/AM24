@@ -37,7 +37,7 @@ class ChatViewModel : ViewModel() {
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     private val database: FirebaseDatabase = FirebaseRefs.db
-    private val usersRef: DatabaseReference = database.getReference("users")
+    private val profileCollection = FirebaseRefs.userProfiles
     private val ratingsRef: DatabaseReference = database.getReference("ratings")
     private val functions = FirebaseFunctions.getInstance("asia-south1")
 
@@ -141,7 +141,7 @@ class ChatViewModel : ViewModel() {
     }
 
     private fun loadOtherUserProfileFallback(otherUid: String) {
-        usersRef.child(otherUid).get()
+        profileCollection.document(otherUid).get()
             .addOnSuccessListener { snapshot ->
                 val profile = snapshot.safeGetProfile("chatProfileFallback/$otherUid")
                 _uiState.update {

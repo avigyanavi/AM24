@@ -15,6 +15,7 @@ object FirebaseRefs {
 
     val storage: FirebaseStorage by lazy { FirebaseStorage.getInstance(STORAGE_BUCKET) }
     val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
+    val userProfiles = firestore.collection("users")
     init {
         enableOfflinePersistence(primaryDb, "primary")
         warmUp()

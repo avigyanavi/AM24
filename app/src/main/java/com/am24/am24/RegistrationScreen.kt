@@ -95,7 +95,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 import com.google.firebase.storage.ktx.storageMetadata
-
+import com.google.firebase.firestore.SetOptions
 class RegistrationActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -136,23 +136,24 @@ class RegistrationActivity : ComponentActivity() {
                                 ) {
                                 // ② only once that’s done, mirror under /publicUsers/{username}
                                 val auth = FirebaseAuth.getInstance()
-                                val db   = FirebaseRefs.db.reference
+                                val db = FirebaseRefs.db.reference
                                 auth.currentUser?.uid?.let { uid ->
-                                    db.child("users").child(uid).child("username").get()
+                                    FirebaseRefs.userProfiles.document(uid).get()
                                         .addOnSuccessListener { snap ->
-                                            val username = snap.getValue(String::class.java) ?: return@addOnSuccessListener
-                                            val signInMethod = provider          // already one of the three strings
+                                            val username = snap.getString("username")
+                                                ?: return@addOnSuccessListener
+                                            val signInMethod = provider
                                             db.child("publicUsers")
                                                 .child(username)
-                                                .setValue(mapOf(
-                                                    "email"                to auth.currentUser?.email,
-                                                    "signInMethod"         to signInMethod,
-                                                    "registrationFinished" to true
-                                                ))
-                                            db.child("users")
-                                                .child(uid)
-                                                .child("registrationFinished")
-                                                .setValue(true)
+                                                .setValue(
+                                                    mapOf(
+                                                        "email" to auth.currentUser?.email,
+                                                        "signInMethod" to signInMethod,
+                                                        "registrationFinished" to true
+                                                    )
+                                                )
+                                            FirebaseRefs.userProfiles.document(uid)
+                                                .set(mapOf("registrationFinished" to true), SetOptions.merge())
                                             val registrationMethod = when (signInMethod) {
                                                 "google", "facebook", "emailPassword" -> signInMethod
                                                 else -> "emailPassword"
@@ -2505,54 +2506,27 @@ suspend fun saveProfileToFirebase(
     try {
         val database = FirebaseRefs.db.reference
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val userRef = database.child("users").child(userId)
-        val preservedMonetizationFields: Map<String, Any> = runCatching {
-        val snapshot = userRef.get().await()
-            val preserved = mutableMapOf<String, Any>()
-            snapshot.child("isPlus").getValue(Boolean::class.java)?.let {
-                preserved["isPlus"] = it
+        val userDoc = FirebaseRefs.userProfiles.document(userId)
+        val existingSnapshot = runCatching { userDoc.get().await() }.getOrNull()
+        val preservedFields = mutableMapOf<String, Any>()
+        existingSnapshot?.let { snapshot ->
+            snapshot.getBoolean("isPlus")?.let { preservedFields["isPlus"] = it }
+            snapshot.getBoolean("isPremium")?.let { preservedFields["isPremium"] = it }
+            snapshot.getLong("premiumExpiryDate")?.let { preservedFields["premiumExpiryDate"] = it }
+            snapshot.getLong("nextRenewal")?.let { preservedFields["nextRenewal"] = it }
+            snapshot.getLong("entryFeeOfferExpiry")?.let { preservedFields["entryFeeOfferExpiry"] = it }
+            snapshot.getBoolean("entryFeeOfferSeen")?.let { preservedFields["entryFeeOfferSeen"] = it }
+            snapshot.getBoolean("entryFeePlusIntroSeen")?.let {
+                preservedFields["entryFeePlusIntroSeen"] = it
             }
-            snapshot.child("isPremium").getValue(Boolean::class.java)?.let {
-                preserved["isPremium"] = it
-            }
-            snapshot.child("premiumExpiryDate").getValue(Long::class.java)?.let {
-                preserved["premiumExpiryDate"] = it
-            }
-            snapshot.child("nextRenewal").getValue(Long::class.java)?.let {
-                preserved["nextRenewal"] = it
-            }
-            snapshot.child("entryFeeOfferExpiry").getValue(Long::class.java)?.let {
-                preserved["entryFeeOfferExpiry"] = it
-            }
-            snapshot.child("entryFeeOfferSeen").getValue(Boolean::class.java)?.let {
-                preserved["entryFeeOfferSeen"] = it
-            }
-            snapshot.child("entryFeePlusIntroSeen").getValue(Boolean::class.java)?.let {
-                preserved["entryFeePlusIntroSeen"] = it
-            }
-            snapshot.child("entryFeePaidAt").getValue(Long::class.java)?.let {
-                preserved["entryFeePaidAt"] = it
-            }
-            snapshot.child("isEntryFeePaid").getValue(Boolean::class.java)?.let {
-                preserved["isEntryFeePaid"] = it
-            }
-            snapshot.child("loginPlusExpiry").getValue(Long::class.java)?.let {
-                preserved["loginPlusExpiry"] = it
-            }
-            snapshot.child("hasUsedFreeTrial").getValue(Boolean::class.java)?.let {
-                preserved["hasUsedFreeTrial"] = it
-            }
-            snapshot.child("freeTrialStartedAt").getValue(Long::class.java)?.let {
-                preserved["freeTrialStartedAt"] = it
-            }
-            snapshot.child("freeTrialExpiry").getValue(Long::class.java)?.let {
-                preserved["freeTrialExpiry"] = it
-            }
-            snapshot.child("freeTrialCompleted").getValue(Boolean::class.java)?.let {
-                preserved["freeTrialCompleted"] = it
-            }
-            preserved
-        }.getOrElse { emptyMap<String, Any>() }
+            snapshot.getLong("entryFeePaidAt")?.let { preservedFields["entryFeePaidAt"] = it }
+            snapshot.getBoolean("isEntryFeePaid")?.let { preservedFields["isEntryFeePaid"] = it }
+            snapshot.getLong("loginPlusExpiry")?.let { preservedFields["loginPlusExpiry"] = it }
+            snapshot.getBoolean("hasUsedFreeTrial")?.let { preservedFields["hasUsedFreeTrial"] = it }
+            snapshot.getLong("freeTrialStartedAt")?.let { preservedFields["freeTrialStartedAt"] = it }
+            snapshot.getLong("freeTrialExpiry")?.let { preservedFields["freeTrialExpiry"] = it }
+            snapshot.getBoolean("freeTrialCompleted")?.let { preservedFields["freeTrialCompleted"] = it }
+        }
         val pendingGclid = registrationViewModel.gclid
             ?: GclidStorageManager.getPendingGclid(context)
         registrationViewModel.gclid = pendingGclid
@@ -2637,17 +2611,8 @@ suspend fun saveProfileToFirebase(
             phoneNumber = phoneNumber
         )
 
-        val existingSnapshot = try {
-            userRef.get().await()
-        } catch (e: Exception) {
-            null
-        }
-        val existingEntryFeePaid = existingSnapshot
-            ?.child("isEntryFeePaid")
-            ?.getValue(Boolean::class.java) == true
-        val hasEntryFeeOfferExpiry = existingSnapshot
-            ?.child("entryFeeOfferExpiry")
-            ?.getValue(Long::class.java) != null
+        val existingEntryFeePaid = existingSnapshot?.getBoolean("isEntryFeePaid") == true
+        val hasEntryFeeOfferExpiry = existingSnapshot?.getLong("entryFeeOfferExpiry") != null
         val entryFeeOfferExpiryDeadline = if (!existingEntryFeePaid && !hasEntryFeeOfferExpiry) {
             System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30)
         } else {
@@ -2656,37 +2621,39 @@ suspend fun saveProfileToFirebase(
         val preservedUpdates = mutableMapOf<String, Any>()
 
         existingSnapshot?.let { snap ->
-            snap.child("isPlus").getValue(Boolean::class.java)?.let { profile.isPlus = it }
-            snap.child("isPremium").getValue(Boolean::class.java)?.let { profile.isPremium = it }
-            snap.child("premiumExpiryDate").getValue(Long::class.java)?.let { profile.premiumExpiryDate = it }
-            snap.child("razorpaySubscriptionId").getValue(String::class.java)?.let { profile.razorpaySubscriptionId = it }
-            snap.child("availableCompliments").getValue(Int::class.java)?.let { profile.availableCompliments = it }
-            snap.child("availableAiMessages").getValue(Int::class.java)?.let {
+            snap.getBoolean("isPlus")?.let { profile.isPlus = it }
+            snap.getBoolean("isPremium")?.let { profile.isPremium = it }
+            snap.getLong("premiumExpiryDate")?.let { profile.premiumExpiryDate = it }
+            snap.getString("razorpaySubscriptionId")?.let { profile.razorpaySubscriptionId = it }
+            snap.getLong("availableCompliments")?.toInt()?.let { profile.availableCompliments = it }
+            snap.getLong("availableAiMessages")?.toInt()?.let {
                 preservedUpdates["availableAiMessages"] = it
             }
-            snap.child("isEntryFeePaid").getValue(Boolean::class.java)?.takeIf { it }?.let {
+            snap.getBoolean("isEntryFeePaid")?.takeIf { it }?.let {
                 preservedUpdates["isEntryFeePaid"] = it
             }
-            snap.child("entryFeePaidAt").getValue(Long::class.java)?.takeIf { it > 0L }?.let {
+            snap.getLong("entryFeePaidAt")?.takeIf { it > 0L }?.let {
                 preservedUpdates["entryFeePaidAt"] = it
             }
-            snap.child("loginPlusExpiry").getValue(Long::class.java)?.takeIf { it > 0L }?.let {
+            snap.getLong("loginPlusExpiry")?.takeIf { it > 0L }?.let {
                 preservedUpdates["loginPlusExpiry"] = it
             }
-            snap.child("swipesInfo").child("remainingSwipes").getValue(Int::class.java)?.let {
-                preservedUpdates["swipesInfo/remainingSwipes"] = it
+            val swipesInfo = snap.get("swipesInfo") as? Map<*, *>
+            val remainingSwipes = (swipesInfo?.get("remainingSwipes") as? Number)?.toInt()
+            remainingSwipes?.let {
+                preservedUpdates["swipesInfo"] = mapOf("remainingSwipes" to it)
             }
         }
 
-        userRef.setValue(profile).await()
-        if (preservedMonetizationFields.isNotEmpty()) {
-            userRef.updateChildren(preservedMonetizationFields).await()
+        userDoc.set(profile, SetOptions.merge()).await()
+        if (preservedFields.isNotEmpty()) {
+            userDoc.set(preservedFields, SetOptions.merge()).await()
         }
         if (preservedUpdates.isNotEmpty()) {
-            userRef.updateChildren(preservedUpdates).await()
+            userDoc.set(preservedUpdates, SetOptions.merge()).await()
         }
         entryFeeOfferExpiryDeadline?.let { expiry ->
-            userRef.child("entryFeeOfferExpiry").setValue(expiry).await()
+            userDoc.set(mapOf("entryFeeOfferExpiry" to expiry), SetOptions.merge()).await()
         }
 
         pendingGclid?.takeIf { it.isNotBlank() }?.let { gclid ->

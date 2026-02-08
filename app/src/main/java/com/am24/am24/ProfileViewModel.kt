@@ -5,7 +5,9 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,11 +28,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     private val TAG = "ProfileViewModel"
     private val sessionRepository = SessionDataRepository
-    private val usersRef = FirebaseRefs.db.getReference("users")
     private val database = FirebaseRefs.db
     private val notificationsRef = database.getReference("notifications")
-    private val chatRef = database.getReference("chats") // New chat reference for DM creation
-
+    private val profileCollection = FirebaseRefs.userProfiles
     private val _verificationStatus = MutableStateFlow<String?>(null)
     val verificationStatus: StateFlow<String?> = _verificationStatus
 
@@ -49,8 +49,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _complimentsLeft = MutableStateFlow(0)
     val complimentsLeft: StateFlow<Int> get() = _complimentsLeft
 
-    private var complimentsRef: DatabaseReference? = null
-    private var complimentsListener: ValueEventListener? = null
+    private var profileMetadataListener: ListenerRegistration? = null
     private var complimentsWatcherStarted = false
 
     private var profileCollectionJob: Job? = null
@@ -58,19 +57,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private var voiceRecorder: MediaRecorder? = null
     var voiceNoteUrl: String? = null
     var voiceNoteFilePath: String? = null
-
-    private var premiumFlagRef: DatabaseReference? = null
-    private var premiumFlagListener: ValueEventListener? = null
-
-    private var plusFlagRef: DatabaseReference? = null
-    private var plusFlagListener: ValueEventListener? = null
-
-    private var adminFlagRef: DatabaseReference? = null
-    private var adminFlagListener: ValueEventListener? = null
-
-    private var verificationRef: DatabaseReference? = null
-    private var verificationListener: ValueEventListener? = null
-
     private val _isPremium = MutableStateFlow(false)
     val isPremium: StateFlow<Boolean> = _isPremium
 
@@ -113,9 +99,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _availableAiMessages = MutableStateFlow(0)
     val availableAiMessages: StateFlow<Int> = _availableAiMessages
 
-    private var monetizationRef: DatabaseReference? = null
-    private var monetizationListener: ValueEventListener? = null
-
     private var didSetAppOpenScreen = false
     private var lastTrackedScreen: String? = null
 
@@ -138,7 +121,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     _complimentsLeft.value = profile.availableCompliments
                     _sexualOrientation.value = profile.sexualOrientation
                     if (!complimentsWatcherStarted) {
-                        startComplimentsWatcher(currentUserId)
+                        watchProfileMetadata()
                         complimentsWatcherStarted = true
                     }
                 }
@@ -146,21 +129,84 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    // ─── NEW: listen for isPremium in /users/{uid}/isPremium ─────────────────
-    private fun watchPremiumFlag() {
+    private fun watchProfileMetadata() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val ref = usersRef.child(uid).child("isPremium")
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snap: DataSnapshot) {
-                _isPremium.value = snap.getValue(Boolean::class.java) == true
+        if (profileMetadataListener != null) return
+        val docRef = profileCollection.document(uid)
+        profileMetadataListener = docRef.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.w(TAG, "watchProfileMetadata cancelled: ${error.message}")
+                return@addSnapshotListener
             }
-            override fun onCancelled(err: DatabaseError) {
-                Log.e(TAG, "watchPremiumFlag cancelled: ${err.message}")
+            val data = snapshot?.data ?: return@addSnapshotListener
+            val loginPlus = (data["loginPlusExpiry"] as? Number)?.toLong() ?: 0L
+            val entryFeePaid = data["isEntryFeePaid"] as? Boolean ?: false
+            val entryFeePaidAtValue = (data["entryFeePaidAt"] as? Number)?.toLong() ?: 0L
+            val premiumExpiry = (data["premiumExpiryDate"] as? Number)?.toLong()
+            val subscriptionStatusValue = data["subscriptionStatus"] as? String
+            val nextRenewalValue = (data["nextRenewal"] as? Number)?.toLong()
+            val subscriptionIdValue = (data["subscription"] as? Map<*, *>)?.get("id") as? String
+            val entryFeePlusIntroSeenValue = data["entryFeePlusIntroSeen"] as? Boolean ?: true
+            val entryFeeOfferExpiryValue = (data["entryFeeOfferExpiry"] as? Number)?.toLong() ?: 0L
+            val entryFeeOfferSeenValue = data["entryFeeOfferSeen"] as? Boolean ?: false
+            val swipesRemaining = ((data["swipesInfo"] as? Map<*, *>)?.get("remainingSwipes") as? Number)?.toInt() ?: 0
+            val availableAiMessagesValue = (data["availableAiMessages"] as? Number)?.toInt() ?: 0
+            val plusFlag = data["isPlus"] as? Boolean ?: false
+            val premiumFlag = data["isPremium"] as? Boolean ?: false
+            val adminFlag = data["isAdmin"] as? Boolean ?: false
+            val availableComplimentsValue = (data["availableCompliments"] as? Number)?.toInt() ?: 0
+
+            val now = System.currentTimeMillis()
+            val sanitizedOfferExpiry =
+                if (entryFeeOfferExpiryValue > 0L && entryFeeOfferExpiryValue < now) 0L
+                else entryFeeOfferExpiryValue
+            val entryFeePaidExpiry = entryFeePaidAtValue
+                .takeIf { it > 0L }
+                ?.let { it + TimeUnit.DAYS.toMillis(30) }
+            val nextRenewalActive = nextRenewalValue?.takeIf { it > now }
+            val loginPlusActive = loginPlus.takeIf { it > now }
+            val entryFeeActive = entryFeePaid && (
+                    (entryFeePaidExpiry?.let { it > now } == true) ||
+                            nextRenewalActive != null ||
+                            loginPlusActive != null
+                    )
+
+            _loginPlusExpiry.value = loginPlus
+            _isEntryFeePaid.value = entryFeePaid
+            _entryFeePaidAt.value = entryFeePaidAtValue
+            _premiumExpiryDate.value = premiumExpiry
+            _subscriptionStatus.value = subscriptionStatusValue
+            _nextRenewal.value = nextRenewalValue
+            _subscriptionId.value = subscriptionIdValue
+            _entryFeePlusIntroSeen.value = entryFeePlusIntroSeenValue
+            _entryFeeOfferExpiry.value = sanitizedOfferExpiry
+            _entryFeeOfferSeen.value = entryFeeOfferSeenValue
+            _remainingSwipes.value = swipesRemaining
+            _availableAiMessages.value = availableAiMessagesValue
+            _isPlus.value = plusFlag
+            _isPremium.value = premiumFlag
+            _isAdmin.value = adminFlag
+            _complimentsLeft.value = availableComplimentsValue
+
+            if (entryFeeOfferExpiryValue > 0L && entryFeeOfferExpiryValue < now) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    runCatching { docRef.update("entryFeeOfferExpiry", FieldValue.delete()).await() }
+                }
+            }
+
+            if (plusFlag && entryFeePaid && !entryFeeActive && !premiumFlag) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    runCatching {
+                        docRef.update(
+                            mapOf(
+                                "isPlus" to false,
+                                "isEntryFeePaid" to false
+                            )
+                        ).await()
+                    }
+                }
             }
         }
-        premiumFlagRef = ref
-        premiumFlagListener = listener
-        ref.addValueEventListener(listener)
     }
     // ────────────────────────────────────────────────────────────────────────
 
@@ -186,7 +232,11 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching { usersRef.child(currentUserId).updateChildren(updates).await() }
+            runCatching {
+                profileCollection.document(currentUserId)
+                    .set(updates, SetOptions.merge())
+                    .await()
+            }
                 .onFailure { Log.e(TAG, "Failed to update screen tracking", it) }
         }
     }
@@ -200,137 +250,20 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
-                usersRef.child(currentUserId)
-                    .updateChildren(mapOf("lastScreenBeforeClose" to screen))
+                profileCollection.document(currentUserId)
+                    .set(mapOf("lastScreenBeforeClose" to screen), SetOptions.merge())
                     .await()
             }.onFailure { Log.e(TAG, "Failed to update last screen before close", it) }
         }
     }
 
-    // ─── NEW: listen for isPlus in /users/{uid}/isPlus ──────────────────────
-    private fun watchPlusFlag() {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val ref = usersRef.child(uid).child("isPlus")
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snap: DataSnapshot) {
-                _isPlus.value = snap.getValue(Boolean::class.java) == true
-            }
-            override fun onCancelled(err: DatabaseError) {
-                Log.e(TAG, "watchPlusFlag cancelled: ${err.message}")
-            }
-        }
-        plusFlagRef = ref
-        plusFlagListener = listener
-        ref.addValueEventListener(listener)
-    }
-
-
     init {
-        watchAdminFlag()    // ← start listening immediately
-        watchPremiumFlag()    // NEW
-        watchPlusFlag()       // NEW
-        watchMonetizationMetadata()
-    }
-
-    private fun watchMonetizationMetadata() {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val ref = usersRef.child(uid)
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val loginPlus = snapshot.child("loginPlusExpiry").asLongOrZero()
-                val entryFeePaid =
-                    snapshot.child("isEntryFeePaid").getValue(Boolean::class.java) == true
-                val entryFeePaidAtValue = snapshot.child("entryFeePaidAt").asLongOrZero()
-                val premiumExpiry = snapshot.child("premiumExpiryDate").asNullableLong()
-                val subscriptionStatusValue =
-                    snapshot.child("subscriptionStatus").getValue(String::class.java)
-                val nextRenewalValue = snapshot.child("nextRenewal").asNullableLong()
-                val subscriptionIdValue =
-                    snapshot.child("subscription").child("id").getValue(String::class.java)
-                val entryFeePlusIntroSeenValue =
-                    snapshot.child("entryFeePlusIntroSeen").getValue(Boolean::class.java) ?: true
-                val entryFeeOfferExpiryValue = snapshot.child("entryFeeOfferExpiry").asLongOrZero()
-                val entryFeeOfferSeenValue =
-                    snapshot.child("entryFeeOfferSeen").getValue(Boolean::class.java) == true
-                val swipesRemaining =
-                    snapshot.child("swipesInfo").child("remainingSwipes")
-                        .getValue(Int::class.java) ?: 0
-                val availableAiMessagesValue =
-                    snapshot.child("availableAiMessages").getValue(Int::class.java) ?: 0
-
-                val now = System.currentTimeMillis()
-                val sanitizedOfferExpiry =
-                    if (entryFeeOfferExpiryValue > 0L && entryFeeOfferExpiryValue < now) 0L
-                    else entryFeeOfferExpiryValue
-                val entryFeePaidExpiry = entryFeePaidAtValue
-                    .takeIf { it > 0L }
-                    ?.let { it + TimeUnit.DAYS.toMillis(30) }
-                val nextRenewalActive = nextRenewalValue?.takeIf { it > now }
-                val loginPlusActive = loginPlus.takeIf { it > now }
-                val entryFeeActive = entryFeePaid && (
-                        (entryFeePaidExpiry?.let { it > now } == true) ||
-                                nextRenewalActive != null ||
-                                loginPlusActive != null
-                        )
-                val plusFlag = snapshot.child("isPlus").getValue(Boolean::class.java) == true
-                val premiumFlag = snapshot.child("isPremium").getValue(Boolean::class.java) == true
-
-                _loginPlusExpiry.value = loginPlus
-                _isEntryFeePaid.value = entryFeePaid
-                _entryFeePaidAt.value = entryFeePaidAtValue
-                _premiumExpiryDate.value = premiumExpiry
-                _subscriptionStatus.value = subscriptionStatusValue
-                _nextRenewal.value = nextRenewalValue
-                _subscriptionId.value = subscriptionIdValue
-                _entryFeePlusIntroSeen.value = entryFeePlusIntroSeenValue
-                _entryFeeOfferExpiry.value = sanitizedOfferExpiry
-                _entryFeeOfferSeen.value = entryFeeOfferSeenValue
-                _remainingSwipes.value = swipesRemaining
-                _availableAiMessages.value = availableAiMessagesValue
-
-                if (entryFeeOfferExpiryValue > 0L && entryFeeOfferExpiryValue < now) {
-                    viewModelScope.launch(Dispatchers.IO) {
-                        runCatching { ref.child("entryFeeOfferExpiry").removeValue().await() }
-                    }
-                }
-
-                if (plusFlag && entryFeePaid && !entryFeeActive && !premiumFlag) {
-                    viewModelScope.launch(Dispatchers.IO) {
-                        runCatching {
-                            ref.child("isPlus").setValue(false).await()
-                            ref.child("isEntryFeePaid").setValue(false).await()
-                        }
-                    }
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.w(TAG, "watchMonetizationMetadata cancelled: ${error.message}")
-            }
-        }
-        monetizationRef = ref
-        monetizationListener = listener
-        ref.addValueEventListener(listener)
-    }
-
-    private fun startComplimentsWatcher(uid: String) {
-        complimentsListener?.let { l -> complimentsRef?.removeEventListener(l) }
-        val ref = usersRef.child(uid).child("availableCompliments")
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snap: DataSnapshot) {
-                _complimentsLeft.value = snap.getValue(Int::class.java) ?: 0
-            }
-            override fun onCancelled(error: DatabaseError) {}
-        }
-        complimentsRef = ref
-        complimentsListener = listener
-        ref.addValueEventListener(listener)
+        watchProfileMetadata()
     }
 
     fun fetchUsernameById(userId: String, onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
-        val userRef = FirebaseRefs.db.getReference("users").child(userId)
-        userRef.child("username").get().addOnSuccessListener { snapshot ->
-            val username = snapshot.getValue(String::class.java)
+        profileCollection.document(userId).get().addOnSuccessListener { snapshot ->
+            val username = snapshot.getString("username")
             if (username != null) {
                 onSuccess(username)
             } else {
@@ -455,8 +388,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     "am24RankingCompositeScore"   to newComposite
                 )
 
-                // 3) Push to Firebase
-                usersRef.child(userId).updateChildren(updates).await()
+                // 3) Push to Firebase (Firestore)
+                profileCollection.document(userId).set(updates, SetOptions.merge()).await()
 
                 // 4) If you keep local state
                 _currentUserProfile.value = profileWithScore
@@ -477,8 +410,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     // Helper function to fetch a profile by user ID
     private suspend fun getProfileById(userId: String): Profile? {
         return try {
-            val snapshot = usersRef.child(userId).get().await()
-            snapshot.getValue(Profile::class.java)
+            val snapshot = profileCollection.document(userId).get().await()
+            snapshot.safeGetProfile("getProfileById/$userId")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch profile for userId $userId: ${e.message}")
             null
@@ -520,24 +453,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     private val _isAdmin = MutableStateFlow(false)
     val isAdmin: StateFlow<Boolean> = _isAdmin
-
-    fun watchAdminFlag() {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val ref = FirebaseRefs.db
-            .getReference("users")
-            .child(uid)
-            .child("isAdmin")
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snap: DataSnapshot) {
-                _isAdmin.value = snap.getValue(Boolean::class.java) == true
-            }
-            override fun onCancelled(e: DatabaseError) { /* log error */ }
-        }
-
-        adminFlagRef = ref
-        adminFlagListener = listener
-        ref.addValueEventListener(listener)
-    }
 
     fun uploadGovtSelfie(
         uid: String,
@@ -762,11 +677,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         onSuccess: (Profile) -> Unit,
         onFailure: (String) -> Unit
     ) {
-        usersRef.child(userId).get()
+        profileCollection.document(userId).get()
             .addOnSuccessListener { snapshot ->
                 val profile = snapshot.safeGetProfile("fetchUserProfile/$userId")?.copy(
-                    // Ensure isMatrimonyMode has a default of false if not set in Firebase
-                    isMatrimonyMode = snapshot.child("isMatrimonyMode").getValue(Boolean::class.java) ?: false
+                    isMatrimonyMode = snapshot.getBoolean("isMatrimonyMode") ?: false
                 )
                 if (profile != null) {
                     onSuccess(profile)
@@ -869,8 +783,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
-                usersRef.child(currentUserId)
-                    .updateChildren(mapOf("leftGroupChatIds" to updatedIds))
+                profileCollection.document(currentUserId)
+                    .set(mapOf("leftGroupChatIds" to updatedIds), SetOptions.merge())
                     .await()
             }.onFailure { Log.e(TAG, "Failed to update left group chats", it) }
         }
@@ -887,8 +801,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
-                usersRef.child(currentUserId)
-                    .updateChildren(mapOf("leftGroupChatIds" to updatedIds))
+                profileCollection.document(currentUserId)
+                    .set(mapOf("leftGroupChatIds" to updatedIds), SetOptions.merge())
                     .await()
             }.onFailure { Log.e(TAG, "Failed to update left group chats", it) }
         }
@@ -896,52 +810,13 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     override fun onCleared() {
         super.onCleared()
 
-        premiumFlagListener?.let { l -> premiumFlagRef?.removeEventListener(l) }
-        premiumFlagListener = null
-        premiumFlagRef = null
-
-        plusFlagListener?.let { l -> plusFlagRef?.removeEventListener(l) }
-        plusFlagListener = null
-        plusFlagRef = null
-
-        adminFlagListener?.let { l -> adminFlagRef?.removeEventListener(l) }
-        adminFlagListener = null
-        adminFlagRef = null
-
-        complimentsListener?.let { l -> complimentsRef?.removeEventListener(l) }
-        complimentsListener = null
-        complimentsRef = null
+        profileMetadataListener?.remove()
+        profileMetadataListener = null
         complimentsWatcherStarted = false
 
         profileCollectionJob?.cancel()
         profileCollectionJob = null
-        verificationListener?.let { l -> verificationRef?.removeEventListener(l) }
-        verificationListener = null
-        verificationRef = null
-
-        monetizationListener?.let { l -> monetizationRef?.removeEventListener(l) }
-        monetizationListener = null
-        monetizationRef = null
     }
-}
-private fun DataSnapshot.asLongOrZero(): Long = when (val raw = value) {
-    is Long -> raw
-    is Int -> raw.toLong()
-    is Double -> raw.toLong()
-    is Float -> raw.toLong()
-    is Number -> raw.toLong()
-    is String -> raw.toLongOrNull() ?: 0L
-    else -> 0L
-}
-
-private fun DataSnapshot.asNullableLong(): Long? = when (val raw = value) {
-    is Long -> raw
-    is Int -> raw.toLong()
-    is Double -> raw.toLong()
-    is Float -> raw.toLong()
-    is Number -> raw.toLong()
-    is String -> raw.toLongOrNull()
-    else -> null
 }
 /** ------------------------------------------------------------------
  *  Composite‑score formula for *this* profile only

@@ -40,9 +40,12 @@ fun OmegleChatScreen(navController: NavController, chatId: String, otherUserId: 
     var endedByMe by remember { mutableStateOf(false) }
     var showEndedDialog by remember { mutableStateOf(false) }
     LaunchedEffect(otherUserId) {
-        val snap = FirebaseRefs.db.reference.child("users").child(otherUserId).get().await()
-        otherName = snap.child("name").getValue(String::class.java) ?: ""
-        otherPhoto = snap.child("profilepicUrl").getValue(String::class.java) ?: ""
+        val firestoreSnap = FirebaseRefs.userProfiles.document(otherUserId).get().await()
+        val profile = firestoreSnap.safeGetProfile("omegleProfile/$otherUserId")
+            ?: FirebaseRefs.db.reference.child("users").child(otherUserId).get().await()
+                .safeGetProfile("omegleProfileFallback/$otherUserId")
+        otherName = profile?.name.orEmpty()
+        otherPhoto = profile?.profilepicUrl.orEmpty()
     }
 
     DisposableEffect(chatId) {

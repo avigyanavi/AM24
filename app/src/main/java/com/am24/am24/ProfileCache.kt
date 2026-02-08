@@ -82,14 +82,14 @@ object ProfileCache {
     }
 
     private suspend fun fetchFromNetwork(ids: Collection<String>): Map<String, Profile> = coroutineScope {
-        val usersRef = FirebaseRefs.db.getReference("users")
+        val usersRef = FirebaseRefs.userProfiles
         val result = mutableMapOf<String, Profile>()
 
         ids.map { id ->
             async(Dispatchers.IO) {
                 try {
-                    val snapshot = usersRef.child(id).get().await()
-                    val profile = snapshot.getValue(Profile::class.java)
+                    val snapshot = usersRef.document(id).get().await()
+                    val profile = snapshot.safeGetProfile("profileCache/$id")
                     if (profile != null) {
                         val normalized = if (profile.userId.isBlank()) profile.copy(userId = id) else profile
                         result[id] = normalized

@@ -17,7 +17,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
-
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.tasks.await
 /**
  * Centralised session cache that keeps long-lived Firebase data warm while the
  * user is signed in. Screens can observe the exposed [StateFlow]s instead of
@@ -57,7 +59,8 @@ object SessionDataRepository {
 
     private val started = AtomicBoolean(false)
     private val listeners = mutableListOf<Pair<Query, ValueEventListener>>()
-
+    private var profileListener: ListenerRegistration? = null
+    private val migratingProfiles = mutableSetOf<String>()
     fun ensureStarted() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid != null) {
@@ -85,6 +88,8 @@ object SessionDataRepository {
         started.set(false)
         listeners.forEach { (ref, listener) -> ref.removeEventListener(listener) }
         listeners.clear()
+        profileListener?.remove()
+        profileListener = null
         _currentUserId.value = null
         _profile.value = null
         _blockedUserIds.value = emptySet()
@@ -98,29 +103,54 @@ object SessionDataRepository {
     }
 
     private fun attachUserListener(userId: String) {
-        val ref = db.getReference("users/$userId")
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                scope.launch {
-                    val profile = snapshot.getValue(Profile::class.java)?.let { base ->
-                        if (base.userId.isBlank()) base.copy(userId = userId) else base
-                    }
-                    if (profile != null) {
-                        _profile.value = profile
-                        ProfileCache.put(profile)
-                        _sessionReady.value = true
-                    } else {
-                        Log.w(TAG, "No profile snapshot for $userId")
-                    }
+        profileListener?.remove()
+        val ref = FirebaseRefs.userProfiles.document(userId)
+        profileListener = ref.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.w(TAG, "Profile listener cancelled: ${error.message}")
+                return@addSnapshotListener
+            }
+            if (snapshot == null || !snapshot.exists()) {
+                scope.launch { migrateProfileFromRealtime(userId) }
+                return@addSnapshotListener
+            }
+            scope.launch {
+                val profile = snapshot?.safeGetProfile("sessionProfile/$userId")?.let { base ->
+                    if (base.userId.isBlank()) base.copy(userId = userId) else base
+                }
+                if (profile != null) {
+                    _profile.value = profile
+                    ProfileCache.put(profile)
+                    _sessionReady.value = true
+                } else {
+                    Log.w(TAG, "No profile snapshot for $userId")
                 }
             }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.w(TAG, "Profile listener cancelled: ${error.message}")
+        }
+        }
+    private suspend fun migrateProfileFromRealtime(userId: String) {
+        synchronized(migratingProfiles) {
+            if (!migratingProfiles.add(userId)) return
+        }
+        try {
+            val snapshot = db.getReference("users/$userId").get().await()
+            val profile = snapshot.safeGetProfile("migrateProfile/$userId")
+                ?.let { base -> if (base.userId.isBlank()) base.copy(userId = userId) else base }
+                ?: return
+            FirebaseRefs.userProfiles.document(userId)
+                .set(profile, SetOptions.merge())
+                .await()
+            _profile.value = profile
+            ProfileCache.put(profile)
+            _sessionReady.value = true
+            Log.d(TAG, "Migrated profile for $userId from RTDB to Firestore.")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to migrate profile for $userId: ${e.message}", e)
+        } finally {
+            synchronized(migratingProfiles) {
+                migratingProfiles.remove(userId)
             }
         }
-        ref.addValueEventListener(listener)
-        listeners += ref to listener
     }
 
     private fun attachBlocksListener(userId: String) {

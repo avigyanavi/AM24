@@ -56,7 +56,7 @@ object UserSummaryCache {
 
     private suspend fun fetchFromNetwork(ids: Collection<String>): Map<String, UserSummary> = coroutineScope {
         val summariesRef = FirebaseRefs.db.getReference("userSummaries")
-        val usersRef = FirebaseRefs.db.getReference("users")
+        val usersRef = FirebaseRefs.userProfiles
         val result = mutableMapOf<String, UserSummary>()
         ids.map { id ->
             async(Dispatchers.IO) {
@@ -68,14 +68,14 @@ object UserSummaryCache {
                         result[id] = normalized
                         return@async
                     }
-                    val profileSnapshot = usersRef.child(id).get().await()
-                    val profile = profileSnapshot.getValue(Profile::class.java) ?: return@async
+                    val profileSnapshot = usersRef.document(id).get().await()
+                    val profile = profileSnapshot.safeGetProfile("userSummary/$id") ?: return@async
                     result[id] = profile.toUserSummary(id)
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to fetch summary for $id", e)
                     try {
-                        val profileSnapshot = usersRef.child(id).get().await()
-                        val profile = profileSnapshot.getValue(Profile::class.java)
+                        val profileSnapshot = usersRef.document(id).get().await()
+                        val profile = profileSnapshot.safeGetProfile("userSummaryFallback/$id")
                         if (profile != null) {
                             result[id] = profile.toUserSummary(id)
                         }

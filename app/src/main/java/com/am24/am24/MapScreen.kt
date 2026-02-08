@@ -104,7 +104,7 @@ import android.content.res.Resources
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.cancellation.CancellationException
-
+import com.google.firebase.firestore.SetOptions
 /* ======================================================================================= */
 /*  Theme bits                                                                             */
 /* ======================================================================================= */
@@ -318,7 +318,7 @@ fun MapScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val useMiles = remember { !CountryUtil.usesKilometers(ctx) } // decide unit once
-    val userRef = remember(userId) { FirebaseRefs.db.getReference("users").child(userId) }
+    val userDoc = remember(userId) { FirebaseRefs.userProfiles.document(userId) }
     var userCountry by remember { mutableStateOf<String?>(null) }
     val isLocationGranted =
         ContextCompat.checkSelfPermission(
@@ -616,11 +616,11 @@ fun MapScreen(
         val hasActivePlus = loginPlusExpiry > now || nextRenewalValue > now
         if (entryFeePaidAt > 0L && hasActivePlus && !entryFeePlusIntroSeen) {
             entryFeePlusIntroSeen = true
-            userRef.child("entryFeePlusIntroSeen").setValue(true)
+            userDoc.set(mapOf("entryFeePlusIntroSeen" to true), SetOptions.merge())
         }
         if (entryFeeOfferExpiry > now && !entryFeeOfferSeen) {
             entryFeeOfferSeen = true
-            userRef.child("entryFeeOfferSeen").setValue(true)
+            userDoc.set(mapOf("entryFeeOfferSeen" to true), SetOptions.merge())
         }
         nearbyViewModel.updateMapBootstrap(
             MapBootstrapState(
@@ -1006,8 +1006,13 @@ fun MapScreen(
                 // Load profile once per author to check location visibility toggles
                 var profile = profileCache[authorId]
                 if (profile == null) {
-                    profile = FirebaseRefs.db.getReference("users").child(authorId)
-                        .get().await().getValue(Profile::class.java)
+                    val firestoreSnap = FirebaseRefs.userProfiles.document(authorId).get().await()
+                    profile = firestoreSnap.safeGetProfile("heatmapProfile/$authorId")
+                        ?: FirebaseRefs.db.getReference("users")
+                            .child(authorId)
+                            .get()
+                            .await()
+                            .safeGetProfile("heatmapProfileFallback/$authorId")
                     profileCache[authorId] = profile
                 }
 
@@ -1192,14 +1197,11 @@ fun MapScreen(
                 async {
                     val isMatch = matchUids.contains(user.userId)
                     try {
-                        val snap = FirebaseRefs.db.getReference("users")
-                            .child(user.userId)
-                            .get()
-                            .await()
-                        val allowForMatches = snap.child("allowLocationForMatches")
-                            .getValue(Boolean::class.java) ?: false
-                        val allowPublic = snap.child("allowLocationPublic")
-                            .getValue(Boolean::class.java) ?: true
+                        val snap = FirebaseRefs.userProfiles.document(user.userId).get().await()
+                        val allowForMatches =
+                            snap.getBoolean("allowLocationForMatches") ?: false
+                        val allowPublic =
+                            snap.getBoolean("allowLocationPublic") ?: true
                         val canShow = if (isMatch) (allowForMatches || allowPublic) else allowPublic
                         user.userId to canShow
                     } catch (e: Exception) {
@@ -1233,11 +1235,8 @@ fun MapScreen(
             missingIds.map { uid ->
                 async {
                     try {
-                        val snap = FirebaseRefs.db.getReference("users")
-                            .child(uid)
-                            .get()
-                            .await()
-                        val profile = snap.getValue(Profile::class.java) ?: return@async null
+                        val snap = FirebaseRefs.userProfiles.document(uid).get().await()
+                        val profile = snap.safeGetProfile("matchProfile/$uid") ?: return@async null
                         MatchProfile(
                             userId = uid,
                             name = profile.name,
@@ -1428,41 +1427,38 @@ fun MapScreen(
                     }
                 }
 
-//                // 🔻 NEW: quick Male/Female/All toggle
-//                GenderQuickToggle(
-//                    selectedCanonicalGender = canonicalGender(datingFilters.gender),
-//                    onGenderSelected = { newCanonical ->
-//                        // build updated filters
-//                        val updated = nearbyViewModel.datingFilters.copy(
-//                            gender = newCanonical
-//                        )
-//
-//                        nearbyViewModel.datingFilters = updated
-//
-//                        // persist
-//                        prefs.edit()
-//                            .putString("map_dating_filters", gson.toJson(updated))
-//                            .apply()
-//
-//                        // reset pagination & caches, then hard refresh
-//                        val defaultLimit = when (selectedTab) {
-//                            1 -> 10
-//                            else -> 25
-//                        }
-//                        nearbyViewModel.currentLimit = defaultLimit
-//                        tabResultsCache.clear()
-//                        nearbyViewModel.resetPagination()
-//
-//                        userLatLng?.let { center ->
-//                            nearbyViewModel.refreshNearbyUsers(
-//                                userId,
-//                                center,
-//                                geoFireDatabaseRef,
-//                                forceRefresh = true
-//                            )
-//                        }
-//                    }
-//                )
+                // 🔻 Quick Male/Female/All toggle
+                GenderQuickToggle(
+                    selectedCanonicalGender = canonicalGender(datingFilters.gender),
+                    onGenderSelected = { newCanonical ->
+                        val updated = nearbyViewModel.datingFilters.copy(
+                            gender = newCanonical
+                        )
+
+                        nearbyViewModel.datingFilters = updated
+
+                        prefs.edit()
+                            .putString("map_dating_filters", gson.toJson(updated))
+                            .apply()
+
+                        val defaultLimit = when (selectedTab) {
+                            1 -> 10
+                            else -> 25
+                        }
+                        nearbyViewModel.currentLimit = defaultLimit
+                        tabResultsCache.clear()
+                        nearbyViewModel.resetPagination()
+
+                        userLatLng?.let { center ->
+                            nearbyViewModel.refreshNearbyUsers(
+                                userId,
+                                center,
+                                geoFireDatabaseRef,
+                                forceRefresh = true
+                            )
+                        }
+                    }
+                )
 
                 if (activeFilterLabels.isNotEmpty()) {
                     Text(
@@ -2109,10 +2105,10 @@ fun MapScreen(
                                                     BitmapDescriptorFactory.HUE_BLUE
                                                 ),
                                                 onClick = {
-                                                    FirebaseRefs.db.getReference("users")
-                                                        .child(m.userId)
-                                                        .get().addOnSuccessListener { snap ->
-                                                            snap.getValue(Profile::class.java)
+                                                    FirebaseRefs.userProfiles.document(m.userId)
+                                                        .get()
+                                                        .addOnSuccessListener { snap ->
+                                                            snap.safeGetProfile("matchMarker/${m.userId}")
                                                                 ?.let { p ->
                                                                     if (matchUids.contains(p.userId) && p.allowLocationForMatches) {
                                                                         selectedProfile = p
@@ -3356,45 +3352,45 @@ private fun LockedChip(
     }
 }
 
-//@Composable
-//private fun GenderQuickToggle(
-//    selectedCanonicalGender: String,
-//    onGenderSelected: (String) -> Unit,
-//    modifier: Modifier = Modifier
-//) {
-//    // We’ll only show All / Male / Female to keep it simple visually
-//    val options = genderFilterOptions.take(3) // "" (All), male, female
-//
-//    Row(
-//        modifier = modifier
-//            .fillMaxWidth()
-//            .padding(horizontal = 16.dp, vertical = 8.dp),
-//        horizontalArrangement = Arrangement.spacedBy(8.dp),
-//        verticalAlignment = Alignment.CenterVertically
-//    ) {
-//        options.forEach { option ->
-//            val optionCanonical = option.canonicalValue
-//            val isSelected = if (optionCanonical.isBlank()) {
-//                selectedCanonicalGender.isBlank()
-//            } else {
-//                selectedCanonicalGender == optionCanonical
-//            }
-//
-//            FilterChip(
-//                selected = isSelected,
-//                onClick = {
-//                    val newCanonical = when {
-//                        optionCanonical.isBlank() -> ""           // All
-//                        isSelected -> ""                           // toggle off → All
-//                        else -> optionCanonical
-//                    }
-//                    onGenderSelected(newCanonical)
-//                },
-//                label = { Text(stringResource(option.labelRes)) }
-//            )
-//        }
-//    }
-//}
+@Composable
+private fun GenderQuickToggle(
+    selectedCanonicalGender: String,
+    onGenderSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val options = genderFilterOptions.take(3) // "" (All), male, female
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        options.forEach { option ->
+            val optionCanonical = option.canonicalValue
+            val isSelected = if (optionCanonical.isBlank()) {
+                selectedCanonicalGender.isBlank()
+            } else {
+                selectedCanonicalGender == optionCanonical
+            }
+
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    val newCanonical = when {
+                        optionCanonical.isBlank() -> ""           // All
+                        isSelected -> ""                           // toggle off → All
+                        else -> optionCanonical
+                    }
+                    onGenderSelected(newCanonical)
+                },
+                label = { Text(stringResource(option.labelRes)) }
+            )
+        }
+    }
+}
+
 
 /* ======================================================================================= */
 /*  Overlays & sheets (unchanged from old)                                                 */
@@ -3707,8 +3703,8 @@ fun loadUserLocationAndMatches(
             val query: GeoQuery = geoFire.queryAtLocation(GeoLocation(lat, lng), 10.0)
             query.addGeoQueryEventListener(object : GeoQueryEventListener {
                 override fun onKeyEntered(key: String, location: GeoLocation) {
-                    FirebaseRefs.db.getReference("users").child(key).get().addOnSuccessListener { snapshot ->
-                        val profile = snapshot.getValue(Profile::class.java)
+                    FirebaseRefs.userProfiles.document(key).get().addOnSuccessListener { snapshot ->
+                        val profile = snapshot.safeGetProfile("matchLocation/$key")
                         if (profile != null && matchesSet.contains(key) && profile.allowLocationForMatches) {
                             markersState.add(MarkerData(key, LatLng(location.latitude, location.longitude)))
                         }

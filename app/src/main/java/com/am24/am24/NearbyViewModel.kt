@@ -572,7 +572,7 @@ class NearbyViewModel : ViewModel() {
                         onExit(uid)
                         return@launch
                     }
-                    val p = snapshot.getValue(Profile::class.java) ?: run {
+                    val p = fetchProfileForNearby(uid, snapshot) ?: run {
                         onExit(uid)
                         return@launch
                     }
@@ -719,7 +719,7 @@ class NearbyViewModel : ViewModel() {
                                 if (shouldSkipUser(uid, mode)) continue
                                 if (UserDeletionCache.isDeleted(FirebaseRefs.db, uid, child)) continue
 
-                                val profile = child.getValue(Profile::class.java) ?: continue
+                            val profile = fetchProfileForNearby(uid, child) ?: continue
                                 if (profile.isPrivate) continue
 
                                 val usernameCandidate = resolveUsername(child, profile, uid)
@@ -815,6 +815,18 @@ class NearbyViewModel : ViewModel() {
         } catch (e: Exception) {
             Log.w("MapScreenVM", "Username lookup failed for $uid: ${e.message}", e)
             null
+        }
+    }
+
+    private suspend fun fetchProfileForNearby(uid: String, snapshot: DataSnapshot?): Profile? {
+        return try {
+            val firestoreSnapshot = FirebaseRefs.userProfiles.document(uid).get().await()
+            val firestoreProfile = firestoreSnapshot.safeGetProfile("nearbyProfile/$uid")
+                ?.let { base -> if (base.userId.isBlank()) base.copy(userId = uid) else base }
+            firestoreProfile ?: snapshot?.safeGetProfile("nearbyProfileFallback/$uid")
+        } catch (e: Exception) {
+            Log.w("MapScreenVM", "Firestore profile fetch failed for $uid: ${e.message}", e)
+            snapshot?.safeGetProfile("nearbyProfileFallback/$uid")
         }
     }
 

@@ -70,20 +70,9 @@ fun CreatePostScreen(
     LaunchedEffect(userId) {
         if (userId != null) {
             try {
-                val db = FirebaseRefs.db
-                val premiumSnapshot = db.getReference("users")
-                    .child(userId)
-                    .child("isPremium")
-                    .get()
-                    .await()
-                val plusSnapshot = db.getReference("users")
-                    .child(userId)
-                    .child("isPlus")
-                    .get()
-                    .await()
-
-                isPremium = premiumSnapshot.getValue(Boolean::class.java) ?: false
-                isPlus = plusSnapshot.getValue(Boolean::class.java) ?: false
+                val snap = FirebaseRefs.userProfiles.document(userId).get().await()
+                isPremium = snap.getBoolean("isPremium") ?: false
+                isPlus = snap.getBoolean("isPlus") ?: false
             } catch (e: Exception) {
                 Log.e("CreatePostScreen", "Failed to fetch premium status: ${e.message}")
                 isPremium = false
@@ -241,9 +230,8 @@ fun PostTypeButton(
 // Add the fetchUsernameById function
 suspend fun fetchUsernameById(userId: String): String? {
     return try {
-        val userRef = FirebaseRefs.db.getReference("users").child(userId)
-        val snapshot = userRef.child("username").get().await()
-        snapshot.getValue(String::class.java)
+        val snapshot = FirebaseRefs.userProfiles.document(userId).get().await()
+        snapshot.getString("username")
     } catch (e: Exception) {
         Log.e("CreatePostScreen", "Failed to fetch username: ${e.message}")
         null

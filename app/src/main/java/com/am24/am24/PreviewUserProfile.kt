@@ -79,9 +79,13 @@ fun PreviewUserProfileScreen(
     /* ── one-shot fetch of the target profile ─────────────────────── */
     LaunchedEffect(targetUserId) {
         try {
-            val snap = FirebaseRefs.db.getReference("users")
-                .child(targetUserId).get().await()
-            val fetched = snap.getValue(Profile::class.java)
+            val firestoreSnap = FirebaseRefs.userProfiles.document(targetUserId).get().await()
+            val fetched = firestoreSnap.safeGetProfile("previewUserProfile/$targetUserId")
+                ?: FirebaseRefs.db.getReference("users")
+                    .child(targetUserId)
+                    .get()
+                    .await()
+                    .safeGetProfile("previewUserProfileFallback/$targetUserId")
             if (fetched != null) {
                 val withId = if (fetched.userId.isBlank()) {
                     fetched.copy(userId = targetUserId)
