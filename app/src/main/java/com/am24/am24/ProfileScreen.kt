@@ -70,7 +70,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.isActive
 import androidx.compose.runtime.snapshotFlow
-
+import com.google.firebase.firestore.SetOptions
 @Composable
 fun ProfileScreen(
     navController: NavController,
@@ -6104,7 +6104,7 @@ fun ButtonRow(
 
 suspend fun updateProfileInFirebase(updatedProfile: Profile) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
+    val userRef = FirebaseRefs.userProfiles.document(currentUserId)
 
     val updates = mapOf(
         "email" to updatedProfile.email,
@@ -6172,12 +6172,11 @@ suspend fun updateProfileInFirebase(updatedProfile: Profile) {
         "motherOccupation" to updatedProfile.motherOccupation,
     )
 
-    userRef.updateChildren(updates).addOnCompleteListener { task ->
-        if (!task.isSuccessful) {
-            Log.e("ProfileScreen", "Failed to update profile: ${task.exception}")
-        } else {
-            Log.d("ProfileScreen", "Profile updated successfully!")
-        }
+    try {
+        userRef.set(updates, SetOptions.merge()).await()
+        Log.d("ProfileScreen", "Profile updated successfully!")
+    } catch (e: Exception) {
+        Log.e("ProfileScreen", "Failed to update profile: ${e.message}", e)
     }
 }
 

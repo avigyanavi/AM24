@@ -13,9 +13,8 @@ import com.am24.am24.FirebaseRefs
 import com.am24.am24.MyApp
 import com.facebook.appevents.AppEventsLogger
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.MutableData
-import com.google.firebase.database.Transaction
+import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -430,7 +429,7 @@ object BillingManager : PurchasesUpdatedListener {
             ).maxOrNull()
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val userRef = FirebaseRefs.db.reference.child("users/$uid")
+        val userRef = FirebaseRefs.userProfiles.document(uid)
 
         val premiumActiveFromPurchases = isPremiumSub || hasPremiumOneTime
 
@@ -445,19 +444,16 @@ object BillingManager : PurchasesUpdatedListener {
         }
         userRef.get()
             .addOnSuccessListener { snapshot ->
-                val entryFeePaid =
-                    snapshot.child("isEntryFeePaid").getValue(Boolean::class.java) == true
-                val entryFeePaidAt =
-                    snapshot.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
-                val rewardExpiry =
-                    snapshot.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
+                val entryFeePaid = snapshot.getBoolean("isEntryFeePaid") == true
+                val entryFeePaidAt = snapshot.getLong("entryFeePaidAt") ?: 0L
+                val rewardExpiry = snapshot.getLong("loginPlusExpiry") ?: 0L
                 val rewardActive = rewardExpiry > now
                 val entryFeeExpiry = if (entryFeePaidAt > 0L) {
                     entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
                 } else 0L
                 val entryFeeActive = entryFeePaid && (rewardActive || entryFeeExpiry > now)
                 if (entryFeePaid && !entryFeeActive && entryFeeExpiry > 0L && entryFeeExpiry <= now) {
-                    userRef.child("isEntryFeePaid").setValue(false)
+                    userRef.set(mapOf("isEntryFeePaid" to false), SetOptions.merge())
                 }
                 val finalPlus =
                     isPlusSub || rewardActive || entryFeeActive || hasPlusOneTime || hasPremiumOneTime
@@ -482,7 +478,7 @@ object BillingManager : PurchasesUpdatedListener {
     }
 
     private fun applyTierEntitlements(
-        userRef: DatabaseReference,
+        userRef: DocumentReference,
         plus: Boolean,
         premium: Boolean,
         nextRenewal: Long? = null,
@@ -500,47 +496,41 @@ object BillingManager : PurchasesUpdatedListener {
             )
 
         if (plus || premium) {
-            updates["swipesInfo/remainingSwipes"] =
+            updates["swipesInfo.remainingSwipes"] =
                 if (premium) Int.MAX_VALUE else 50
             updates["availableCompliments"] = if (premium) 5 else 3
         }
         updates["nextRenewal"] = nextRenewal ?: 0L
-        userRef.updateChildren(updates)
+        userRef.set(updates, SetOptions.merge())
 
         creditAiMessagesOnce(userRef, aiMessageTopUp, nextRenewal)
     }
 
     fun creditAiMessagesOnce(
-        userRef: DatabaseReference,
+        userRef: DocumentReference,
         topUpAmount: Int,
         renewalAnchor: Long?,
     ) {
         val anchor = renewalAnchor ?: 0L
         if (topUpAmount <= 0 || anchor <= 0L) return
 
-        userRef.runTransaction(object : Transaction.Handler {
-            override fun doTransaction(currentData: MutableData): Transaction.Result {
-                val creditedThrough =
-                    currentData.child("aiMessagesCreditedThrough").getValue(Long::class.java) ?: 0L
-                if (anchor <= creditedThrough) return Transaction.success(currentData)
+        userRef.firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(userRef)
+            val creditedThrough = snapshot.getLong("aiMessagesCreditedThrough") ?: 0L
+            if (anchor <= creditedThrough) return@runTransaction null
 
-                val currentMessages =
-                    currentData.child("availableAiMessages").getValue(Int::class.java) ?: 0
-                currentData.child("availableAiMessages").value = currentMessages + topUpAmount
-                currentData.child("aiMessagesCreditedThrough").value = anchor
-                return Transaction.success(currentData)
-            }
-
-            override fun onComplete(
-                error: com.google.firebase.database.DatabaseError?,
-                committed: Boolean,
-                currentData: com.google.firebase.database.DataSnapshot?,
-            ) {
-                if (error != null) {
-                    Log.w("BillingManager", "creditAiMessagesOnce failed", error.toException())
-                }
-            }
-        })
+            val currentMessages = snapshot.getLong("availableAiMessages")?.toInt() ?: 0
+            transaction.update(
+                userRef,
+                mapOf(
+                    "availableAiMessages" to currentMessages + topUpAmount,
+                    "aiMessagesCreditedThrough" to anchor
+                )
+            )
+            null
+        }.addOnFailureListener { error ->
+            Log.w("BillingManager", "creditAiMessagesOnce failed", error)
+        }
     }
 
     private fun verifyPurchaseOnServer(purchase: Purchase) {

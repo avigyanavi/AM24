@@ -442,14 +442,15 @@ private fun launchOneTimeUpi(
                         "isPremium"   to (tier == Tier.PREMIUM),
                         "nextRenewal" to now + validityMs,
                         "availableCompliments"  to if (tier == Tier.PREMIUM) 5 else 3,
-                        "swipesInfo/remainingSwipes" to if (tier == Tier.PREMIUM) Int.MAX_VALUE else 50
+                        "swipesInfo.remainingSwipes" to if (tier == Tier.PREMIUM) Int.MAX_VALUE else 50
                     )
 
-                    FirebaseRefs.db.getReference("users/$uid").updateChildren(updates)
+                    val userRef = FirebaseRefs.userProfiles.document(uid)
+                    userRef.set(updates, com.google.firebase.firestore.SetOptions.merge())
                     val renewalAnchor = now + validityMs
                     val aiMessagesTopUp = if (tier == Tier.PREMIUM) 50 else 25
                     BillingManager.creditAiMessagesOnce(
-                        FirebaseRefs.db.getReference("users/$uid"),
+                        userRef,
                         aiMessagesTopUp,
                         renewalAnchor,
                     )

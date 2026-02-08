@@ -14,7 +14,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.am24.am24.billing.BillingManager
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.flow.collect
 import com.facebook.appevents.AppEventsLogger
 import java.math.BigDecimal
@@ -30,7 +31,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
     val ctx = LocalContext.current
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val userRef = remember(uid) {
-        FirebaseRefs.db.getReference("users/$uid")
+        FirebaseRefs.userProfiles.document(uid)
     }
 
     var userCountry by remember { mutableStateOf<String?>(null) }
@@ -61,22 +62,18 @@ fun PaywallScreen(onPaid: () -> Unit) {
     }
 
     DisposableEffect(userRef) {
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                userCountry = snapshot.child("country").getValue(String::class.java)
-                entryFeePaid = snapshot.child("isEntryFeePaid").getValue(Boolean::class.java) == true
-                plusActive = snapshot.child("isPlus").getValue(Boolean::class.java) == true
-                nextRenewal = snapshot.child("nextRenewal").getValue(Long::class.java)
-                entryFeePaidAt = snapshot.child("entryFeePaidAt").getValue(Long::class.java)
-                entryFeeOfferSeen = snapshot.child("entryFeeOfferSeen").getValue(Boolean::class.java)
-                hasUsedFreeTrial = snapshot.child("hasUsedFreeTrial").getValue(Boolean::class.java) == true
-                freeTrialExpiry = snapshot.child("freeTrialExpiry").getValue(Long::class.java)
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
+        val registration = userRef.addSnapshotListener { snapshot, _ ->
+            snapshot ?: return@addSnapshotListener
+            userCountry = snapshot.getString("country")
+            entryFeePaid = snapshot.getBoolean("isEntryFeePaid") == true
+            plusActive = snapshot.getBoolean("isPlus") == true
+            nextRenewal = snapshot.getLong("nextRenewal")
+            entryFeePaidAt = snapshot.getLong("entryFeePaidAt")
+            entryFeeOfferSeen = snapshot.getBoolean("entryFeeOfferSeen")
+            hasUsedFreeTrial = snapshot.getBoolean("hasUsedFreeTrial") == true
+            freeTrialExpiry = snapshot.getLong("freeTrialExpiry")
         }
-        userRef.addValueEventListener(listener)
-        onDispose { userRef.removeEventListener(listener) }
+        onDispose { registration.remove() }
     }
 
     LaunchedEffect(entryFeePaid, plusActive, nextRenewal, entryFeePaidAt) {
@@ -84,7 +81,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
         val hasActiveRenewal = (nextRenewal ?: 0L) > System.currentTimeMillis()
 
         if ((entryFeePaid || hasActiveRenewal) && !plusActive) {
-            userRef.child("isPlus").setValue(true)
+            userRef.set(mapOf("isPlus" to true), SetOptions.merge())
             plusActive = true
         }
 
@@ -95,7 +92,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
             val minimumRenewal = paidAt + monthInMillis
             val currentRenewal = nextRenewal ?: 0L
             if (currentRenewal < minimumRenewal) {
-                userRef.child("nextRenewal").setValue(minimumRenewal)
+                userRef.set(mapOf("nextRenewal" to minimumRenewal), SetOptions.merge())
                 nextRenewal = minimumRenewal
             }
         }
@@ -131,7 +128,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
                 val desiredRenewal = purchaseTime + monthInMillis
                 val finalRenewal = maxOf(existingRenewal, desiredRenewal)
                 val updates = mutableMapOf<String, Any>(
-                    "entryFeePaidAt" to ServerValue.TIMESTAMP,
+                    "entryFeePaidAt" to FieldValue.serverTimestamp(),
                     "isEntryFeePaid" to true,
                     "isPlus" to true,
                     "entryFeePlusIntroSeen" to false,
@@ -139,7 +136,7 @@ fun PaywallScreen(onPaid: () -> Unit) {
                     "entryFeeOfferExpiry" to finalRenewal
                 )
                 updates["nextRenewal"] = finalRenewal
-                userRef.updateChildren(updates)
+                userRef.set(updates, SetOptions.merge())
                     .addOnSuccessListener {
                         BillingManager.creditAiMessagesOnce(userRef, 25, finalRenewal)
                         val offer = BillingManager.products.value

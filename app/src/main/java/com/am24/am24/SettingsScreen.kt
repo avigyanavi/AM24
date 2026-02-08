@@ -502,7 +502,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
             }
 
             /*──────────────── Account settings  (username / password) ─*/
-            item { AccountCard(uid) }
+            item { AccountCard(uid, currentProfile) }
 
             /*──────────────── Global preferences ──────────────────────*/
             item {
@@ -824,7 +824,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
 /* ───────────────────────────────────── account card ─ */
 
 @Composable
-private fun AccountCard(uid: String) {
+private fun AccountCard(uid: String, profile: Profile?) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val userDoc = FirebaseRefs.userProfiles.document(uid)
@@ -846,12 +846,22 @@ private fun AccountCard(uid: String) {
         mutableStateOf(FirebaseAuth.getInstance().currentUser?.isEmailVerified == false)
     }
 
-    /* load user data once */
-    LaunchedEffect(uid) {
-        val snap = userDoc.get().await()
-        email = snap.getString("email") ?: ""
-        username = snap.getString("username") ?: ""
-        oldUsername = username
+    /* load user data from session/Firestore */
+    LaunchedEffect(profile?.email, profile?.username, editingUname) {
+        if (profile != null && !editingUname) {
+            email = profile.email
+            username = profile.username
+            oldUsername = profile.username
+        }
+    }
+
+    LaunchedEffect(uid, profile, editingUname) {
+        if (profile == null && !editingUname) {
+            val snap = userDoc.get().await()
+            email = snap.getString("email") ?: ""
+            username = snap.getString("username") ?: ""
+            oldUsername = username
+        }
     }
 
     /* validate username availability */

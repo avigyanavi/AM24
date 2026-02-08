@@ -43,8 +43,8 @@ import com.am24.am24.billing.BillingManager
 import com.android.billingclient.api.Purchase
 import com.facebook.appevents.AppEventsLogger
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ServerValue
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 import java.math.BigDecimal
 import java.util.Currency
@@ -58,7 +58,7 @@ fun EntryFeePlusScreen(navController: NavController) {
     val ctx = LocalContext.current
     val activity = ctx as? Activity ?: return
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val userRef = remember(uid) { FirebaseRefs.db.getReference("users/$uid") }
+    val userRef = remember(uid) { FirebaseRefs.userProfiles.document(uid) }
     var isProcessing by remember { mutableStateOf(false) }
     var offerExpiry by remember { mutableStateOf<Long?>(null) }
     val products by BillingManager.products.collectAsState()
@@ -69,9 +69,9 @@ fun EntryFeePlusScreen(navController: NavController) {
     LaunchedEffect(uid) {
         runCatching {
             val snap = userRef.get().await()
-            offerExpiry = snap.child("entryFeeOfferExpiry").getValue(Long::class.java)
+            offerExpiry = snap.getLong("entryFeeOfferExpiry")
         }
-        userRef.child("entryFeeOfferSeen").setValue(true)
+        userRef.set(mapOf("entryFeeOfferSeen" to true), SetOptions.merge())
     }
 
     LaunchedEffect(Unit) {
@@ -83,7 +83,7 @@ fun EntryFeePlusScreen(navController: NavController) {
                 val purchaseTime = purchase.purchaseTime.takeIf { it > 0L } ?: System.currentTimeMillis()
                 val renewalTime = purchaseTime + monthMillis
                 val updates = mutableMapOf<String, Any>(
-                    "entryFeePaidAt" to ServerValue.TIMESTAMP,
+                    "entryFeePaidAt" to FieldValue.serverTimestamp(),
                     "isEntryFeePaid" to true,
                     "isPlus" to true,
                     "entryFeePlusIntroSeen" to false,
@@ -91,7 +91,7 @@ fun EntryFeePlusScreen(navController: NavController) {
                     "loginPlusExpiry" to renewalTime,
                     "entryFeeOfferExpiry" to renewalTime
                 )
-                userRef.updateChildren(updates)
+                userRef.set(updates, SetOptions.merge())
                     .addOnSuccessListener {
                         BillingManager.creditAiMessagesOnce(userRef, 25, renewalTime)
                         val offerDetails = BillingManager.products.value
