@@ -412,13 +412,6 @@ fun MainNavGraph(
                 voteType = voteType
             )
         }
-        composable(
-            route = "groupChat/{groupId}",
-            arguments = listOf(navArgument("groupId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
-            GroupChatScreen(navController = navController, groupId = groupId)
-        }
         composable("buyAiMessages") {
             OneTimePurchaseScreen(
                 PurchaseType.AiMessages,

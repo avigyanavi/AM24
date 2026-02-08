@@ -58,7 +58,6 @@ import com.google.accompanist.placeholder.material.placeholder
 import com.google.accompanist.placeholder.material.shimmer
 import androidx.compose.ui.res.pluralStringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
-import java.text.Normalizer
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -67,30 +66,8 @@ import com.am24.am24.FirebaseRefs
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.Job
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Add
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-private fun canonicalLocationId(name: String): String {
-    val normalized = Normalizer.normalize(name, Normalizer.Form.NFD)
-        .replace("\\p{Mn}+".toRegex(), "")              // strip accents/diacritics
-
-    val cleaned = normalized
-        .lowercase()
-        .replace("[^a-z0-9]+".toRegex(), "_")       // collapse to word characters
-        .trim('_')
-
-    return cleaned.ifBlank { "general" }
-}
-
-private fun groupChatIdForTitle(title: String): String {
-    return when (title) {
-        "India" -> "group_india"
-        "United States" -> "group_usa"
-        else -> "group_${canonicalLocationId(title)}"
-    }
-}
 
 suspend fun markChatMessagesRead(
     messagesRootRef: DatabaseReference,
@@ -143,7 +120,7 @@ fun DMScreenContent(
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val context = LocalContext.current
     val database = remember { FirebaseRefs.db }
-    val usersRef = remember { database.getReference("users") }
+    val usersCollection = FirebaseRefs.userProfiles
     val messagesRootRef = remember { database.getReference("messages") }
     val notificationsRef = remember { database.getReference("notifications") }
     val dmBootstrap by datingViewModel.dmBootstrap.collectAsState()
@@ -167,9 +144,7 @@ fun DMScreenContent(
     var showUnmatchDialog by remember { mutableStateOf(false) }
     var profileToUnmatch by remember { mutableStateOf<Profile?>(null) }
     var showSmartMatchDialog by remember { mutableStateOf(false) }
-    var showLeaveGroupsDialog by remember { mutableStateOf(false) }
     var selectedSmartMatchGender by remember { mutableStateOf("Both") }
-    var showJoinGroupsDialog by remember { mutableStateOf(false) }
     var isLoadingMatches by remember { mutableStateOf(true) }
     var matchesInitialized by remember { mutableStateOf(false) }
     var likesInitialized by remember { mutableStateOf(false) }
@@ -260,38 +235,6 @@ fun DMScreenContent(
 
 
 // 1️⃣  Build the chip list
-    val allGroupTitles = remember(
-        profile.country,
-        profile.city,
-        profile.hometown
-    ) {
-        buildList {
-            profile.country
-                .takeIf { it.isNotBlank() }
-                ?.let { add(it) }
-            profile.city
-                .takeIf { it.isNotBlank() }
-                ?.let { add(it) }
-            profile.hometown
-                .takeIf { it.isNotBlank() }
-                ?.let { add(it) }
-        }
-            .distinct()
-    }
-
-    val groupChatTitles = remember(allGroupTitles, profile.leftGroupChatIds) {
-        allGroupTitles.filterNot { title ->
-            profile.leftGroupChatIds.contains(groupChatIdForTitle(title))
-        }
-    }
-
-    val joinableGroupTitles = remember(allGroupTitles, profile.leftGroupChatIds) {
-        allGroupTitles.filter { title ->
-            profile.leftGroupChatIds.contains(groupChatIdForTitle(title))
-        }
-    }
-
-
     var searchQuery by remember { mutableStateOf("") }
     val matchedUsers = remember { mutableStateListOf<Profile>() }
     val nonInitiatedMatches = remember { mutableStateListOf<Profile>() }
@@ -442,7 +385,7 @@ fun DMScreenContent(
                     attachMessageListenersForProfiles(emptyList())
                     return@launch
                 }
-                val fetchedProfiles = fetchProfiles(usersRef, userIds)
+                val fetchedProfiles = fetchProfiles(usersCollection, userIds)
                 matchedUsers.clear()
                 matchedUsers.addAll(fetchedProfiles)
 
@@ -512,15 +455,6 @@ fun DMScreenContent(
                     .horizontalScroll(autoScrollState),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 2️⃣  Map chip → chat-room ID
-                groupChatTitles.forEach { title ->
-                    GroupChatChip(title) {
-                        val groupId = groupChatIdForTitle(title)
-                        navController.navigate("groupChat/$groupId")
-                    }
-
-                    Spacer(Modifier.width(6.dp))
-                }
                 if (isPremiumUser) {
                     val now = Calendar.getInstance()
                     val nextReset = Calendar.getInstance().apply {
@@ -553,32 +487,6 @@ fun DMScreenContent(
                             fontSize = 10.sp
                         )
                     }
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = { showJoinGroupsDialog = true },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2B2B2B)
-                    ),
-                ) {
-                    Text(
-                        stringResource(R.string.action_join_groups),
-                        color = Color.White,
-                        fontSize = 10.sp
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = { showLeaveGroupsDialog = true },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2B2B2B)
-                    ),
-                ) {
-                    Text(
-                        stringResource(R.string.action_leave_groups),
-                        color = Color.White,
-                        fontSize = 10.sp
-                    )
                 }
             }
 
@@ -924,7 +832,7 @@ fun DMScreenContent(
                                 currentUserId,
                                 selectedSmartMatchGender,
                                 database,
-                                usersRef,
+                                usersCollection,
                                 matchIds,
                                 blockedIds,
                                 context
@@ -939,146 +847,6 @@ fun DMScreenContent(
                         Text(stringResource(R.string.cancel), color = Color.Gray)
                     }
                 }
-            )
-        }
-        if (showLeaveGroupsDialog) {
-            AlertDialog(
-                onDismissRequest = { showLeaveGroupsDialog = false },
-                title = {
-                    Text(
-                        text = stringResource(R.string.dm_leave_groups_title),
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                },
-                text = {
-                    if (groupChatTitles.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.dm_leave_groups_empty),
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 260.dp)
-                        ) {
-                            groupChatTitles.forEach { groupName ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = groupName,
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    IconButton(
-                                        onClick = {
-                                            val groupId = groupChatIdForTitle(groupName)
-                                            profileViewModel.leaveGroupChat(groupId)
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.dm_group_left, groupName),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Delete,
-                                            contentDescription = stringResource(R.string.dm_remove_group),
-                                            tint = Color(0xFFFF6B6B)
-                                        )
-                                    }
-                                }
-                                Divider(color = Color(0xFF3A3A3A))
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showLeaveGroupsDialog = false }) {
-                        Text(
-                            text = stringResource(R.string.action_done),
-                            color = Color(0xFFFF4500)
-                        )
-                    }
-                },
-                containerColor = Color(0xFF1E1E1E)
-            )
-        }
-        if (showJoinGroupsDialog) {
-            AlertDialog(
-                onDismissRequest = { showJoinGroupsDialog = false },
-                title = {
-                    Text(
-                        text = stringResource(R.string.dm_join_groups_title),
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                },
-                text = {
-                    if (joinableGroupTitles.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.dm_join_groups_empty),
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 260.dp)
-                        ) {
-                            joinableGroupTitles.forEach { groupName ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = groupName,
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    IconButton(
-                                        onClick = {
-                                            val groupId = groupChatIdForTitle(groupName)
-                                            profileViewModel.joinGroupChat(groupId)
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.dm_group_joined, groupName),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Add,
-                                            contentDescription = stringResource(R.string.dm_add_group),
-                                            tint = Color(0xFF6BCB77)
-                                        )
-                                    }
-                                }
-                                Divider(color = Color(0xFF3A3A3A))
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showJoinGroupsDialog = false }) {
-                        Text(
-                            text = stringResource(R.string.action_done),
-                            color = Color(0xFFFF4500)
-                        )
-                    }
-                },
-                containerColor = Color(0xFF1E1E1E)
             )
         }
         if (matchesInitialized && !isLoadingMatches) {
@@ -1500,7 +1268,7 @@ private suspend fun fetchNonInitiatedConversations(
     }
 
 private suspend fun fetchProfiles(
-    usersRef: DatabaseReference,
+    usersCollection: com.google.firebase.firestore.CollectionReference,
     userIds: List<String>
 ): List<Profile> = coroutineScope {
     if (userIds.isEmpty()) {
@@ -1509,26 +1277,7 @@ private suspend fun fetchProfiles(
     userIds.map { id ->
         async {
             try {
-                val snapshot = usersRef.child(id).get().await()
-                if (!snapshot.exists()) {
-                    UserDeletionCache.markDeleted(id)
-                    return@async null
-                }
-                if (UserDeletionCache.isDeleted(FirebaseRefs.db, id, snapshot)) {
-                    return@async null
-                }
-                val rawProfile = snapshot.getValue(Profile::class.java) ?: return@async null
-                val profile = if (rawProfile.userId.isBlank()) {
-                    rawProfile.copy(userId = id)
-                } else {
-                    rawProfile
-                }
-                if (profile.username.isBlank()) {
-                    UserDeletionCache.markDeleted(id)
-                    return@async null
-                }
-                UserDeletionCache.markActive(id)
-                profile
+                fetchProfileWithFallback(id, usersCollection)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 Log.e("DMScreen", "Failed to fetch profile for $id", e)
@@ -1536,6 +1285,41 @@ private suspend fun fetchProfiles(
             }
         }
     }.awaitAll().filterNotNull()
+}
+
+private suspend fun fetchProfileWithFallback(
+    userId: String,
+    usersCollection: com.google.firebase.firestore.CollectionReference
+): Profile? {
+    val firestoreSnap = usersCollection.document(userId).get().await()
+    val firestoreProfile = firestoreSnap.safeGetProfile("dmProfile/$userId")?.let { profile ->
+        if (profile.userId.isBlank()) profile.copy(userId = userId) else profile
+    }
+    if (firestoreProfile != null) {
+        if (firestoreProfile.username.isBlank()) {
+            UserDeletionCache.markDeleted(userId)
+            return null
+        }
+        UserDeletionCache.markActive(userId)
+        return firestoreProfile
+    }
+
+    val realtimeSnap = FirebaseRefs.db.getReference("users").child(userId).get().await()
+    if (!realtimeSnap.exists()) {
+        UserDeletionCache.markDeleted(userId)
+        return null
+    }
+    if (UserDeletionCache.isDeleted(FirebaseRefs.db, userId, realtimeSnap)) {
+        return null
+    }
+    val rawProfile = realtimeSnap.getValue(Profile::class.java) ?: return null
+    val profile = if (rawProfile.userId.isBlank()) rawProfile.copy(userId = userId) else rawProfile
+    if (profile.username.isBlank()) {
+        UserDeletionCache.markDeleted(userId)
+        return null
+    }
+    UserDeletionCache.markActive(userId)
+    return profile
 }
 
 fun getLevelBorderColor(rating: Double): Color {
@@ -1550,35 +1334,34 @@ fun getLevelBorderColor(rating: Double): Color {
 }
 
 private suspend fun fetchRandomUserForLottery(
-    usersRef: DatabaseReference,
+    usersCollection: com.google.firebase.firestore.CollectionReference,
     gender: String,
     excludedIds: Set<String>,
     currentUserId: String
 ): Profile? {
-    val snap = usersRef
+    val snap = FirebaseRefs.db.getReference("users")
         .orderByChild("lastActive")
         .limitToLast(50)
         .get()
         .await()
 
-    val list = snap.children.mapNotNull { child ->
+    val candidateIds = snap.children.mapNotNull { child ->
         val uid = child.key ?: return@mapNotNull null
 
-        // ✅ OK now: we're inside a suspend function
+        if (uid == currentUserId || excludedIds.contains(uid)) return@mapNotNull null
         if (UserDeletionCache.isDeleted(FirebaseRefs.db, uid, child)) return@mapNotNull null
-
-        val profile = child.getValue(Profile::class.java) ?: return@mapNotNull null
-        if (profile.username.isNullOrBlank()) {
+        uid
+    }.shuffled()
+    for (uid in candidateIds) {
+        val profile = fetchProfileWithFallback(uid, usersCollection) ?: continue
+        if (profile.username.isBlank()) {
             UserDeletionCache.markDeleted(uid)
-            return@mapNotNull null
+            continue
         }
-        UserDeletionCache.markActive(uid)
-        if (profile.userId.isBlank()) profile.copy(userId = uid) else profile
+        if (gender != "Both" && profile.gender.toGenderCode() != gender.toGenderCode()) continue
+        return profile
     }
-        .filter { it.userId != currentUserId && !excludedIds.contains(it.userId) }
-        .filter { gender == "Both" || it.gender.toGenderCode() == gender.toGenderCode() }
-
-    return list.randomOrNull()
+    return null
 }
 
 
@@ -1586,37 +1369,24 @@ private suspend fun handleSmartMatch(
     currentUserId: String,
     gender: String,
     database: FirebaseDatabase,
-    usersRef: DatabaseReference,
+    usersCollection: com.google.firebase.firestore.CollectionReference,
     matchIds: Collection<String>,
     blockedIds: Collection<String>,
     context: android.content.Context
 ) {
     val week = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR)
-    database.getReference("users/$currentUserId/lastSmartMatchWeekOfYear").setValue(week).await()
+    usersCollection.document(currentUserId)
+        .set(mapOf("lastSmartMatchWeekOfYear" to week), com.google.firebase.firestore.SetOptions.merge())
+        .await()
 
     val excluded = matchIds.toSet() + blockedIds.toSet() + setOf(currentUserId)
-    val profile = fetchRandomUserForLottery(usersRef, gender, excluded, currentUserId)
+    val profile = fetchRandomUserForLottery(usersCollection, gender, excluded, currentUserId)
 
     if (profile != null) {
         createMatch(database, currentUserId, profile.userId)
         Toast.makeText(context, context.getString(R.string.dm_matched_with, profile.username), Toast.LENGTH_SHORT).show()
     } else {
         Toast.makeText(context, context.getString(R.string.dm_no_match_available), Toast.LENGTH_SHORT).show()
-    }
-}
-
-@Composable
-fun GroupChatChip(
-    title: String,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .border(BorderStroke(1.dp, Color.Gray), RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-    ) {
-        Text(title, color = Color.White, fontSize = 11.sp)
     }
 }
 

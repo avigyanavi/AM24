@@ -771,42 +771,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             )
         }
     }
-    fun joinGroupChat(groupId: String) {
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        if (groupId.isBlank()) return
-        val currentProfile = _currentUserProfile.value ?: return
-        val updatedIds = currentProfile.leftGroupChatIds.filterNot { it == groupId }
-
-        _currentUserProfile.update { prof ->
-            prof?.copy(leftGroupChatIds = updatedIds)
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                profileCollection.document(currentUserId)
-                    .set(mapOf("leftGroupChatIds" to updatedIds), SetOptions.merge())
-                    .await()
-            }.onFailure { Log.e(TAG, "Failed to update left group chats", it) }
-        }
-    }
-    fun leaveGroupChat(groupId: String) {
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        if (groupId.isBlank()) return
-        val currentProfile = _currentUserProfile.value ?: return
-        val updatedIds = (currentProfile.leftGroupChatIds + groupId).distinct()
-
-        _currentUserProfile.update { prof ->
-            prof?.copy(leftGroupChatIds = updatedIds)
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                profileCollection.document(currentUserId)
-                    .set(mapOf("leftGroupChatIds" to updatedIds), SetOptions.merge())
-                    .await()
-            }.onFailure { Log.e(TAG, "Failed to update left group chats", it) }
-        }
-    }
     override fun onCleared() {
         super.onCleared()
 

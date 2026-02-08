@@ -194,7 +194,7 @@ fun ChatScreenContent(
     val compliment = compliments[otherUserId]
     var fullScreenTarget by remember { mutableStateOf<Message?>(null) }
     val database = FirebaseRefs.db
-    val usersRef = database.getReference("users")
+    val userDoc = FirebaseRefs.userProfiles.document(currentUserId)
     val chatId = chatViewModel.chatIdentifier ?: getChatId(currentUserId, otherUserId)
     val messagesRef = chatViewModel.messagesReference ?: database.getReference("messages/$chatId")
     val notificationsRef = database.getReference("notifications")
@@ -289,7 +289,6 @@ fun ChatScreenContent(
     var selectedMediaUri by remember { mutableStateOf<Uri?>(null) }
     var selectedMediaType by remember { mutableStateOf<String?>(null) }
     var showReportDialog by remember { mutableStateOf(false) } // Added for report dialog
-    val userRef = FirebaseRefs.db.getReference("users").child(currentUserId)
     // add next to the other top-level state vars
     var aiMessagesLeft by remember { mutableStateOf(0) }          // ★
 
@@ -297,9 +296,8 @@ fun ChatScreenContent(
 // place this *once* near your other LaunchedEffect(Unit) blocks
     LaunchedEffect(Unit) {                                                       // ★ BEGIN AI-LOAD ★
         try {
-            val snap = userRef.get().await()
-            aiMessagesLeft = snap.child("availableAiMessages")
-                .getValue(Int::class.java) ?: 0
+            val snap = userDoc.get().await()
+            aiMessagesLeft = snap.getLong("availableAiMessages")?.toInt() ?: 0
         } catch (e: Exception) {
             Log.e("ChatScreen", "Failed loading AiMessages", e)
         }
@@ -312,8 +310,13 @@ fun ChatScreenContent(
             return@launch
         }
         aiMessagesLeft--
-        userRef.child("availableAiMessages").setValue(aiMessagesLeft)            // atomic RTDB update
-        doWork()
+        try {
+            userDoc.update("availableAiMessages", aiMessagesLeft).await()
+            doWork()
+        } catch (e: Exception) {
+            Log.e("ChatScreen", "Failed updating AiMessages", e)
+            aiMessagesLeft++
+        }
     }                                                                            // ★ END AI-FUN ★
 
     // Determine if the current user is premium
@@ -1050,7 +1053,7 @@ fun ChatScreenContent(
                             onSelect = { selected ->
                                 val updatedRating = selected.toDouble()
                                 chatViewModel.updateYourRating(updatedRating)
-                                updateUserRating(ratingsRef, usersRef, otherUserId, updatedRating, context)
+                                updateUserRating(ratingsRef, otherUserId, updatedRating, context)
                                 if (currentUserProfile != null && otherUserProfile != null) {
                                     runAiMatchCheck(
                                         context = context,
@@ -2527,7 +2530,7 @@ fun fetchAverageRating(ratingsRef: DatabaseReference, userId: String, onAverageF
         .addOnFailureListener { onAverageFetched(0.0) }
 }
 
-fun updateUserRating(ratingsRef: DatabaseReference, usersRef: DatabaseReference, userId: String, rating: Double, context: Context) {
+fun updateUserRating(ratingsRef: DatabaseReference, userId: String, rating: Double, context: Context) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
     val userRatingRef = ratingsRef.child(userId)
     userRatingRef.get().addOnSuccessListener { snapshot ->
@@ -2539,22 +2542,27 @@ fun updateUserRating(ratingsRef: DatabaseReference, usersRef: DatabaseReference,
         val averageRating = if (ratingsMap.isNotEmpty()) ratingsMap.values.average() else 0.0
         val updates = mapOf("ratings" to ratingsMap, "averageRating" to averageRating)
         userRatingRef.updateChildren(updates).addOnSuccessListener {
-            usersRef.child(userId).child("averageRating").setValue(averageRating).addOnSuccessListener {
+            val userDoc = FirebaseRefs.userProfiles.document(userId)
+            FirebaseRefs.firestore.runTransaction { transaction ->
+                val snapshot = transaction.get(userDoc)
+                val currentCount = snapshot.getLong("numberOfRatings") ?: 0L
+                val newCount = if (isNewRating) currentCount + 1L else currentCount
+                transaction.update(
+                    userDoc,
+                    mapOf(
+                        "averageRating" to averageRating,
+                        "numberOfRatings" to newCount
+                    )
+                )
+                null
+            }.addOnSuccessListener {
                 Toast.makeText(context, R.string.rating_updated, Toast.LENGTH_SHORT).show()
-            }.addOnFailureListener { Toast.makeText(context, R.string.rating_update_failed, Toast.LENGTH_SHORT).show() }
-            if (isNewRating) {
-                usersRef.child(userId).child("numberOfRatings").runTransaction(object : Transaction.Handler {
-                    override fun doTransaction(mutableData: MutableData): Transaction.Result {
-                        val currentCount = mutableData.getValue(Int::class.java) ?: 0
-                        mutableData.value = currentCount + 1
-                        return Transaction.success(mutableData)
-                    }
-                    override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
-                        if (!committed) Log.e("Rating", "Failed to increment numberOfRatings: ${error?.message}")
-                    }
-                })
+            }.addOnFailureListener {
+                Toast.makeText(context, R.string.rating_update_failed, Toast.LENGTH_SHORT).show()
             }
-        }.addOnFailureListener { Toast.makeText(context,  R.string.rating_avg_update_failed, Toast.LENGTH_SHORT).show() }
+        }.addOnFailureListener {
+            Toast.makeText(context,  R.string.rating_avg_update_failed, Toast.LENGTH_SHORT).show()
+        }
     }.addOnFailureListener { Toast.makeText(context,  R.string.rating_fetch_failed, Toast.LENGTH_SHORT).show() }
 }
 

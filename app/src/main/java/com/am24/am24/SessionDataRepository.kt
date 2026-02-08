@@ -133,6 +133,16 @@ object SessionDataRepository {
             if (!migratingProfiles.add(userId)) return
         }
         try {
+            val existing = FirebaseRefs.userProfiles.document(userId).get().await()
+            if (existing.exists()) {
+                existing.safeGetProfile("migrateProfileExisting/$userId")?.let { profile ->
+                    val resolved = if (profile.userId.isBlank()) profile.copy(userId = userId) else profile
+                    _profile.value = resolved
+                    ProfileCache.put(resolved)
+                    _sessionReady.value = true
+                }
+                return
+            }
             val snapshot = db.getReference("users/$userId").get().await()
             val profile = snapshot.safeGetProfile("migrateProfile/$userId")
                 ?.let { base -> if (base.userId.isBlank()) base.copy(userId = userId) else base }

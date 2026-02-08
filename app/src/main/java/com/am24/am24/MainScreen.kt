@@ -286,7 +286,6 @@ fun TopNavBar(
     val isUserSettings = currentRoute == "settings"
     val isProfileScreen = currentRoute == "profile"
 //    val isDMScreen = currentRoute == "dms"
-    val isGroupChat = currentDestination?.route?.startsWith("groupChat") == true
     val isAiPartner = currentRoute == "aiPartner" ||
             currentRoute?.startsWith("aiImageFull/") == true
     // 🔸 NEW: are we on any bottom nav root screen?
@@ -333,19 +332,11 @@ fun TopNavBar(
         ?.hierarchy
         ?.any { it.route == "omegleUsers" } == true
     val isAdmin by profileViewModel.isAdmin.collectAsState()
-    val groupId = navBackStackEntry?.arguments?.getString("groupId")
 
     TopAppBar(
         modifier = Modifier.shadow(16.dp),
         title = {
             when {
-                isGroupChat && groupId != null -> {
-                    Text(
-                        text = formatGroupTitle(groupId),
-                        fontSize = 18.sp,
-                        color = Color.White
-                    )
-                }
                 isAiPartner -> {
                     Column {
                         Text(
@@ -363,24 +354,14 @@ fun TopNavBar(
             }
         },
         navigationIcon = {
-            if (isGroupChat) {
-                IconButton(onClick = { navController.safePopBackStack() }) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
-                    )
-                }
-            } else {
-                Box(
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.kupidx_logo1),
-                        contentDescription = stringResource(R.string.logo_kupidx_desc),
-                        modifier = Modifier.size(56.dp)
-                    )
-                }
+            Box(
+                modifier = Modifier.size(40.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.kupidx_logo1),
+                    contentDescription = stringResource(R.string.logo_kupidx_desc),
+                    modifier = Modifier.size(56.dp)
+                )
             }
         },
         actions = {
