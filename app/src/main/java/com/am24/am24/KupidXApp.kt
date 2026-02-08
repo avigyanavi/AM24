@@ -212,11 +212,9 @@ class KupidXAppActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        profileViewModel.prepareForAppOpenTracking()
     }
 
     override fun onStop() {
-        profileViewModel.trackLastScreenBeforeClose()
         super.onStop()
     }
 }
