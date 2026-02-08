@@ -19,24 +19,17 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
-import com.am24.am24.ui.purchase.PaymentResultListenerHost
 import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
-import com.razorpay.Checkout                       // Razorpay
-import com.razorpay.ExternalWalletListener        // Razorpay
-import com.razorpay.PaymentData                   // Razorpay
-import com.razorpay.PaymentResultWithDataListener // Razorpay
+
 import kotlinx.coroutines.launch
 import java.util.Locale
 import com.google.firebase.database.ServerValue
 
-class KupidXAppActivity : AppCompatActivity(),
-    PaymentResultWithDataListener,
-    ExternalWalletListener,
-    PaymentResultListenerHost {
+class KupidXAppActivity : AppCompatActivity() {
 
     /* ------------------------------------------------------------------ state */
     private lateinit var auth: FirebaseAuth
@@ -54,9 +47,6 @@ class KupidXAppActivity : AppCompatActivity(),
 
     private var presenceRef: DatabaseReference? = null
 
-    // callbacks wired from the Composable screen (Razorpay)
-    private var paymentSuccessCallback: ((String) -> Unit)? = null
-    private var paymentErrorCallback: ((String) -> Unit)? = null
     private val aiPartnerViewModel: AIPartnerViewModel by viewModels()
     // deep-link flag
     private var pendingOpenNotifications = false
@@ -229,58 +219,6 @@ class KupidXAppActivity : AppCompatActivity(),
         profileViewModel.trackLastScreenBeforeClose()
         super.onStop()
     }
-
-    /* ---------------------------------------------------------------- Razorpay */
-    /** Exposed to the Composable so it can register callbacks */
-    override fun setPaymentCallbacks(
-        onSuccess: (String) -> Unit,
-        onError: (String) -> Unit
-    ) {
-        paymentSuccessCallback = onSuccess
-        paymentErrorCallback = onError
-    }
-
-    /* mandatory overrides for the new listener types */
-    override fun onPaymentSuccess(
-        razorpayPaymentId: String?,
-        paymentData: PaymentData?
-    ) {
-        val id = razorpayPaymentId ?: paymentData?.paymentId
-        if (id != null) paymentSuccessCallback?.invoke(id)
-        else paymentErrorCallback?.invoke("Success but paymentId == null")
-    }
-
-    override fun onPaymentError(
-        code: Int,
-        description: String?,
-        paymentData: PaymentData?
-    ) {
-        paymentErrorCallback?.invoke("Payment error $code: $description")
-    }
-
-    override fun onExternalWalletSelected(
-        externalWalletName: String?,
-        paymentData: PaymentData?
-    ) {
-        Toast.makeText(
-            this,
-            "Selected wallet: $externalWalletName",
-            Toast.LENGTH_SHORT
-        ).show()
-    }
-
-    /* feed Razorpay result back to the SDK */
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        Checkout.handleActivityResult(
-            this,              // Activity
-            requestCode,
-            resultCode,
-            data,
-            this,              // PaymentResultWithDataListener
-            this               // ExternalWalletListener
-        )
-    }
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -307,7 +245,6 @@ fun KupidXApp(
 ) {
     val navController = rememberNavController()
     val ctx = LocalContext.current
-    val isIndia = CountryUtil.isProbablyInIndia(ctx)
 
     LaunchedEffect(openNotifications) {
         if (openNotifications) {
@@ -318,11 +255,7 @@ fun KupidXApp(
 
     LaunchedEffect(openUpgradeLanding) {
         if (openUpgradeLanding) {
-            if (isIndia) {
-                navController.navigate("upgradeLanding")
-            } else {
-                navController.navigate("subscription")
-            }
+            navController.navigate("subscription")
             onUpgradeConsumed()
         }
     }

@@ -30,7 +30,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import androidx.navigation.navDeepLink
 import com.am24.am24.billing.BillingScreen
 import com.am24.am24.safePopBackStack
 import com.am24.am24.ui.purchase.OneTimePurchaseScreen
@@ -247,27 +246,6 @@ fun MainNavGraph(
                 profileViewModel = profileViewModel
             )
         }
-        composable("razorpay_web") {
-            // rebuild your URL with redirect & callback
-            val callback = Uri.encode("kupidx://payment_callback")
-            val link = "https://rzp.io/rzp/Qkm9oLK?redirect=true&callback_url=$callback"
-            RazorpayWebView(navController, razorpayUrl = link)
-        }
-        composable(
-            route = "payment_callback?status={status}",
-            arguments = listOf(navArgument("status") {
-                type = NavType.StringType
-            }),
-            deepLinks = listOf(navDeepLink {
-                uriPattern = "kupidx://payment_callback?razorpay_payment_link_status={status}"
-            })
-        ) { backStack ->
-            val status = backStack.arguments?.getString("status") ?: "unknown"
-            PaymentResultScreen(
-                status = status,
-                navController = navController
-            )
-        }
         composable("policies") {
             PoliciesScreen(navController)
         }
@@ -330,9 +308,6 @@ fun MainNavGraph(
                 profileViewModel = profileViewModel,
                 currentUserId    = currentUserId       // use param instead of default
             )
-        }
-        composable("upgradeLanding") {
-            UpgradeLandingScreen(navController)
         }
         composable("govtIdVerification") {
             GovtIdVerificationScreen(

@@ -3,15 +3,14 @@
 package com.am24.am24
 
 /* Android & Compose */
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import androidx.compose.foundation.isSystemInDarkTheme
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
+import com.google.firebase.firestore.ListenerRegistration
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,18 +30,19 @@ import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
 import com.am24.am24.billing.BillingManager
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
-import com.google.firebase.functions.FirebaseFunctions
-import com.razorpay.Checkout
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import org.json.JSONObject
-import com.am24.am24.ui.purchase.PaymentResultListenerHost
 import java.util.Locale
 import com.am24.am24.AccountDeletion
 import com.am24.am24.LandingActivity
 import com.am24.am24.TokenStorageManager
 import com.am24.am24.safePopBackStack
+
+
+enum class Period(val label: String) {
+    WEEK("Weekly"),
+    MONTH("Monthly"),
+    YEAR("Yearly")
+}
 
 private val PLUS_FEATURES = listOf(
     R.string.feature_no_ads,
@@ -64,24 +64,11 @@ private data class UiState(
     val selectedPlanId: String? = null
 )
 
-/* ────────  PLAN IDS (create these in dashboard → Plans) ──────── */
-private const val PLAN_ID_WEEK_PLUS     = "plan_QjnGf6wdQAmyi2"
-private const val PLAN_ID_WEEK_PREMIUM  = "plan_QjpkdErsuewaUJ"
-private const val PLAN_ID_MONTH_PLUS    = "plan_QjpkKQ5S3ur64Q"
-private const val PLAN_ID_MONTH_PREMIUM = "plan_QjplxIqveB0BVS"
-private const val PLAN_ID_YEAR_PLUS     = "plan_QjpmNjEkEPlObK"
-private const val PLAN_ID_YEAR_PREMIUM  = "plan_QjmpS4xg31rg"
-
-/* ────────  Public key (only key_id!) ──────── */
-private const val RZP_KEY_ID = "rzp_live_DsoxJLeiCw940M"
-
 /* ─────────  model for UI  ───────── */
 enum class Tier { PLUS, PREMIUM }
 private data class Plan(
     val period: Period,
-    val tier: Tier,
-    val price: Int,          // in rupees
-    val razorpayId: String
+    val tier: Tier
 )
 private data class OneTimeOffer(
     val sku: String,
@@ -95,12 +82,10 @@ private data class OneTimeOffer(
 
 /* all 6 plans */
 private val PLANS = listOf(
-    Plan(Period.WEEK,  Tier.PLUS,    9,   PLAN_ID_WEEK_PLUS),
-    Plan(Period.WEEK,  Tier.PREMIUM, 29,  PLAN_ID_WEEK_PREMIUM),
-    Plan(Period.MONTH, Tier.PLUS,    29,  PLAN_ID_MONTH_PLUS),
-    Plan(Period.MONTH, Tier.PREMIUM, 99,  PLAN_ID_MONTH_PREMIUM),
-    Plan(Period.YEAR,  Tier.PLUS,    299, PLAN_ID_YEAR_PLUS),
-    Plan(Period.YEAR,  Tier.PREMIUM, 999, PLAN_ID_YEAR_PREMIUM),
+    Plan(Period.MONTH, Tier.PLUS),
+    Plan(Period.MONTH, Tier.PREMIUM),
+    Plan(Period.YEAR,  Tier.PLUS),
+    Plan(Period.YEAR,  Tier.PREMIUM),
 )
 
 private val ONE_TIME_OFFERS = listOf(
@@ -142,26 +127,11 @@ private val ONE_TIME_OFFERS = listOf(
     ),
 )
 
-private fun OneTimeOffer.displayPrice(
-    context: Context,
-    isIndia: Boolean,
-    isMexico: Boolean,
-    isThailand: Boolean
-): String = when {
-    isIndia -> context.getString(R.string.subscription_one_time_price_inr, inrPrice)
-    isMexico -> context.getString(
-        R.string.subscription_one_time_price_mxn,
-        formatPrice(mxnPrice)
-    )
-    isThailand -> context.getString(
-        R.string.subscription_one_time_price_thb,
-        thbPrice
-    )
-    else -> context.getString(
-        R.string.subscription_one_time_price_usd,
-        formatPrice(usdPrice)
-    )
-}
+private fun OneTimeOffer.displayPrice(context: Context): String = context.getString(
+    R.string.subscription_one_time_price_usd,
+    formatPrice(usdPrice)
+)
+
 
 private fun periodLabelRes(period: Period): Int = when (period) {
     Period.WEEK -> R.string.subscription_period_weekly
@@ -240,27 +210,13 @@ fun SubscriptionScreen(
         }
     }
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val userRoot = FirebaseRefs.db.getReference("users/$uid")
-    var userCountry by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(uid) {
-        userCountry = userRoot.child("country").get().await().getValue(String::class.java)
-    }
-    val useRazorpay = CountryUtil.useRazorpay(ctx, userCountry)
-    val isIndiaUser = CountryUtil.isIndia(ctx, userCountry)
-    val isMexico = CountryUtil.isMexico(ctx, userCountry)
-    val isThailand = CountryUtil.isThailand(ctx, userCountry)
-
+    val userDoc = FirebaseRefs.userProfiles.document(uid)
     /* -------------------------------------------------- */
-    val db     = FirebaseRefs.db.reference
     val scope  = rememberCoroutineScope()
     var working by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    val host        = ctx as? PaymentResultListenerHost   // Razorpay callbacks
     val act         = ctx as FragmentActivity
-    val co     = remember { Checkout().apply { setKeyID(RZP_KEY_ID) } }
-    val fx     = FirebaseFunctions.getInstance("asia-south1")
     var ui by remember { mutableStateOf(UiState()) }
-    var pendingSubId by remember { mutableStateOf<String?>(null) }
     val subs by BillingManager.subsProducts.collectAsState()
     val products by BillingManager.products.collectAsState()
     val subsDetailsById = remember(subs) { subs.associateBy { it.productId } }
@@ -271,15 +227,13 @@ fun SubscriptionScreen(
     var premium by remember { mutableStateOf<Boolean?>(null) }
 
     DisposableEffect(uid) {
-        val l = object : ValueEventListener {
-            override fun onDataChange(s: DataSnapshot) {
-                plus    = s.child("isPlus").getValue(Boolean::class.java)
-                premium = s.child("isPremium").getValue(Boolean::class.java)
-            }
-            override fun onCancelled(e: DatabaseError) {}
+        var registration: ListenerRegistration? = null
+        registration = userDoc.addSnapshotListener { snap, _ ->
+            val data = snap?.data.orEmpty()
+            plus = data["isPlus"] as? Boolean
+            premium = data["isPremium"] as? Boolean
         }
-        db.child("users/$uid").addValueEventListener(l)
-        onDispose { db.child("users/$uid").removeEventListener(l) }
+        onDispose { registration?.remove() }
     }
 
     if (plus == null || premium == null) {
@@ -295,48 +249,10 @@ fun SubscriptionScreen(
         return
     }
 
-    /* ---------- Razorpay helpers ---------- */
-
-    suspend fun createSub(plan: Plan): String {
-        val data = hashMapOf(
-            "uid"     to uid,
-            "planId"  to plan.razorpayId       // we pass which of the 6 plans the user picked
-        )
-        @Suppress("UNCHECKED_CAST")
-        val res = fx.getHttpsCallable("createKupidxPlusSub").call(data).await().data as Map<*, *>
-        return res["subscriptionId"] as String
-    }
-
-    fun launchCheckout(plan: Plan) = scope.launch {
-        try {
-            val subId = createSub(plan)                 // ① create on backend
-            pendingSubId = subId
-            /* ② open native checkout for first charge */
-            val opts = JSONObject().apply {
-                put("subscription_id", subId)
-                put("name", "Kupidx")
-                put("description", "${plan.price} ₹ / ${plan.period.label.lowercase()}")
-                put("prefill", JSONObject().apply {        // nice to have
-                    put("email", FirebaseAuth.getInstance().currentUser?.email)
-                })
-            }
-            co.open(ctx as Activity, opts)
-        } catch (e: Exception) {
-            Toast.makeText(
-                ctx,
-                e.message ?: ctx.getString(R.string.toast_unknown_error),
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
     fun handlePlan(plan: Plan) {
         val slug = planToSlug(plan)
-        val selectedId = if (useRazorpay) plan.razorpayId else slug
+        val selectedId = slug
         ui = UiState(isProcessing = true, selectedPlanId = selectedId)
-        if (useRazorpay) {
-            launchCheckout(plan)
-            return
-        }
         val productId = if (slug.startsWith("premium")) "premium" else "plus"
         val pd = subs.firstOrNull { it.productId == productId }
         if (pd != null) {
@@ -360,65 +276,8 @@ fun SubscriptionScreen(
             ui = UiState()
         }
     }
-
-    /* ---------- attach success / error to the host activity ---------- */
-    DisposableEffect(Unit) {
-        host?.setPaymentCallbacks(
-            onSuccess = { _ ->
-                val sid = pendingSubId
-                if (sid == null) {
-                    Toast.makeText(
-                        ctx,
-                        ctx.getString(R.string.subscription_activated),
-                        Toast.LENGTH_LONG
-                    ).show()
-                    pendingSubId = null
-                    ui = UiState()
-                    navController.navigate("settings") {
-                        popUpTo("subscription") { inclusive = true }
-                    }
-                    return@setPaymentCallbacks
-                }
-                scope.launch {
-                    try {
-                        fx.getHttpsCallable("verifyKupidxSubscription")
-                            .call(mapOf("subscriptionId" to sid))
-                            .await()
-                        Toast.makeText(
-                            ctx,
-                            ctx.getString(R.string.subscription_activated),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    } catch (e: Exception) {
-                        Toast.makeText(
-                            ctx,
-                            ctx.getString(R.string.subscription_verification_failed),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    } finally {
-                        pendingSubId = null
-                        ui = UiState()
-                        navController.navigate("settings") {
-                            popUpTo("subscription") { inclusive = true }
-                        }
-                    }
-                }
-            },
-            onError = { msg ->
-                Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
-                pendingSubId = null
-                ui = UiState()
-                navController.navigate("settings") {
-                    popUpTo("subscription") { inclusive = true }
-                }
-            }
-        )
-        onDispose { host?.setPaymentCallbacks({},{}) }
-    }
-
     LaunchedEffect(Unit) {
         BillingManager.purchaseFlowFinished.collect {
-            pendingSubId = null
             ui = UiState()
             navController.navigate("settings") {
                 popUpTo("subscription") { inclusive = true }
@@ -427,7 +286,6 @@ fun SubscriptionScreen(
     }
 
     fun playSubscriptionPrice(plan: Plan): String? {
-        if (useRazorpay) return null
         val slug = planToSlug(plan)
         val productId = if (slug.startsWith("premium")) "premium" else "plus"
         val pd = subsDetailsById[productId] ?: return null
@@ -445,17 +303,13 @@ fun SubscriptionScreen(
 
     /* ---------- UI ---------- */
 
-    val availablePeriods = if (useRazorpay)
-    Period.values().toList()                  // WEEK, MONTH, YEAR
-    else
-        listOf(Period.MONTH, Period.YEAR)
+    val availablePeriods = listOf(Period.MONTH, Period.YEAR)
 
     var currentPeriod by remember { mutableStateOf(availablePeriods.first()) }
 
-    /* Reset the selected period if isIndia toggles and the period is no longer available */
-    /* Reset the selected period if the India flag toggles and the period is no longer available */
-    LaunchedEffect(useRazorpay) {
-    if (currentPeriod !in availablePeriods) {
+    /* Reset the selected period if the available periods change */
+    LaunchedEffect(Unit) {
+        if (currentPeriod !in availablePeriods) {
             currentPeriod = availablePeriods.first()
         }
     }
@@ -502,7 +356,6 @@ fun SubscriptionScreen(
         /* plan cards for the selected period */
         PLANS
             .filter { it.period == currentPeriod }
-            .filter { useRazorpay || it.period != Period.WEEK }   // drop weekly for PayPal
             .forEach { plan ->
                 Card(
                     modifier = Modifier
@@ -533,29 +386,11 @@ fun SubscriptionScreen(
                             val periodLabelLower = stringResource(periodLabelRes(plan.period)).lowercase(locale)
                             val playPriceLabel = playSubscriptionPrice(plan)
 
-                            val priceLabel = when {
-                                playPriceLabel != null -> playPriceLabel
-                                isIndiaUser -> stringResource(
-                                    R.string.subscription_price_label_inr,
-                                    plan.price,
-                                    periodLabelLower
-                                )
-                                isMexico -> stringResource(
-                                    R.string.subscription_price_label_mxn,
-                                    formatPrice(mxnPrice(plan)),
-                                    periodLabelLower
-                                )
-                                isThailand -> stringResource(
-                                    R.string.subscription_price_label_thb,
-                                    thbPrice(plan),
-                                    periodLabelLower
-                                )
-                                else -> stringResource(
-                                    R.string.subscription_price_label_usd,
-                                    formatPrice(usdPrice(plan)),
-                                    periodLabelLower
-                                )
-                            }
+                            val priceLabel = playPriceLabel ?: stringResource(
+                                R.string.subscription_price_label_usd,
+                                formatPrice(usdPrice(plan)),
+                                periodLabelLower
+                            )
                             Text(priceLabel, color = Color.LightGray, fontSize = 14.sp)
                             Spacer(Modifier.height(8.dp))
                             val features =
@@ -570,7 +405,7 @@ fun SubscriptionScreen(
                             }
                         }
                         val processing = ui.isProcessing &&
-                                ui.selectedPlanId == if (useRazorpay) plan.razorpayId else planToSlug(plan)
+                                ui.selectedPlanId == planToSlug(plan)
                         Button(
                             onClick = { if (!ui.isProcessing) handlePlan(plan) },
                             enabled = !ui.isProcessing,
@@ -591,95 +426,93 @@ fun SubscriptionScreen(
                 }
             }
 
-        if (!useRazorpay) {
-            ONE_TIME_OFFERS
-                .filter { it.period == currentPeriod }
-                .forEach { offer ->
-                    val productAvailable = inappDetailsById[offer.sku] != null
-                    val processing = ui.isProcessing && ui.selectedPlanId == offer.sku
-                    val playPrice = playOneTimePrice(offer)
-                    Card(
-                        modifier = Modifier
+        ONE_TIME_OFFERS
+            .filter { it.period == currentPeriod }
+            .forEach { offer ->
+                val productAvailable = inappDetailsById[offer.sku] != null
+                val processing = ui.isProcessing && ui.selectedPlanId == offer.sku
+                val playPrice = playOneTimePrice(offer)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .clickable(
+                            enabled = !ui.isProcessing && productAvailable
+                        ) {
+                            if (!ui.isProcessing && productAvailable) {
+                                handleOneTime(offer)
+                            }
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (offer.tier == Tier.PREMIUM)
+                            Color(0xFFFF6F00)
+                        else Color(0xFF1E1E1E)
+                    )
+                ) {
+                    Row(
+                        Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                            .clickable(
-                                enabled = !ui.isProcessing && productAvailable
-                            ) {
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                stringResource(tierLabelRes(offer.tier)),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                            if (playPrice != null) {
+                                Text(
+                                    playPrice,
+                                    color = Color.LightGray,
+                                    fontSize = 14.sp
+                                )
+                            } else {
+                                Text(
+                                    offer.displayPrice(ctx),
+                                    color = Color.LightGray,
+                                    fontSize = 14.sp
+                                )
+                            }
+                            val durationLabel = stringResource(periodDurationRes(offer.period))
+                            Text(
+                                stringResource(R.string.subscription_one_time_label, durationLabel),
+                                color = Color.LightGray,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                            val features =
+                                if (offer.tier == Tier.PREMIUM) PREMIUM_FEATURES else PLUS_FEATURES
+                            features.forEach { bulletResId ->
+                                Text(
+                                    text = "• ${stringResource(bulletResId)}",
+                                    color = Color.LightGray,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = {
                                 if (!ui.isProcessing && productAvailable) {
                                     handleOneTime(offer)
                                 }
                             },
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (offer.tier == Tier.PREMIUM)
-                                Color(0xFFFF6F00)
-                            else Color(0xFF1E1E1E)
-                        )
-                    ) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            enabled = !ui.isProcessing && productAvailable,
+                            colors = ButtonDefaults.buttonColors(
+                                contentColor = Color.Black,
+                                disabledContentColor = Color.Black.copy(alpha = 0.38f)
+                            )
                         ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    stringResource(tierLabelRes(offer.tier)),
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White
+                            when {
+                                processing -> CircularProgressIndicator(
+                                    color = KupidxOrange,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                if (playPrice != null) {
-                                    Text(
-                                        playPrice,
-                                        color = Color.LightGray,
-                                        fontSize = 14.sp
-                                    )
-                                } else {
-                                    Text(
-                                        offer.displayPrice(ctx, isIndiaUser, isMexico, isThailand),
-                                        color = Color.LightGray,
-                                        fontSize = 14.sp
-                                    )
-                                }
-                                val durationLabel = stringResource(periodDurationRes(offer.period))
-                                Text(
-                                    stringResource(R.string.subscription_one_time_label, durationLabel),
-                                    color = Color.LightGray,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(vertical = 4.dp)
-                                )
-                                val features =
-                                    if (offer.tier == Tier.PREMIUM) PREMIUM_FEATURES else PLUS_FEATURES
-                                features.forEach { bulletResId ->
-                                    Text(
-                                        text = "• ${stringResource(bulletResId)}",
-                                        color = Color.LightGray,
-                                        fontSize = 12.sp,
-                                        modifier = Modifier.padding(vertical = 2.dp)
-                                    )
-                                }
-                            }
-                            Button(
-                                onClick = {
-                                    if (!ui.isProcessing && productAvailable) {
-                                        handleOneTime(offer)
-                                    }
-                                },
-                                enabled = !ui.isProcessing && productAvailable,
-                                colors = ButtonDefaults.buttonColors(
-                                    contentColor = Color.Black,
-                                    disabledContentColor = Color.Black.copy(alpha = 0.38f)
-                                )
-                            ) {
-                                when {
-                                    processing -> CircularProgressIndicator(
-                                        color = KupidxOrange,
-                                        strokeWidth = 2.dp,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    !productAvailable -> Text(stringResource(R.string.subscription_loading), color = KupidxOrange)
-                                    else -> Text(stringResource(R.string.subscription_buy_button), color = KupidxOrange)
-                                }
+                                !productAvailable -> Text(stringResource(R.string.subscription_loading), color = KupidxOrange)
+                                else -> Text(stringResource(R.string.subscription_buy_button), color = KupidxOrange)
                             }
                         }
                     }

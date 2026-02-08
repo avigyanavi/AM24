@@ -340,7 +340,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                     )
                     Divider(Modifier.padding(start = 56.dp))
 
-                    /**  FREE  → go to the NEW UpgradeLandingScreen  */
+                    /**  FREE  → go to subscription flow  */
                     if (premiumTier == "Free") {
                         val now = System.currentTimeMillis()
                         val offerActive = entryFeeOfferExpiry > now && !entryFeePaid
@@ -388,11 +388,7 @@ fun SettingsScreen(navController: NavController, profileViewModel: ProfileViewMo
                             title = "$premiumTier Member",
                             trailingText = stringResource(R.string.expires_prefix, expiry),
                             onClick = {
-                                if (CountryUtil.useRazorpay(ctx, country)) {
-                                    navController.navigate("manageSubscription")
-                                } else {
-                                    navController.navigate("manageSubscription")
-                                }
+                                navController.navigate("manageSubscription")
                             }
                         )
                         if (subscriptionStatus != null) {

@@ -17,14 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.ServerValue.increment
-import com.google.firebase.functions.FirebaseFunctions
-import com.razorpay.Checkout
+import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import org.json.JSONObject
 import androidx.fragment.app.FragmentActivity
-import com.am24.am24.CountryUtil
 import com.am24.am24.billing.BillingViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.am24.am24.FirebaseRefs
@@ -33,13 +28,12 @@ import com.am24.am24.safePopBackStack
 
 enum class PurchaseType(
     val apiType: String,
-    val displayName: String,
-    val unitPricePaise: Int
+    val displayName: String
 ) {
-    Swipes      ("swipes",      "Swipes",       100),
-    Boosts      ("boosts",      "Boosts",       200),
-    Compliments ("compliments", "Compliments",  150),
-    AiMessages  ("aiMessages",  "AI messages",  200);
+    Swipes      ("swipes",      "Swipes"),
+    Boosts      ("boosts",      "Boosts"),
+    Compliments ("compliments", "Compliments"),
+    AiMessages  ("aiMessages",  "AI messages");
 
     fun skuFor(qty: Int): String = "${apiType.lowercase()}_${qty}"
     fun skuPrefix(): String = "${apiType.lowercase()}_"
@@ -54,18 +48,10 @@ fun OneTimePurchaseScreen(
     onBack: () -> Unit
 ) {
     val ctx        = LocalContext.current
-    val scope      = rememberCoroutineScope()
     val uid        = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val userRoot   = FirebaseRefs.db.getReference("users/$uid")
-    val fx         = FirebaseFunctions.getInstance("asia-south1")
-    val checkout   = remember { Checkout().apply { setKeyID("rzp_live_DsoxJLeiCw940M") } }
+    val userDoc    = FirebaseRefs.userProfiles.document(uid)
     val act        = ctx as FragmentActivity
 
-    var userCountry by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(uid) {
-        userCountry = userRoot.child("country").get().await().getValue(String::class.java)
-    }
-    val isIndia = CountryUtil.useRazorpay(ctx, userCountry)
     var ui by remember { mutableStateOf(UiState()) }
 
     val billingViewModel: BillingViewModel = viewModel()
@@ -78,50 +64,8 @@ fun OneTimePurchaseScreen(
             ?.formattedPrice
     }
 
-    fun launchRazorpay(orderId: String, keyId: String) {
-        val opts = JSONObject().apply {
-            put("order_id", orderId)
-            put("key", keyId)
-            put("name", "AM24")
-            put("description", "${type.displayName} x${ui.selectedQty}")
-        }
-        checkout.open(act, opts)
-    }
-
-    DisposableEffect(Unit) {
-        (act as? PaymentResultListenerHost)?.setPaymentCallbacks(
-            onSuccess = { paymentId ->
-                fx.getHttpsCallable("verifyPayment")
-                    .call(mapOf("paymentId" to paymentId))
-                    .addOnSuccessListener { resp ->
-                        val ok = resp.data as Boolean
-                        if (ok) {
-                            val inc = ui.selectedQty.toLong()
-                            userRoot.updateChildren(mapOf(qtyField(type) to increment(inc)))
-                            Toast.makeText(ctx,"Added $inc ${type.displayName}", Toast.LENGTH_LONG).show()
-                            navController.safePopBackStack()
-                        } else {
-                            Toast.makeText(ctx, "Verification failed", Toast.LENGTH_LONG).show()
-                        }
-                        ui = ui.copy(isProcessing = false)
-                    }
-                    .addOnFailureListener {
-                        Toast.makeText(ctx, "Verify error", Toast.LENGTH_LONG).show()
-                        ui = ui.copy(isProcessing = false)
-                    }
-            },
-            onError = {
-                Toast.makeText(ctx, "Payment failed: $it", Toast.LENGTH_LONG).show()
-                ui = ui.copy(isProcessing = false)
-            }
-        )
-        onDispose { (act as? PaymentResultListenerHost)?.setPaymentCallbacks({}, {}) }
-    }
-
-    val totalInrPaise = ui.selectedQty * type.unitPricePaise
     val selectedProduct = products.firstOrNull { it.productId == selectedSku }
     val displayPrice = when {
-        isIndia -> "₹%.2f".format(totalInrPaise / 100.0)
         playPrice != null -> playPrice
         else -> ""
     }
@@ -174,28 +118,11 @@ fun OneTimePurchaseScreen(
 
             Button(
                 onClick = {
-                    if (isIndia) {
-                        scope.launch {
-                            ui = ui.copy(isProcessing = true)
-                            try {
-                                val res = fx.getHttpsCallable("createOneTimeOrder")
-                                    .call(mapOf(
-                                        "type"     to type.apiType,
-                                        "quantity" to ui.selectedQty
-                                    )).await().data as Map<*, *>
-                                launchRazorpay(res["id"] as String, res["key"] as String)
-                            } catch (e: Exception) {
-                                ui = ui.copy(isProcessing = false)
-                                Toast.makeText(ctx, e.message, Toast.LENGTH_LONG).show()
-                            }
-                        }
+                    if (selectedProduct != null) {
+                        billingViewModel.purchase(act, selectedProduct)
+                        ui = ui.copy(isProcessing = true)
                     } else {
-                        if (selectedProduct != null) {
-                            billingViewModel.purchase(act, selectedProduct)
-                            ui = ui.copy(isProcessing = true)
-                        } else {
-                            Toast.makeText(ctx, "Product not available ($selectedSku)", Toast.LENGTH_LONG).show()
-                        }
+                        Toast.makeText(ctx, "Product not available ($selectedSku)", Toast.LENGTH_LONG).show()
                     }
                 },
                 enabled = !ui.isProcessing,
@@ -204,7 +131,7 @@ fun OneTimePurchaseScreen(
                 if (ui.isProcessing) {
                     CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
                 } else {
-                    Text(if (isIndia) "Pay with Razorpay" else "Pay with Google Play")
+                    Text("Pay with Google Play")
                 }
             }
         }
@@ -217,7 +144,7 @@ fun OneTimePurchaseScreen(
         if (p != null) {
             val productId = p.products.first { it.startsWith(prefix) }
             val qty = productId.removePrefix(prefix).toIntOrNull() ?: 1
-            userRoot.updateChildren(mapOf(qtyField(type) to increment(qty.toLong())))
+            userDoc.update(mapOf(qtyField(type) to FieldValue.increment(qty.toLong())))
             Toast.makeText(ctx, "Added $qty ${type.displayName}", Toast.LENGTH_LONG).show()
             navController.safePopBackStack()
             ui = ui.copy(isProcessing = false)
@@ -226,12 +153,8 @@ fun OneTimePurchaseScreen(
 }
 
 private fun qtyField(t: PurchaseType) = when (t) {
-    PurchaseType.Swipes      -> "swipesInfo/remainingSwipes"
+    PurchaseType.Swipes      -> "swipesInfo.remainingSwipes"
     PurchaseType.Boosts      -> "availableBoosts"
     PurchaseType.Compliments -> "availableCompliments"
     PurchaseType.AiMessages  -> "availableAiMessages"
-}
-
-interface PaymentResultListenerHost {
-    fun setPaymentCallbacks(onSuccess: (String) -> Unit, onError: (String) -> Unit)
 }

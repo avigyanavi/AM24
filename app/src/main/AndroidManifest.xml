@@ -153,16 +153,6 @@
         <activity
             android:name=".KupidXAppActivity"
             android:exported="true">
-            <!-- Razorpay callback deep-link -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <!-- Matches: kupidx://payment_callback?razorpay_payment_link_status=paid -->
-                <data
-                    android:scheme="kupidx"
-                    android:host="payment_callback"/>
-            </intent-filter>
         </activity>
 
     </application>

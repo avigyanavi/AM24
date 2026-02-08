@@ -658,7 +658,6 @@ fun BottomNavigationBar(
                             currentRoute == "buyCompliments" ||
                             currentRoute == "buyAiMessages" ||
                             currentRoute == "subscription" ||
-                            currentRoute == "upgradeLanding" ||
                             currentRoute == "policies"
                 }
                 else -> {

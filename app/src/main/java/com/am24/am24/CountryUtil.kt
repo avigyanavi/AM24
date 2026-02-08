@@ -27,6 +27,7 @@ object CountryUtil {
         "MX",  // Mexico
         "TH"  // Thailand
     )
+
     private data class BoundingBox(
         val minLat: Double,
         val maxLat: Double,
@@ -51,10 +52,20 @@ object CountryUtil {
             BoundingBox(minLat = 14.0, maxLat = 33.5, minLon = -118.5, maxLon = -86.0)
         ),
         "United States" to listOf(
-            BoundingBox(minLat = 24.0, maxLat = 49.5, minLon = -125.0, maxLon = -66.0),   // Continental US
+            BoundingBox(
+                minLat = 24.0,
+                maxLat = 49.5,
+                minLon = -125.0,
+                maxLon = -66.0
+            ),   // Continental US
             BoundingBox(minLat = 18.5, maxLat = 23.0, minLon = -161.0, maxLon = -154.0),  // Hawaii
             BoundingBox(minLat = 51.0, maxLat = 72.0, minLon = -170.0, maxLon = -129.0),  // Alaska
-            BoundingBox(minLat = 17.5, maxLat = 18.7, minLon = -67.5, maxLon = -65.0)     // Puerto Rico
+            BoundingBox(
+                minLat = 17.5,
+                maxLat = 18.7,
+                minLon = -67.5,
+                maxLon = -65.0
+            )     // Puerto Rico
         )
     )
 
@@ -72,8 +83,8 @@ object CountryUtil {
 
     fun isProbablyInIndia(ctx: Context): Boolean {
         val telephony = ctx.safeTelephonyManager()
-        val isoBySim   = telephony?.simCountryIso?.uppercase(Locale.US)
-        val isoByNet   = telephony?.networkCountryIso?.uppercase(Locale.US)
+        val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
         val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
 
         return listOf(isoBySim, isoByNet, isoByLocale).any { it == "IN" }
@@ -91,8 +102,8 @@ object CountryUtil {
     fun isUnitedStates(ctx: Context, selectedCountry: String?): Boolean {
         if (canonicalCountry(selectedCountry) == "United States") return true
         val telephony = ctx.safeTelephonyManager()
-        val isoBySim   = telephony?.simCountryIso?.uppercase(Locale.US)
-        val isoByNet   = telephony?.networkCountryIso?.uppercase(Locale.US)
+        val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
+        val isoByNet = telephony?.networkCountryIso?.uppercase(Locale.US)
         val isoByLocale = Locale.getDefault().country.uppercase(Locale.US)
         return listOf(isoBySim, isoByNet, isoByLocale).any { it == "US" }
     }
@@ -106,6 +117,7 @@ object CountryUtil {
 
         return listOf(isoBySim, isoByNet, isoByLocale).any { it in KM_COUNTRIES }
     }
+
     fun isProbablyInThailand(ctx: Context): Boolean {
         val telephony = ctx.safeTelephonyManager() ?: return false
         val isoBySim = telephony?.simCountryIso?.uppercase(Locale.US)
@@ -146,17 +158,5 @@ object CountryUtil {
             current = base
         }
         return current
-    }
-    /**
-     * Decide whether Razorpay should be used for payments.
-     * If the device locale suggests India but the user has selected a
-     * different country during registration, prefer PayPal instead.
-     */
-    @Suppress("UNUSED_PARAMETER")
-    fun useRazorpay(ctx: Context, selectedCountry: String?): Boolean {
-//        val deviceIndia = isProbablyInIndia(ctx)
-//        if (!deviceIndia) return false
-//        return selectedCountry?.equals("India", ignoreCase = true) ?: true
-        return false
     }
 }
