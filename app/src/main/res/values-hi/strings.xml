@@ -4664,7 +4664,8 @@
         <string name="request_sent_waiting">रिक्वेस्ट भेज दी गई – यूज़र के जॉइन करने का इंतज़ार</string>
         <string name="request_rejected">रिक्वेस्ट रिजेक्ट कर दी गई</string>
         <string name="user_left_chat">यूज़र चैट छोड़कर चला गया</string>
-
+    <string name="admob_banner">ca-app-pub-5266481866342618/2812467062</string>
+    <string name="admob_native">ca-app-pub-5266481866342618/9230427957</string>
         <!-- Subscription फीचर पॉइंट्स -->
         <string name="feature_no_ads">कोई Ads नहीं</string>
         <string name="feature_priority_profile">डेटिंग स्टैक में प्रायोरिटी प्रोफाइल</string>

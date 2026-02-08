@@ -1457,7 +1457,8 @@ fun MapScreen(
                                 forceRefresh = true
                             )
                         }
-                    }
+                    },
+                    onFiltersClick = { showFiltersDialog = true }
                 )
 
                 if (activeFilterLabels.isNotEmpty()) {
@@ -3356,6 +3357,7 @@ private fun LockedChip(
 private fun GenderQuickToggle(
     selectedCanonicalGender: String,
     onGenderSelected: (String) -> Unit,
+    onFiltersClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val options = genderFilterOptions.take(3) // "" (All), male, female
@@ -3386,6 +3388,17 @@ private fun GenderQuickToggle(
                     onGenderSelected(newCanonical)
                 },
                 label = { Text(stringResource(option.labelRes)) }
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        IconButton(
+            onClick = onFiltersClick,
+            modifier = Modifier.size(28.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = stringResource(R.string.filters),
+                modifier = Modifier.size(18.dp)
             )
         }
     }

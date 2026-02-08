@@ -78,7 +78,7 @@ import kotlinx.coroutines.CancellationException
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlin.math.max
-
+import com.am24.am24.ads.NativeAdCard
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -658,6 +658,15 @@ fun FeedSection(
                     postViewModel = postViewModel,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                if (isFreeTier && index == 2) {
+                    NativeAdCard(
+                        adUnitId = stringResource(R.string.admob_native),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
 
             if (posts.isNotEmpty() || isLoadingMore) {

@@ -13,6 +13,8 @@
     <string name="text_post_label">Text Post</string>
     <string name="voice_post_label">Voice Post</string>
     <string name="pic_sent">Pic sent</string>
+    <string name="admob_banner">ca-app-pub-5266481866342618/2812467062</string>
+    <string name="admob_native">ca-app-pub-5266481866342618/9230427957</string>
     <string name="no_card_in_page">No card in this page</string>
     <string name="dont_show_location">Don\'t show location</string>
     <string name="private_album">Private album</string>

@@ -19,7 +19,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.tasks.await
 import com.am24.am24.ui.purchase.PaymentResultListenerHost
 import com.am24.am24.ui.theme.AppTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -33,7 +32,7 @@ import com.razorpay.PaymentResultWithDataListener // Razorpay
 import kotlinx.coroutines.launch
 import java.util.Locale
 import com.google.firebase.database.ServerValue
-import com.am24.am24.ads.InterstitialAdManager
+
 class KupidXAppActivity : AppCompatActivity(),
     PaymentResultWithDataListener,
     ExternalWalletListener,
@@ -63,7 +62,6 @@ class KupidXAppActivity : AppCompatActivity(),
     private var pendingOpenNotifications = false
     private var pendingOpenUpgradeLanding = false
     private var pendingOpenChatUserId: String? = null
-    private val interstitialAdManager by lazy { InterstitialAdManager(this) }
     private fun setupPresence(uid: String) {
         val ref = FirebaseRefs.db.getReference("presence").child(uid)
         presenceRef = ref
@@ -230,52 +228,6 @@ class KupidXAppActivity : AppCompatActivity(),
     override fun onStop() {
         profileViewModel.trackLastScreenBeforeClose()
         super.onStop()
-    }
-
-    fun showDailyInterstitial(
-        isFreeTier: Boolean,
-        onDismissed: () -> Unit,
-        onFailed: (String?) -> Unit
-    ) {
-        if (!isFreeTier) {
-            onFailed(null)
-            return
-        }
-        val uid = auth.currentUser?.uid
-        if (uid == null) {
-            onFailed(null)
-            return
-        }
-        lifecycleScope.launch {
-            val entitlements = runCatching {
-                FirebaseRefs.db.getReference("users").child(uid).get().await()
-            }
-            val snapshot = entitlements.getOrNull()
-            if (snapshot == null) {
-                onFailed(null)
-                return@launch
-            }
-            val isPlus = snapshot.child("isPlus").getValue(Boolean::class.java) == true
-            val isPremium = snapshot.child("isPremium").getValue(Boolean::class.java) == true
-            if (isPlus || isPremium) {
-                onFailed(null)
-                return@launch
-            }
-            interstitialAdManager.show(
-                activity = this@KupidXAppActivity,
-                adUnitId = resolveInterstitialAdUnitId(),
-                onDismissed = onDismissed,
-                onFailed = onFailed
-            )
-        }
-    }
-
-    private fun resolveInterstitialAdUnitId(): String {
-        return if (CountryUtil.isUnitedStates(this, null)) {
-            getString(R.string.admob_interstitial_main)
-        } else {
-            getString(R.string.admob_interstitial_india)
-        }
     }
 
     /* ---------------------------------------------------------------- Razorpay */

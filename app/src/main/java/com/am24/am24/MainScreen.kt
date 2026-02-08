@@ -4,10 +4,12 @@ package com.am24.am24
 
 import DatingViewModel
 import android.app.Activity
+import android.content.Context
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.*
 import androidx.compose.material3.*
@@ -32,19 +34,13 @@ import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
-import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.draw.shadow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.compose.runtime.saveable.rememberSaveable
-import android.widget.Toast
-import java.util.concurrent.TimeUnit
 
-private const val PREFS_ADS = "ad_prefs"
-private const val KEY_LAST_INTERSTITIAL_SHOWN = "last_interstitial_shown_ms"
-private const val INTERSTITIAL_DELAY_MS = 30_000L
-private val INTERSTITIAL_COOLDOWN_MS = TimeUnit.DAYS.toMillis(1)
+private const val BANNER_HEIGHT_DP = 50
 @RequiresApi(Build.VERSION_CODES.O_MR1)
 @Composable
 fun MainScreen(
@@ -100,15 +96,9 @@ fun MainScreen(
 
     val context = LocalContext.current
     val activity = context as? Activity
-    val host = context as? KupidXAppActivity
-    val adPrefs = remember { context.getSharedPreferences(PREFS_ADS, Context.MODE_PRIVATE) }
 
     var hasRestoredBottomNav by rememberSaveable { mutableStateOf(false) }
-    var showInterstitialPrompt by rememberSaveable { mutableStateOf(false) }
-    var interstitialScheduled by rememberSaveable { mutableStateOf(false) }
-    var lastInterstitialShownMs by remember {
-        mutableStateOf(adPrefs.getLong(KEY_LAST_INTERSTITIAL_SHOWN, 0L))
-    }
+
     LaunchedEffect(lastBottomNavRoute, showBottomBar) {
         if (!hasRestoredBottomNav && showBottomBar) {
             if (lastBottomNavRoute in bottomNavRoutes && lastBottomNavRoute != currentRoute) {
@@ -141,19 +131,6 @@ fun MainScreen(
     }
 
     val isFreeTier = !isPremium && !isPlus
-    LaunchedEffect(isFreeTier, lastInterstitialShownMs) {
-        if (!isFreeTier || interstitialScheduled) return@LaunchedEffect
-        interstitialScheduled = true
-        val now = System.currentTimeMillis()
-        val recentlyShown = now - lastInterstitialShownMs < INTERSTITIAL_COOLDOWN_MS
-        if (recentlyShown) return@LaunchedEffect
-        kotlinx.coroutines.delay(INTERSTITIAL_DELAY_MS)
-        val latestNow = System.currentTimeMillis()
-        val stillEligible = latestNow - lastInterstitialShownMs >= INTERSTITIAL_COOLDOWN_MS
-        if (stillEligible && isFreeTier) {
-            showInterstitialPrompt = true
-        }
-    }
 
     var showOnlineUsers by remember { mutableStateOf(false) }
     LaunchedEffect(navBackStackEntry?.destination?.route) {
@@ -220,20 +197,34 @@ fun MainScreen(
         }
     ) { innerPadding ->
         val paddingValues = if (showBottomBar) innerPadding else PaddingValues(0.dp)
+        val bannerPadding = if (isFreeTier) BANNER_HEIGHT_DP.dp else 0.dp
 
-        MainNavGraph(
-            navController = navController,
-            modifier = Modifier.padding(paddingValues),
-            currentUserId   = currentUserId,    // NEW
-            postViewModel = postViewModel,
-            profileViewModel = profileViewModel,
-            nearbyViewModel = nearbyViewModel,
-            datingViewModel = datingViewModel,
-            mainViewModel = mainViewModel,
-            chatViewModel = chatViewModel,
-            locationManager = locationManager,
-            aiPartnerViewModel = aiPartnerViewModel,
-        )
+        Box(Modifier.fillMaxSize()) {
+            MainNavGraph(
+                navController = navController,
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .padding(bottom = bannerPadding),
+                currentUserId   = currentUserId,    // NEW
+                postViewModel = postViewModel,
+                profileViewModel = profileViewModel,
+                nearbyViewModel = nearbyViewModel,
+                datingViewModel = datingViewModel,
+                mainViewModel = mainViewModel,
+                chatViewModel = chatViewModel,
+                locationManager = locationManager,
+                aiPartnerViewModel = aiPartnerViewModel,
+            )
+
+            if (isFreeTier) {
+                com.am24.am24.ads.BannerAd(
+                    adUnitId = stringResource(R.string.admob_banner),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(paddingValues)
+                )
+            }
+        }
 
         val pendingInvite = mainUiState.omegleInvite
         if (pendingInvite != null) {
@@ -263,36 +254,6 @@ fun MainScreen(
                     }
                 },
                 text = { Text(stringResource(inviteMessage), color = KupidxOrange) }
-            )
-        }
-        if (showInterstitialPrompt) {
-            LaunchedEffect(showInterstitialPrompt) {
-                host?.showDailyInterstitial(
-                    isFreeTier = isFreeTier,
-                    onDismissed = {
-                        val now = System.currentTimeMillis()
-                        lastInterstitialShownMs = now
-                        adPrefs.edit().putLong(KEY_LAST_INTERSTITIAL_SHOWN, now).apply()
-                        showInterstitialPrompt = false
-                    },
-                    onFailed = {
-                        Toast.makeText(
-                            context,
-                            R.string.toast_ad_not_ready,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        showInterstitialPrompt = false
-                    }
-                ) ?: run {
-                    showInterstitialPrompt = false
-                }
-            }
-            AlertDialog(
-                onDismissRequest = {},
-                title = { Text(stringResource(R.string.ad_prompt_title)) },
-                text = { Text(stringResource(R.string.ad_prompt_message)) },
-                confirmButton = {},
-                dismissButton = {}
             )
         }
     }

@@ -5312,6 +5312,8 @@
     <string name="feature_50_swipes">สไวป์ได้ 50 ครั้งต่อวัน</string>
     <string name="action_leave_groups">ออกจากกลุ่ม</string>
     <string name="pic_sent">ส่งรูปภาพแล้ว</string>
+    <string name="admob_banner">ca-app-pub-5266481866342618/2812467062</string>
+    <string name="admob_native">ca-app-pub-5266481866342618/9230427957</string>
     <string name="dm_leave_groups_title">ออกจากกลุ่ม</string>
     <string name="dm_leave_groups_empty">คุณยังไม่ได้เข้าร่วมกลุ่มใด</string>
     <string name="dm_remove_group">ลบกลุ่ม</string>

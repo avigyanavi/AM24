@@ -112,6 +112,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.navigation.NavController
+import com.am24.am24.ads.NativeAdCard
 @Composable
 fun ExploreScreen(
     navController: NavController,
@@ -215,6 +216,7 @@ fun ExploreScreen(
                 canGoBack = pageIndex > 0,
                 canGoNext = pageIndex < pageCount - 1 || hasMorePosts,
                 isLoadingMore = isLoadingMore,
+                isFreeTier = isFreeTier,
                 onBackPage = { if (pageIndex > 0) pageIndex-- },
                 onNextPage = {
                     if (isFreeTier && freeNextUsed) return@ExploreGrid
@@ -344,6 +346,7 @@ private fun ExploreGrid(
     canGoNext: Boolean,
     canUseNext: Boolean,
     isLoadingMore: Boolean,
+    isFreeTier: Boolean,
     onBackPage: () -> Unit,
     onNextPage: () -> Unit,
     onPostClick: (Int) -> Unit
@@ -355,35 +358,57 @@ private fun ExploreGrid(
         val sizeDp = configuration.screenWidthDp.dp / 3
         with(density) { sizeDp.roundToPx() }
     }
+    val gridItems = remember(posts, isFreeTier) {
+        val items = mutableListOf<ExploreGridItem>()
+        posts.forEachIndexed { index, post ->
+            items.add(ExploreGridItem.PostItem(post, index))
+            if (isFreeTier && index == 8) {
+                items.add(ExploreGridItem.NativeAdItem)
+            }
+        }
+        items
+    }
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(2.dp)
     ) {
-        itemsIndexed(posts) { index, post ->
-            Box(
-                modifier = Modifier
-                    .padding(2.dp)
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { onPostClick(index) },
-                contentAlignment = Alignment.Center
-            ) {
-                when {
-                    post.mediaType == "voice" -> {
-                        ExploreVoiceGridTile(post = post)
-                    }
-                    !post.mediaUrl.isNullOrBlank() -> {
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(post.mediaThumb?.takeIf { it.isNotBlank() } ?: post.mediaUrl)
-                                .size(gridImageSizePx)
-                                .build(),
-                            contentDescription = stringResource(R.string.explore_media_grid_desc),
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
-                        )
+        itemsIndexed(
+            gridItems,
+            span = { _, item ->
+                if (item is ExploreGridItem.NativeAdItem) {
+                    GridItemSpan(maxLineSpan)
+                } else {
+                    GridItemSpan(1)
+                }
+            }
+        ) { _, item ->
+            when (item) {
+                is ExploreGridItem.PostItem -> {
+                    val post = item.post
+                    Box(
+                        modifier = Modifier
+                            .padding(2.dp)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { onPostClick(item.postIndex) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        when {
+                            post.mediaType == "voice" -> {
+                                ExploreVoiceGridTile(post = post)
+                            }
+                            !post.mediaUrl.isNullOrBlank() -> {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(post.mediaThumb?.takeIf { it.isNotBlank() } ?: post.mediaUrl)
+                                        .size(gridImageSizePx)
+                                        .build(),
+                                    contentDescription = stringResource(R.string.explore_media_grid_desc),
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
+                                )
 
                         if (post.mediaType == "video") {
                             Surface(
@@ -399,18 +424,28 @@ private fun ExploreGrid(
                                 )
                             }
                         }
+                            }
+                            !post.contentText.isNullOrBlank() -> {
+                                ExploreTextGridTile(post = post)
+                            }
+                            else -> {
+                                Icon(
+                                    imageVector = Icons.Default.TextFields,
+                                    contentDescription = stringResource(R.string.explore_text_badge_desc),
+                                    tint = Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
                     }
-                    !post.contentText.isNullOrBlank() -> {
-                        ExploreTextGridTile(post = post)
-                    }
-                    else -> {
-                        Icon(
-                            imageVector = Icons.Default.TextFields,
-                            contentDescription = stringResource(R.string.explore_text_badge_desc),
-                            tint = Color.White.copy(alpha = 0.7f),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                }
+                ExploreGridItem.NativeAdItem -> {
+                    NativeAdCard(
+                        adUnitId = stringResource(R.string.admob_native),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
                 }
             }
         }
@@ -456,6 +491,11 @@ private fun ExploreGrid(
             }
         }
     }
+}
+
+private sealed interface ExploreGridItem {
+    data class PostItem(val post: Post, val postIndex: Int) : ExploreGridItem
+    object NativeAdItem : ExploreGridItem
 }
 
 @Composable

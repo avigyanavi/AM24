@@ -6040,6 +6040,8 @@
     <string name="accept_chat">Chấp nhận</string>
     <string name="reject_chat">Từ chối</string>
     <string name="pic_sent">Đã gửi ảnh</string>
+    <string name="admob_banner">ca-app-pub-5266481866342618/2812467062</string>
+    <string name="admob_native">ca-app-pub-5266481866342618/9230427957</string>
     <string name="request_sent_waiting">Đã gửi yêu cầu – chờ người dùng tham gia</string>
     <string name="request_rejected">Yêu cầu bị từ chối</string>
     <string name="user_left_chat">Người dùng đã rời cuộc chat</string>
