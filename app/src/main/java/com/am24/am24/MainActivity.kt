@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
-
+import com.google.firebase.firestore.SetOptions
 // ---------- AUTH STATE + VIEWMODEL ----------
 
 sealed class AuthState {
@@ -229,16 +229,16 @@ class MainActivity : ComponentActivity() {
         isNavigationInProgress = true
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val db = FirebaseRefs.db.reference
-            val userRef = db.child("users").child(user.uid)
-            val snap = userRef.get().await()
+            val userDoc = FirebaseRefs.userProfiles.document(user.uid)
+            val snap = userDoc.get().await()
+            val data = snap.data.orEmpty()
 
             val now = System.currentTimeMillis()
-            val isPlus = snap.child("isPlus").getValue(Boolean::class.java) == true
-            val isEntryFeePaid = snap.child("isEntryFeePaid").getValue(Boolean::class.java) == true
-            val loginPlusExpiry = snap.child("loginPlusExpiry").getValue(Long::class.java) ?: 0L
-            val entryFeePaidAt = snap.child("entryFeePaidAt").getValue(Long::class.java) ?: 0L
-            val currentRenewal = snap.child("nextRenewal").getValue(Long::class.java) ?: 0L
+            val isPlus = data["isPlus"] as? Boolean ?: false
+            val isEntryFeePaid = data["isEntryFeePaid"] as? Boolean ?: false
+            val loginPlusExpiry = (data["loginPlusExpiry"] as? Number)?.toLong() ?: 0L
+            val entryFeePaidAt = (data["entryFeePaidAt"] as? Number)?.toLong() ?: 0L
+            val currentRenewal = (data["nextRenewal"] as? Number)?.toLong() ?: 0L
 
             val entryFeeExpiryFromPaidAt = if (entryFeePaidAt > 0L) {
                 entryFeePaidAt + TimeUnit.DAYS.toMillis(30)
@@ -261,24 +261,23 @@ class MainActivity : ComponentActivity() {
                 }
 
                 if (updates.isNotEmpty()) {
-                    userRef.updateChildren(updates).await()
+                    if (snap.exists()) {
+                        userDoc.update(updates).await()
+                    } else {
+                        userDoc.set(updates, SetOptions.merge()).await()
+                    }
                 }
             }
 
             GclidStorageManager.flushPendingGclid(
                 this@MainActivity,
                 user.uid,
-                snap.child("gclid").getValue(String::class.java)
+                data["gclid"] as? String
             )
 
-            val finished = snap.child("registrationFinished")
-                .getValue(Boolean::class.java) ?: false
-            val step = (snap.child("registrationStep")
-                .getValue(Long::class.java) ?: 1L).toInt()
-
-            val hasProfile = !snap.child("username")
-                .getValue(String::class.java)
-                .isNullOrBlank()
+            val finished = data["registrationFinished"] as? Boolean ?: false
+            val step = (data["registrationStep"] as? Number)?.toLong()?.toInt() ?: 1
+            val hasProfile = !(data["username"] as? String).isNullOrBlank()
 
             val target = if (finished || hasProfile) {
                 Intent(this@MainActivity, KupidXAppActivity::class.java)

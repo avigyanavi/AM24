@@ -22,15 +22,7 @@ const DATABASE_CONFIGS = [
   {
     name: "kupidxdefault",
     url: "https://kupidxdefault.asia-southeast1.firebasedatabase.app",
-  },
-  {
-    name: "am-twentyfour",
-    url: "https://am-twentyfour.firebaseio.com",
-  },
-  {
-    name: "kupidx",
-    url: "https://kupidx.asia-southeast1.firebasedatabase.app",
-  },
+  }
 ];
 
 const bucketCache = new Map();
@@ -78,7 +70,7 @@ if (CONFIGURED_STORAGE_BUCKET_NAMES[0]) {
 }
 
 const primaryApp = admin.initializeApp(primaryAppOptions);
-
+const firestore = admin.firestore();
 const databaseTargets = DATABASE_CONFIGS.map((config, index) => {
   if (index === 0) {
     return { ...config, app: primaryApp, db: primaryApp.database() };
@@ -93,6 +85,14 @@ let db     = databaseTargets[activeDatabaseIndex]?.db;
 const getUsersRef = () => db.ref('users');
 const getChatId = (uid1, uid2) => (uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`);
 
+async function updateUserEntitlements(uid, updates) {
+  const rtdbRef = db.ref(`users/${uid}`);
+  const firestoreRef = firestore.collection('users').doc(uid);
+  await Promise.all([
+    rtdbRef.update(updates),
+    firestoreRef.set(updates, { merge: true }),
+  ]);
+}
 function snapshotToMessage(child) {
   if (!child || typeof child.val !== 'function') return null;
   const val = child.val() || {};
@@ -2178,8 +2178,10 @@ exports.loginEntitlementSweep = functions
       throw new functions.https.HttpsError('unauthenticated', 'Sign-in required');
     }
 
-    const snap = await db.ref(`users/${uid}`).get();
-    const u = snap.val() || {};
+    const firestoreSnap = await firestore.collection('users').doc(uid).get();
+    const firestoreData = firestoreSnap.exists ? firestoreSnap.data() : null;
+    const snap = firestoreData ? null : await db.ref(`users/${uid}`).get();
+    const u = firestoreData || snap?.val() || {};
 
     const now = Date.now();
     const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -2296,7 +2298,7 @@ exports.loginEntitlementSweep = functions
 
     if (Object.keys(updates).length) {
       updates.lastEntitlementSyncAt = now;
-      await db.ref(`users/${uid}`).update(updates);
+      await updateUserEntitlements(uid, updates);
     }
 
     return { ok: true, applied: updates };
@@ -3685,17 +3687,16 @@ exports.onPlaySubscriptionNotification = functions
         return;
       }
 
-      const ref = admin.database().ref(`users/${uid}`);
       const cancelTypes = [3, 12, 13]; // CANCELLED, REVOKED, EXPIRED
       if (cancelTypes.includes(notificationType)) {
-        await ref.update({
+        await updateUserEntitlements(uid, {
           isPlus: false,
           isPremium: false,
           subscriptionStatus: 'inactive',
           nextRenewal: null,
         });
       } else {
-        await ref.update({
+        await updateUserEntitlements(uid, {
           subscriptionStatus: 'active',
           nextRenewal: purchase.expiryTimeMillis
             ? Number(purchase.expiryTimeMillis)
@@ -3706,6 +3707,96 @@ exports.onPlaySubscriptionNotification = functions
       console.error('onPlaySubscriptionNotification error:', err);
     }
   });
+
+exports.backfillFirestoreProfilesFromRtdb = functions
+  .region('asia-south1')
+  .https.onRequest(async (req, res) => {
+    try {
+      const monthsParam = Number(req.query.months ?? 3);
+      const batchSizeParam = Number(req.query.batchSize ?? 250);
+      const months = Number.isFinite(monthsParam) && monthsParam > 0 ? monthsParam : 3;
+      const batchSize = Number.isFinite(batchSizeParam) && batchSizeParam > 0
+        ? Math.min(batchSizeParam, 500)
+        : 250;
+      const startAfterLastActive = req.query.startAfterLastActive
+        ? Number(req.query.startAfterLastActive)
+        : null;
+      const startAfterKey = req.query.startAfterKey
+        ? String(req.query.startAfterKey)
+        : null;
+
+      const cutoffTs = Date.now() - (months * 30 * 24 * 60 * 60 * 1_000);
+      const startAtTs = startAfterLastActive ?? cutoffTs;
+      const usersRef = getUsersRef();
+      const snap = await usersRef
+        .orderByChild("lastActive")
+        .startAt(startAtTs)
+        .limitToFirst(batchSize + 1)
+        .get();
+
+      const firestore = admin.firestore();
+      const payload = [];
+      snap.forEach((userSnap) => {
+        const data = userSnap.val() || {};
+        const lastActive = Number(data.lastActive) || 0;
+        if (lastActive < cutoffTs) return;
+        if (
+          startAfterLastActive !== null &&
+          lastActive === startAfterLastActive &&
+          startAfterKey &&
+          userSnap.key <= startAfterKey
+        ) {
+          return;
+        }
+        payload.push({ key: userSnap.key, data, lastActive });
+      });
+
+      let processed = 0;
+      let batch = firestore.batch();
+      for (const entry of payload.slice(0, batchSize)) {
+        const userId = entry.key;
+        const data = entry.data || {};
+        if (!data.userId) data.userId = userId;
+        const docRef = firestore.collection("users").doc(userId);
+        batch.set(docRef, data, { merge: true });
+        processed += 1;
+        if (processed % 400 === 0) {
+          await batch.commit();
+          batch = firestore.batch();
+        }
+      }
+      if (processed % 400 !== 0) {
+        await batch.commit();
+      }
+
+      const lastEntry = payload.length > 0 ? payload[Math.min(payload.length, batchSize) - 1] : null;
+      const originalUrl = typeof req.originalUrl === "string" ? req.originalUrl : "";
+      const basePath = originalUrl ? originalUrl.split("?")[0] : `${req.baseUrl}${req.path}`;
+      const baseUrl = `${req.protocol}://${req.get("host")}${basePath}`;
+      const nextPage = lastEntry
+        ? {
+          startAfterLastActive: lastEntry.lastActive,
+          startAfterKey: lastEntry.key,
+        }
+        : null;
+      const nextPageUrl = nextPage
+        ? `${baseUrl}?months=${months}&batchSize=${batchSize}&startAfterLastActive=${nextPage.startAfterLastActive}&startAfterKey=${encodeURIComponent(nextPage.startAfterKey)}`
+        : null;
+
+      res.status(200).json({
+        processed,
+        cutoffTs,
+        hasMore: processed === batchSize && payload.length > batchSize,
+        nextPage,
+        url: baseUrl,
+        nextPageUrl,
+      });
+    } catch (err) {
+      console.error("backfillFirestoreProfilesFromRtdb error:", err);
+      res.status(500).send(err.message);
+    }
+  });
+
 
 /**
  * Callable used by the client to force a subscription status check. This can
@@ -3740,20 +3831,19 @@ exports.syncPlaySubscription = functions
         );
       }
 
-      const ref = admin.database().ref(`users/${uid}`);
       const cancelReason = purchase.cancelReason;
       const expired =
         purchase.expiryTimeMillis &&
         Number(purchase.expiryTimeMillis) < Date.now();
       if (cancelReason != null || expired) {
-        await ref.update({
+        await updateUserEntitlements(uid, {
           isPlus: false,
           isPremium: false,
           subscriptionStatus: 'inactive',
           nextRenewal: null,
         });
       } else {
-        await ref.update({
+        await updateUserEntitlements(uid, {
           subscriptionStatus: 'active',
           nextRenewal: purchase.expiryTimeMillis
             ? Number(purchase.expiryTimeMillis)
